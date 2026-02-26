@@ -42,7 +42,7 @@ export default function FeedPage() {
     <div className="mx-auto max-w-2xl">
       {/* Header */}
       <div className="sticky top-16 z-20 border-b border-border bg-background/95 px-4 py-3 backdrop-blur-md">
-        <h1 className="text-lg font-bold text-foreground">Feedalex</h1>
+        <h1 className="text-lg font-bold text-foreground">Feed</h1>
       </div>
 
       {/* Posts */}
