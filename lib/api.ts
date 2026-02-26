@@ -1,4 +1,4 @@
-const API_BASE_URL = "https://sparkd1-0.onrender.com"
+const API_BASE_URL = "/api/proxy"
 
 class ApiError extends Error {
   status: number
