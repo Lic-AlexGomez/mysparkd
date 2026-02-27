@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import { AppShell } from "@/components/layout/app-shell"
-import { Flame } from "lucide-react"
+import { Zap } from "lucide-react"
 
 export default function AppLayout({
   children,
@@ -24,7 +24,7 @@ export default function AppLayout({
     return (
       <div className="flex min-h-svh items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
-          <Flame className="h-10 w-10 text-primary animate-pulse" />
+          <Zap className="h-10 w-10 text-primary animate-pulse" />
           <span className="text-sm text-muted-foreground">Cargando...</span>
         </div>
       </div>
