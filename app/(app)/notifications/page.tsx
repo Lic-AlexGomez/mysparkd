@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
+import { notificationService } from "@/lib/services/notification"
 import type { Notification } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Bell, Loader2, Trash2, Check } from "lucide-react"
@@ -23,7 +24,16 @@ export default function NotificationsPage() {
       )
       setNotifications(data)
     } catch {
-      // silent
+      const localNotifs = notificationService.getNotifications(user.userId)
+      setNotifications(localNotifs.map(n => ({
+        notificationId: n.id,
+        type: n.type,
+        message: n.message,
+        read: n.read,
+        createdAt: n.createdAt,
+        relatedUserId: n.relatedUserId || '',
+        relatedUsername: ''
+      })))
     } finally {
       setIsLoading(false)
     }
@@ -38,7 +48,8 @@ export default function NotificationsPage() {
       await api.put(`/api/notifications/${id}/read`)
       fetchNotifications()
     } catch {
-      toast.error("Error al marcar como leida")
+      notificationService.markAsRead(id)
+      fetchNotifications()
     }
   }
 

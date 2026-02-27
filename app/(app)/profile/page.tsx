@@ -8,6 +8,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { reputationService } from "@/lib/services/reputation"
+import { followService } from "@/lib/services/follow"
+import { bookmarkService } from "@/lib/services/bookmark"
 import {
   Dialog,
   DialogContent,
@@ -17,21 +20,27 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Pencil, Loader2, Camera, Newspaper } from "lucide-react"
+import { Pencil, Loader2, Camera, Newspaper, Shield, Bookmark, Heart } from "lucide-react"
 import { toast } from "sonner"
 import { PostCard } from "@/components/feed/post-card"
+import { useRouter } from "next/navigation"
+import { uploadToCloudinary } from "@/lib/cloudinary"
 
 export default function ProfilePage() {
-  const { user, refreshProfile } = useAuth()
+  const { user, refreshProfile, isLoading } = useAuth()
+  const router = useRouter()
+  
+  console.log('[ProfilePage] user:', user)
+  console.log('[ProfilePage] isLoading:', isLoading)
   const [editOpen, setEditOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const [nombres, setNombres] = useState(user?.nombres || "")
   const [apellidos, setApellidos] = useState(user?.apellidos || "")
   const [sex, setSex] = useState<Sex>(user?.sex || "MALE")
   const [telefono, setTelefono] = useState(user?.telefono || "")
 
   const handleSaveProfile = async () => {
-    setIsLoading(true)
+    setIsSaving(true)
     try {
       await api.put("/api/profile", {
         nombres: nombres.trim(),
@@ -45,7 +54,7 @@ export default function ProfilePage() {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al actualizar")
     } finally {
-      setIsLoading(false)
+      setIsSaving(false)
     }
   }
 
@@ -53,27 +62,104 @@ export default function ProfilePage() {
   const initials = user
     ? `${user.nombres?.[0] || ""}${user.apellidos?.[0] || ""}`.toUpperCase()
     : "?"
+  
+  const reputation = user?.reputation || 75
+  const reputationColor = reputationService.getReputationColor(reputation)
+  const followersCount = user?.userId ? followService.getFollowersCount(user.userId) : 0
+  const followingCount = user?.userId ? followService.getFollowingCount(user.userId) : 0
+  const savedPostsCount = user?.userId ? bookmarkService.getBookmarkedPosts(user.userId).length : 0
 
-  if (!user) return null
+  if (isLoading) return (
+    <div className="flex h-screen items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  )
+
+  if (!user) return (
+    <div className="flex h-screen items-center justify-center">
+      <p className="text-muted-foreground">No se pudo cargar el perfil</p>
+    </div>
+  )
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
       {/* Profile header */}
       <Card className="overflow-hidden border-border bg-card">
         {/* Cover gradient */}
-        <div className="h-32 bg-gradient-to-r from-primary/40 via-secondary/30 to-primary/20" />
+        <div className="h-32 bg-gradient-to-r from-secondary/40 via-primary/30 to-secondary/20" />
         <CardContent className="relative px-6 pb-6">
           {/* Avatar */}
           <div className="-mt-16 mb-4 flex items-end justify-between">
-            <Avatar className="h-28 w-28 border-4 border-card shadow-lg">
-              <AvatarImage
-                src={primaryPhoto?.url}
-                alt={user.nombres}
+            <div className="relative group">
+              <div className="p-1 rounded-full border-4 border-primary/30 bg-card">
+                <Avatar className="h-28 w-28 border-4 border-card shadow-lg">
+                  <AvatarImage
+                    src={primaryPhoto?.url}
+                    alt={user.nombres}
+                  />
+                  <AvatarFallback className="bg-primary/20 text-primary text-3xl">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+              <button
+                onClick={() => document.getElementById('avatar-upload')?.click()}
+                className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Camera className="h-4 w-4 text-black" />
+              </button>
+              <input
+                id="avatar-upload"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  
+                  const toastId = toast.loading('Subiendo foto...')
+                  
+                  try {
+                    const imageUrl = await uploadToCloudinary(file)
+                    console.log('Imagen subida a Cloudinary:', imageUrl)
+                    
+                    try {
+                      await api.post('/api/photos/add', {
+                        url: imageUrl,
+                        position: 0,
+                        primary: true
+                      })
+                      await refreshProfile()
+                      toast.dismiss(toastId)
+                      toast.success('Foto actualizada')
+                    } catch (apiError) {
+                      console.error('Error del backend:', apiError)
+                      // Actualizar localmente como fallback
+                      if (user) {
+                        const updatedUser = {
+                          ...user,
+                          photos: [
+                            { photoId: Date.now().toString(), url: imageUrl, isPrimary: true },
+                            ...(user.photos?.filter(p => !p.isPrimary) || [])
+                          ]
+                        }
+                        localStorage.setItem('sparkd_user', JSON.stringify(updatedUser))
+                        await refreshProfile()
+                        toast.dismiss(toastId)
+                        toast.success('Foto actualizada (guardada localmente)')
+                      }
+                    }
+                  } catch (error) {
+                    toast.dismiss(toastId)
+                    toast.error('Error al subir foto')
+                    console.error(error)
+                  }
+                }}
               />
-              <AvatarFallback className="bg-primary/20 text-primary text-3xl">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+              <div className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-gradient-to-br from-secondary to-primary flex items-center justify-center text-xs font-bold text-white shadow-lg">
+                {user.verificationLevel || 1}
+              </div>
+            </div>
             <Dialog open={editOpen} onOpenChange={setEditOpen}>
               <DialogTrigger asChild>
                 <Button
@@ -144,10 +230,10 @@ export default function ProfilePage() {
                   </div>
                   <Button
                     onClick={handleSaveProfile}
-                    disabled={isLoading}
+                    disabled={isSaving}
                     className="bg-primary text-primary-foreground hover:bg-primary/90"
                   >
-                    {isLoading ? (
+                    {isSaving ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : null}
                     Guardar
@@ -159,9 +245,19 @@ export default function ProfilePage() {
 
           {/* User info */}
           <div>
-            <h1 className="text-xl font-bold text-foreground">
-              {user.nombres} {user.apellidos}
-            </h1>
+            <div className="flex items-center gap-2 mb-1">
+              <h1 className="text-xl font-bold text-foreground">
+                {user.nombres} {user.apellidos}
+              </h1>
+              <Badge 
+                className="px-2 py-0.5 text-xs font-bold text-black border-0 flex items-center gap-1" 
+                style={{ backgroundColor: reputationColor }}
+              >
+                <Shield className="h-3 w-3" />
+                {reputation}
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground mb-2">Nivel {user.verificationLevel || 1} verificado</p>
             <div className="mt-1 flex items-center gap-2">
               <Badge
                 variant="secondary"
@@ -190,6 +286,24 @@ export default function ProfilePage() {
             </div>
             <div className="flex flex-col items-center">
               <span className="text-lg font-bold text-foreground">
+                {followersCount}
+              </span>
+              <span className="text-xs text-muted-foreground">Seguidores</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <span className="text-lg font-bold text-foreground">
+                {followingCount}
+              </span>
+              <span className="text-xs text-muted-foreground">Siguiendo</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <span className="text-lg font-bold text-foreground">
+                {savedPostsCount}
+              </span>
+              <span className="text-xs text-muted-foreground">Guardados</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <span className="text-lg font-bold text-foreground">
                 {user.photos?.length || 0}
               </span>
               <span className="text-xs text-muted-foreground">Fotos</span>
@@ -201,15 +315,15 @@ export default function ProfilePage() {
       {/* Photo gallery */}
       {user.photos && user.photos.length > 0 && (
         <div className="mt-6">
-          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
+          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground px-4">
             <Camera className="h-4 w-4" />
             Fotos
           </h2>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-2 px-4">
             {user.photos.map((photo) => (
               <div
                 key={photo.photoId}
-                className="aspect-square overflow-hidden rounded-lg"
+                className="aspect-square overflow-hidden rounded-lg border border-border"
               >
                 <img
                   src={photo.url}
@@ -222,6 +336,67 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+
+      {/* Interests */}
+      <div className="mt-6 px-4">
+        <h2 className="mb-3 text-sm font-semibold text-foreground">Intereses</h2>
+        <div className="flex flex-wrap gap-2">
+          <span className="px-3 py-1.5 rounded-full bg-muted/20 border border-primary/30 text-xs text-foreground">
+            Tecnología
+          </span>
+          <span className="px-3 py-1.5 rounded-full bg-muted/20 border border-primary/30 text-xs text-foreground">
+            Música
+          </span>
+          <span className="px-3 py-1.5 rounded-full bg-muted/20 border border-primary/30 text-xs text-foreground">
+            Deportes
+          </span>
+        </div>
+      </div>
+
+      {/* Menu Items */}
+      <div className="mt-6 px-4 space-y-3">
+        <button
+          onClick={() => router.push('/saved')}
+          className="w-full flex items-center gap-3 p-4 rounded-2xl bg-card border border-primary/30 hover:bg-card/80 transition-colors"
+        >
+          <div className="h-10 w-10 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center">
+            <Bookmark className="h-5 w-5 text-primary" />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="text-sm font-semibold text-foreground">Posts Guardados</p>
+            <p className="text-xs text-muted-foreground">{savedPostsCount} posts guardados</p>
+          </div>
+          <Shield className="h-4 w-4 text-muted-foreground" />
+        </button>
+
+        <button
+          onClick={() => router.push('/matches')}
+          className="w-full flex items-center gap-3 p-4 rounded-2xl bg-card border border-primary/30 hover:bg-card/80 transition-colors"
+        >
+          <div className="h-10 w-10 rounded-full bg-secondary/10 border border-secondary/30 flex items-center justify-center">
+            <Heart className="h-5 w-5 text-secondary" />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="text-sm font-semibold text-foreground">Mis Matches</p>
+            <p className="text-xs text-muted-foreground">Ver conexiones</p>
+          </div>
+          <Shield className="h-4 w-4 text-muted-foreground" />
+        </button>
+
+        <button
+          onClick={() => router.push('/settings')}
+          className="w-full flex items-center gap-3 p-4 rounded-2xl bg-card border border-primary/30 hover:bg-card/80 transition-colors"
+        >
+          <div className="h-10 w-10 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center">
+            <Shield className="h-5 w-5 text-primary" />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="text-sm font-semibold text-foreground">Reputación Detallada</p>
+            <p className="text-xs text-muted-foreground">Ver tus métricas completas</p>
+          </div>
+          <Shield className="h-4 w-4 text-muted-foreground" />
+        </button>
+      </div>
 
       {/* User posts */}
       <div className="mt-6">

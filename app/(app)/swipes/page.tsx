@@ -2,11 +2,15 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { api } from "@/lib/api"
+import { compatibilityService } from "@/lib/services/compatibility"
+import { reputationService } from "@/lib/services/reputation"
+import { matchService } from "@/lib/services/match"
 import type { UserProfile, SwipeResponse } from "@/lib/types"
 import { SwipeCard } from "@/components/swipes/swipe-card"
 import { MatchModal } from "@/components/swipes/match-modal"
 import { Button } from "@/components/ui/button"
-import { X, Heart, Loader2, Flame } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { X, Heart, Loader2, Flame, Eye } from "lucide-react"
 import { AnimatePresence } from "framer-motion"
 
 export default function SwipesPage() {
@@ -41,6 +45,20 @@ export default function SwipesPage() {
     const type = direction === "right" ? "LIKE" : "DISLIKE"
 
     try {
+      if (type === "LIKE") {
+        const result = matchService.like('current-user-id', currentProfile.userId)
+        
+        if (result.matched) {
+          const { notificationService } = await import('@/lib/services/notification')
+          notificationService.create(currentProfile.userId, 'match', '¡Tienes un nuevo match!', 'current-user-id')
+          setMatchedUser({
+            id: currentProfile.userId,
+            name: `${currentProfile.nombres} ${currentProfile.apellidos}`,
+          })
+          setShowMatch(true)
+        }
+      }
+      
       const response = await api.post<SwipeResponse>("/api/swipes/perform/swipe", {
         targetUserId: currentProfile.userId,
         type,

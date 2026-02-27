@@ -1,36 +1,35 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
-import { api } from "@/lib/api"
-import type { Post } from "@/lib/types"
+import { useState } from "react"
+import { useFeed } from "@/hooks/use-feed"
 import { PostCard } from "@/components/feed/post-card"
 import { CreatePostDialog } from "@/components/feed/create-post-dialog"
-import { Loader2, Newspaper } from "lucide-react"
+import { EngagementStats } from "@/components/feed/engagement-stats"
+import { Loader2, Newspaper, Sliders } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+
+const sortOptions = [
+  { value: 'chronological' as const, label: 'Cronológico', icon: '🕐' },
+  { value: 'relevant' as const, label: 'Relevante', icon: '⚡' },
+  { value: 'compatible' as const, label: 'Compatible', icon: '💫' },
+  { value: 'top' as const, label: 'Populares', icon: '🔥' },
+]
 
 export default function FeedPage() {
-  const [posts, setPosts] = useState<Post[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-
-  const fetchPosts = useCallback(async () => {
-    try {
-      const data = await api.get<Post[]>("/api/posts/feed")
-      setPosts(data)
-    } catch {
-      // silent
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    fetchPosts()
-  }, [fetchPosts])
+  const { posts, sortMode, loading, onRefresh, changeSortMode } = useFeed()
+  const [localPosts, setLocalPosts] = useState(posts)
 
   const handleDelete = (postId: string) => {
-    setPosts((prev) => prev.filter((p) => p.id !== postId))
+    setLocalPosts((prev) => prev.filter((p) => p.id !== postId))
   }
 
-  if (isLoading) {
+  if (loading && posts.length === 0) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -40,13 +39,36 @@ export default function FeedPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
+      {/* Stats */}
+      {posts.length > 0 && <EngagementStats posts={posts} />}
+
       {/* Header */}
-      <div className="sticky top-16 z-20 border-b border-border bg-background/95 px-4 py-3 backdrop-blur-md">
+      <div className="sticky top-16 z-20 border-b border-border bg-background/95 px-4 py-3 backdrop-blur-md flex items-center justify-between">
         <h1 className="text-lg font-bold text-foreground">Feed</h1>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="gap-2">
+              <Sliders className="h-4 w-4" />
+              <span className="text-lg">{sortOptions.find(o => o.value === sortMode)?.icon}</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="bg-card border-border">
+            {sortOptions.map((option) => (
+              <DropdownMenuItem
+                key={option.value}
+                onClick={() => changeSortMode(option.value)}
+                className={sortMode === option.value ? 'bg-primary/10 text-primary' : ''}
+              >
+                <span className="mr-2">{option.icon}</span>
+                {option.label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Posts */}
-      {posts.length === 0 ? (
+      {(localPosts.length > 0 ? localPosts : posts).length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 py-20">
           <Newspaper className="h-12 w-12 text-muted-foreground" />
           <p className="text-muted-foreground">No hay posts aun</p>
@@ -55,19 +77,19 @@ export default function FeedPage() {
           </p>
         </div>
       ) : (
-        <div>
-          {posts.map((post) => (
+        <div className="p-4">
+          {(localPosts.length > 0 ? localPosts : posts).map((post) => (
             <PostCard
               key={post.id}
               post={post}
               onDelete={handleDelete}
-              onUpdate={fetchPosts}
+              onUpdate={onRefresh}
             />
           ))}
         </div>
       )}
 
-      <CreatePostDialog onCreated={fetchPosts} />
+          <CreatePostDialog onCreated={onRefresh} />
     </div>
   )
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
+import { commentService } from "@/lib/services/comment"
 import type { Comment as CommentType, CommentReply } from "@/lib/types"
 import {
   Dialog,
@@ -40,7 +41,19 @@ export function CommentsSheet({ postId, open, onOpenChange }: CommentsSheetProps
       const data = await api.get<CommentType[]>(`/api/comments/${postId}/comments`)
       setComments(data)
     } catch {
-      // silent
+      const localComments = commentService.getComments(postId)
+      setComments(localComments.map(c => ({
+        commentsId: c.id,
+        text: c.text,
+        createdAt: c.createdAt,
+        lastUpdated: c.createdAt,
+        username: c.username,
+        userId: c.userId,
+        locked: false,
+        totalComments: 0,
+        likeCount: c.likeCount,
+        commentReplies: 0
+      })))
     }
   }, [postId])
 
@@ -49,14 +62,18 @@ export function CommentsSheet({ postId, open, onOpenChange }: CommentsSheetProps
   }, [open, fetchComments])
 
   const handleSubmitComment = async () => {
-    if (!newComment.trim()) return
+    if (!newComment.trim() || !user) return
     setIsLoading(true)
     try {
       await api.post(`/api/comments/${postId}`, { text: newComment.trim() })
+      const { notificationService } = await import('@/lib/services/notification')
+      notificationService.create('post-owner-id', 'comment', `${user.nombres} comentó tu post`, user.userId)
       setNewComment("")
       fetchComments()
     } catch {
-      toast.error("Error al comentar")
+      commentService.addComment(postId, user.userId, user.nombres, newComment.trim())
+      setNewComment("")
+      fetchComments()
     } finally {
       setIsLoading(false)
     }

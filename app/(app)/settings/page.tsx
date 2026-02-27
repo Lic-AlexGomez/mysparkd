@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
+import { Badge } from "@/components/ui/badge"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,6 +42,9 @@ export default function SettingsPage() {
   const [interestedIn, setInterestedIn] = useState<Sex>("FEMALE")
   const [ageRange, setAgeRange] = useState([18, 35])
   const [showMe, setShowMe] = useState(true)
+  const [isPrivate, setIsPrivate] = useState(false)
+  const [connectionMode, setConnectionMode] = useState(true)
+  const [objective, setObjective] = useState('both')
   const [prefLoading, setPrefLoading] = useState(true)
   const [savingPref, setSavingPref] = useState(false)
 
@@ -127,6 +131,58 @@ export default function SettingsPage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
       <h1 className="mb-6 text-xl font-bold text-foreground">Configuracion</h1>
+
+      {/* Privacy & Mode */}
+      <Card className="border-border bg-card mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-foreground text-base">
+            <SlidersHorizontal className="h-4 w-4" />
+            Privacidad y Modo
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <div className="flex items-center justify-between p-4 rounded-lg border border-primary/30 bg-card">
+            <div className="flex-1">
+              <Label className="text-foreground font-medium">Perfil Privado</Label>
+              <p className="text-xs text-muted-foreground mt-1">Solo seguidores ven tus posts</p>
+            </div>
+            <Switch checked={isPrivate} onCheckedChange={setIsPrivate} />
+          </div>
+          <div className="flex items-center justify-between p-4 rounded-lg border border-primary/30 bg-card">
+            <div className="flex-1">
+              <Label className="text-foreground font-medium">Modo Conexión</Label>
+              <p className="text-xs text-muted-foreground mt-1">Aparecer en sugerencias de matching</p>
+            </div>
+            <Switch checked={connectionMode} onCheckedChange={setConnectionMode} />
+          </div>
+          <div className="p-4 rounded-lg border border-primary/30 bg-card">
+            <Label className="text-foreground font-medium mb-3 block">Experiencia</Label>
+            <div className="flex flex-col gap-2">
+              {[
+                { id: 'social', label: '🤝 Social', desc: 'Solo red social' },
+                { id: 'connection', label: '💫 Conexión', desc: 'Solo dating/matching' },
+                { id: 'both', label: '⚡ Ambos', desc: 'Experiencia completa' },
+              ].map((exp) => (
+                <button
+                  key={exp.id}
+                  onClick={() => setObjective(exp.id)}
+                  className={`flex items-center justify-between p-3 rounded-lg transition-colors ${
+                    objective === exp.id
+                      ? 'bg-primary/10 border border-primary'
+                      : 'bg-muted border border-transparent hover:bg-muted/80'
+                  }`}
+                >
+                  <div className="text-left">
+                    <p className="text-sm font-medium text-foreground">{exp.label}</p>
+                    <p className="text-xs text-muted-foreground">{exp.desc}</p>
+                  </div>
+                  {objective === exp.id && <Check className="h-4 w-4 text-primary" />}
+                </button>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Preferences */}
       <Card className="border-border bg-card mb-6">

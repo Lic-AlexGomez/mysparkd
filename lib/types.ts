@@ -49,6 +49,9 @@ export interface UserProfile {
   photos: Photo[]
   posts: Post[]
   totalPosts: number
+  reputation?: number
+  verificationLevel?: number
+  interests?: string[]
 }
 
 export interface CreateProfileRequest {
@@ -80,7 +83,11 @@ export interface Post {
   unlocked: boolean
   likeCount: number
   commentsCount: number
+  repostCount?: number
   message: string | null
+  reputation?: number
+  verificationLevel?: number
+  interests?: string[]
 }
 
 export interface CreatePostRequest {

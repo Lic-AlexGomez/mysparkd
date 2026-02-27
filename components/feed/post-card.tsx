@@ -21,11 +21,18 @@ import {
   Trash2,
   Lock,
   Clock,
+  Repeat2,
+  Share2,
 } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { reputationService } from "@/lib/services/reputation"
+import { bookmarkService } from "@/lib/services/bookmark"
+import { reportService } from "@/lib/services/report"
 import { toast } from "sonner"
 import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
 import { CommentsSheet } from "./comments-sheet"
+import { RepostModal } from "./repost-modal"
 
 interface PostCardProps {
   post: Post
@@ -37,14 +44,26 @@ export function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
   const { user } = useAuth()
   const [likeCount, setLikeCount] = useState(post.likeCount)
   const [liked, setLiked] = useState(false)
+  const [repostCount, setRepostCount] = useState(post.repostCount || 0)
+  const [reposted, setReposted] = useState(false)
+  const [bookmarked, setBookmarked] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
   const [showComments, setShowComments] = useState(false)
+  const [showRepostModal, setShowRepostModal] = useState(false)
   const isOwn = user?.userId === post.userId
+  
+  const reputation = post.reputation || 75
+  const reputationColor = reputationService.getReputationColor(reputation)
 
   const toggleLike = async () => {
     setLiked(!liked)
     setLikeCount((prev) => (liked ? prev - 1 : prev + 1))
     try {
       await api.post(`/api/likes/toggle?targetId=${post.id}`)
+      if (!liked && post.userId !== user?.userId) {
+        const { notificationService } = await import('@/lib/services/notification')
+        notificationService.create(post.userId, 'like', `${user?.nombres || 'Alguien'} le gustó tu post`, user?.userId)
+      }
     } catch {
       setLiked(!liked)
       setLikeCount((prev) => (liked ? prev + 1 : prev - 1))
@@ -61,6 +80,34 @@ export function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
     }
   }
 
+  const handleBookmark = () => {
+    if (user?.userId) {
+      const isBookmarked = bookmarkService.toggleBookmark(user.userId, post.id)
+      setBookmarked(isBookmarked)
+      toast.success(isBookmarked ? 'Post guardado' : 'Post removido')
+      setShowMenu(false)
+    }
+  }
+
+  const handleReport = () => {
+    if (user?.userId) {
+      const reason = prompt('Motivo del reporte (mínimo 10 caracteres):')
+      if (reason && reason.length >= 10) {
+        reportService.createReport(user.userId, post.id, 'post', reason)
+        toast.success('Reporte enviado')
+        setShowMenu(false)
+      } else if (reason) {
+        toast.error('El motivo debe tener al menos 10 caracteres')
+      }
+    }
+  }
+
+  const handleRepost = (comment: string) => {
+    setReposted(true)
+    setRepostCount(prev => prev + 1)
+    toast.success('Post reposteado')
+  }
+
   const timeAgo = formatDistanceToNow(new Date(post.createdAt), {
     addSuffix: true,
     locale: es,
@@ -68,7 +115,7 @@ export function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
 
   return (
     <>
-      <article className="border-b border-border bg-card p-4">
+      <article className="border border-border bg-card p-4 rounded-2xl mb-3 hover:border-primary/30 transition-colors">
         {/* Locked overlay */}
         {post.locked && !post.unlocked && (
           <div className="mb-3 flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
@@ -83,15 +130,23 @@ export function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
             href={isOwn ? "/profile" : `/profile/${post.userId}`}
             className="flex items-center gap-3"
           >
-            <Avatar className="h-10 w-10 border border-border">
-              <AvatarFallback className="bg-primary/20 text-primary text-xs">
+            <Avatar className="h-10 w-10 border-2 border-primary ring-2 ring-primary/20">
+              <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
                 {post.username?.[0]?.toUpperCase() || "?"}
               </AvatarFallback>
             </Avatar>
             <div>
-              <p className="text-sm font-semibold text-foreground">
-                {post.username}
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-semibold text-foreground">
+                  {post.username}
+                </p>
+                <Badge 
+                  className="px-1.5 py-0 text-[10px] font-bold text-black border-0" 
+                  style={{ backgroundColor: reputationColor }}
+                >
+                  {reputation}
+                </Badge>
+              </div>
               <p className="text-xs text-muted-foreground">{timeAgo}</p>
             </div>
           </Link>
@@ -101,6 +156,27 @@ export function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
                 <Clock className="h-3 w-3" />
                 Temporal
               </span>
+            )}
+            {!isOwn && (
+              <DropdownMenu open={showMenu} onOpenChange={setShowMenu}>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground"
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-card border-border">
+                  <DropdownMenuItem onClick={handleBookmark} className="cursor-pointer">
+                    {bookmarked ? '✓ Guardado' : 'Guardar'}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleReport} className="cursor-pointer text-destructive">
+                    Reportar
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
             {isOwn && (
               <DropdownMenu>
@@ -161,10 +237,10 @@ export function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
             className="flex items-center gap-1.5 text-sm transition-colors"
           >
             <Heart
-              className={`h-5 w-5 transition-colors ${
+              className={`h-5 w-5 transition-all ${
                 liked
-                  ? "fill-secondary text-secondary"
-                  : "text-muted-foreground hover:text-secondary"
+                  ? "fill-secondary text-secondary drop-shadow-[0_0_8px_rgba(217,70,239,0.5)]"
+                  : "text-muted-foreground hover:text-secondary hover:scale-110"
               }`}
             />
             <span
@@ -177,8 +253,26 @@ export function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
             onClick={() => setShowComments(true)}
             className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            <MessageCircle className="h-5 w-5" />
+            <MessageCircle className="h-5 w-5 hover:text-primary hover:scale-110 transition-all" />
             <span>{post.commentsCount}</span>
+          </button>
+          <button
+            onClick={() => setShowRepostModal(true)}
+            className="flex items-center gap-1.5 text-sm transition-all"
+          >
+            <Repeat2
+              className={`h-5 w-5 transition-all ${
+                reposted
+                  ? "text-primary drop-shadow-[0_0_8px_rgba(0,229,255,0.5)]"
+                  : "text-muted-foreground hover:text-primary hover:scale-110"
+              }`}
+            />
+            <span className={reposted ? "text-primary" : "text-muted-foreground"}>
+              {repostCount}
+            </span>
+          </button>
+          <button className="ml-auto text-muted-foreground hover:text-foreground transition-colors">
+            <Share2 className="h-5 w-5" />
           </button>
         </div>
       </article>
@@ -187,6 +281,11 @@ export function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
         postId={post.id}
         open={showComments}
         onOpenChange={setShowComments}
+      />
+      <RepostModal
+        open={showRepostModal}
+        onOpenChange={setShowRepostModal}
+        onRepost={handleRepost}
       />
     </>
   )

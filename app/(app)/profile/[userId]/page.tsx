@@ -3,18 +3,40 @@
 import { useState, useEffect, useCallback } from "react"
 import { useParams } from "next/navigation"
 import { api } from "@/lib/api"
+import { useAuth } from "@/lib/auth-context"
+import { followService } from "@/lib/services/follow"
+import { notificationService } from "@/lib/services/notification"
+import { blockService } from "@/lib/services/block"
+import { reportService } from "@/lib/services/report"
+import { reputationService } from "@/lib/services/reputation"
 import type { UserProfile } from "@/lib/types"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Camera, Newspaper } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Loader2, Camera, Newspaper, MoreHorizontal, Shield } from "lucide-react"
 import { PostCard } from "@/components/feed/post-card"
+import { toast } from "sonner"
 
 export default function UserProfilePage() {
+  const { user } = useAuth()
   const params = useParams()
   const userId = params.userId as string
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [following, setFollowing] = useState(false)
+
+  useEffect(() => {
+    if (user?.userId) {
+      setFollowing(followService.isFollowing(user.userId, userId))
+    }
+  }, [user, userId])
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -30,6 +52,37 @@ export default function UserProfilePage() {
   useEffect(() => {
     fetchProfile()
   }, [fetchProfile])
+
+  const handleFollow = () => {
+    if (!user?.userId) return
+    if (following) {
+      followService.unfollow(user.userId, userId)
+      setFollowing(false)
+      toast.success('Dejaste de seguir')
+    } else {
+      followService.follow(user.userId, userId)
+      setFollowing(true)
+      notificationService.create(userId, 'follow', `${user.nombres} te ha seguido`, user.userId)
+      toast.success('Siguiendo')
+    }
+  }
+
+  const handleBlock = () => {
+    if (!user?.userId) return
+    blockService.blockUser(user.userId, userId)
+    toast.success('Usuario bloqueado')
+  }
+
+  const handleReport = () => {
+    if (!user?.userId) return
+    const reason = prompt('Motivo del reporte (mínimo 10 caracteres):')
+    if (reason && reason.length >= 10) {
+      reportService.createReport(user.userId, userId, 'user', reason)
+      toast.success('Reporte enviado')
+    } else if (reason) {
+      toast.error('El motivo debe tener al menos 10 caracteres')
+    }
+  }
 
   if (isLoading) {
     return (
@@ -49,6 +102,10 @@ export default function UserProfilePage() {
 
   const primaryPhoto = profile.photos?.find((p) => p.isPrimary)
   const initials = `${profile.nombres?.[0] || ""}${profile.apellidos?.[0] || ""}`.toUpperCase()
+  const reputation = profile.reputation || 75
+  const reputationColor = reputationService.getReputationColor(reputation)
+  const followersCount = followService.getFollowersCount(userId)
+  const followingCount = followService.getFollowingCount(userId)
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
@@ -64,15 +121,48 @@ export default function UserProfilePage() {
             </Avatar>
           </div>
           <div>
-            <h1 className="text-xl font-bold text-foreground">
-              {profile.nombres} {profile.apellidos}
-            </h1>
-            <Badge
-              variant="secondary"
-              className="mt-1 bg-primary/10 text-primary border-0 text-xs"
-            >
-              {profile.sex === "MALE" ? "Hombre" : "Mujer"}
-            </Badge>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl font-bold text-foreground">
+                    {profile.nombres} {profile.apellidos}
+                  </h1>
+                  <Badge 
+                    className="px-2 py-0.5 text-xs font-bold text-black border-0 flex items-center gap-1" 
+                    style={{ backgroundColor: reputationColor }}
+                  >
+                    <Shield className="h-3 w-3" />
+                    {reputation}
+                  </Badge>
+                </div>
+                <Badge
+                  variant="secondary"
+                  className="mt-1 bg-primary/10 text-primary border-0 text-xs"
+                >
+                  {profile.sex === "MALE" ? "Hombre" : "Mujer"}
+                </Badge>
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={handleFollow} variant={following ? "outline" : "default"}>
+                  {following ? 'Siguiendo' : 'Seguir'}
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-card border-border">
+                    <DropdownMenuItem onClick={handleReport} className="cursor-pointer">
+                      Reportar
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleBlock} className="cursor-pointer text-destructive">
+                      Bloquear
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
           </div>
           <div className="mt-4 flex items-center gap-6">
             <div className="flex flex-col items-center">
@@ -80,6 +170,18 @@ export default function UserProfilePage() {
                 {profile.totalPosts}
               </span>
               <span className="text-xs text-muted-foreground">Posts</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <span className="text-lg font-bold text-foreground">
+                {followersCount}
+              </span>
+              <span className="text-xs text-muted-foreground">Seguidores</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <span className="text-lg font-bold text-foreground">
+                {followingCount}
+              </span>
+              <span className="text-xs text-muted-foreground">Siguiendo</span>
             </div>
             <div className="flex flex-col items-center">
               <span className="text-lg font-bold text-foreground">
