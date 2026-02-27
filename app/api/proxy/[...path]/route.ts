@@ -11,7 +11,10 @@ async function handler(
   const queryString = url.search
   const targetUrl = `${BACKEND_URL}${endpoint}${queryString}`
 
-  const headers: Record<string, string> = {}
+  const headers: Record<string, string> = {
+    "Accept": "*/*"
+  }
+  
   const authHeader = request.headers.get("authorization")
   if (authHeader) {
     headers["Authorization"] = authHeader
@@ -31,12 +34,16 @@ async function handler(
     }
   }
 
+  console.log(`[proxy] ${request.method} ${targetUrl}`, { headers, bodyLength: body?.length })
+
   try {
     const response = await fetch(targetUrl, {
       method: request.method,
       headers,
       body: body || undefined,
     })
+
+    console.log(`[proxy] Response ${response.status}`, response.statusText)
 
     const responseHeaders = new Headers()
     const respContentType = response.headers.get("content-type")

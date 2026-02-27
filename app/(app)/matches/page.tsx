@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { api } from "@/lib/api"
+import { matchService } from "@/lib/services/match"
+import { useAuth } from "@/lib/auth-context"
 import type { Match, Chat } from "@/lib/types"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -26,6 +28,7 @@ import { es } from "date-fns/locale"
 
 export default function MatchesPage() {
   const router = useRouter()
+  const { user } = useAuth()
   const [matches, setMatches] = useState<Match[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -34,11 +37,19 @@ export default function MatchesPage() {
       const data = await api.get<Match[]>("/api/matches/my/matches")
       setMatches(data)
     } catch {
-      // silent
+      if (user?.userId) {
+        const localMatches = matchService.getMatches(user.userId)
+        setMatches(localMatches.map(m => ({
+          matchId: m.matchId,
+          userId: m.userId1 === user.userId ? m.userId2 : m.userId1,
+          nombre: 'Usuario',
+          matchedAt: m.createdAt
+        })))
+      }
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [user])
 
   useEffect(() => {
     fetchMatches()

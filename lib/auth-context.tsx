@@ -36,20 +36,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   const fetchProfile = useCallback(async () => {
+    console.log('[AuthContext] Fetching profile...')
     try {
       const profile = await api.get<UserProfile>("/api/profile/me")
+      console.log('[AuthContext] Profile fetched:', profile)
       setUser(profile)
-    } catch {
-      setUser(null)
+      localStorage.setItem('sparkd_user', JSON.stringify(profile))
+    } catch (error) {
+      console.error('[AuthContext] Error fetching profile:', error)
+      // Si falla, intentar obtener del localStorage
+      const savedUser = localStorage.getItem('sparkd_user')
+      console.log('[AuthContext] Saved user from localStorage:', savedUser)
+      if (savedUser) {
+        setUser(JSON.parse(savedUser))
+      } else {
+        setUser(null)
+      }
     }
   }, [])
 
   useEffect(() => {
+    console.log('[AuthContext] Initializing...')
     const storedToken = localStorage.getItem("sparkd_token")
+    const storedUser = localStorage.getItem("sparkd_user")
+    console.log('[AuthContext] Stored token:', storedToken ? 'exists' : 'null')
+    console.log('[AuthContext] Stored user:', storedUser ? 'exists' : 'null')
+    
     if (storedToken) {
       setToken(storedToken)
-      fetchProfile().finally(() => setIsLoading(false))
+      if (storedUser) {
+        console.log('[AuthContext] Setting user from localStorage')
+        setUser(JSON.parse(storedUser))
+      }
+      fetchProfile().finally(() => {
+        console.log('[AuthContext] Profile fetch completed')
+        setIsLoading(false)
+      })
     } else {
+      console.log('[AuthContext] No token found')
       setIsLoading(false)
     }
   }, [fetchProfile])
@@ -58,7 +82,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const response = await api.post<LoginResponse>("/auth/login", data)
     localStorage.setItem("sparkd_token", response.token)
     setToken(response.token)
-    await fetchProfile()
+    
+    // Intentar obtener el perfil
+    try {
+      const profile = await api.get<UserProfile>("/api/profile/me")
+      setUser(profile)
+      localStorage.setItem('sparkd_user', JSON.stringify(profile))
+    } catch (error) {
+      console.error('[AuthContext] Profile not found after login, creating mock user')
+      // Si no existe perfil, crear uno mock con los datos del login
+      const mockUser: UserProfile = {
+        userId: 'user_' + Date.now(),
+        nombres: data.username,
+        apellidos: '',
+        telefono: '',
+        sex: 'MALE',
+        profileCompleted: false,
+        photos: [],
+        posts: [],
+        totalPosts: 0,
+        reputation: 75,
+        verificationLevel: 1
+      }
+      setUser(mockUser)
+      localStorage.setItem('sparkd_user', JSON.stringify(mockUser))
+    }
   }
 
   const register = async (data: RegisterRequest) => {

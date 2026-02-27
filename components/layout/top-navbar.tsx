@@ -56,13 +56,13 @@ export function TopNavbar() {
     : "?"
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-border bg-card/95 px-4 backdrop-blur-md lg:pl-68">
+    <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-border bg-card/95 px-4 backdrop-blur-md lg:pl-68 shadow-[0_2px_8px_rgba(0,229,255,0.1)]">
       {/* Mobile logo */}
       <div className="flex items-center gap-2 lg:hidden">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-secondary shadow-[0_0_20px_rgba(0,229,255,0.3)]">
           <Flame className="h-5 w-5 text-primary-foreground" />
         </div>
-        <span className="text-lg font-bold text-foreground">Sparkd</span>
+        <span className="text-lg font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Sparkd</span>
       </div>
 
       <div className="hidden lg:block" />
@@ -79,7 +79,7 @@ export function TopNavbar() {
           >
             <Bell className="h-5 w-5" />
             {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-secondary text-[10px] font-bold text-secondary-foreground">
+              <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-secondary text-[10px] font-bold text-secondary-foreground shadow-[0_0_8px_rgba(217,70,239,0.6)]">
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             )}
@@ -149,7 +149,7 @@ export function TopNavbar() {
               variant="ghost"
               className="relative h-9 w-9 rounded-full p-0"
             >
-              <Avatar className="h-9 w-9 border-2 border-primary/30">
+              <Avatar className="h-9 w-9 border-2 border-primary ring-2 ring-primary/20">
                 <AvatarImage
                   src={primaryPhoto?.url}
                   alt={user?.nombres || "Avatar"}
