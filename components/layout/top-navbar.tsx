@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Bell, Flame, LogOut, Settings, User, Crown } from "lucide-react"
+import { Bell, Zap, LogOut, Settings, User, Crown } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
 import {
@@ -60,7 +60,7 @@ export function TopNavbar() {
       {/* Mobile logo */}
       <div className="flex items-center gap-2 lg:hidden">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-secondary shadow-[0_0_20px_rgba(0,229,255,0.3)]">
-          <Flame className="h-5 w-5 text-primary-foreground" />
+          <Zap className="h-5 w-5 text-primary-foreground" />
         </div>
         <span className="text-lg font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Sparkd</span>
       </div>

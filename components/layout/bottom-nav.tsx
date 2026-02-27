@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   Newspaper,
-  Flame,
+  Zap,
   Heart,
   MessageCircle,
   User,
@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils"
 
 const navItems = [
   { href: "/feed", label: "Feed", icon: Newspaper },
-  { href: "/swipes", label: "Swipes", icon: Flame },
+  { href: "/swipes", label: "Swipes", icon: Zap },
   { href: "/matches", label: "Matches", icon: Heart },
   { href: "/chat", label: "Chat", icon: MessageCircle },
   { href: "/profile", label: "Perfil", icon: User },

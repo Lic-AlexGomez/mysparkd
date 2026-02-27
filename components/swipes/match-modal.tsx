@@ -6,7 +6,7 @@ import {
   DialogContent,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { MessageCircle, Flame } from "lucide-react"
+import { MessageCircle, Zap } from "lucide-react"
 
 interface MatchModalProps {
   open: boolean
@@ -37,7 +37,7 @@ export function MatchModal({
           {/* Sparkle animation */}
           <div className="relative">
             <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary">
-              <Flame className="h-12 w-12 text-white" />
+              <Zap className="h-12 w-12 text-white" />
             </div>
             {/* CSS sparkles */}
             <div className="absolute -top-2 -left-2 h-4 w-4 animate-ping rounded-full bg-accent" />

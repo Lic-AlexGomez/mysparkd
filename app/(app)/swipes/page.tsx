@@ -10,7 +10,7 @@ import { SwipeCard } from "@/components/swipes/swipe-card"
 import { MatchModal } from "@/components/swipes/match-modal"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { X, Heart, Loader2, Flame, Eye } from "lucide-react"
+import { X, Heart, Loader2, Zap, Eye } from "lucide-react"
 import { AnimatePresence } from "framer-motion"
 
 export default function SwipesPage() {
@@ -98,7 +98,7 @@ export default function SwipesPage() {
       <div className="relative h-[60vh] w-full max-h-[500px]">
         {noMoreProfiles ? (
           <div className="flex h-full flex-col items-center justify-center gap-4 rounded-2xl border border-border bg-card">
-            <Flame className="h-16 w-16 text-muted-foreground" />
+            <Zap className="h-16 w-16 text-muted-foreground" />
             <p className="text-lg font-semibold text-foreground">
               No hay mas perfiles
             </p>

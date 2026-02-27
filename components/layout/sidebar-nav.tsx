@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   Newspaper,
-  Flame,
+  Zap,
   Heart,
   MessageCircle,
   User,
@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils"
 
 const navItems = [
   { href: "/feed", label: "Feed", icon: Newspaper },
-  { href: "/swipes", label: "Swipes", icon: Flame },
+  { href: "/swipes", label: "Swipes", icon: Zap },
   { href: "/matches", label: "Matches", icon: Heart },
   { href: "/chat", label: "Chat", icon: MessageCircle },
   { href: "/saved", label: "Guardados", icon: Bookmark },
@@ -33,7 +33,7 @@ export function SidebarNav() {
       {/* Logo */}
       <div className="flex h-16 items-center gap-2 px-6 border-b border-border">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-secondary shadow-[0_0_20px_rgba(0,229,255,0.3)]">
-          <Flame className="h-5 w-5 text-black" />
+          <Zap className="h-5 w-5 text-black" />
         </div>
         <span className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Sparkd</span>
       </div>
