@@ -50,7 +50,7 @@ export function TopNavbar() {
     }
   }
 
-  const primaryPhoto = user?.photos?.find((p) => p.isPrimary)
+  const primaryPhoto = user?.photos?.find((p) => p.isPrimary || p.primary)
   const initials = user
     ? `${user.nombres?.[0] || ""}${user.apellidos?.[0] || ""}`.toUpperCase()
     : "?"

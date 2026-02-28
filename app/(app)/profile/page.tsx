@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { api } from "@/lib/api"
 import type { Sex } from "@/lib/types"
@@ -34,10 +34,16 @@ export default function ProfilePage() {
   console.log('[ProfilePage] isLoading:', isLoading)
   const [editOpen, setEditOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [coverPhoto, setCoverPhoto] = useState<string | null>(null)
   const [nombres, setNombres] = useState(user?.nombres || "")
   const [apellidos, setApellidos] = useState(user?.apellidos || "")
   const [sex, setSex] = useState<Sex>(user?.sex || "MALE")
   const [telefono, setTelefono] = useState(user?.telefono || "")
+
+  useEffect(() => {
+    const savedCover = localStorage.getItem('sparkd_cover')
+    if (savedCover) setCoverPhoto(savedCover)
+  }, [])
 
   const handleSaveProfile = async () => {
     setIsSaving(true)
@@ -58,7 +64,7 @@ export default function ProfilePage() {
     }
   }
 
-  const primaryPhoto = user?.photos?.find((p) => p.isPrimary)
+  const primaryPhoto = user?.photos?.find((p) => p.isPrimary || p.primary)
   const initials = user
     ? `${user.nombres?.[0] || ""}${user.apellidos?.[0] || ""}`.toUpperCase()
     : "?"
@@ -85,8 +91,46 @@ export default function ProfilePage() {
     <div className="mx-auto max-w-2xl px-4 py-6">
       {/* Profile header */}
       <Card className="overflow-hidden border-border bg-card">
-        {/* Cover gradient */}
-        <div className="h-32 bg-gradient-to-r from-secondary/40 via-primary/30 to-secondary/20" />
+        {/* Cover photo */}
+        <div className="relative h-32 group">
+          {coverPhoto ? (
+            <img src={coverPhoto} alt="Portada" className="h-full w-full object-cover" />
+          ) : (
+            <div className="h-full bg-gradient-to-r from-secondary/40 via-primary/30 to-secondary/20" />
+          )}
+          <button
+            onClick={() => document.getElementById('cover-upload')?.click()}
+            className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white text-sm font-medium"
+          >
+            <Camera className="h-5 w-5 mr-2" />
+            Cambiar portada
+          </button>
+          <input
+            id="cover-upload"
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={async (e) => {
+              const file = e.target.files?.[0]
+              if (!file) return
+              
+              const toastId = toast.loading('Subiendo portada...')
+              
+              try {
+                const imageUrl = await uploadToCloudinary(file)
+                setCoverPhoto(imageUrl)
+                localStorage.setItem('sparkd_cover', imageUrl)
+                toast.dismiss(toastId)
+                toast.success('Portada actualizada')
+              } catch (error) {
+                toast.dismiss(toastId)
+                toast.error('Error al subir portada')
+                console.error(error)
+              }
+              e.target.value = ''
+            }}
+          />
+        </div>
         <CardContent className="relative px-6 pb-6">
           {/* Avatar */}
           <div className="-mt-16 mb-4 flex items-end justify-between">
@@ -104,7 +148,7 @@ export default function ProfilePage() {
               </div>
               <button
                 onClick={() => document.getElementById('avatar-upload')?.click()}
-                className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute bottom-2 right-2 h-8 w-8 rounded-full bg-primary flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 <Camera className="h-4 w-4 text-black" />
               </button>
@@ -140,7 +184,7 @@ export default function ProfilePage() {
                           ...user,
                           photos: [
                             { photoId: Date.now().toString(), url: imageUrl, isPrimary: true },
-                            ...(user.photos?.filter(p => !p.isPrimary) || [])
+                            ...(user.photos?.filter(p => !p.isPrimary && !p.primary) || [])
                           ]
                         }
                         localStorage.setItem('sparkd_user', JSON.stringify(updatedUser))
@@ -156,7 +200,7 @@ export default function ProfilePage() {
                   }
                 }}
               />
-              <div className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-gradient-to-br from-secondary to-primary flex items-center justify-center text-xs font-bold text-white shadow-lg">
+              <div className="absolute top-0 right-0 h-7 w-7 rounded-full bg-gradient-to-br from-secondary to-primary flex items-center justify-center text-xs font-bold text-white shadow-lg border-2 border-card">
                 {user.verificationLevel || 1}
               </div>
             </div>
@@ -317,13 +361,13 @@ export default function ProfilePage() {
         <div className="mt-6">
           <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground px-4">
             <Camera className="h-4 w-4" />
-            Fotos
+            Fotos ({user.photos.length}/6)
           </h2>
           <div className="grid grid-cols-3 gap-2 px-4">
-            {user.photos.map((photo) => (
+            {user.photos.map((photo, index) => (
               <div
-                key={photo.photoId}
-                className="aspect-square overflow-hidden rounded-lg border border-border"
+                key={photo.photoId || photo.id}
+                className="aspect-square overflow-hidden rounded-lg border border-border relative group"
               >
                 <img
                   src={photo.url}
@@ -331,9 +375,112 @@ export default function ProfilePage() {
                   className="h-full w-full object-cover"
                   loading="lazy"
                 />
+                <button
+                  onClick={async () => {
+                    if (confirm('¿Eliminar esta foto?')) {
+                      try {
+                        await api.delete(`/api/photos/delete/${photo.photoId || photo.id}`)
+                        await refreshProfile()
+                        toast.success('Foto eliminada')
+                      } catch {
+                        toast.error('Error al eliminar foto')
+                      }
+                    }
+                  }}
+                  className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs"
+                >
+                  Eliminar
+                </button>
               </div>
             ))}
+            {user.photos.length < 6 && (
+              <button
+                onClick={() => document.getElementById('add-photo-upload')?.click()}
+                className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary"
+              >
+                <Camera className="h-6 w-6" />
+                <span className="text-xs">Agregar</span>
+              </button>
+            )}
           </div>
+          <input
+            id="add-photo-upload"
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={async (e) => {
+              const file = e.target.files?.[0]
+              if (!file) return
+              
+              const toastId = toast.loading('Subiendo foto...')
+              
+              try {
+                const imageUrl = await uploadToCloudinary(file)
+                await api.post('/api/photos/add', {
+                  url: imageUrl,
+                  position: user.photos.length,
+                  primary: false
+                })
+                await refreshProfile()
+                toast.dismiss(toastId)
+                toast.success('Foto agregada')
+              } catch (error) {
+                toast.dismiss(toastId)
+                toast.error('Error al subir foto')
+                console.error(error)
+              }
+              e.target.value = ''
+            }}
+          />
+        </div>
+      )}
+
+      {/* Add first photo if none */}
+      {(!user.photos || user.photos.length === 0) && (
+        <div className="mt-6 px-4">
+          <Card className="border-dashed border-2 border-border hover:border-primary transition-colors">
+            <CardContent className="py-12">
+              <button
+                onClick={() => document.getElementById('first-photo-upload')?.click()}
+                className="w-full flex flex-col items-center gap-3 text-muted-foreground hover:text-primary transition-colors"
+              >
+                <Camera className="h-12 w-12" />
+                <div className="text-center">
+                  <p className="font-semibold text-foreground">Agrega tu primera foto</p>
+                  <p className="text-sm">Puedes agregar hasta 6 fotos</p>
+                </div>
+              </button>
+              <input
+                id="first-photo-upload"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  
+                  const toastId = toast.loading('Subiendo foto...')
+                  
+                  try {
+                    const imageUrl = await uploadToCloudinary(file)
+                    await api.post('/api/photos/add', {
+                      url: imageUrl,
+                      position: 0,
+                      primary: true
+                    })
+                    await refreshProfile()
+                    toast.dismiss(toastId)
+                    toast.success('Foto agregada')
+                  } catch (error) {
+                    toast.dismiss(toastId)
+                    toast.error('Error al subir foto')
+                    console.error(error)
+                  }
+                  e.target.value = ''
+                }}
+              />
+            </CardContent>
+          </Card>
         </div>
       )}
 

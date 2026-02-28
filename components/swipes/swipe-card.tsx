@@ -26,7 +26,7 @@ export function SwipeCard({ user, onSwipe, isTop, compatibility }: SwipeCardProp
   const likeOpacity = useTransform(x, [0, 100], [0, 1])
   const nopeOpacity = useTransform(x, [-100, 0], [1, 0])
 
-  const primaryPhoto = user.photos?.find((p) => p.isPrimary) || user.photos?.[0]
+  const primaryPhoto = user.photos?.find((p) => p.isPrimary || p.primary) || user.photos?.[0]
   const reputation = user.reputation || 75
   const reputationColor = reputationService.getReputationColor(reputation)
 

@@ -9,7 +9,7 @@ export const cld = new Cloudinary({
 export async function uploadToCloudinary(file: File): Promise<string> {
   const formData = new FormData()
   formData.append('file', file)
-  formData.append('upload_preset', 'v0_social_uploads')
+  formData.append('upload_preset', 'ml_default')
 
   const response = await fetch(
     `https://api.cloudinary.com/v1_1/dvcp9kzsn/image/upload`,

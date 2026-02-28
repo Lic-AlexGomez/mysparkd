@@ -4,6 +4,8 @@ import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
+import { api } from "@/lib/api"
+import type { UserProfile } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -28,7 +30,18 @@ export default function LoginPage() {
     setIsLoading(true)
     try {
       await login({ username: username.trim(), password })
-      router.push("/feed")
+      // Verificar si el perfil está completo
+      try {
+        const profile = await api.get<UserProfile>("/api/profile/me")
+        if (!profile.profileCompleted) {
+          router.push("/onboarding")
+        } else {
+          router.push("/feed")
+        }
+      } catch {
+        // Si no existe perfil, redirigir al onboarding
+        router.push("/onboarding")
+      }
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Error al iniciar sesion"

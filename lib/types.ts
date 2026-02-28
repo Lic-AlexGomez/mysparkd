@@ -34,9 +34,15 @@ export interface ResetPasswordRequest {
 
 // Profile
 export interface Photo {
-  photoId: string
+  id?: string
+  photoId?: string
   url: string
-  isPrimary: boolean
+  isPrimary?: boolean
+  primary?: boolean
+  position?: number
+  userId?: string | null
+  profileId?: string | null
+  createdAt?: string | null
 }
 
 export interface UserProfile {

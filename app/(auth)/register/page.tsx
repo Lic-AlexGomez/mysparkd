@@ -12,7 +12,7 @@ import { toast } from "sonner"
 import { Loader2, Eye, EyeOff } from "lucide-react"
 
 export default function RegisterPage() {
-  const { register } = useAuth()
+  const { register, login } = useAuth()
   const router = useRouter()
   const [username, setUsername] = useState("")
   const [email, setEmail] = useState("")
@@ -47,8 +47,10 @@ export default function RegisterPage() {
         email: email.trim(),
         password,
       })
-      toast.success("Cuenta creada! Inicia sesion")
-      router.push("/login")
+      toast.success("Cuenta creada!")
+      // Login automático después del registro
+      await login({ username: username.trim(), password })
+      router.push("/onboarding")
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al registrarse")
     } finally {

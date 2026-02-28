@@ -57,22 +57,26 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
     try {
       const formData = new FormData()
       
-      // El backend espera un JSON string en el campo 'post'
       const postData = {
         body: body.trim(),
         permanent,
-        ...(!permanent && { durationHours })
+        ...(!permanent && { durationHours: Math.min(durationHours, 48) })
       }
       formData.append('post', JSON.stringify(postData))
       
-      // Si hay imagen de Cloudinary, descargarla y enviarla como archivo
+      // Si hay imagen, descargarla de Cloudinary y agregarla al FormData
       if (file.trim()) {
         try {
-          const response = await fetch(file)
+          const response = await fetch(file, { mode: 'cors' })
+          if (!response.ok) throw new Error('Error al obtener imagen')
           const blob = await response.blob()
-          formData.append('file', blob, 'image.jpg')
+          const imageFile = new File([blob], 'image.jpg', { type: blob.type })
+          formData.append('file', imageFile)
         } catch (err) {
-          console.error('Error descargando imagen:', err)
+          console.error('Error procesando imagen:', err)
+          toast.error('Error al procesar la imagen')
+          setIsLoading(false)
+          return
         }
       }
       
@@ -87,7 +91,7 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
       
       if (!res.ok) {
         const error = await res.json().catch(() => ({}))
-        throw new Error(error.message || 'Error al crear post')
+        throw new Error(error.detail || error.message || 'Error al crear post')
       }
       
       toast.success("Post creado!")
@@ -167,18 +171,21 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
           {!permanent && (
             <div className="flex flex-col gap-2">
               <Label className="text-foreground">
-                Duracion (horas): {durationHours}
+                Duración (horas): {durationHours} (máx. 48)
               </Label>
               <Input
                 type="number"
                 value={durationHours}
                 onChange={(e) =>
-                  setDurationHours(Math.max(1, parseInt(e.target.value) || 1))
+                  setDurationHours(Math.max(1, Math.min(48, parseInt(e.target.value) || 1)))
                 }
                 min={1}
-                max={168}
+                max={48}
                 className="bg-muted border-border text-foreground"
               />
+              <p className="text-xs text-muted-foreground">
+                El post se eliminará automáticamente después de {durationHours} {durationHours === 1 ? 'hora' : 'horas'}
+              </p>
             </div>
           )}
           <Button

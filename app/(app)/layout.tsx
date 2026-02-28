@@ -1,7 +1,7 @@
 "use client"
 
 import { useAuth } from "@/lib/auth-context"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { useEffect } from "react"
 import { AppShell } from "@/components/layout/app-shell"
 import { Zap } from "lucide-react"
@@ -13,12 +13,17 @@ export default function AppLayout({
 }) {
   const { isAuthenticated, isLoading, user } = useAuth()
   const router = useRouter()
+  const pathname = usePathname()
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.replace("/login")
     }
-  }, [isAuthenticated, isLoading, router])
+    // Si está autenticado pero no ha completado el perfil, redirigir al onboarding
+    if (!isLoading && isAuthenticated && user && !user.profileCompleted && pathname !== "/onboarding") {
+      router.replace("/onboarding")
+    }
+  }, [isAuthenticated, isLoading, user, router, pathname])
 
   if (isLoading) {
     return (
@@ -32,6 +37,11 @@ export default function AppLayout({
   }
 
   if (!isAuthenticated) return null
+
+  // Permitir acceso al onboarding sin AppShell
+  if (pathname === "/onboarding") {
+    return <div className="min-h-svh bg-background">{children}</div>
+  }
 
   return <AppShell>{children}</AppShell>
 }

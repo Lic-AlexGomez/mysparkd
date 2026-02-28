@@ -100,7 +100,7 @@ export default function UserProfilePage() {
     )
   }
 
-  const primaryPhoto = profile.photos?.find((p) => p.isPrimary)
+  const primaryPhoto = profile.photos?.find((p) => p.isPrimary || p.primary)
   const initials = `${profile.nombres?.[0] || ""}${profile.apellidos?.[0] || ""}`.toUpperCase()
   const reputation = profile.reputation || 75
   const reputationColor = reputationService.getReputationColor(reputation)

@@ -8,9 +8,9 @@ import type { Interest, Sex } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { toast } from "sonner"
-import { Loader2, ArrowRight, ArrowLeft, Check } from "lucide-react"
+import { Loader2, ArrowRight, ArrowLeft, Check, Zap } from "lucide-react"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 
@@ -49,8 +49,8 @@ export default function OnboardingPage() {
   }, [fetchInterests])
 
   const handleStep1 = async () => {
-    if (!nombres.trim() || !apellidos.trim() || !telefono.trim()) {
-      toast.error("Completa todos los campos")
+    if (!nombres.trim() || !apellidos.trim()) {
+      toast.error("Completa los campos obligatorios")
       return
     }
     setIsLoading(true)
@@ -59,7 +59,7 @@ export default function OnboardingPage() {
         nombres: nombres.trim(),
         apellidos: apellidos.trim(),
         sex,
-        telefono: telefono.trim(),
+        telefono: telefono.trim() || undefined,
       })
       setStep(2)
     } catch (err) {
@@ -112,6 +112,15 @@ export default function OnboardingPage() {
 
   return (
     <div className="mx-auto max-w-lg px-4 py-8">
+      {/* Header */}
+      <div className="mb-8 text-center">
+        <div className="mb-4 flex justify-center">
+          <Zap className="h-12 w-12 text-primary" />
+        </div>
+        <h1 className="text-2xl font-bold text-foreground mb-2">Bienvenido a Sparkd</h1>
+        <p className="text-sm text-muted-foreground">Completa tu perfil para comenzar</p>
+      </div>
+
       {/* Progress bar */}
       <div className="mb-8 flex gap-2">
         {[1, 2, 3].map((s) => (
@@ -127,11 +136,12 @@ export default function OnboardingPage() {
       {step === 1 && (
         <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle className="text-foreground">Completa tu perfil</CardTitle>
+            <CardTitle className="text-foreground">Información básica</CardTitle>
+            <CardDescription>Cuéntanos un poco sobre ti</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label className="text-foreground">Nombres</Label>
+              <Label className="text-foreground">Nombres *</Label>
               <Input
                 value={nombres}
                 onChange={(e) => setNombres(e.target.value)}
@@ -140,7 +150,7 @@ export default function OnboardingPage() {
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label className="text-foreground">Apellidos</Label>
+              <Label className="text-foreground">Apellidos *</Label>
               <Input
                 value={apellidos}
                 onChange={(e) => setApellidos(e.target.value)}
@@ -149,7 +159,7 @@ export default function OnboardingPage() {
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label className="text-foreground">Genero</Label>
+              <Label className="text-foreground">Género *</Label>
               <div className="flex gap-2">
                 {(["MALE", "FEMALE"] as Sex[]).map((s) => (
                   <Button
@@ -159,8 +169,8 @@ export default function OnboardingPage() {
                     onClick={() => setSex(s)}
                     className={
                       sex === s
-                        ? "bg-primary text-primary-foreground"
-                        : "border-border text-foreground hover:bg-muted"
+                        ? "flex-1 bg-primary text-primary-foreground"
+                        : "flex-1 border-border text-foreground hover:bg-muted"
                     }
                   >
                     {s === "MALE" ? "Hombre" : "Mujer"}
@@ -169,7 +179,7 @@ export default function OnboardingPage() {
               </div>
             </div>
             <div className="flex flex-col gap-2">
-              <Label className="text-foreground">Telefono</Label>
+              <Label className="text-foreground">Teléfono (opcional)</Label>
               <Input
                 value={telefono}
                 onChange={(e) => setTelefono(e.target.value)}
@@ -197,6 +207,7 @@ export default function OnboardingPage() {
         <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle className="text-foreground">Tus intereses</CardTitle>
+            <CardDescription>Selecciona lo que te gusta (opcional)</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             {categories.map((category) => (
@@ -241,7 +252,7 @@ export default function OnboardingPage() {
                 className="border-border text-foreground"
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Atras
+                Atrás
               </Button>
               <Button
                 onClick={handleStep2}
@@ -264,6 +275,7 @@ export default function OnboardingPage() {
         <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle className="text-foreground">Tus preferencias</CardTitle>
+            <CardDescription>Personaliza tu experiencia</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-6">
             <div className="flex flex-col gap-2">
@@ -277,8 +289,8 @@ export default function OnboardingPage() {
                     onClick={() => setInterestedIn(s)}
                     className={
                       interestedIn === s
-                        ? "bg-primary text-primary-foreground"
-                        : "border-border text-foreground hover:bg-muted"
+                        ? "flex-1 bg-primary text-primary-foreground"
+                        : "flex-1 border-border text-foreground hover:bg-muted"
                     }
                   >
                     {s === "MALE" ? "Hombres" : "Mujeres"}
@@ -301,7 +313,7 @@ export default function OnboardingPage() {
             </div>
             <div className="flex items-center justify-between">
               <Label className="text-foreground">
-                Mostrarme en busquedas
+                Mostrarme en búsquedas
               </Label>
               <Switch checked={showMe} onCheckedChange={setShowMe} />
             </div>
@@ -312,7 +324,7 @@ export default function OnboardingPage() {
                 className="border-border text-foreground"
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Atras
+                Atrás
               </Button>
               <Button
                 onClick={handleStep3}
