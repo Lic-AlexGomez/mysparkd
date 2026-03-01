@@ -29,18 +29,21 @@ export function SidebarNav() {
   const pathname = usePathname()
 
   return (
-    <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 lg:z-40 border-r border-border bg-card shadow-[2px_0_8px_rgba(0,229,255,0.05)]">
+    <aside className="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:z-40 bg-gradient-to-b from-background via-background to-muted/20 border-r border-primary/10 lg:w-20 xl:w-72 shadow-xl shadow-primary/5">
       {/* Logo */}
-      <div className="flex h-16 items-center gap-2 px-6 border-b border-border">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-secondary shadow-[0_0_20px_rgba(0,229,255,0.3)]">
-          <Zap className="h-5 w-5 text-black" />
+      <div className="flex h-20 items-center justify-center xl:justify-start xl:gap-3 xl:px-6 border-b border-primary/10">
+        <div className="relative">
+          <div className="absolute inset-0 blur-xl bg-gradient-to-br from-primary to-secondary opacity-50" />
+          <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-secondary shadow-2xl">
+            <Zap className="h-7 w-7 text-black" />
+          </div>
         </div>
-        <span className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Sparkd</span>
+        <span className="hidden xl:block text-2xl font-black bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent">Sparkd</span>
       </div>
 
       {/* Nav items */}
-      <nav className="flex-1 px-3 py-4">
-        <ul className="flex flex-col gap-1">
+      <nav className="flex-1 px-2 xl:px-4 py-6">
+        <ul className="flex flex-col gap-3">
           {navItems.map((item) => {
             const isActive =
               pathname === item.href || pathname.startsWith(item.href + "/")
@@ -49,14 +52,17 @@ export function SidebarNav() {
                 <Link
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                    "group relative flex items-center justify-center xl:justify-start gap-4 rounded-2xl px-4 py-4 xl:py-3 text-sm font-semibold transition-all duration-300",
                     isActive
-                      ? "bg-primary/10 text-primary shadow-[0_0_12px_rgba(0,229,255,0.2)] border border-primary/20"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground hover:border hover:border-border"
+                      ? "bg-gradient-to-r from-primary to-secondary text-black shadow-lg shadow-primary/30 scale-105"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:scale-105"
                   )}
                 >
-                  <item.icon className="h-5 w-5" />
-                  {item.label}
+                  {isActive && (
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary to-secondary blur-xl opacity-30" />
+                  )}
+                  <item.icon className="h-6 w-6 xl:h-5 xl:w-5 relative z-10" />
+                  <span className="hidden xl:block relative z-10">{item.label}</span>
                 </Link>
               </li>
             )

@@ -9,8 +9,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-svh bg-background">
       <SidebarNav />
       <TopNavbar />
-      <div className="lg:pl-64">
-        <main className="min-h-[calc(100svh-4rem)] pb-20 lg:pb-0">
+      <div className="lg:ml-20 xl:ml-72">
+        <main className="min-h-svh pb-20 lg:pb-6">
           {children}
         </main>
       </div>

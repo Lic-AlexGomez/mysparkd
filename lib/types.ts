@@ -50,6 +50,7 @@ export interface UserProfile {
   nombres: string
   apellidos: string
   telefono: string
+  dateOfBirth: string
   sex: Sex
   profileCompleted: boolean
   photos: Photo[]
@@ -58,12 +59,14 @@ export interface UserProfile {
   reputation?: number
   verificationLevel?: number
   interests?: string[]
+  compatibilityScore?: number
 }
 
 export interface CreateProfileRequest {
   nombres: string
   apellidos: string
   sex: Sex
+  dateOfBirth: string
   telefono: string
 }
 
@@ -71,6 +74,7 @@ export interface UpdateProfileRequest {
   nombres: string
   apellidos: string
   sex: Sex
+  dateOfBirth: string
   telefono: string
 }
 
@@ -184,6 +188,7 @@ export interface SendMessageRequest {
 export interface Interest {
   interestId: string
   name: string
+  icon: string
   category: string
 }
 
