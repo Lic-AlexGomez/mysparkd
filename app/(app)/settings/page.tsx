@@ -87,7 +87,18 @@ export default function SettingsPage() {
   useEffect(() => {
     fetchPreferences()
     fetchInterests()
-  }, [fetchPreferences, fetchInterests])
+    
+    // Cargar configuraciones locales
+    if (user?.userId) {
+      const saved = localStorage.getItem(`sparkd_settings_${user.userId}`)
+      if (saved) {
+        const settings = JSON.parse(saved)
+        setIsPrivate(settings.isPrivate ?? false)
+        setConnectionMode(settings.connectionMode ?? true)
+        setObjective(settings.objective ?? 'both')
+      }
+    }
+  }, [fetchPreferences, fetchInterests, user])
 
   const savePreferences = async () => {
     setSavingPref(true)
@@ -98,6 +109,16 @@ export default function SettingsPage() {
         maxAge: ageRange[1],
         showMe,
       })
+      
+      // Guardar configuraciones localmente
+      if (user?.userId) {
+        localStorage.setItem(`sparkd_settings_${user.userId}`, JSON.stringify({
+          isPrivate,
+          connectionMode,
+          objective
+        }))
+      }
+      
       toast.success("Preferencias guardadas")
     } catch {
       toast.error("Error al guardar")

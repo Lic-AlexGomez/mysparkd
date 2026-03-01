@@ -21,14 +21,18 @@ async function handler(
   }
 
   const contentType = request.headers.get("content-type")
-  if (contentType) {
+  if (contentType && !contentType.includes("multipart/form-data")) {
     headers["Content-Type"] = contentType
   }
 
   let body: BodyInit | undefined = undefined
   if (request.method !== "GET" && request.method !== "HEAD") {
     try {
-      body = await request.text()
+      if (contentType?.includes("multipart/form-data")) {
+        body = await request.formData()
+      } else {
+        body = await request.text()
+      }
     } catch {
       // no body
     }

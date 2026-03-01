@@ -1,0 +1,206 @@
+{
+  "clientName": "Thunder Client",
+  "collectionName": "Sparkd API",
+  "collectionId": "sparkd-api",
+  "dateExported": "2026-02-28",
+  "version": "1.0",
+  "folders": [],
+  "requests": [
+    {
+      "name": "1. Register",
+      "method": "POST",
+      "url": "https://sparkd1-0.onrender.com/auth/register",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"username\": \"testuser\",\n  \"email\": \"test@example.com\",\n  \"password\": \"123456\"\n}"
+      },
+      "tests": []
+    },
+    {
+      "name": "2. Login",
+      "method": "POST",
+      "url": "https://sparkd1-0.onrender.com/auth/login",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"username\": \"testuser\",\n  \"password\": \"123456\"\n}"
+      },
+      "tests": [
+        "// Guardar token\nif (json.token) {\n  tc.setVar('token', json.token);\n}"
+      ]
+    },
+    {
+      "name": "3. Create Profile",
+      "method": "POST",
+      "url": "https://sparkd1-0.onrender.com/api/profile",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{token}}"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"nombres\": \"Juan\",\n  \"apellidos\": \"Pérez\",\n  \"sex\": \"MALE\",\n  \"telefono\": \"8095556666\"\n}"
+      },
+      "tests": []
+    },
+    {
+      "name": "4. Get My Profile",
+      "method": "GET",
+      "url": "https://sparkd1-0.onrender.com/api/profile/me",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{token}}"
+        }
+      ],
+      "tests": []
+    },
+    {
+      "name": "5. Create Post (No Image)",
+      "method": "POST",
+      "url": "https://sparkd1-0.onrender.com/api/posts/new",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{token}}"
+        }
+      ],
+      "body": {
+        "type": "formdata",
+        "form": [
+          {
+            "name": "post",
+            "value": "{\"body\":\"Mi primer post de prueba\",\"permanent\":true}"
+          }
+        ]
+      },
+      "tests": []
+    },
+    {
+      "name": "6. Create Post (Temporal)",
+      "method": "POST",
+      "url": "https://sparkd1-0.onrender.com/api/posts/new",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{token}}"
+        }
+      ],
+      "body": {
+        "type": "formdata",
+        "form": [
+          {
+            "name": "post",
+            "value": "{\"body\":\"Post temporal que expira en 24 horas\",\"permanent\":false,\"durationHours\":24}"
+          }
+        ]
+      },
+      "tests": []
+    },
+    {
+      "name": "7. Get Feed",
+      "method": "GET",
+      "url": "https://sparkd1-0.onrender.com/api/posts/feed",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{token}}"
+        }
+      ],
+      "tests": []
+    },
+    {
+      "name": "8. Get My Posts",
+      "method": "GET",
+      "url": "https://sparkd1-0.onrender.com/api/posts/me",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{token}}"
+        }
+      ],
+      "tests": []
+    },
+    {
+      "name": "9. Add Profile Photo",
+      "method": "POST",
+      "url": "https://sparkd1-0.onrender.com/api/photos/add",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{token}}"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"url\": \"https://res.cloudinary.com/demo/image/upload/sample.jpg\",\n  \"position\": 0,\n  \"primary\": true\n}"
+      },
+      "tests": []
+    },
+    {
+      "name": "10. Get All Interests",
+      "method": "GET",
+      "url": "https://sparkd1-0.onrender.com/api/interests",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{token}}"
+        }
+      ],
+      "tests": []
+    },
+    {
+      "name": "11. Set Preferences",
+      "method": "POST",
+      "url": "https://sparkd1-0.onrender.com/api/preferences/set/preferences",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{token}}"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"interestedIn\": \"FEMALE\",\n  \"minAge\": 18,\n  \"maxAge\": 35,\n  \"showMe\": true\n}"
+      },
+      "tests": []
+    },
+    {
+      "name": "12. Toggle Like",
+      "method": "POST",
+      "url": "https://sparkd1-0.onrender.com/api/likes/toggle?targetId=POST_ID_AQUI",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{token}}"
+        }
+      ],
+      "tests": []
+    }
+  ]
+}

@@ -2,7 +2,7 @@ import { Cloudinary } from '@cloudinary/url-gen'
 
 export const cld = new Cloudinary({
   cloud: {
-    cloudName: 'dvcp9kzsn'
+    cloudName: 'dvk3yygql'
   }
 })
 
@@ -12,7 +12,7 @@ export async function uploadToCloudinary(file: File): Promise<string> {
   formData.append('upload_preset', 'ml_default')
 
   const response = await fetch(
-    `https://api.cloudinary.com/v1_1/dvcp9kzsn/image/upload`,
+    `https://api.cloudinary.com/v1_1/dvk3yygql/image/upload`,
     {
       method: 'POST',
       body: formData

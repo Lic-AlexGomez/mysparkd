@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useFeed } from "@/hooks/use-feed"
 import { PostCard } from "@/components/feed/post-card"
 import { CreatePostDialog } from "@/components/feed/create-post-dialog"
@@ -24,6 +24,10 @@ const sortOptions = [
 export default function FeedPage() {
   const { posts, sortMode, loading, onRefresh, changeSortMode } = useFeed()
   const [localPosts, setLocalPosts] = useState(posts)
+
+  useEffect(() => {
+    setLocalPosts(posts)
+  }, [posts])
 
   const handleDelete = (postId: string) => {
     setLocalPosts((prev) => prev.filter((p) => p.id !== postId))

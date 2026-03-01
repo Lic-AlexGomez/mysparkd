@@ -1,0 +1,152 @@
+================================================================================
+SOLICITUD DE FUNCIONALIDAD - Estado En Línea (Online Status)
+================================================================================
+
+PROBLEMA:
+---------
+No existe forma de saber si un usuario está actualmente en línea o cuándo
+fue la última vez que estuvo activo.
+
+
+SOLUCIÓN PROPUESTA:
+-------------------
+
+OPCIÓN 1: Campo lastSeen (Más simple)
+--------------------------------------
+
+1. AGREGAR CAMPO A LA TABLA users:
+   
+   ALTER TABLE users 
+   ADD COLUMN last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+
+
+2. CREAR ENDPOINT PARA ACTUALIZAR lastSeen:
+   
+   POST /api/users/heartbeat
+   
+   - Se llama cada 30-60 segundos desde el frontend
+   - Actualiza el campo last_seen del usuario autenticado
+   - No requiere body, solo el token JWT
+
+
+3. AGREGAR lastSeen A LOS DTOs:
+   
+   UserProfileResponseDTO:
+   - lastSeen: LocalDateTime
+   
+   ChatResponseDTO:
+   - otherUserLastSeen: LocalDateTime
+
+
+4. LÓGICA DE "EN LÍNEA":
+   
+   Un usuario se considera "en línea" si:
+   - last_seen < 2 minutos
+   
+   Un usuario se considera "ausente" si:
+   - 2 minutos < last_seen < 5 minutos
+   
+   Un usuario está "desconectado" si:
+   - last_seen > 5 minutos
+
+
+OPCIÓN 2: WebSocket (Más complejo pero en tiempo real)
+-------------------------------------------------------
+
+1. IMPLEMENTAR WebSocket para presencia:
+   
+   WS /ws/presence
+   
+   - Conexión persistente mientras el usuario está activo
+   - Broadcast de estado a usuarios conectados
+   - Desconexión automática al cerrar la app
+
+
+2. TABLA DE SESIONES ACTIVAS:
+   
+   CREATE TABLE active_sessions (
+     session_id UUID PRIMARY KEY,
+     user_id UUID NOT NULL,
+     connected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+     last_ping TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+     FOREIGN KEY (user_id) REFERENCES users(user_id)
+   );
+
+
+3. ENDPOINTS:
+   
+   GET /api/users/{userId}/online-status
+   Response: { "online": true, "lastSeen": "2024-01-15T10:30:00Z" }
+
+
+RECOMENDACIÓN:
+--------------
+Empezar con OPCIÓN 1 (lastSeen) por ser más simple y escalable.
+La OPCIÓN 2 se puede implementar después si se necesita tiempo real.
+
+
+IMPLEMENTACIÓN EN FRONTEND:
+----------------------------
+
+1. Crear un hook useOnlineStatus:
+   
+   useEffect(() => {
+     const interval = setInterval(() => {
+       api.post('/api/users/heartbeat')
+     }, 60000) // cada 60 segundos
+     
+     return () => clearInterval(interval)
+   }, [])
+
+
+2. Mostrar indicador en el chat:
+   
+   - Punto verde: En línea (< 2 min)
+   - Punto amarillo: Ausente (2-5 min)
+   - Punto gris: Desconectado (> 5 min)
+   - Texto: "Última vez hace X minutos"
+
+
+3. Mostrar en lista de chats:
+   
+   - Badge "En línea" si está activo
+   - "Activo hace X minutos" si no
+
+
+ENDPOINTS NECESARIOS:
+----------------------
+
+POST /api/users/heartbeat
+- Actualiza last_seen del usuario autenticado
+- Response: 204 No Content
+
+GET /api/users/{userId}/status
+- Obtiene el estado de un usuario específico
+- Response: {
+    "userId": "uuid",
+    "online": true,
+    "lastSeen": "2024-01-15T10:30:00Z"
+  }
+
+
+CONSIDERACIONES:
+----------------
+
+1. PRIVACIDAD:
+   - Agregar preferencia para ocultar estado en línea
+   - Solo mostrar a matches/amigos
+
+2. PERFORMANCE:
+   - Cachear el estado por 30 segundos
+   - Usar índice en last_seen
+
+3. LIMPIEZA:
+   - Job programado para limpiar sesiones antiguas (> 24h)
+
+
+PRIORIDAD: BAJA-MEDIA
+----------------------
+Es una funcionalidad nice-to-have pero no crítica para el MVP.
+
+
+================================================================================
