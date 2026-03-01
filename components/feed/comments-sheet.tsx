@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
-import { commentService } from "@/lib/services/comment"
+
 import type { Comment as CommentType, CommentReply } from "@/lib/types"
 import {
   Dialog,
@@ -24,9 +24,10 @@ interface CommentsSheetProps {
   postId: string
   open: boolean
   onOpenChange: (open: boolean) => void
+  onUpdate?: () => void
 }
 
-export function CommentsSheet({ postId, open, onOpenChange }: CommentsSheetProps) {
+export function CommentsSheet({ postId, open, onOpenChange, onUpdate }: CommentsSheetProps) {
   const { user } = useAuth()
   const [comments, setComments] = useState<CommentType[]>([])
   const [newComment, setNewComment] = useState("")
@@ -40,20 +41,9 @@ export function CommentsSheet({ postId, open, onOpenChange }: CommentsSheetProps
     try {
       const data = await api.get<CommentType[]>(`/api/comments/${postId}/comments`)
       setComments(data)
-    } catch {
-      const localComments = commentService.getComments(postId)
-      setComments(localComments.map(c => ({
-        commentsId: c.id,
-        text: c.text,
-        createdAt: c.createdAt,
-        lastUpdated: c.createdAt,
-        username: c.username,
-        userId: c.userId,
-        locked: false,
-        totalComments: 0,
-        likeCount: c.likeCount,
-        commentReplies: 0
-      })))
+    } catch (error) {
+      console.error('Error fetching comments:', error)
+      setComments([])
     }
   }, [postId])
 
@@ -66,14 +56,15 @@ export function CommentsSheet({ postId, open, onOpenChange }: CommentsSheetProps
     setIsLoading(true)
     try {
       await api.post(`/api/comments/${postId}`, { text: newComment.trim() })
-      const { notificationService } = await import('@/lib/services/notification')
-      notificationService.create('post-owner-id', 'comment', `${user.nombres} comentó tu post`, user.userId)
+      const { createNotification } = await import('@/lib/utils/notifications')
+      await createNotification('post-owner-id', 'comment', `${user.nombres} comentó tu post`, user.userId)
       setNewComment("")
       fetchComments()
-    } catch {
-      commentService.addComment(postId, user.userId, user.nombres, newComment.trim())
-      setNewComment("")
-      fetchComments()
+      onUpdate?.()
+      toast.success('Comentario publicado')
+    } catch (error) {
+      console.error('Error posting comment:', error)
+      toast.error('Error al publicar comentario')
     } finally {
       setIsLoading(false)
     }

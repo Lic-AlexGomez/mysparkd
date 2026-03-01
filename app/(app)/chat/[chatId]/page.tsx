@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
+import { useWebSocket } from "@/hooks/use-websocket"
 import type { Message, Chat } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -25,6 +26,23 @@ export default function ChatRoomPage() {
   const [chatInfo, setChatInfo] = useState<Chat | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
+
+  // WebSocket para mensajes en tiempo real
+  const { sendMessage: sendViaWebSocket, isConnected } = useWebSocket(
+    user?.userId,
+    useCallback((newMessage: Message) => {
+      // Solo agregar si es del chat actual
+      if (newMessage.chatId === chatId) {
+        setMessages(prev => {
+          // Evitar duplicados
+          if (prev.some(m => m.messageId === newMessage.messageId)) {
+            return prev
+          }
+          return [...prev, newMessage]
+        })
+      }
+    }, [chatId])
+  )
 
   const fetchMessages = useCallback(async () => {
     try {
@@ -52,12 +70,6 @@ export default function ChatRoomPage() {
     fetchChatInfo()
   }, [fetchMessages, fetchChatInfo])
 
-  // Poll for new messages every 5 seconds
-  useEffect(() => {
-    const interval = setInterval(fetchMessages, 5000)
-    return () => clearInterval(interval)
-  }, [fetchMessages])
-
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -66,18 +78,25 @@ export default function ChatRoomPage() {
   const handleSend = async () => {
     if (!newMessage.trim()) return
     setIsSending(true)
-    try {
-      await api.post("/api/chat/send", {
-        chatId,
-        content: newMessage.trim(),
-      })
-      setNewMessage("")
-      fetchMessages()
-    } catch {
-      // silent
-    } finally {
-      setIsSending(false)
+    
+    // Intentar enviar por WebSocket primero
+    const sentViaWS = sendViaWebSocket(chatId, newMessage.trim())
+    
+    if (!sentViaWS) {
+      // Fallback a HTTP si WebSocket no está conectado
+      try {
+        await api.post("/api/chat/send", {
+          chatId,
+          content: newMessage.trim(),
+        })
+        fetchMessages()
+      } catch {
+        // silent
+      }
     }
+    
+    setNewMessage("")
+    setIsSending(false)
   }
 
   if (isLoading) {
@@ -106,10 +125,16 @@ export default function ChatRoomPage() {
             {chatInfo?.otherUsername?.[0]?.toUpperCase() || "?"}
           </AvatarFallback>
         </Avatar>
-        <div>
+        <div className="flex-1">
           <p className="text-sm font-semibold text-foreground">
             {chatInfo?.otherUsername || "Chat"}
           </p>
+          {isConnected && (
+            <p className="text-xs text-green-500 flex items-center gap-1">
+              <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+              En línea
+            </p>
+          )}
         </div>
       </div>
 
@@ -151,7 +176,7 @@ export default function ChatRoomPage() {
                           : "text-muted-foreground"
                       )}
                     >
-                      {formatDistanceToNow(new Date(msg.sentAt), {
+                      {formatDistanceToNow(new Date(msg.sentAt + 'Z'), {
                         addSuffix: true,
                         locale: es,
                       })}

@@ -1,0 +1,95 @@
+================================================================================
+PROBLEMA CRÍTICO - WebSocket CORS Bloqueado
+================================================================================
+
+ERROR:
+------
+Access to XMLHttpRequest at 'https://sparkd1-0.onrender.com/ws/info' from 
+origin 'http://localhost:3000' has been blocked by CORS policy: 
+No 'Access-Control-Allow-Origin' header is present on the requested resource.
+
+
+CAUSA:
+------
+El WebSocket está configurado con setAllowedOriginPatterns("*") pero NO está
+funcionando correctamente. SockJS necesita configuración CORS adicional.
+
+
+SOLUCIÓN REQUERIDA:
+-------------------
+
+1. ACTUALIZAR WebSocketConfig.java:
+
+@Configuration
+@EnableWebSocketMessageBroker
+public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+
+    @Override
+    public void configureMessageBroker(MessageBrokerRegistry registry) {
+        registry.enableSimpleBroker("/topic", "/queue");
+        registry.setApplicationDestinationPrefixes("/app");
+        registry.setUserDestinationPrefix("/user");  // AGREGAR ESTA LÍNEA
+    }
+
+    @Override
+    public void registerStompEndpoints(StompEndpointRegistry registry) {
+        registry.addEndpoint("/ws")
+                .setAllowedOriginPatterns("*")
+                .setAllowedOrigins(                    // AGREGAR ESTAS LÍNEAS
+                    "http://localhost:3000",
+                    "http://localhost:3001",
+                    "https://*.vercel.app"
+                )
+                .withSockJS();
+    }
+}
+
+
+2. AGREGAR CONFIGURACIÓN CORS GLOBAL (si no existe):
+
+@Configuration
+public class CorsConfig {
+    
+    @Bean
+    public WebMvcConfigurer corsConfigurer() {
+        return new WebMvcConfigurer() {
+            @Override
+            public void addCorsMappings(CorsRegistry registry) {
+                registry.addMapping("/**")
+                        .allowedOriginPatterns("*")
+                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                        .allowedHeaders("*")
+                        .allowCredentials(true);
+            }
+        };
+    }
+}
+
+
+3. VERIFICAR SecurityConfig.java:
+
+Asegurarse de que el endpoint /ws/** esté permitido:
+
+http
+    .authorizeHttpRequests(auth -> auth
+        .requestMatchers("/ws/**").permitAll()  // AGREGAR ESTA LÍNEA
+        .requestMatchers("/auth/**").permitAll()
+        // ... resto de configuración
+    )
+
+
+ALTERNATIVA TEMPORAL:
+---------------------
+Si el WebSocket no se puede arreglar rápidamente, el frontend ya tiene
+fallback a HTTP polling que funciona correctamente.
+
+
+PRIORIDAD: ALTA
+----------------
+Sin WebSocket funcionando:
+- ❌ No hay mensajes en tiempo real
+- ❌ No hay indicador de "en línea"
+- ✅ El chat funciona con polling (actualiza cada 5 segundos)
+
+
+================================================================================

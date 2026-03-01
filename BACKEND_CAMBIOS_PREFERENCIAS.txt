@@ -1,0 +1,108 @@
+================================================================================
+SOLICITUD DE CAMBIOS EN BACKEND - UserPreferences
+================================================================================
+
+PROBLEMA:
+---------
+El modelo UserPreferences actual solo guarda preferencias de búsqueda 
+(interestedIn, minAge, maxAge, showMe), pero faltan campos para 
+configuraciones de privacidad y modo de uso de la app.
+
+
+CAMBIOS REQUERIDOS:
+-------------------
+
+1. AGREGAR CAMPOS AL MODELO UserPreferences.java
+   -----------------------------------------------
+   
+   @Column(nullable = false)
+   private Boolean isPrivate = false; // Perfil privado (solo seguidores ven posts)
+
+   @Column(nullable = false)
+   private Boolean connectionMode = true; // Aparecer en sugerencias de matching
+
+   @Column(nullable = false, length = 20)
+   private String objective = "both"; // Valores: "social", "connection", "both"
+
+
+2. ACTUALIZAR UserPreferencesRequestDTO.java
+   ------------------------------------------
+   
+   Agregar estos campos al DTO de request:
+   
+   private Boolean isPrivate;
+   private Boolean connectionMode;
+   private String objective;
+
+
+3. ACTUALIZAR UserPreferencesResponseDTO.java
+   -------------------------------------------
+   
+   Agregar estos campos al DTO de response:
+   
+   private Boolean isPrivate;
+   private Boolean connectionMode;
+   private String objective;
+
+
+4. ACTUALIZAR UserPreferencesMapper.java
+   --------------------------------------
+   
+   Mapear los nuevos campos en ambos métodos (toEntity y toDTO).
+
+
+5. ACTUALIZAR UserPreferencesService.java
+   ---------------------------------------
+   
+   Asegurarse de que los nuevos campos se guarden y recuperen correctamente.
+
+
+6. MIGRACIÓN DE BASE DE DATOS
+   ---------------------------
+   
+   Ejecutar migración para agregar las columnas:
+   
+   ALTER TABLE user_preferences 
+   ADD COLUMN is_private BOOLEAN NOT NULL DEFAULT false,
+   ADD COLUMN connection_mode BOOLEAN NOT NULL DEFAULT true,
+   ADD COLUMN objective VARCHAR(20) NOT NULL DEFAULT 'both';
+
+
+VALORES POR DEFECTO:
+--------------------
+- isPrivate: false (perfil público por defecto)
+- connectionMode: true (aparecer en matching por defecto)
+- objective: "both" (experiencia completa por defecto)
+
+
+VALIDACIÓN:
+-----------
+El campo objective debe aceptar solo estos valores:
+- "social" - Solo red social
+- "connection" - Solo dating/matching
+- "both" - Experiencia completa
+
+
+ENDPOINT AFECTADO:
+------------------
+POST /api/preferences/set/preferences debe aceptar y guardar estos nuevos campos.
+
+Ejemplo de request actualizado:
+{
+  "interestedIn": "FEMALE",
+  "minAge": 18,
+  "maxAge": 35,
+  "showMe": true,
+  "isPrivate": false,
+  "connectionMode": true,
+  "objective": "both"
+}
+
+
+PRIORIDAD: MEDIA
+----------------
+Actualmente el frontend guarda estos valores en localStorage como solución temporal,
+pero deberían persistirse en la base de datos para sincronización entre dispositivos.
+
+
+================================================================================

@@ -25,7 +25,8 @@ interface CreatePostDialogProps {
 export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
   const [open, setOpen] = useState(false)
   const [body, setBody] = useState("")
-  const [file, setFile] = useState("")
+  const [file, setFile] = useState<File | null>(null)
+  const [filePreview, setFilePreview] = useState("")
   const [permanent, setPermanent] = useState(true)
   const [durationHours, setDurationHours] = useState(24)
   const [isLoading, setIsLoading] = useState(false)
@@ -35,17 +36,9 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
     const selectedFile = e.target.files?.[0]
     if (!selectedFile) return
 
-    setIsUploading(true)
-    try {
-      const imageUrl = await uploadToCloudinary(selectedFile)
-      setFile(imageUrl)
-      toast.success('Imagen subida')
-    } catch (error) {
-      toast.error('Error al subir imagen')
-      console.error(error)
-    } finally {
-      setIsUploading(false)
-    }
+    setFile(selectedFile)
+    setFilePreview(URL.createObjectURL(selectedFile))
+    toast.success('Imagen seleccionada')
   }
 
   const handleSubmit = async () => {
@@ -60,27 +53,17 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
       const postData = {
         body: body.trim(),
         permanent,
-        ...(!permanent && { durationHours: Math.min(durationHours, 48) })
+        ...(!permanent && { durationHours: Math.min(durationHours, 24) })
       }
+      
       formData.append('post', JSON.stringify(postData))
       
-      // Si hay imagen, descargarla de Cloudinary y agregarla al FormData
-      if (file.trim()) {
-        try {
-          const response = await fetch(file, { mode: 'cors' })
-          if (!response.ok) throw new Error('Error al obtener imagen')
-          const blob = await response.blob()
-          const imageFile = new File([blob], 'image.jpg', { type: blob.type })
-          formData.append('file', imageFile)
-        } catch (err) {
-          console.error('Error procesando imagen:', err)
-          toast.error('Error al procesar la imagen')
-          setIsLoading(false)
-          return
-        }
+      if (file) {
+        formData.append('file', file)
       }
       
       const token = localStorage.getItem('sparkd_token')
+     
       const res = await fetch('/api/proxy/api/posts/new', {
         method: 'POST',
         headers: {
@@ -88,7 +71,7 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
         },
         body: formData
       })
-      
+ 
       if (!res.ok) {
         const error = await res.json().catch(() => ({}))
         throw new Error(error.detail || error.message || 'Error al crear post')
@@ -96,7 +79,8 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
       
       toast.success("Post creado!")
       setBody("")
-      setFile("")
+      setFile(null)
+      setFilePreview("")
       setPermanent(true)
       setOpen(false)
       onCreated()
@@ -140,13 +124,16 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
           <div className="flex flex-col gap-2">
             <Label className="text-foreground flex items-center gap-2">
               <ImageIcon className="h-4 w-4" />
-              Imagen
+              Imagen (opcional)
             </Label>
-            {file && (
+            {filePreview && (
               <div className="relative">
-                <img src={file} alt="Preview" className="w-full h-48 object-cover rounded-lg" />
+                <img src={filePreview} alt="Preview" className="w-full h-48 object-cover rounded-lg" />
                 <button
-                  onClick={() => setFile("")}
+                  onClick={() => {
+                    setFile(null)
+                    setFilePreview("")
+                  }}
                   className="absolute top-2 right-2 h-6 w-6 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70"
                 >
                   <X className="h-4 w-4 text-white" />
@@ -163,6 +150,7 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
               />
               {isUploading && <Loader2 className="h-5 w-5 animate-spin" />}
             </div>
+            <p className="text-xs text-muted-foreground">Nota: Las imágenes requieren configuración de Cloudinary en el backend.</p>
           </div>
           <div className="flex items-center justify-between">
             <Label className="text-foreground">Post permanente</Label>

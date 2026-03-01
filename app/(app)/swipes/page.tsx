@@ -22,13 +22,37 @@ export default function SwipesPage() {
 
   const fetchProfiles = useCallback(async () => {
     try {
-      // Use the feed to discover users, or a discovery endpoint if available
-      const data = await api.get<UserProfile[]>("/api/profile/me")
-      // For now, we'll set profiles from what's available
-      // The backend may need a /discover or similar endpoint
+      const feedData = await api.get<any[]>("/api/posts/feed")
+      const myProfile = await api.get<any>("/api/profile/me")
+      const myUserId = myProfile.userId
+      
+      console.log('Feed data:', feedData)
+      console.log('My userId:', myUserId)
+      
+      const uniqueUsers = new Map<string, UserProfile>()
+      feedData.forEach(post => {
+        if (post.userId && post.username && post.userId !== myUserId && !uniqueUsers.has(post.userId)) {
+          uniqueUsers.set(post.userId, {
+            userId: post.userId,
+            username: post.username,
+            nombres: post.username,
+            apellidos: '',
+            sex: 'MALE',
+            telefono: '',
+            bio: post.body?.substring(0, 100) || 'Sin descripción',
+            photos: post.file ? [{ url: post.file, position: 0, primary: true }] : [],
+            interests: [],
+            reputation: post.reputation || 75
+          })
+        }
+      })
+      
+      const profiles = Array.from(uniqueUsers.values())
+      console.log('Profiles discovered:', profiles.length)
+      setProfiles(profiles)
+    } catch (error) {
+      console.error('Error fetching profiles:', error)
       setProfiles([])
-    } catch {
-      // silent
     } finally {
       setIsLoading(false)
     }
@@ -49,8 +73,8 @@ export default function SwipesPage() {
         const result = matchService.like('current-user-id', currentProfile.userId)
         
         if (result.matched) {
-          const { notificationService } = await import('@/lib/services/notification')
-          notificationService.create(currentProfile.userId, 'match', '¡Tienes un nuevo match!', 'current-user-id')
+          const { createNotification } = await import('@/lib/utils/notifications')
+          await createNotification(currentProfile.userId, 'match', '¡Tienes un nuevo match!', 'current-user-id')
           setMatchedUser({
             id: currentProfile.userId,
             name: `${currentProfile.nombres} ${currentProfile.apellidos}`,

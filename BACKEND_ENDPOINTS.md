@@ -118,14 +118,19 @@ Eliminar perfil
 
 ## 💬 Comentarios
 
+### GET `/api/comments/{postId}/comments`
+Obtener comentarios de un post
+
 ### POST `/api/comments/{postId}`
 Crear un nuevo comentario
+```json
+{
+  "text": "string"
+}
+```
 
 ### POST `/api/comments/reply/{parentId}`
 Responder a un comentario
-
-### GET `/api/comments/{postId}/comments`
-Obtener comentarios de un post
 
 ### GET `/api/comments/getcommentReply/{parentId}`
 Obtener comentarios hijos
@@ -149,6 +154,14 @@ Agregar o remover un like
 
 ### POST `/api/swipes/perform/swipe`
 Realizar swipe (like/dislike)
+```json
+{
+  "targetUserId": "uuid",
+  "type": "LIKE" | "DISLIKE"
+}
+```
+
+**Nota**: No existe endpoint de descubrimiento. Para obtener usuarios disponibles, usar `/api/posts/feed` y extraer usuarios únicos.
 
 ---
 

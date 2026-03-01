@@ -70,7 +70,7 @@ export default function ChatListPage() {
                   </p>
                   {chat.lastMessageAt && (
                     <span className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(chat.lastMessageAt), {
+                      {formatDistanceToNow(new Date(chat.lastMessageAt + 'Z'), {
                         addSuffix: true,
                         locale: es,
                       })}

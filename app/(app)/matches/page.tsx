@@ -36,16 +36,9 @@ export default function MatchesPage() {
     try {
       const data = await api.get<Match[]>("/api/matches/my/matches")
       setMatches(data)
-    } catch {
-      if (user?.userId) {
-        const localMatches = matchService.getMatches(user.userId)
-        setMatches(localMatches.map(m => ({
-          matchId: m.matchId,
-          userId: m.userId1 === user.userId ? m.userId2 : m.userId1,
-          nombre: 'Usuario',
-          matchedAt: m.createdAt
-        })))
-      }
+    } catch (error) {
+      console.error('Error fetching matches:', error)
+      setMatches([])
     } finally {
       setIsLoading(false)
     }

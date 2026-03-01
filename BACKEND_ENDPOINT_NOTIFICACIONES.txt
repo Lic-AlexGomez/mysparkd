@@ -1,0 +1,116 @@
+================================================================================
+SOLICITUD DE ENDPOINT - Crear Notificaciones
+================================================================================
+
+PROBLEMA:
+---------
+Actualmente el frontend crea notificaciones solo localmente (localStorage).
+Necesitamos un endpoint para crear notificaciones en el backend para que
+se sincronicen entre dispositivos.
+
+
+ENDPOINT REQUERIDO:
+-------------------
+
+POST /api/notifications/create
+
+Request Body:
+{
+  "userId": "uuid",           // Usuario que recibirá la notificación
+  "type": "string",           // Tipo: "like", "comment", "match", "message", "follow"
+  "message": "string",        // Mensaje de la notificación
+  "relatedUserId": "uuid"     // (Opcional) Usuario que generó la notificación
+}
+
+Response (201 Created):
+{
+  "notificationId": "uuid",
+  "userId": "uuid",
+  "type": "like",
+  "message": "Juan le gustó tu post",
+  "read": false,
+  "createdAt": "2024-01-15T10:30:00Z",
+  "relatedUserId": "uuid",
+  "relatedUsername": "juan123"
+}
+
+
+CASOS DE USO:
+-------------
+
+1. LIKE EN POST:
+   POST /api/notifications/create
+   {
+     "userId": "post-owner-id",
+     "type": "like",
+     "message": "María le gustó tu post",
+     "relatedUserId": "maria-user-id"
+   }
+
+2. COMENTARIO EN POST:
+   POST /api/notifications/create
+   {
+     "userId": "post-owner-id",
+     "type": "comment",
+     "message": "Carlos comentó tu post",
+     "relatedUserId": "carlos-user-id"
+   }
+
+3. NUEVO MATCH:
+   POST /api/notifications/create
+   {
+     "userId": "matched-user-id",
+     "type": "match",
+     "message": "¡Tienes un nuevo match!",
+     "relatedUserId": "other-user-id"
+   }
+
+4. NUEVO MENSAJE:
+   POST /api/notifications/create
+   {
+     "userId": "recipient-id",
+     "type": "message",
+     "message": "Ana te envió un mensaje",
+     "relatedUserId": "ana-user-id"
+   }
+
+5. NUEVO SEGUIDOR:
+   POST /api/notifications/create
+   {
+     "userId": "followed-user-id",
+     "type": "follow",
+     "message": "Pedro comenzó a seguirte",
+     "relatedUserId": "pedro-user-id"
+   }
+
+
+VALIDACIONES:
+-------------
+- userId: Requerido, debe existir en la base de datos
+- type: Requerido, debe ser uno de: "like", "comment", "match", "message", "follow"
+- message: Requerido, mínimo 1 carácter, máximo 255 caracteres
+- relatedUserId: Opcional, si se proporciona debe existir en la base de datos
+
+
+COMPORTAMIENTO:
+---------------
+- La notificación se crea con read=false por defecto
+- Se debe incluir el username del relatedUser en la respuesta
+- Si el usuario tiene notificaciones desactivadas, aún así se debe crear
+  (el frontend decidirá si mostrarla o no)
+
+
+ENDPOINTS EXISTENTES (Ya funcionan):
+-------------------------------------
+✓ GET /api/notifications/{userId} - Obtener notificaciones
+✓ PUT /api/notifications/{notificationId}/read - Marcar como leída
+✓ DELETE /api/notifications/{notificationId} - Eliminar notificación
+
+
+PRIORIDAD: ALTA
+----------------
+Sin este endpoint, las notificaciones solo funcionan en el mismo dispositivo
+y se pierden al limpiar el navegador.
+
+
+================================================================================
