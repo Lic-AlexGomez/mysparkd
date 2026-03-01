@@ -9,7 +9,7 @@ import type { Message, Chat } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { ArrowLeft, Send, Loader2 } from "lucide-react"
+import { ArrowLeft, Send, Loader2, MessageCircle } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
 import { cn } from "@/lib/utils"
@@ -108,25 +108,25 @@ export default function ChatRoomPage() {
   }
 
   return (
-    <div className="flex h-[calc(100svh-4rem)] flex-col lg:h-[calc(100svh-4rem)]">
+    <div className="flex h-[calc(100svh-4rem)] flex-col lg:h-svh bg-gradient-to-b from-background to-muted/20">
       {/* Chat header */}
-      <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+      <div className="flex items-center gap-3 border-b border-primary/20 bg-background/95 backdrop-blur-xl px-4 py-4 shadow-lg shadow-primary/5">
         <Button
           variant="ghost"
           size="icon"
           onClick={() => router.push("/chat")}
-          className="text-muted-foreground hover:text-foreground"
+          className="text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-xl"
         >
           <ArrowLeft className="h-5 w-5" />
           <span className="sr-only">Volver</span>
         </Button>
-        <Avatar className="h-9 w-9 border border-border">
-          <AvatarFallback className="bg-primary/20 text-primary text-xs">
+        <Avatar className="h-11 w-11 border-2 border-primary/30 ring-4 ring-primary/10">
+          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-bold">
             {chatInfo?.otherUsername?.[0]?.toUpperCase() || "?"}
           </AvatarFallback>
         </Avatar>
         <div className="flex-1">
-          <p className="text-sm font-semibold text-foreground">
+          <p className="font-bold text-foreground">
             {chatInfo?.otherUsername || "Chat"}
           </p>
           {isConnected && (
@@ -145,9 +145,13 @@ export default function ChatRoomPage() {
       >
         <div className="flex flex-col gap-3">
           {messages.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-              Envia el primer mensaje!
-            </p>
+            <div className="flex flex-col items-center justify-center gap-3 py-20">
+              <div className="relative">
+                <div className="absolute inset-0 blur-2xl bg-primary/20 rounded-full" />
+                <MessageCircle className="h-16 w-16 text-primary relative" />
+              </div>
+              <p className="text-muted-foreground">¡Envía el primer mensaje!</p>
+            </div>
           ) : (
             messages.map((msg) => {
               const isOwn = msg.senderId === user?.userId
@@ -161,10 +165,10 @@ export default function ChatRoomPage() {
                 >
                   <div
                     className={cn(
-                      "max-w-[75%] rounded-2xl px-4 py-2.5",
+                      "max-w-[75%] rounded-2xl px-4 py-3 shadow-lg",
                       isOwn
-                        ? "bg-primary text-primary-foreground rounded-br-md"
-                        : "bg-muted text-foreground rounded-bl-md"
+                        ? "bg-gradient-to-br from-primary to-secondary text-black rounded-br-md"
+                        : "bg-gradient-to-br from-card to-muted/50 text-foreground rounded-bl-md border border-primary/10"
                     )}
                   >
                     <p className="text-sm leading-relaxed">{msg.content}</p>
@@ -172,7 +176,7 @@ export default function ChatRoomPage() {
                       className={cn(
                         "mt-1 text-[10px]",
                         isOwn
-                          ? "text-primary-foreground/60"
+                          ? "text-black/60"
                           : "text-muted-foreground"
                       )}
                     >
@@ -191,13 +195,13 @@ export default function ChatRoomPage() {
       </div>
 
       {/* Message input */}
-      <div className="border-t border-border px-4 py-3 pb-24 lg:pb-3">
+      <div className="border-t border-primary/20 bg-background/95 backdrop-blur-xl px-4 py-4 pb-24 lg:pb-4 shadow-lg shadow-primary/5">
         <div className="flex gap-2">
           <Input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder="Escribe un mensaje..."
-            className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
+            className="bg-muted/50 border-primary/20 text-foreground placeholder:text-muted-foreground rounded-2xl focus:border-primary/40 transition-colors"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault()
@@ -209,9 +213,9 @@ export default function ChatRoomPage() {
             onClick={handleSend}
             disabled={isSending || !newMessage.trim()}
             size="icon"
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
+            className="h-11 w-11 rounded-2xl bg-gradient-to-br from-primary to-secondary text-black hover:scale-110 transition-transform shadow-lg disabled:opacity-50 disabled:hover:scale-100"
           >
-            <Send className="h-4 w-4" />
+            <Send className="h-5 w-5" />
             <span className="sr-only">Enviar</span>
           </Button>
         </div>

@@ -24,6 +24,7 @@ export default function OnboardingPage() {
   const [nombres, setNombres] = useState("")
   const [apellidos, setApellidos] = useState("")
   const [sex, setSex] = useState<Sex>("MALE")
+  const [dateOfBirth, setDateOfBirth] = useState("")
   const [telefono, setTelefono] = useState("")
 
   // Step 2: Interests
@@ -37,7 +38,7 @@ export default function OnboardingPage() {
 
   const fetchInterests = useCallback(async () => {
     try {
-      const data = await api.get<Interest[]>("/api/interests")
+      const data = await api.get<Interest[]>("/api/interests/all/interest")
       setAllInterests(data)
     } catch {
       // silent
@@ -49,7 +50,7 @@ export default function OnboardingPage() {
   }, [fetchInterests])
 
   const handleStep1 = async () => {
-    if (!nombres.trim() || !apellidos.trim()) {
+    if (!nombres.trim() || !apellidos.trim() || !dateOfBirth) {
       toast.error("Completa los campos obligatorios")
       return
     }
@@ -59,6 +60,7 @@ export default function OnboardingPage() {
         nombres: nombres.trim(),
         apellidos: apellidos.trim(),
         sex,
+        dateOfBirth,
         telefono: telefono.trim() || undefined,
       })
       setStep(2)
@@ -106,6 +108,24 @@ export default function OnboardingPage() {
     setSelectedInterests((prev) =>
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
     )
+  }
+
+  const categoryNames: Record<string, string> = {
+    ENTRETENIMIENTO: "🎬 Entretenimiento",
+    DEPORTE: "⚽ Deporte",
+    VIAJES: "✈️ Viajes",
+    ESTILO_DE_VIDA: "💎 Estilo de Vida",
+    CONOCIMIENTO: "📚 Conocimiento",
+    SOCIAL: "👥 Social",
+    ARTE: "🎨 Arte",
+    MUSICA: "🎵 Música",
+    GASTRONOMIA: "🍽️ Gastronomía",
+    NATURALEZA: "🌿 Naturaleza",
+    TECNOLOGIA: "💻 Tecnología",
+    NEGOCIOS: "💼 Negocios",
+    BIENESTAR: "🧘 Bienestar",
+    CULTURA: "🏛️ Cultura",
+    AVENTURA: "🏔️ Aventura"
   }
 
   const categories = [...new Set(allInterests.map((i) => i.category))]
@@ -179,6 +199,17 @@ export default function OnboardingPage() {
               </div>
             </div>
             <div className="flex flex-col gap-2">
+              <Label className="text-foreground">Fecha de nacimiento *</Label>
+              <Input
+                type="date"
+                value={dateOfBirth}
+                onChange={(e) => setDateOfBirth(e.target.value)}
+                max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
+                className="bg-muted border-border text-foreground"
+              />
+              <p className="text-xs text-muted-foreground">Debes ser mayor de 18 años</p>
+            </div>
+            <div className="flex flex-col gap-2">
               <Label className="text-foreground">Teléfono (opcional)</Label>
               <Input
                 value={telefono}
@@ -212,8 +243,8 @@ export default function OnboardingPage() {
           <CardContent className="flex flex-col gap-4">
             {categories.map((category) => (
               <div key={category}>
-                <p className="mb-2 text-sm font-medium text-muted-foreground">
-                  {category}
+                <p className="mb-3 text-sm font-bold text-foreground">
+                  {categoryNames[category] || category}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {allInterests
@@ -226,14 +257,15 @@ export default function OnboardingPage() {
                         <button
                           key={interest.interestId}
                           onClick={() => toggleInterest(interest.interestId)}
-                          className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+                          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-all ${
                             selected
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted text-muted-foreground hover:bg-muted/80"
+                              ? "bg-gradient-to-r from-primary to-secondary text-black shadow-lg scale-105"
+                              : "bg-muted text-muted-foreground hover:bg-muted/80 hover:scale-105"
                           }`}
                         >
-                          {selected && <Check className="h-3 w-3" />}
+                          {interest.icon && <span>{interest.icon}</span>}
                           {interest.name}
+                          {selected && <Check className="h-3 w-3" />}
                         </button>
                       )
                     })}

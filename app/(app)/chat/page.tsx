@@ -37,54 +37,63 @@ export default function ChatListPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <div className="sticky top-16 z-20 border-b border-border bg-background/95 px-4 py-3 backdrop-blur-md">
-        <h1 className="text-lg font-bold text-foreground">Mensajes</h1>
-      </div>
+    <div className="flex justify-center min-h-screen bg-gradient-to-b from-background to-muted/20">
+      <div className="w-full max-w-[680px]">
+        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-xl border-b border-primary/20 shadow-lg shadow-primary/5">
+          <div className="px-6 py-4">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent">Mensajes</h1>
+            <p className="text-sm text-muted-foreground mt-1">{chats.length} {chats.length === 1 ? 'conversación' : 'conversaciones'}</p>
+          </div>
+        </div>
 
-      {chats.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-3 py-20">
-          <MessageCircle className="h-12 w-12 text-muted-foreground" />
-          <p className="text-muted-foreground">No tienes conversaciones</p>
-          <p className="text-sm text-muted-foreground">
-            Haz match con alguien para empezar a chatear
-          </p>
-        </div>
-      ) : (
-        <div className="divide-y divide-border">
-          {chats.map((chat) => (
-            <Link
-              key={chat.chatId}
-              href={`/chat/${chat.chatId}`}
-              className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors"
-            >
-              <Avatar className="h-12 w-12 border border-border">
-                <AvatarFallback className="bg-primary/20 text-primary">
-                  {chat.otherUsername?.[0]?.toUpperCase() || "?"}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <p className="font-semibold text-foreground">
-                    {chat.otherUsername}
+        {chats.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-4 py-20 px-6">
+            <div className="relative">
+              <div className="absolute inset-0 blur-3xl bg-primary/30 rounded-full" />
+              <MessageCircle className="h-20 w-20 text-primary relative" />
+            </div>
+            <p className="text-xl font-semibold">No tienes conversaciones</p>
+            <p className="text-sm text-muted-foreground text-center max-w-sm">
+              Haz match con alguien para empezar a chatear
+            </p>
+          </div>
+        ) : (
+          <div className="p-4 space-y-3">
+            {chats.map((chat) => (
+              <Link
+                key={chat.chatId}
+                href={`/chat/${chat.chatId}`}
+                className="relative overflow-hidden flex items-center gap-4 p-4 bg-gradient-to-br from-card to-muted/20 rounded-2xl border border-primary/10 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 group"
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/5 to-transparent rounded-full blur-2xl" />
+                <Avatar className="h-14 w-14 border-2 border-primary/30 ring-4 ring-primary/10 group-hover:scale-110 transition-transform relative z-10">
+                  <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-bold">
+                    {chat.otherUsername?.[0]?.toUpperCase() || "?"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0 relative z-10">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="font-bold text-foreground">
+                      {chat.otherUsername}
+                    </p>
+                    {chat.lastMessageAt && (
+                      <span className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(new Date(chat.lastMessageAt + 'Z'), {
+                          addSuffix: true,
+                          locale: es,
+                        })}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground truncate">
+                    {chat.lastMessage || "Sin mensajes aún"}
                   </p>
-                  {chat.lastMessageAt && (
-                    <span className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(chat.lastMessageAt + 'Z'), {
-                        addSuffix: true,
-                        locale: es,
-                      })}
-                    </span>
-                  )}
                 </div>
-                <p className="text-sm text-muted-foreground truncate">
-                  {chat.lastMessage || "Sin mensajes aun"}
-                </p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
