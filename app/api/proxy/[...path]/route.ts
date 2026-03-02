@@ -38,7 +38,10 @@ async function handler(
     }
   }
 
-  console.log(`[proxy] ${request.method} ${targetUrl}`, { headers, bodyLength: body?.length })
+  // Solo loguear en desarrollo si hay errores
+  if (process.env.NODE_ENV === 'development') {
+    // console.log(`[proxy] ${request.method} ${targetUrl}`, { headers, bodyLength: body?.length })
+  }
 
   try {
     const response = await fetch(targetUrl, {
@@ -47,7 +50,7 @@ async function handler(
       body: body || undefined,
     })
 
-    console.log(`[proxy] Response ${response.status}`, response.statusText)
+    // console.log(`[proxy] Response ${response.status}`, response.statusText)
 
     const responseHeaders = new Headers()
     const respContentType = response.headers.get("content-type")

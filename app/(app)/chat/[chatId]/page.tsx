@@ -31,10 +31,8 @@ export default function ChatRoomPage() {
   const { sendMessage: sendViaWebSocket, isConnected } = useWebSocket(
     user?.userId,
     useCallback((newMessage: Message) => {
-      // Solo agregar si es del chat actual
       if (newMessage.chatId === chatId) {
         setMessages(prev => {
-          // Evitar duplicados
           if (prev.some(m => m.messageId === newMessage.messageId)) {
             return prev
           }
@@ -47,6 +45,7 @@ export default function ChatRoomPage() {
   const fetchMessages = useCallback(async () => {
     try {
       const data = await api.get<Message[]>(`/api/chat/${chatId}/messages`)
+      console.log('[Chat] Mensajes obtenidos del servidor:', data)
       setMessages(data)
     } catch {
       // silent
@@ -79,23 +78,27 @@ export default function ChatRoomPage() {
     if (!newMessage.trim()) return
     setIsSending(true)
     
-    // Intentar enviar por WebSocket primero
-    const sentViaWS = sendViaWebSocket(chatId, newMessage.trim())
+    const messageContent = newMessage.trim()
+    setNewMessage("")
+    
+    const sentViaWS = sendViaWebSocket(chatId, messageContent)
     
     if (!sentViaWS) {
-      // Fallback a HTTP si WebSocket no está conectado
       try {
         await api.post("/api/chat/send", {
           chatId,
-          content: newMessage.trim(),
+          content: messageContent,
         })
-        fetchMessages()
-      } catch {
-        // silent
+        await fetchMessages()
+      } catch (error) {
+        console.error('[Chat] Error al enviar por HTTP:', error)
       }
+    } else {
+      setTimeout(() => {
+        fetchMessages()
+      }, 500)
     }
     
-    setNewMessage("")
     setIsSending(false)
   }
 
