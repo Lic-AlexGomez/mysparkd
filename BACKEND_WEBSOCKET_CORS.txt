@@ -37,8 +37,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 .setAllowedOriginPatterns("*")
                 .setAllowedOrigins(                    // AGREGAR ESTAS LÍNEAS
                     "http://localhost:3000",
-                    "http://localhost:3001",
-                    "https://*.vercel.app"
+                    "http://localhost:3001"
+                   
                 )
                 .withSockJS();
     }

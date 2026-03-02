@@ -61,7 +61,7 @@ export default function RootLayout({
             }}
           />
         </AuthProvider>
-        <Analytics />
+        <Analytics debug={false} />
       </body>
     </html>
   )

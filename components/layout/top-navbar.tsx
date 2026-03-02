@@ -37,7 +37,7 @@ export function TopNavbar() {
 
   useEffect(() => {
     fetchNotifications()
-    const interval = setInterval(fetchNotifications, 30000)
+    const interval = setInterval(fetchNotifications, 60000) // Cambiar de 30s a 60s
     return () => clearInterval(interval)
   }, [fetchNotifications])
 
