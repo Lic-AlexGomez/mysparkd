@@ -19,25 +19,28 @@ export default function SwipesPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [showMatch, setShowMatch] = useState(false)
   const [matchedUser, setMatchedUser] = useState<{ id: string; name: string } | null>(null)
+  const [swipedIds, setSwipedIds] = useState<Set<string>>(new Set())
 
   const fetchProfiles = useCallback(async () => {
     try {
       const response = await api.get<any>("/api/discover?page=0&size=20")
       const discoverProfiles = response.content || []
       
-      const profiles = discoverProfiles.map((item: any) => ({
-        userId: item.profile.userId,
-        nombres: item.profile.nombres,
-        apellidos: item.profile.apellidos,
-        sex: item.profile.sex,
-        dateOfBirth: item.profile.dateOfBirth,
-        telefono: item.profile.telefono,
-        profileCompleted: item.profile.profileCompleted,
-        photos: item.profile.photos || [],
-        posts: item.profile.posts || [],
-        totalPosts: item.profile.totalPosts || 0,
-        compatibilityScore: item.compatibilityScore || 0
-      }))
+      const profiles = discoverProfiles
+        .filter((item: any) => !swipedIds.has(item.profile.userId))
+        .map((item: any) => ({
+          userId: item.profile.userId,
+          nombres: item.profile.nombres,
+          apellidos: item.profile.apellidos,
+          sex: item.profile.sex,
+          dateOfBirth: item.profile.dateOfBirth,
+          telefono: item.profile.telefono,
+          profileCompleted: item.profile.profileCompleted,
+          photos: item.profile.photos || [],
+          posts: item.profile.posts || [],
+          totalPosts: item.profile.totalPosts || 0,
+          compatibilityScore: item.compatibilityScore || 0
+        }))
       
       setProfiles(profiles)
     } catch (error) {
@@ -46,7 +49,7 @@ export default function SwipesPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [swipedIds])
 
   useEffect(() => {
     fetchProfiles()
@@ -85,6 +88,8 @@ export default function SwipesPage() {
         })
         setShowMatch(true)
       }
+      
+      setSwipedIds(prev => new Set(prev).add(currentProfile.userId))
     } catch {
       // silent
     }
