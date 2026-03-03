@@ -121,8 +121,9 @@ export function TopNavbar() {
                     </p>
                   ) : (
                     notifications.slice(0, 5).map((n) => (
-                      <button
+                      <Link
                         key={n.notificationId}
+                        href={`/profile/${n.relatedUserId}`}
                         onClick={() => {
                           markAsRead(n.notificationId)
                           setShowNotifications(false)
@@ -147,7 +148,7 @@ export function TopNavbar() {
                         {!n.read && (
                           <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
                         )}
-                      </button>
+                      </Link>
                     ))
                   )}
                 </div>
