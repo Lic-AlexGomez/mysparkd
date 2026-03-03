@@ -25,11 +25,20 @@ export function TopNavbar() {
   const fetchNotifications = useCallback(async () => {
     if (!user?.userId) return
     try {
-      const data = await api.get<Notification[]>(
+      const data = await api.get<any[]>(
         `/api/notifications/${user.userId}`
       )
-      setNotifications(data)
-      setUnreadCount(data.filter((n) => !n.read).length)
+      const mapped = data.map(n => ({
+        notificationId: n.senderId + n.createdAt,
+        type: 'like',
+        message: n.data,
+        read: n.read,
+        createdAt: n.createdAt,
+        relatedUserId: n.senderId,
+        relatedUsername: n.senderUsername
+      }))
+      setNotifications(mapped)
+      setUnreadCount(mapped.filter((n) => !n.read).length)
     } catch {
       // silent fail
     }
@@ -127,7 +136,12 @@ export function TopNavbar() {
                             {n.message}
                           </p>
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            {new Date(n.createdAt).toLocaleDateString("es")}
+                            {new Date(n.createdAt).toLocaleString("es", {
+                              day: "numeric",
+                              month: "short",
+                              hour: "2-digit",
+                              minute: "2-digit"
+                            })}
                           </p>
                         </div>
                         {!n.read && (

@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /settings/
+Disallow: /onboarding/
+
+Sitemap: https://sparkd.app/sitemap.xml

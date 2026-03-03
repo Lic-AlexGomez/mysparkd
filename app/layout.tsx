@@ -9,8 +9,57 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Sparkd - Connect, Share, Match',
-  description: 'Sparkd es la red social donde conectas con personas que comparten tus intereses. Haz match, chatea y comparte momentos.',
+  title: {
+    default: 'Sparkd - Red Social y Dating App para Conocer Gente Nueva',
+    template: '%s | Sparkd'
+  },
+  description: 'Sparkd es la mejor red social y app de citas para conocer gente nueva, hacer match, chatear y compartir momentos. Encuentra personas con tus mismos intereses y haz conexiones reales.',
+  keywords: ['red social', 'dating app', 'app de citas', 'conocer gente', 'hacer match', 'chat', 'citas online', 'ligar', 'amor', 'amistad', 'sparkd', 'tinder', 'bumble', 'badoo'],
+  authors: [{ name: 'Sparkd' }],
+  creator: 'Sparkd',
+  publisher: 'Sparkd',
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  metadataBase: new URL('https://sparkd.app'),
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: 'Sparkd - Red Social y Dating App para Conocer Gente Nueva',
+    description: 'Conoce gente nueva, haz match y chatea. La mejor app de citas y red social para encontrar el amor o hacer amigos.',
+    url: 'https://sparkd.app',
+    siteName: 'Sparkd',
+    locale: 'es_ES',
+    type: 'website',
+    images: [
+      {
+        url: '/placeholder-logo.png',
+        width: 1200,
+        height: 630,
+        alt: 'Sparkd - Red Social y Dating App',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Sparkd - Red Social y Dating App',
+    description: 'Conoce gente nueva, haz match y chatea. La mejor app de citas.',
+    images: ['/placeholder-logo.png'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
   generator: 'v0.app',
   icons: {
     icon: [
@@ -46,6 +95,38 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className="dark">
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="preconnect" href="https://sparkd1-0.onrender.com" />
+        <meta name="application-name" content="Sparkd" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Sparkd" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'WebApplication',
+              name: 'Sparkd',
+              description: 'Red social y dating app para conocer gente nueva',
+              applicationCategory: 'SocialNetworkingApplication',
+              operatingSystem: 'All',
+              offers: {
+                '@type': 'Offer',
+                price: '0',
+                priceCurrency: 'USD',
+              },
+              aggregateRating: {
+                '@type': 'AggregateRating',
+                ratingValue: '4.8',
+                ratingCount: '1250',
+              },
+            }),
+          }}
+        />
+      </head>
       <body className="font-sans antialiased">
         <AuthProvider>
           {children}

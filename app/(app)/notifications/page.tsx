@@ -19,10 +19,19 @@ export default function NotificationsPage() {
   const fetchNotifications = useCallback(async () => {
     if (!user?.userId) return
     try {
-      const data = await api.get<Notification[]>(
+      const data = await api.get<any[]>(
         `/api/notifications/${user.userId}`
       )
-      setNotifications(data)
+      const mapped = data.map(n => ({
+        notificationId: n.senderId + n.createdAt,
+        type: 'like',
+        message: n.data,
+        read: n.read,
+        createdAt: n.createdAt,
+        relatedUserId: n.senderId,
+        relatedUsername: n.senderUsername
+      }))
+      setNotifications(mapped)
     } catch {
       const localNotifs = notificationService.getNotifications(user.userId)
       setNotifications(localNotifs.map(n => ({

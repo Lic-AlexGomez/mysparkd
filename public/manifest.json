@@ -1,0 +1,31 @@
+{
+  "name": "Sparkd - Red Social y Dating App",
+  "short_name": "Sparkd",
+  "description": "Conoce gente nueva, haz match y chatea. La mejor app de citas y red social.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#13141a",
+  "theme_color": "#13141a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["social", "lifestyle"],
+  "screenshots": [
+    {
+      "src": "/placeholder.jpg",
+      "sizes": "540x720",
+      "type": "image/jpeg"
+    }
+  ]
+}
