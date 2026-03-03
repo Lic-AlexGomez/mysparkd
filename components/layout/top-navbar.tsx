@@ -51,12 +51,9 @@ export function TopNavbar() {
   }, [fetchNotifications])
 
   const markAsRead = async (notificationId: string) => {
-    try {
-      await api.put(`/api/notifications/${notificationId}/read`)
-      fetchNotifications()
-    } catch {
-      // silent
-    }
+    // El backend no tiene endpoint para marcar como leída por ID generado
+    // Solo refrescar las notificaciones
+    fetchNotifications()
   }
 
   const primaryPhoto = user?.photos?.find((p) => p.isPrimary || p.primary)

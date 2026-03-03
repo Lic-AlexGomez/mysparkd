@@ -53,13 +53,8 @@ export default function NotificationsPage() {
   }, [fetchNotifications])
 
   const markAsRead = async (id: string) => {
-    try {
-      await api.put(`/api/notifications/${id}/read`)
-      fetchNotifications()
-    } catch {
-      notificationService.markAsRead(id)
-      fetchNotifications()
-    }
+    // Backend no soporta marcar como leída individualmente
+    fetchNotifications()
   }
 
   const deleteNotification = async (id: string) => {

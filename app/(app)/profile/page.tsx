@@ -30,8 +30,6 @@ export default function ProfilePage() {
   const { user, refreshProfile, isLoading } = useAuth()
   const router = useRouter()
   
-  console.log('[ProfilePage] user:', user)
-  console.log('[ProfilePage] isLoading:', isLoading)
   const [editOpen, setEditOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [coverPhoto, setCoverPhoto] = useState<string | null>(null)
