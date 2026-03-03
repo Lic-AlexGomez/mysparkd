@@ -3,28 +3,155 @@
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
-import { Zap } from "lucide-react"
+import { Zap, Heart, MessageCircle, Users, Sparkles, ArrowRight } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 export default function HomePage() {
   const { isAuthenticated, isLoading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
-    if (!isLoading) {
-      if (isAuthenticated) {
-        router.replace("/feed")
-      } else {
-        router.replace("/login")
-      }
+    if (!isLoading && isAuthenticated) {
+      router.replace("/feed")
     }
   }, [isAuthenticated, isLoading, router])
 
-  return (
-    <div className="flex min-h-svh items-center justify-center bg-background">
-      <div className="flex flex-col items-center gap-3">
-        <Zap className="h-10 w-10 text-primary animate-pulse" />
-        <span className="text-sm text-muted-foreground">Cargando Sparkd...</span>
+  if (isLoading) {
+    return (
+      <div className="flex min-h-svh items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <Zap className="h-10 w-10 text-primary animate-pulse" />
+          <span className="text-sm text-muted-foreground">Cargando Sparkd...</span>
+        </div>
       </div>
-    </div>
-  )
+    )
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="relative flex min-h-svh items-center justify-center overflow-hidden bg-black">
+        {/* Animated background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-black to-secondary/20" />
+        
+        {/* Neon lines effect */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-1/4 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent animate-pulse" />
+          <div className="absolute top-1/2 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-secondary to-transparent opacity-60" 
+               style={{ animationDelay: '0.5s' }} />
+          <div className="absolute top-3/4 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent animate-pulse" 
+               style={{ animationDelay: '1s' }} />
+          
+          <div className="absolute left-1/4 top-0 h-full w-[2px] bg-gradient-to-b from-transparent via-secondary to-transparent animate-pulse" 
+               style={{ animationDelay: '0.3s' }} />
+          <div className="absolute left-1/2 top-0 h-full w-[1px] bg-gradient-to-b from-transparent via-primary to-transparent opacity-60" 
+               style={{ animationDelay: '0.8s' }} />
+          <div className="absolute left-3/4 top-0 h-full w-[2px] bg-gradient-to-b from-transparent via-secondary to-transparent animate-pulse" 
+               style={{ animationDelay: '1.2s' }} />
+        </div>
+
+        {/* Floating orbs */}
+        <div className="absolute top-20 left-20 w-72 h-72 bg-primary/30 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-20 right-20 w-96 h-96 bg-secondary/30 rounded-full blur-[120px] animate-pulse" 
+             style={{ animationDelay: '1s' }} />
+        
+        <div className="relative z-10 w-full max-w-4xl px-6 py-12 text-center">
+          {/* Logo with neon effect */}
+          <div className="mb-8 flex justify-center">
+            <div className="relative group">
+              <div className="absolute inset-0 blur-2xl bg-primary opacity-75 group-hover:opacity-100 transition-opacity rounded-full animate-pulse" />
+              <div className="relative bg-black p-6 rounded-full border-2 border-primary shadow-[0_0_30px_rgba(var(--primary),0.5)]">
+                <Zap className="h-16 w-16 text-primary drop-shadow-[0_0_15px_rgba(var(--primary),0.8)]" />
+              </div>
+            </div>
+          </div>
+          
+          <h1 className="text-6xl md:text-7xl font-black mb-4 tracking-tight">
+            <span className="inline-block bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent animate-pulse"
+                  style={{ backgroundSize: '200% auto', animation: 'gradient 3s linear infinite' }}>
+              SPARKD
+            </span>
+          </h1>
+          
+          <p className="text-xl md:text-2xl text-gray-300 mb-4 font-light tracking-wide">
+            Donde las conexiones cobran vida
+          </p>
+          
+          <p className="text-primary/80 mb-16 text-sm uppercase tracking-widest font-semibold">
+            ⚡ La nueva era del dating ⚡
+          </p>
+
+          {/* Features grid */}
+          <div className="grid md:grid-cols-3 gap-6 mb-16 max-w-3xl mx-auto">
+            <div className="group relative p-6 rounded-2xl bg-gradient-to-br from-primary/10 to-transparent border border-primary/20 hover:border-primary/50 transition-all hover:scale-105 backdrop-blur-sm">
+              <div className="absolute inset-0 bg-primary/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative">
+                <div className="mb-4 inline-block p-3 rounded-full bg-primary/20 border border-primary/30">
+                  <Heart className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="font-bold text-lg mb-2 text-white">Match Perfecto</h3>
+                <p className="text-sm text-gray-400">Algoritmo inteligente de compatibilidad</p>
+              </div>
+            </div>
+            
+            <div className="group relative p-6 rounded-2xl bg-gradient-to-br from-secondary/10 to-transparent border border-secondary/20 hover:border-secondary/50 transition-all hover:scale-105 backdrop-blur-sm">
+              <div className="absolute inset-0 bg-secondary/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative">
+                <div className="mb-4 inline-block p-3 rounded-full bg-secondary/20 border border-secondary/30">
+                  <MessageCircle className="h-8 w-8 text-secondary" />
+                </div>
+                <h3 className="font-bold text-lg mb-2 text-white">Chat Instantáneo</h3>
+                <p className="text-sm text-gray-400">Conversaciones en tiempo real</p>
+              </div>
+            </div>
+            
+            <div className="group relative p-6 rounded-2xl bg-gradient-to-br from-primary/10 to-transparent border border-primary/20 hover:border-primary/50 transition-all hover:scale-105 backdrop-blur-sm">
+              <div className="absolute inset-0 bg-primary/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative">
+                <div className="mb-4 inline-block p-3 rounded-full bg-primary/20 border border-primary/30">
+                  <Users className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="font-bold text-lg mb-2 text-white">Red Social</h3>
+                <p className="text-sm text-gray-400">Comparte tu vida auténtica</p>
+              </div>
+            </div>
+          </div>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-md mx-auto">
+            <Button 
+              size="lg" 
+              className="w-full sm:w-auto px-8 py-6 text-lg font-bold bg-gradient-to-r from-primary to-secondary text-black hover:scale-105 transition-transform shadow-[0_0_30px_rgba(var(--primary),0.5)] hover:shadow-[0_0_50px_rgba(var(--primary),0.8)] border-2 border-primary/50"
+              onClick={() => router.push("/register")}
+            >
+              <Sparkles className="mr-2 h-6 w-6" />
+              Comenzar Gratis
+              <ArrowRight className="ml-2 h-6 w-6" />
+            </Button>
+            
+            <Button 
+              size="lg" 
+              className="w-full sm:w-auto px-8 py-6 text-lg font-semibold bg-transparent border-2 border-primary/50 text-primary hover:bg-primary/10 hover:scale-105 transition-all backdrop-blur-sm"
+              onClick={() => router.push("/login")}
+            >
+              Iniciar Sesión
+            </Button>
+          </div>
+          
+          <p className="mt-8 text-xs text-gray-500 uppercase tracking-wider">
+            Únete a miles de personas conectando ahora
+          </p>
+        </div>
+
+        <style jsx global>{`
+          @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+          }
+        `}</style>
+      </div>
+    )
+  }
+
+  return null
 }
