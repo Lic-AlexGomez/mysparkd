@@ -56,12 +56,9 @@ export default function LoginPage() {
     setIsLoading(true)
     try {
       await loginWithGoogle(credential)
-      const profile = await api.get<UserProfile>("/api/profile/me")
-      if (!profile.profileCompleted) {
-        router.push("/onboarding")
-      } else {
-        router.push("/feed")
-      }
+      // Siempre redirigir a onboarding después de Google login
+      // El backend crea el usuario pero sin perfil completo
+      router.push("/onboarding")
     } catch (err) {
       toast.error("Error al iniciar sesión con Google")
     } finally {

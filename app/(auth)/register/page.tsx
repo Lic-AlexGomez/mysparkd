@@ -65,12 +65,8 @@ export default function RegisterPage() {
     setIsLoading(true)
     try {
       await loginWithGoogle(credential)
-      const profile = await api.get<UserProfile>("/api/profile/me")
-      if (!profile.profileCompleted) {
-        router.push("/onboarding")
-      } else {
-        router.push("/feed")
-      }
+      // Siempre redirigir a onboarding después de Google signup
+      router.push("/onboarding")
     } catch (err) {
       toast.error("Error al registrarse con Google")
     } finally {
