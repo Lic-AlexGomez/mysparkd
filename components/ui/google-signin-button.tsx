@@ -36,8 +36,14 @@ export function GoogleSignInButton({ onSuccess, onError, text = "Continuar con G
   useEffect(() => {
     if (!isScriptLoaded || !window.google) return
 
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
+    if (!clientId) {
+      console.error('NEXT_PUBLIC_GOOGLE_CLIENT_ID no está configurado')
+      return
+    }
+
     window.google.accounts.id.initialize({
-      client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+      client_id: clientId,
       callback: handleCredentialResponse,
     })
   }, [isScriptLoaded])

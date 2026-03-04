@@ -7,6 +7,9 @@ const nextConfig = {
     unoptimized: true,
   },
   turbopack: {},
+  env: {
+    NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+  },
 }
 
 export default nextConfig
