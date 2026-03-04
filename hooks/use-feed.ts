@@ -18,6 +18,7 @@ export function useFeed() {
     try {
       setLoading(true)
       const data = await api.get<Post[]>('/api/posts/feed')
+      console.log('[Feed] Posts obtenidos del servidor:', data)
       const filtered = contentValidation.filterBlockedUsers('current-user', data)
       setPosts(feedService.sortPosts(filtered, sortMode))
     } catch {

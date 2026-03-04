@@ -39,7 +39,7 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate }: Comments
 
   const fetchComments = useCallback(async () => {
     try {
-      const data = await api.get<CommentType[]>(`/api/comments/${postId}/comments`)
+      const data = await api.get<CommentType[]>(`/api/comments/get/${postId}`)
       setComments(data)
     } catch (error) {
       console.error('Error fetching comments:', error)

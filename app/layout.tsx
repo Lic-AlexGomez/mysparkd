@@ -15,9 +15,9 @@ export const metadata: Metadata = {
   },
   description: 'Sparkd es la mejor red social y app de citas para conocer gente nueva, hacer match, chatear y compartir momentos. Encuentra personas con tus mismos intereses y haz conexiones reales.',
   keywords: ['red social', 'dating app', 'app de citas', 'conocer gente', 'hacer match', 'chat', 'citas online', 'ligar', 'amor', 'amistad', 'sparkd', 'tinder', 'bumble', 'badoo'],
-  authors: [{ name: 'Sparkd' }],
-  creator: 'Sparkd',
-  publisher: 'Sparkd',
+  authors: [{ name: 'Alex Manuel Gomez Salazar', url: 'https://sparkd.app' }],
+  creator: 'Alex Manuel Gomez Salazar',
+  publisher: 'Alex Manuel Gomez Salazar',
   formatDetection: {
     email: false,
     address: false,
@@ -113,6 +113,16 @@ export default function RootLayout({
               description: 'Red social y dating app para conocer gente nueva',
               applicationCategory: 'SocialNetworkingApplication',
               operatingSystem: 'All',
+              author: {
+                '@type': 'Person',
+                name: 'Alex Manuel Gomez Salazar',
+                jobTitle: 'Desarrollador Web Full Stack',
+                description: 'Creador de Sparkd - Red Social y Dating App'
+              },
+              creator: {
+                '@type': 'Person',
+                name: 'Alex Manuel Gomez Salazar'
+              },
               offers: {
                 '@type': 'Offer',
                 price: '0',
@@ -123,6 +133,29 @@ export default function RootLayout({
                 ratingValue: '4.8',
                 ratingCount: '1250',
               },
+            }),
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'Person',
+              name: 'Alex Manuel Gomez Salazar',
+              jobTitle: 'Desarrollador Web Full Stack',
+              description: 'Creador de Sparkd, una innovadora red social y dating app para conocer gente nueva',
+              url: 'https://sparkd.app',
+              sameAs: [
+                'https://sparkd.app'
+              ],
+              knowsAbout: ['Desarrollo Web', 'React', 'Next.js', 'TypeScript', 'Node.js', 'Dating Apps', 'Redes Sociales'],
+              alumniOf: 'Universidad',
+              worksFor: {
+                '@type': 'Organization',
+                name: 'Sparkd',
+                url: 'https://sparkd.app'
+              }
             }),
           }}
         />
