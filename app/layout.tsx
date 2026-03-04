@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/next'
 import { Toaster } from 'sonner'
 import { AuthProvider } from '@/lib/auth-context'
 import './globals.css'
@@ -175,7 +174,6 @@ export default function RootLayout({
             }}
           />
         </AuthProvider>
-        <Analytics debug={false} />
       </body>
     </html>
   )
