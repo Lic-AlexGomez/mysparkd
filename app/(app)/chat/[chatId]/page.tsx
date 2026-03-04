@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
+import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 import { api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
@@ -113,7 +114,7 @@ export default function ChatRoomPage() {
   return (
     <div className="flex h-[calc(100svh-4rem)] flex-col lg:h-svh bg-gradient-to-b from-background to-muted/20">
       {/* Chat header */}
-      <div className="flex items-center gap-3 border-b border-primary/20 bg-background/95 backdrop-blur-xl px-4 py-4 shadow-lg shadow-primary/5">
+      <div className="sticky top-16 z-30 flex items-center gap-3 border-b border-primary/20 bg-background/95 backdrop-blur-xl px-4 py-3 shadow-lg shadow-primary/5">
         <Button
           variant="ghost"
           size="icon"
@@ -123,15 +124,18 @@ export default function ChatRoomPage() {
           <ArrowLeft className="h-5 w-5" />
           <span className="sr-only">Volver</span>
         </Button>
-        <Avatar className="h-11 w-11 border-2 border-primary/30 ring-4 ring-primary/10">
+        <Avatar className="h-10 w-10 border-2 border-primary/30 ring-2 ring-primary/10">
           <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-bold">
             {chatInfo?.otherUsername?.[0]?.toUpperCase() || "?"}
           </AvatarFallback>
         </Avatar>
         <div className="flex-1">
-          <p className="font-bold text-foreground">
+          <Link
+            href={`/profile/${chatInfo?.otherUserId}`}
+            className="font-bold text-foreground hover:text-primary hover:underline"
+          >
             {chatInfo?.otherUsername || "Chat"}
-          </p>
+          </Link>
           {isConnected && (
             <p className="text-xs text-green-500 flex items-center gap-1">
               <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
@@ -198,7 +202,7 @@ export default function ChatRoomPage() {
       </div>
 
       {/* Message input */}
-      <div className="border-t border-primary/20 bg-background/95 backdrop-blur-xl px-4 py-4 pb-24 lg:pb-4 shadow-lg shadow-primary/5">
+      <div className="border-t border-primary/20 bg-background/95 backdrop-blur-xl px-4 py-3 pb-24 lg:pb-3 shadow-lg shadow-primary/5">
         <div className="flex gap-2">
           <Input
             value={newMessage}
@@ -216,7 +220,7 @@ export default function ChatRoomPage() {
             onClick={handleSend}
             disabled={isSending || !newMessage.trim()}
             size="icon"
-            className="h-11 w-11 rounded-2xl bg-gradient-to-br from-primary to-secondary text-black hover:scale-110 transition-transform shadow-lg disabled:opacity-50 disabled:hover:scale-100"
+            className="h-10 w-10 rounded-2xl bg-gradient-to-br from-primary to-secondary text-black hover:scale-110 transition-transform shadow-lg disabled:opacity-50 disabled:hover:scale-100"
           >
             <Send className="h-5 w-5" />
             <span className="sr-only">Enviar</span>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { useFeed } from "@/hooks/use-feed"
 import { PostCard } from "@/components/feed/post-card"
 import { CreatePostDialog } from "@/components/feed/create-post-dialog"
@@ -22,12 +23,27 @@ const sortOptions = [
 ]
 
 export default function FeedPage() {
+  const searchParams = useSearchParams()
+  const highlightPostId = searchParams.get('post')
+  const highlightCommentId = searchParams.get('comment')
   const { posts, sortMode, loading, onRefresh, changeSortMode } = useFeed()
   const [localPosts, setLocalPosts] = useState(posts)
 
   useEffect(() => {
     setLocalPosts(posts)
   }, [posts])
+
+  useEffect(() => {
+    if (highlightPostId || highlightCommentId) {
+      setTimeout(() => {
+        const element = document.getElementById(`post-${highlightPostId}`) || 
+                       document.getElementById(`comment-${highlightCommentId}`)
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      }, 500)
+    }
+  }, [highlightPostId, highlightCommentId, posts])
 
   const handleDelete = (postId: string) => {
     setLocalPosts((prev) => prev.filter((p) => p.id !== postId))
@@ -88,6 +104,7 @@ export default function FeedPage() {
               post={post}
               onDelete={handleDelete}
               onUpdate={onRefresh}
+              highlight={post.id === highlightPostId}
             />
           ))}
         </div>

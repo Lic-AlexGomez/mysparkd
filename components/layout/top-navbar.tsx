@@ -35,7 +35,9 @@ export function TopNavbar() {
         read: n.read,
         createdAt: n.createdAt,
         relatedUserId: n.senderId,
-        relatedUsername: n.senderUsername
+        relatedUsername: n.senderUsername,
+        targetId: n.targetId,
+        targetType: n.targetType
       }))
       setNotifications(mapped)
       setUnreadCount(mapped.filter((n) => !n.read).length)
@@ -54,6 +56,22 @@ export function TopNavbar() {
     // El backend no tiene endpoint para marcar como leída por ID generado
     // Solo refrescar las notificaciones
     fetchNotifications()
+  }
+
+  const getNotificationLink = (notification: Notification): string => {
+    if (!notification.targetId || !notification.targetType) {
+      return `/profile/${notification.relatedUserId}`
+    }
+
+    switch (notification.targetType) {
+      case 'POST':
+        return `/feed?post=${notification.targetId}`
+      case 'COMMENT':
+      case 'REPLY':
+        return `/feed?comment=${notification.targetId}`
+      default:
+        return `/profile/${notification.relatedUserId}`
+    }
   }
 
   const primaryPhoto = user?.photos?.find((p) => p.isPrimary || p.primary)
@@ -140,7 +158,7 @@ export function TopNavbar() {
                     notifications.slice(0, 5).map((n) => (
                       <Link
                         key={n.notificationId}
-                        href={`/profile/${n.relatedUserId}`}
+                        href={getNotificationLink(n)}
                         onClick={() => {
                           markAsRead(n.notificationId)
                           setShowNotifications(false)

@@ -221,7 +221,7 @@ export default function UserProfilePage() {
           <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
             <Newspaper className="h-4 w-4" /> Posts
           </h2>
-          <div className="rounded-xl overflow-hidden border border-border">
+          <div>
             {profile.posts.map((post) => (
               <PostCard key={post.id} post={post} />
             ))}

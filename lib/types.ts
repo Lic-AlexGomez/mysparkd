@@ -219,6 +219,8 @@ export interface Notification {
   createdAt: string
   relatedUserId: string
   relatedUsername: string
+  targetId?: string
+  targetType?: string
 }
 
 // Auth state

@@ -73,9 +73,13 @@ export default function ChatListPage() {
                 </Avatar>
                 <div className="flex-1 min-w-0 relative z-10">
                   <div className="flex items-center justify-between mb-1">
-                    <p className="font-bold text-foreground">
+                    <Link
+                      href={`/profile/${chat.otherUserId}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="font-bold text-foreground hover:text-primary hover:underline"
+                    >
                       {chat.otherUsername}
-                    </p>
+                    </Link>
                     {chat.lastMessageAt && (
                       <span className="text-xs text-muted-foreground">
                         {formatDistanceToNow(new Date(chat.lastMessageAt + 'Z'), {

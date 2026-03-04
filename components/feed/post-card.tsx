@@ -40,9 +40,10 @@ interface PostCardProps {
   post: Post
   onDelete?: (postId: string) => void
   onUpdate?: () => void
+  highlight?: boolean
 }
 
-export function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
+export function PostCard({ post, onDelete, onUpdate, highlight }: PostCardProps) {
   const { user } = useAuth()
   const [likeCount, setLikeCount] = useState(post.likeCount)
   const [liked, setLiked] = useState(post.liked || false)
@@ -180,7 +181,12 @@ export function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
 
   return (
     <>
-      <article className="border border-border bg-card p-4 rounded-2xl mb-3 hover:border-primary/30 transition-colors">
+      <article 
+        id={`post-${post.id}`}
+        className={`border border-border bg-card p-4 rounded-2xl mb-3 hover:border-primary/30 transition-colors ${
+          highlight ? 'ring-2 ring-primary shadow-lg shadow-primary/20' : ''
+        }`}
+      >
         {/* Locked overlay */}
         {post.locked && !post.unlocked && (
           <div className="mb-3 flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
@@ -192,7 +198,7 @@ export function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
         {/* Header */}
         <div className="flex items-start justify-between">
           <Link
-            href={isOwn ? "/profile" : `/profile/${post.userId}`}
+            href={`/profile/${post.userId}`}
             className="flex items-center gap-3"
           >
             <Avatar className="h-10 w-10 border-2 border-primary ring-2 ring-primary/20">

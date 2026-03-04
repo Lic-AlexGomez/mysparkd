@@ -242,9 +242,12 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate }: Comments
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-foreground">
+                        <Link
+                          href={`/profile/${comment.userId}`}
+                          className="text-sm font-semibold text-foreground hover:underline"
+                        >
                           {comment.username}
-                        </span>
+                        </Link>
                         <span className="text-xs text-muted-foreground">
                           {formatDistanceToNow(new Date(comment.createdAt), {
                             addSuffix: true,
@@ -341,9 +344,12 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate }: Comments
                             </Avatar>
                             <div>
                               <div className="flex items-center gap-2">
-                                <span className="text-xs font-semibold text-foreground">
+                                <Link
+                                  href={`/profile/${reply.userId}`}
+                                  className="text-xs font-semibold text-foreground hover:underline"
+                                >
                                   {reply.username}
-                                </span>
+                                </Link>
                                 <span className="text-[10px] text-muted-foreground">
                                   {formatDistanceToNow(
                                     new Date(reply.createdAt),
