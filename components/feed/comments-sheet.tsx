@@ -74,7 +74,7 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate }: Comments
     if (!replyText.trim()) return
     setIsLoading(true)
     try {
-      await api.post(`/api/comments/reply/${parentId}`, { text: replyText.trim() })
+      await api.post(`/api/comments/reply/${parentId}`, { body: replyText.trim() })
       setReplyText("")
       setReplyingTo(null)
       fetchReplies(parentId)
