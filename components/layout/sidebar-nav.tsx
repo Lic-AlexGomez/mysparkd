@@ -29,9 +29,9 @@ export function SidebarNav() {
   const pathname = usePathname()
 
   return (
-    <aside className="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:z-40 bg-gradient-to-b from-background via-background to-muted/20 border-r border-primary/10 lg:w-20 xl:w-72 shadow-xl shadow-primary/5">
+    <aside className="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:z-50 bg-gradient-to-b from-background via-background to-muted/20 border-r border-primary/10 lg:w-20 xl:w-72 shadow-xl shadow-primary/5">
       {/* Logo */}
-      <div className="flex h-20 items-center justify-center xl:justify-start xl:gap-3 xl:px-6 border-b border-primary/10">
+      <div className="flex h-16 items-center justify-center xl:justify-start xl:gap-3 xl:px-6 border-b border-primary/10">
         <div className="relative">
           <div className="absolute inset-0 blur-xl bg-gradient-to-br from-primary to-secondary opacity-50" />
           <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-secondary shadow-2xl">

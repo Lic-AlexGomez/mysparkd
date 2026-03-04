@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Bell, Zap, LogOut, Settings, User, Crown } from "lucide-react"
+import { Bell, Zap, LogOut, Settings, User, Crown, Search, Flame } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
 import {
@@ -62,7 +62,7 @@ export function TopNavbar() {
     : "?"
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-border bg-card/95 px-4 backdrop-blur-md lg:pl-68 shadow-[0_2px_8px_rgba(0,229,255,0.1)]">
+    <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-border bg-card/95 px-4 backdrop-blur-md lg:pl-24 xl:pl-76 shadow-sm">
       {/* Mobile logo */}
       <div className="flex items-center gap-2 lg:hidden">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-secondary shadow-[0_0_20px_rgba(0,229,255,0.3)]">
@@ -71,10 +71,30 @@ export function TopNavbar() {
         <span className="text-lg font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Sparkd</span>
       </div>
 
-      <div className="hidden lg:block" />
+      <div className="hidden lg:flex flex-1 items-center justify-center max-w-md mx-auto">
+        <div className="relative w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Buscar en Sparkd..."
+            className="w-full h-9 pl-10 pr-4 rounded-full bg-muted/50 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+          />
+        </div>
+      </div>
 
       {/* Right side */}
       <div className="flex items-center gap-2">
+        {/* Trending button - desktop only */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="hidden lg:flex text-muted-foreground hover:text-orange-500 hover:bg-orange-500/10"
+          asChild
+        >
+          <Link href="/feed">
+            <Flame className="h-5 w-5" />
+          </Link>
+        </Button>
         {/* Notifications */}
         <div className="relative">
           <Button
