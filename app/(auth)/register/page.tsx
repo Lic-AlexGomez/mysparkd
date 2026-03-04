@@ -4,15 +4,18 @@ import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
+import { api } from "@/lib/api"
+import type { UserProfile } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
+import { GoogleSignInButton } from "@/components/ui/google-signin-button"
 import { toast } from "sonner"
 import { Loader2, Eye, EyeOff } from "lucide-react"
 
 export default function RegisterPage() {
-  const { register, login } = useAuth()
+  const { register, login, loginWithGoogle } = useAuth()
   const router = useRouter()
   const [username, setUsername] = useState("")
   const [email, setEmail] = useState("")
@@ -53,6 +56,23 @@ export default function RegisterPage() {
       router.push("/onboarding")
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al registrarse")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleGoogleSuccess = async (credential: string) => {
+    setIsLoading(true)
+    try {
+      await loginWithGoogle(credential)
+      const profile = await api.get<UserProfile>("/api/profile/me")
+      if (!profile.profileCompleted) {
+        router.push("/onboarding")
+      } else {
+        router.push("/feed")
+      }
+    } catch (err) {
+      toast.error("Error al registrarse con Google")
     } finally {
       setIsLoading(false)
     }
@@ -152,6 +172,19 @@ export default function RegisterPage() {
             )}
           </Button>
         </form>
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-border" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-card px-2 text-muted-foreground">O continua con</span>
+          </div>
+        </div>
+        <GoogleSignInButton 
+          onSuccess={handleGoogleSuccess}
+          onError={(error) => toast.error(error.message)}
+          text="Registrarse con Google"
+        />
         <p className="mt-6 text-center text-sm text-muted-foreground">
           Ya tienes cuenta?{" "}
           <Link href="/login" className="text-primary hover:underline">

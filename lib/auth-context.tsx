@@ -23,6 +23,7 @@ interface AuthContextType {
   isAuthenticated: boolean
   isLoading: boolean
   login: (data: LoginRequest) => Promise<void>
+  loginWithGoogle: (idToken: string) => Promise<void>
   register: (data: RegisterRequest) => Promise<RegisterResponse>
   logout: () => void
   refreshProfile: () => Promise<void>
@@ -95,6 +96,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const loginWithGoogle = async (idToken: string) => {
+    const response = await api.post<LoginResponse>("/auth/google", { idToken })
+    localStorage.setItem("sparkd_token", response.token)
+    setToken(response.token)
+    
+    try {
+      const profile = await api.get<UserProfile>("/api/profile/me")
+      setUser(profile)
+      localStorage.setItem('sparkd_user', JSON.stringify(profile))
+    } catch (error) {
+      await fetchProfile()
+    }
+  }
+
   const register = async (data: RegisterRequest) => {
     return api.post<RegisterResponse>("/auth/register", data)
   }
@@ -119,6 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!token,
         isLoading,
         login,
+        loginWithGoogle,
         register,
         logout,
         refreshProfile,

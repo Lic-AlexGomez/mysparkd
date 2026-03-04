@@ -10,11 +10,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
+import { GoogleSignInButton } from "@/components/ui/google-signin-button"
 import { toast } from "sonner"
 import { Loader2, Eye, EyeOff } from "lucide-react"
 
 export default function LoginPage() {
-  const { login } = useAuth()
+  const { login, loginWithGoogle } = useAuth()
   const router = useRouter()
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
@@ -46,6 +47,23 @@ export default function LoginPage() {
       toast.error(
         err instanceof Error ? err.message : "Error al iniciar sesion"
       )
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleGoogleSuccess = async (credential: string) => {
+    setIsLoading(true)
+    try {
+      await loginWithGoogle(credential)
+      const profile = await api.get<UserProfile>("/api/profile/me")
+      if (!profile.profileCompleted) {
+        router.push("/onboarding")
+      } else {
+        router.push("/feed")
+      }
+    } catch (err) {
+      toast.error("Error al iniciar sesión con Google")
     } finally {
       setIsLoading(false)
     }
@@ -124,6 +142,18 @@ export default function LoginPage() {
             )}
           </Button>
         </form>
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-border" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-card px-2 text-muted-foreground">O continua con</span>
+          </div>
+        </div>
+        <GoogleSignInButton 
+          onSuccess={handleGoogleSuccess}
+          onError={(error) => toast.error(error.message)}
+        />
         <p className="mt-6 text-center text-sm text-muted-foreground">
           No tienes cuenta?{" "}
           <Link href="/register" className="text-primary hover:underline">
