@@ -550,7 +550,7 @@ export default function ProfilePage() {
           Mis posts
         </h2>
         {user.posts && user.posts.length > 0 ? (
-          <div className="rounded-xl overflow-hidden border border-border">
+          <div>
             {user.posts.map((post) => (
               <PostCard key={post.id} post={post} />
             ))}

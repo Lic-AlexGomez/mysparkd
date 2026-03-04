@@ -32,6 +32,7 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate }: Comments
   const [comments, setComments] = useState<CommentType[]>([])
   const [newComment, setNewComment] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [loadingComments, setLoadingComments] = useState(false)
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
   const [replyText, setReplyText] = useState("")
   const [expandedReplies, setExpandedReplies] = useState<Record<string, CommentReply[]>>({})
@@ -39,16 +40,41 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate }: Comments
 
   const fetchComments = useCallback(async () => {
     try {
+      setLoadingComments(true)
       const data = await api.get<CommentType[]>(`/api/comments/get/${postId}`)
-      setComments(data)
+      
+      // Mostrar comentarios inmediatamente sin likes
+      setComments(data.map(c => ({ ...c, liked: false })))
+      setLoadingComments(false)
+      
+      // Fetch like status en background
+      Promise.all(
+        data.map(async (comment) => {
+          try {
+            const likeStatus = await api.get<{ likedByMe: boolean }>(`/api/likes/status/${comment.commentsId}`)
+            return { id: comment.commentsId, liked: likeStatus.likedByMe }
+          } catch {
+            return { id: comment.commentsId, liked: false }
+          }
+        })
+      ).then(likeStatuses => {
+        setComments(prev => prev.map(comment => {
+          const status = likeStatuses.find(s => s.id === comment.commentsId)
+          return status ? { ...comment, liked: status.liked } : comment
+        }))
+      })
     } catch (error) {
       console.error('Error fetching comments:', error)
       setComments([])
+      setLoadingComments(false)
     }
   }, [postId])
 
   useEffect(() => {
-    if (open) fetchComments()
+    if (open) {
+      setLoadingComments(true)
+      fetchComments()
+    }
   }, [open, fetchComments])
 
   const handleSubmitComment = async () => {
@@ -89,8 +115,30 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate }: Comments
   const fetchReplies = async (parentId: string) => {
     try {
       const data = await api.get<CommentReply[]>(`/api/comments/getcommentReply/${parentId}`)
-      setExpandedReplies((prev) => ({ ...prev, [parentId]: data }))
+      
+      // Mostrar respuestas inmediatamente
+      setExpandedReplies((prev) => ({ ...prev, [parentId]: data.map(r => ({ ...r, liked: false })) }))
       setShowReplies((prev) => ({ ...prev, [parentId]: true }))
+      
+      // Fetch like status en background
+      Promise.all(
+        data.map(async (reply) => {
+          try {
+            const likeStatus = await api.get<{ likedByMe: boolean }>(`/api/likes/status/${reply.commentReplyId}`)
+            return { id: reply.commentReplyId, liked: likeStatus.likedByMe }
+          } catch {
+            return { id: reply.commentReplyId, liked: false }
+          }
+        })
+      ).then(likeStatuses => {
+        setExpandedReplies((prev) => ({
+          ...prev,
+          [parentId]: prev[parentId]?.map(reply => {
+            const status = likeStatuses.find(s => s.id === reply.commentReplyId)
+            return status ? { ...reply, liked: status.liked } : reply
+          }) || []
+        }))
+      })
     } catch {
       // silent
     }
@@ -107,7 +155,36 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate }: Comments
   const toggleLike = async (targetId: string) => {
     try {
       await api.post(`/api/likes/toggle?targetId=${targetId}`)
-      fetchComments()
+      
+      // Actualizar comentarios
+      setComments(prev => prev.map(comment => {
+        if (comment.commentsId === targetId) {
+          return {
+            ...comment,
+            liked: !comment.liked,
+            likeCount: comment.liked ? comment.likeCount - 1 : comment.likeCount + 1
+          }
+        }
+        return comment
+      }))
+      
+      // Actualizar respuestas
+      setExpandedReplies(prev => {
+        const updated = { ...prev }
+        Object.keys(updated).forEach(parentId => {
+          updated[parentId] = updated[parentId].map(reply => {
+            if (reply.commentReplyId === targetId) {
+              return {
+                ...reply,
+                liked: !reply.liked,
+                likeCount: reply.liked ? reply.likeCount - 1 : reply.likeCount + 1
+              }
+            }
+            return reply
+          })
+        })
+        return updated
+      })
     } catch {
       // silent
     }
@@ -116,11 +193,24 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate }: Comments
   const deleteComment = async (commentId: string) => {
     try {
       await api.delete(`/api/comments/delete/${commentId}`)
-      fetchComments()
       toast.success("Comentario eliminado")
-    } catch {
-      toast.error("Error al eliminar")
+    } catch (error) {
+      console.error('Error deleting comment:', error)
+      toast.error("No se puede eliminar este comentario")
+      return
     }
+    
+    // Actualizar comentarios
+    setComments(prev => prev.filter(c => c.commentsId !== commentId))
+    
+    // Actualizar respuestas
+    setExpandedReplies(prev => {
+      const updated = { ...prev }
+      Object.keys(updated).forEach(parentId => {
+        updated[parentId] = updated[parentId].filter(r => r.commentReplyId !== commentId)
+      })
+      return updated
+    })
   }
 
   return (
@@ -132,7 +222,11 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate }: Comments
 
         <ScrollArea className="flex-1 px-4">
           <div className="py-2 flex flex-col gap-4">
-            {comments.length === 0 ? (
+            {loadingComments ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                Cargando comentarios...
+              </p>
+            ) : comments.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
                 Sin comentarios aun
               </p>
@@ -166,7 +260,7 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate }: Comments
                           onClick={() => toggleLike(comment.commentsId)}
                           className="flex items-center gap-1 text-xs text-muted-foreground hover:text-secondary"
                         >
-                          <Heart className="h-3.5 w-3.5" />
+                          <Heart className={`h-3.5 w-3.5 ${comment.liked ? 'fill-secondary text-secondary' : ''}`} />
                           {comment.likeCount}
                         </button>
                         <button
@@ -237,7 +331,7 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate }: Comments
                       {showReplies[comment.commentsId] &&
                         expandedReplies[comment.commentsId]?.map((reply) => (
                           <div
-                            key={reply.id}
+                            key={reply.commentReplyId}
                             className="mt-2 ml-4 flex gap-2 border-l-2 border-border pl-3"
                           >
                             <Avatar className="h-6 w-6 shrink-0">
@@ -258,15 +352,25 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate }: Comments
                                 </span>
                               </div>
                               <p className="text-xs text-foreground mt-0.5">
-                                {reply.text}
+                                {reply.body}
                               </p>
-                              <button
-                                onClick={() => toggleLike(reply.id)}
-                                className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground hover:text-secondary"
-                              >
-                                <Heart className="h-3 w-3" />
-                                {reply.likeCount}
-                              </button>
+                              <div className="mt-0.5 flex items-center gap-2">
+                                <button
+                                  onClick={() => toggleLike(reply.commentReplyId)}
+                                  className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-secondary"
+                                >
+                                  <Heart className={`h-3 w-3 ${reply.liked ? 'fill-secondary text-secondary' : ''}`} />
+                                  {reply.likeCount}
+                                </button>
+                                {user?.userId === reply.userId && (
+                                  <button
+                                    onClick={() => deleteComment(reply.commentReplyId)}
+                                    className="text-[10px] text-muted-foreground hover:text-destructive"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           </div>
                         ))}

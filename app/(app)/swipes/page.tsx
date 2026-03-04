@@ -62,26 +62,14 @@ export default function SwipesPage() {
     const type = direction === "right" ? "LIKE" : "DISLIKE"
 
     try {
-      if (type === "LIKE") {
-        const result = matchService.like('current-user-id', currentProfile.userId)
-        
-        if (result.matched) {
-          const { createNotification } = await import('@/lib/utils/notifications')
-          await createNotification(currentProfile.userId, 'match', '¡Tienes un nuevo match!', 'current-user-id')
-          setMatchedUser({
-            id: currentProfile.userId,
-            name: `${currentProfile.nombres} ${currentProfile.apellidos}`,
-          })
-          setShowMatch(true)
-        }
-      }
-      
       const response = await api.post<SwipeResponse>("/api/swipes/perform/swipe", {
         targetUserId: currentProfile.userId,
         type,
       })
 
-      if (response.matched) {
+      console.log('Swipe response:', response)
+
+      if (response.match) {
         setMatchedUser({
           id: currentProfile.userId,
           name: `${currentProfile.nombres} ${currentProfile.apellidos}`,
@@ -90,8 +78,8 @@ export default function SwipesPage() {
       }
       
       setSwipedIds(prev => new Set(prev).add(currentProfile.userId))
-    } catch {
-      // silent
+    } catch (error) {
+      console.error('Error en swipe:', error)
     }
 
     setCurrentIndex((prev) => prev + 1)

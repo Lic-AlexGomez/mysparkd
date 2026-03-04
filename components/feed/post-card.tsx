@@ -45,7 +45,7 @@ interface PostCardProps {
 export function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
   const { user } = useAuth()
   const [likeCount, setLikeCount] = useState(post.likeCount)
-  const [liked, setLiked] = useState(false)
+  const [liked, setLiked] = useState(post.liked || false)
   const [repostCount, setRepostCount] = useState(post.repostCount || 0)
   const [reposted, setReposted] = useState(false)
   const [bookmarked, setBookmarked] = useState(() => {
@@ -144,9 +144,11 @@ export function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
   }
 
   const handleRepost = (comment: string) => {
+    // TODO: Implementar endpoint de repost en el backend
+    // await api.post(`/api/posts/repost/${post.id}`, { comment })
     setReposted(true)
     setRepostCount(prev => prev + 1)
-    toast.success('Post reposteado')
+    toast.success('Repost guardado localmente (pendiente implementación en backend)')
   }
 
   const handleShare = async () => {

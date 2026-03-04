@@ -98,6 +98,7 @@ export interface Post {
   reputation?: number
   verificationLevel?: number
   interests?: string[]
+  liked?: boolean
 }
 
 export interface CreatePostRequest {
@@ -126,16 +127,18 @@ export interface Comment {
   totalComments: number
   likeCount: number
   commentReplies: number
+  liked?: boolean
 }
 
 export interface CommentReply {
-  id: string
-  text: string
+  commentReplyId: string
+  body: string
   createdAt: string
   lastUpdated: string
   username: string
   userId: string
   likeCount: number
+  liked?: boolean
 }
 
 export interface CreateCommentRequest {
@@ -149,7 +152,7 @@ export interface SwipeRequest {
 }
 
 export interface SwipeResponse {
-  matched: boolean
+  match: boolean
   message: string
 }
 

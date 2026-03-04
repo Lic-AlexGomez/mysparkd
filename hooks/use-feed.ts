@@ -19,7 +19,20 @@ export function useFeed() {
       setLoading(true)
       const data = await api.get<Post[]>('/api/posts/feed')
       console.log('[Feed] Posts obtenidos del servidor:', data)
-      const filtered = contentValidation.filterBlockedUsers('current-user', data)
+      
+      // Fetch like status for each post
+      const postsWithLikes = await Promise.all(
+        data.map(async (post) => {
+          try {
+            const likeStatus = await api.get<{ likedByMe: boolean }>(`/api/likes/status/${post.id}`)
+            return { ...post, liked: likeStatus.likedByMe }
+          } catch {
+            return { ...post, liked: false }
+          }
+        })
+      )
+      
+      const filtered = contentValidation.filterBlockedUsers('current-user', postsWithLikes)
       setPosts(feedService.sortPosts(filtered, sortMode))
     } catch {
       setPosts([])
