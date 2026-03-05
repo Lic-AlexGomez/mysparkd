@@ -97,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const loginWithGoogle = async (idToken: string) => {
-    const response = await api.post<LoginResponse>("/auth/google", { idToken })
+    const response = await api.post<LoginResponse>("/auth/google", { token: idToken })
     localStorage.setItem("sparkd_token", response.token)
     setToken(response.token)
     
