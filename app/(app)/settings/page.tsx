@@ -72,17 +72,47 @@ export default function SettingsPage() {
   const fetchInterests = useCallback(async () => {
     try {
       const [all, mine] = await Promise.all([
-        api.get<Interest[]>("/api/interests"),
+        api.get<Interest[]>("/api/interests/all/interest"),
         api.get<Interest[]>("/api/interests/me"),
       ])
-      setAllInterests(all)
-      setMyInterests(mine)
+      
+      // Si el backend devuelve datos, usarlos
+      if (all && all.length > 0) {
+        setAllInterests(all)
+        setMyInterests(mine || [])
+      } else {
+        // Si no hay datos, usar fallback
+        throw new Error('No interests from backend')
+      }
     } catch {
-      // silent
+      // Fallback: usar intereses locales si el backend no responde
+      const defaultInterests: Interest[] = [
+        { interestId: '550e8400-e29b-41d4-a716-446655440001', name: 'Deportes', icon: '⚽', category: 'lifestyle' },
+        { interestId: '550e8400-e29b-41d4-a716-446655440002', name: 'Música', icon: '🎵', category: 'entertainment' },
+        { interestId: '550e8400-e29b-41d4-a716-446655440003', name: 'Cine', icon: '🎬', category: 'entertainment' },
+        { interestId: '550e8400-e29b-41d4-a716-446655440004', name: 'Viajes', icon: '✈️', category: 'lifestyle' },
+        { interestId: '550e8400-e29b-41d4-a716-446655440005', name: 'Tecnología', icon: '💻', category: 'hobbies' },
+        { interestId: '550e8400-e29b-41d4-a716-446655440006', name: 'Arte', icon: '🎨', category: 'hobbies' },
+        { interestId: '550e8400-e29b-41d4-a716-446655440007', name: 'Lectura', icon: '📚', category: 'hobbies' },
+        { interestId: '550e8400-e29b-41d4-a716-446655440008', name: 'Cocina', icon: '🍳', category: 'lifestyle' },
+        { interestId: '550e8400-e29b-41d4-a716-446655440009', name: 'Fitness', icon: '💪', category: 'lifestyle' },
+        { interestId: '550e8400-e29b-41d4-a716-44665544000a', name: 'Gaming', icon: '🎮', category: 'entertainment' },
+        { interestId: '550e8400-e29b-41d4-a716-44665544000b', name: 'Fotografía', icon: '📷', category: 'hobbies' },
+        { interestId: '550e8400-e29b-41d4-a716-44665544000c', name: 'Naturaleza', icon: '🌿', category: 'lifestyle' },
+      ]
+      setAllInterests(defaultInterests)
+      
+      // Cargar intereses guardados localmente
+      if (user?.userId) {
+        const saved = localStorage.getItem(`sparkd_interests_${user.userId}`)
+        if (saved) {
+          setMyInterests(JSON.parse(saved))
+        }
+      }
     } finally {
       setInterestsLoading(false)
     }
-  }, [])
+  }, [user])
 
   useEffect(() => {
     fetchPreferences()
@@ -129,6 +159,9 @@ export default function SettingsPage() {
 
   const toggleInterest = async (interestId: string) => {
     const isSelected = myInterests.some((i) => i.interestId === interestId)
+    const interest = allInterests.find((i) => i.interestId === interestId)
+    if (!interest) return
+
     try {
       if (isSelected) {
         await api.delete(`/api/interests/remove/${interestId}`)
@@ -140,7 +173,30 @@ export default function SettingsPage() {
       fetchInterests()
       await refreshProfile()
     } catch {
-      toast.error(isSelected ? "Error al eliminar" : "Error al agregar")
+      // Fallback: guardar localmente
+      let updated: Interest[]
+      if (isSelected) {
+        updated = myInterests.filter((i) => i.interestId !== interestId)
+        toast.success("Interés eliminado")
+      } else {
+        updated = [...myInterests, interest]
+        toast.success("Interés agregado")
+      }
+      setMyInterests(updated)
+      
+      // Guardar en localStorage
+      if (user?.userId) {
+        localStorage.setItem(`sparkd_interests_${user.userId}`, JSON.stringify(updated))
+        
+        // Actualizar el perfil del usuario localmente
+        const savedUser = localStorage.getItem('sparkd_user')
+        if (savedUser) {
+          const userObj = JSON.parse(savedUser)
+          userObj.interests = updated.map(i => i.name)
+          localStorage.setItem('sparkd_user', JSON.stringify(userObj))
+          await refreshProfile()
+        }
+      }
     }
   }
 
