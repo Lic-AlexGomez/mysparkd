@@ -37,6 +37,12 @@ export default function ProfilePage() {
   const [apellidos, setApellidos] = useState(user?.apellidos || "")
   const [sex, setSex] = useState<Sex>(user?.sex || "MALE")
   const [telefono, setTelefono] = useState(user?.telefono || "")
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
+  const [localPhotos, setLocalPhotos] = useState(user?.photos || [])
+
+  useEffect(() => {
+    setLocalPhotos(user?.photos || [])
+  }, [user?.photos])
 
   useEffect(() => {
     const savedCover = localStorage.getItem('sparkd_cover')
@@ -59,6 +65,37 @@ export default function ProfilePage() {
       toast.error(err instanceof Error ? err.message : "Error al actualizar")
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+  }
+
+  const handleDrop = async (dropIndex: number) => {
+    if (draggedIndex === null || draggedIndex === dropIndex) return
+    
+    const photos = [...localPhotos]
+    const [draggedPhoto] = photos.splice(draggedIndex, 1)
+    photos.splice(dropIndex, 0, draggedPhoto)
+    
+    setLocalPhotos(photos)
+    setDraggedIndex(null)
+    
+    // Enviar al backend
+    try {
+      await api.put('/api/photos/reorder', {
+        photoIds: photos.map(p => p.photoId || p.id)
+      })
+      toast.success('Fotos reordenadas')
+    } catch {
+      toast.error('Error al guardar orden')
+      // Revertir cambios
+      setLocalPhotos(user?.photos || [])
     }
   }
 
@@ -138,6 +175,7 @@ export default function ProfilePage() {
                   <AvatarImage
                     src={primaryPhoto?.url}
                     alt={user.nombres}
+                    className="object-cover"
                   />
                   <AvatarFallback className="bg-primary/20 text-primary text-3xl">
                     {initials}
@@ -362,15 +400,21 @@ export default function ProfilePage() {
             Fotos ({user.photos.length}/6)
           </h2>
           <div className="grid grid-cols-3 gap-2 px-4">
-            {user.photos.map((photo, index) => (
+            {localPhotos.map((photo, index) => (
               <div
                 key={photo.photoId || photo.id}
-                className="aspect-square overflow-hidden rounded-lg border border-border relative group"
+                draggable
+                onDragStart={() => handleDragStart(index)}
+                onDragOver={handleDragOver}
+                onDrop={() => handleDrop(index)}
+                className={`aspect-square overflow-hidden rounded-lg border border-border relative group cursor-move ${
+                  draggedIndex === index ? 'opacity-50' : ''
+                }`}
               >
                 <img
                   src={photo.url}
                   alt="Foto de perfil"
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-cover pointer-events-none"
                   loading="lazy"
                 />
                 <button
@@ -391,7 +435,7 @@ export default function ProfilePage() {
                 </button>
               </div>
             ))}
-            {user.photos.length < 6 && (
+            {localPhotos.length < 6 && (
               <button
                 onClick={() => document.getElementById('add-photo-upload')?.click()}
                 className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary"

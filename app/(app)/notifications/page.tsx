@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
 import { notificationService } from "@/lib/services/notification"
@@ -13,6 +14,7 @@ import { es } from "date-fns/locale"
 
 export default function NotificationsPage() {
   const { user } = useAuth()
+  const router = useRouter()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -22,18 +24,27 @@ export default function NotificationsPage() {
       const data = await api.get<any[]>(
         `/api/notifications/${user.userId}`
       )
-      const mapped = data.map(n => ({
-        notificationId: n.senderId + n.createdAt,
-        type: 'like',
-        message: n.data,
-        read: n.read,
-        createdAt: n.createdAt,
-        relatedUserId: n.senderId,
-        relatedUsername: n.senderUsername
-      }))
+      console.log('Notificaciones del backend:', data)
+      const mapped = data.map(n => {
+        console.log('Notificación individual:', n)
+        return {
+          notificationId: n.senderId + n.createdAt,
+          type: n.type || 'like',
+          message: n.data,
+          read: n.read,
+          createdAt: n.createdAt,
+          relatedUserId: n.senderId,
+          relatedUsername: n.senderUsername,
+          targetId: n.targetId || n.postId || n.commentId,
+          targetType: n.targetType
+        }
+      })
+      console.log('Notificaciones mapeadas:', mapped)
       setNotifications(mapped)
-    } catch {
+    } catch (error) {
+      console.log('Error al obtener notificaciones del backend, usando locales:', error)
       const localNotifs = notificationService.getNotifications(user.userId)
+      console.log('Notificaciones locales:', localNotifs)
       setNotifications(localNotifs.map(n => ({
         notificationId: n.id,
         type: n.type,
@@ -41,7 +52,9 @@ export default function NotificationsPage() {
         read: n.read,
         createdAt: n.createdAt,
         relatedUserId: n.relatedUserId || '',
-        relatedUsername: ''
+        relatedUsername: '',
+        targetId: n.targetId,
+        targetType: n.targetType
       })))
     } finally {
       setIsLoading(false)
@@ -51,6 +64,22 @@ export default function NotificationsPage() {
   useEffect(() => {
     fetchNotifications()
   }, [fetchNotifications])
+
+  const handleNotificationClick = (notification: Notification) => {
+    markAsRead(notification.notificationId)
+    
+    // Navegar según el tipo de notificación
+    if (notification.type === 'like' || notification.type === 'comment') {
+      // Como el backend no devuelve targetId, ir al feed general
+      router.push('/feed')
+    } else if (notification.type === 'follow') {
+      router.push(`/profile/${notification.relatedUserId}`)
+    } else if (notification.type === 'match') {
+      router.push('/matches')
+    } else {
+      router.push('/feed')
+    }
+  }
 
   const markAsRead = async (id: string) => {
     // Backend no soporta marcar como leída individualmente
@@ -91,7 +120,8 @@ export default function NotificationsPage() {
           {notifications.map((n) => (
             <div
               key={n.notificationId}
-              className={`flex items-start gap-3 px-4 py-3 transition-colors ${
+              onClick={() => handleNotificationClick(n)}
+              className={`flex items-start gap-3 px-4 py-3 transition-colors cursor-pointer hover:bg-muted/50 ${
                 !n.read ? "bg-primary/5" : ""
               }`}
             >

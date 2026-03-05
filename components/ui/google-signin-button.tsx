@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef } from "react"
+import "@/styles/google-button.css"
 
 interface GoogleSignInButtonProps {
   onSuccess: (credential: string) => void
@@ -50,6 +51,8 @@ export function GoogleSignInButton({ onSuccess, onError, text = "Continuar con G
             size: "large",
             width: buttonRef.current.offsetWidth,
             text: text === "Registrarse con Google" ? "signup_with" : "signin_with",
+            shape: "rectangular",
+            logo_alignment: "left",
           }
         )
       }
