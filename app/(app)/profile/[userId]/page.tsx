@@ -216,6 +216,19 @@ export default function UserProfilePage() {
         </div>
       )}
 
+      {profile.interests && profile.interests.length > 0 && (
+        <div className="mt-6">
+          <h2 className="mb-3 text-sm font-semibold text-foreground">Intereses</h2>
+          <div className="flex flex-wrap gap-2">
+            {profile.interests.map((interest, index) => (
+              <span key={index} className="px-3 py-1.5 rounded-full bg-muted/20 border border-primary/30 text-xs text-foreground">
+                {interest}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       {profile.posts && profile.posts.length > 0 && (
         <div className="mt-6">
           <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">

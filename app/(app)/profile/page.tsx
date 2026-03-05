@@ -483,20 +483,18 @@ export default function ProfilePage() {
       )}
 
       {/* Interests */}
-      <div className="mt-6 px-4">
-        <h2 className="mb-3 text-sm font-semibold text-foreground">Intereses</h2>
-        <div className="flex flex-wrap gap-2">
-          <span className="px-3 py-1.5 rounded-full bg-muted/20 border border-primary/30 text-xs text-foreground">
-            Tecnología
-          </span>
-          <span className="px-3 py-1.5 rounded-full bg-muted/20 border border-primary/30 text-xs text-foreground">
-            Música
-          </span>
-          <span className="px-3 py-1.5 rounded-full bg-muted/20 border border-primary/30 text-xs text-foreground">
-            Deportes
-          </span>
+      {user.interests && user.interests.length > 0 && (
+        <div className="mt-6 px-4">
+          <h2 className="mb-3 text-sm font-semibold text-foreground">Intereses</h2>
+          <div className="flex flex-wrap gap-2">
+            {user.interests.map((interest, index) => (
+              <span key={index} className="px-3 py-1.5 rounded-full bg-muted/20 border border-primary/30 text-xs text-foreground">
+                {interest}
+              </span>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Menu Items */}
       <div className="mt-6 px-4 space-y-3">

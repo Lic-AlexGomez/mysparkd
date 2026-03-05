@@ -129,13 +129,18 @@ export default function SettingsPage() {
 
   const toggleInterest = async (interestId: string) => {
     const isSelected = myInterests.some((i) => i.interestId === interestId)
-    if (!isSelected) {
-      try {
+    try {
+      if (isSelected) {
+        await api.delete(`/api/interests/remove/${interestId}`)
+        toast.success("Interés eliminado")
+      } else {
         await api.post(`/api/interests/add/${interestId}`)
-        fetchInterests()
-      } catch {
-        toast.error("Error al agregar interes")
+        toast.success("Interés agregado")
       }
+      fetchInterests()
+      await refreshProfile()
+    } catch {
+      toast.error(isSelected ? "Error al eliminar" : "Error al agregar")
     }
   }
 
