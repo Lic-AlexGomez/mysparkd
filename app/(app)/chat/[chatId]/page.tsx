@@ -46,7 +46,7 @@ export default function ChatRoomPage() {
   const fetchMessages = useCallback(async () => {
     try {
       const data = await api.get<Message[]>(`/api/chat/${chatId}/messages`)
-      console.log('[Chat] Mensajes obtenidos del servidor:', data)
+      
       setMessages(data)
     } catch {
       // silent
