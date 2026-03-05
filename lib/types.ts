@@ -58,7 +58,7 @@ export interface UserProfile {
   totalPosts: number
   reputation?: number
   verificationLevel?: number
-  interests?: string[]
+  interests?: string[] | Interest[]
   compatibilityScore?: number
 }
 
