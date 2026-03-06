@@ -54,6 +54,21 @@ export function GoogleSignInButton({ onSuccess, onError, text = "Continuar con G
             logo_alignment: "left",
           }
         )
+
+        // Aplicar estilos después de renderizar
+        setTimeout(() => {
+          const btn = buttonRef.current?.querySelector('.nsm7Bb-HzV7m-LgbsSe') as HTMLElement
+          if (btn) {
+            btn.style.cssText = `
+              border-radius: 0.5rem !important;
+              border: 2px solid hsl(var(--primary) / 1) !important;
+              background: hsl(var(--muted)) !important;
+              transition: all 0.2s !important;
+              height: 44px !important;
+              box-shadow: 0 2px 4px 0 rgba(255, 254, 254, 0.1) !important;
+            `
+          }
+        }, 100)
       }
     }
 
