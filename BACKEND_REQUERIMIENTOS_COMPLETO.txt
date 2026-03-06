@@ -1,0 +1,711 @@
+
+SERVICIOS NUEVOS: 5
+CONTROLLERS NUEVOS: 5
+ARCHIVOS EXISTENTES A MODIFICAR: 6
+
+ESTIMACIÓN TOTAL: 6-8 semanas de desarrollo
+COMPLEJIDAD: Media-Alta
+
+================================================================================
+🔴 PRIORIDAD CRÍTICA - Semana 1-2 (Funcionalidad básica)
+================================================================================
+
+1. PERFIL - USERNAME, BIO, LOCATION, WEBSITE
+────────────────────────────────────────────────────────────────────────────
+
+PROBLEMA:
+El perfil no tiene campos para username único, biografía, ubicación y sitio web.
+
+CAMBIOS REQUERIDOS:
+
+A) MODELO UserProfile.java:
+   @Column(unique = true, length = 30)
+   private String username;
+   
+   @Column(length = 500)
+   private String bio;
+   
+   @Column(length = 100)
+   private String location;
+   
+   @Column(length = 200)
+   private String website;
+
+B) DTOs:
+   - UserProfileRequestDTO.java: Agregar campos
+   - UserProfileResponseDTO.java: Agregar campos + interests + verificationLevel + reputation
+   - UserProfileMapper.java: Mapear nuevos campos
+
+C) ENDPOINT:
+   PUT /api/profile/update
+   Body: { username, bio, location, website }
+
+D) MIGRACIÓN SQL:
+   ALTER TABLE user_profile 
+   ADD COLUMN username VARCHAR(30) UNIQUE,
+   ADD COLUMN bio VARCHAR(500),
+   ADD COLUMN location VARCHAR(100),
+   ADD COLUMN website VARCHAR(200);
+
+ENDPOINTS AFECTADOS:
+- GET /api/profile/me
+- GET /api/profile/{userId}
+- PUT /api/profile/update (nuevo)
+
+────────────────────────────────────────────────────────────────────────────
+
+2. REACCIONES MÚLTIPLES
+────────────────────────────────────────────────────────────────────────────
+
+PROBLEMA:
+Solo existe "like", faltan reacciones múltiples (❤️😂😮😢😡).
+
+CAMBIOS REQUERIDOS:
+
+A) ENUM ReactionType.java:
+   public enum ReactionType {
+       LOVE, HAHA, WOW, SAD, ANGRY
+   }
+
+B) MODELO Reaction.java:
+   @Entity
+   @Table(name = "reactions")
+   public class Reaction {
+       @Id @GeneratedValue
+       private UUID id;
+       
+       @ManyToOne
+       private Users user;
+       
+       @Column(nullable = false)
+       private UUID targetId;
+       
+       @Column(nullable = false)
+       private String targetType; // "POST", "COMMENT", "REPLY"
+       
+       @Enumerated(EnumType.STRING)
+       private ReactionType type;
+       
+       private LocalDateTime createdAt;
+   }
+
+C) REPOSITORY ReactionRepository.java:
+   Optional<Reaction> findByUserAndTargetIdAndTargetType(...);
+   List<Reaction> findByTargetIdAndTargetType(...);
+   void deleteByUserAndTargetIdAndTargetType(...);
+
+D) CONTROLLER ReactionController.java:
+   POST /api/reactions/toggle
+   Body: { targetId, targetType, type }
+   
+   GET /api/reactions/{targetId}?targetType=POST
+   Response: [{ userId, username, reactionType }]
+
+E) ACTUALIZAR PostResponseDTO.java:
+   private Map<String, Integer> reactions; // {"LOVE": 5, "HAHA": 2}
+   private String userReaction; // "LOVE" o null
+
+F) MIGRACIÓN SQL:
+   CREATE TABLE reactions (
+       id UUID PRIMARY KEY,
+       user_id UUID REFERENCES users(user_id),
+       target_id UUID NOT NULL,
+       target_type VARCHAR(20) NOT NULL,
+       type VARCHAR(20) NOT NULL,
+       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+       UNIQUE(user_id, target_id, target_type)
+   );
+   CREATE INDEX idx_reactions_target ON reactions(target_id, target_type);
+
+────────────────────────────────────────────────────────────────────────────
+
+3. BÚSQUEDA
+────────────────────────────────────────────────────────────────────────────
+
+PROBLEMA:
+No existe funcionalidad de búsqueda.
+
+CAMBIOS REQUERIDOS:
+
+A) CONTROLLER SearchController.java:
+   GET /api/search/users?query=carlos&page=0&size=20
+   GET /api/search/posts?query=viajes&page=0&size=20
+   GET /api/search/hashtag?tag=viajes&page=0&size=20
+
+B) SERVICE SearchService.java:
+   - searchUsers(query, page, size)
+   - searchPosts(query, page, size)
+   - searchByHashtag(tag, page, size)
+
+C) REPOSITORY:
+   UserProfileRepository:
+   List<UserProfile> findByUsernameContainingIgnoreCaseOrNombresContainingIgnoreCase(...);
+   
+   PostsRepository:
+   List<Posts> findByBodyContainingIgnoreCase(...);
+
+================================================================================
+🟡 PRIORIDAD ALTA - Semana 3-4 (Engagement)
+================================================================================
+
+4. ENCUESTAS (POLLS)
+────────────────────────────────────────────────────────────────────────────
+
+CAMBIOS REQUERIDOS:
+
+A) MODELOS:
+   Poll.java:
+   - id, post (OneToOne), question, expiresAt, allowMultiple
+   - List<PollOption> options
+   
+   PollOption.java:
+   - id, poll (ManyToOne), text, voteCount
+   
+   PollVote.java:
+   - id, user (ManyToOne), option (ManyToOne), votedAt
+
+B) CONTROLLER PollController.java:
+   POST /api/polls/vote
+   Body: { pollId, optionId }
+   Response: { success, results: { options, totalVotes } }
+
+C) ACTUALIZAR CreatePostRequest.java:
+   private PollRequest poll; // Opcional
+   class PollRequest { question, options[], durationHours }
+
+D) ACTUALIZAR PostResponseDTO.java:
+   private PollDTO poll; // Opcional
+   class PollDTO { id, question, options[], totalVotes, expiresAt, userVoted }
+
+E) MIGRACIÓN SQL:
+   CREATE TABLE polls (
+       id UUID PRIMARY KEY,
+       post_id UUID UNIQUE REFERENCES posts(id) ON DELETE CASCADE,
+       question VARCHAR(200) NOT NULL,
+       expires_at TIMESTAMP NOT NULL,
+       allow_multiple BOOLEAN DEFAULT FALSE
+   );
+   
+   CREATE TABLE poll_options (
+       id UUID PRIMARY KEY,
+       poll_id UUID REFERENCES polls(id) ON DELETE CASCADE,
+       text VARCHAR(100) NOT NULL,
+       vote_count INTEGER DEFAULT 0
+   );
+   
+   CREATE TABLE poll_votes (
+       id UUID PRIMARY KEY,
+       user_id UUID REFERENCES users(user_id),
+       poll_option_id UUID REFERENCES poll_options(id) ON DELETE CASCADE,
+       voted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+       UNIQUE(user_id, poll_option_id)
+   );
+
+────────────────────────────────────────────────────────────────────────────
+
+5. HASHTAGS
+────────────────────────────────────────────────────────────────────────────
+
+CAMBIOS REQUERIDOS:
+
+A) MODELOS:
+   Hashtag.java:
+   - id, tag (unique), usageCount, createdAt, lastUsedAt
+   
+   PostHashtag.java:
+   - id, post (ManyToOne), hashtag (ManyToOne)
+
+B) SERVICE HashtagService.java:
+   public void extractAndSaveHashtags(Posts post, String body) {
+       Pattern pattern = Pattern.compile("#(\\w+)");
+       Matcher matcher = pattern.matcher(body);
+       // Extraer, crear/actualizar hashtags, asociar al post
+   }
+
+C) CONTROLLER HashtagController.java:
+   GET /api/hashtags/trending?limit=10
+   Response: [{ tag, count }]
+   
+   GET /api/hashtags/{tag}/posts?page=0&size=20
+   Response: [PostResponseDTO]
+
+D) MIGRACIÓN SQL:
+   CREATE TABLE hashtags (
+       id UUID PRIMARY KEY,
+       tag VARCHAR(50) UNIQUE NOT NULL,
+       usage_count INTEGER DEFAULT 0,
+       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+       last_used_at TIMESTAMP
+   );
+   
+   CREATE TABLE post_hashtags (
+       id UUID PRIMARY KEY,
+       post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
+       hashtag_id UUID REFERENCES hashtags(id) ON DELETE CASCADE,
+       UNIQUE(post_id, hashtag_id)
+   );
+   
+   CREATE INDEX idx_hashtags_usage ON hashtags(usage_count DESC);
+
+────────────────────────────────────────────────────────────────────────────
+
+6. FEED PERSONALIZADO
+────────────────────────────────────────────────────────────────────────────
+
+CAMBIOS REQUERIDOS:
+
+A) CONTROLLER FeedController.java:
+   GET /api/feed/foryou?page=0&size=20
+   Response: [PostResponseDTO] // Algoritmo de recomendación
+   
+   GET /api/feed/following?page=0&size=20
+   Response: [PostResponseDTO] // Solo posts de seguidos
+
+B) SERVICE FeedService.java:
+   public List<PostResponseDTO> getForYouFeed(UUID userId, int page, int size) {
+       // Algoritmo:
+       // 1. Posts de usuarios con intereses similares
+       // 2. Posts populares (más likes/comentarios)
+       // 3. Posts recientes
+       // 4. Mezclar con posts de seguidos
+   }
+   
+   public List<PostResponseDTO> getFollowingFeed(UUID userId, int page, int size) {
+       List<UUID> followingIds = followRepository.findFollowingIds(userId);
+       return postsRepository.findByUserIdIn(followingIds, pageable);
+   }
+
+C) REPOSITORY PostsRepository.java:
+   @Query("SELECT p FROM Posts p WHERE p.user.userId IN :userIds ORDER BY p.createdAt DESC")
+   List<Posts> findByUserIdIn(@Param("userIds") List<UUID> userIds, Pageable pageable);
+
+================================================================================
+🟢 PRIORIDAD MEDIA - Semana 5-6 (Features avanzadas)
+================================================================================
+
+7. GRUPOS - POSTS Y ROLES
+────────────────────────────────────────────────────────────────────────────
+
+CAMBIOS REQUERIDOS:
+
+A) ACTUALIZAR Posts.java:
+   @ManyToOne
+   @JoinColumn(name = "group_id")
+   private Groups group; // Opcional, null si es post normal
+
+B) ENUM GroupRole.java:
+   public enum GroupRole {
+       ADMIN, MODERATOR, MEMBER
+   }
+
+C) ACTUALIZAR GroupMember.java:
+   @Enumerated(EnumType.STRING)
+   @Column(nullable = false)
+   private GroupRole role = GroupRole.MEMBER;
+
+D) CONTROLLER GroupController.java:
+   POST /api/groups/{groupId}/posts
+   Body: CreatePostRequest
+   
+   GET /api/groups/{groupId}/posts?page=0&size=20
+   
+   PUT /api/groups/{groupId}/members/{userId}/role
+   Body: { role: "MODERATOR" }
+   
+   DELETE /api/groups/{groupId}/members/{userId}
+
+E) MIGRACIÓN SQL:
+   ALTER TABLE posts ADD COLUMN group_id UUID REFERENCES groups(id);
+   CREATE INDEX idx_posts_group ON posts(group_id);
+   
+   ALTER TABLE group_members ADD COLUMN role VARCHAR(20) DEFAULT 'MEMBER';
+
+────────────────────────────────────────────────────────────────────────────
+
+8. NOTIFICACIONES - MARCAR COMO LEÍDA
+────────────────────────────────────────────────────────────────────────────
+
+CAMBIOS REQUERIDOS:
+
+A) SERVICE NotificationsService.java:
+   public void markAsRead(UUID notificationId, UUID userId) {
+       Notifications notification = notificationRepository.findById(notificationId)
+           .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+       
+       if (!notification.getReceiverId().equals(userId)) {
+           throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+       }
+       
+       notification.setRead(true);
+       notificationRepository.save(notification);
+   }
+
+B) CONTROLLER NotificationsController.java:
+   PUT /api/notifications/{notificationId}/read
+
+────────────────────────────────────────────────────────────────────────────
+
+9. NOTIFICACIONES - TARGET ID Y TYPE
+────────────────────────────────────────────────────────────────────────────
+
+PROBLEMA:
+Las notificaciones no incluyen el ID del post/comentario relacionado.
+
+CAMBIOS REQUERIDOS:
+
+A) ACTUALIZAR Notifications.java:
+   @Column(name = "target_id")
+   private UUID targetId;
+   
+   @Column(name = "target_type", length = 20)
+   private String targetType; // "POST", "COMMENT", "MATCH", "FOLLOW"
+
+B) ACTUALIZAR NotificationsResponseDTO.java:
+   private UUID targetId;
+   private String targetType;
+
+C) ACTUALIZAR NotificationsService.java:
+   Al crear notificaciones, incluir targetId y targetType:
+   - Likes en posts: targetId = postId, targetType = "POST"
+   - Comentarios: targetId = commentId, targetType = "COMMENT"
+   - Matches: targetId = matchId, targetType = "MATCH"
+   - Follows: targetId = userId, targetType = "FOLLOW"
+
+D) MIGRACIÓN SQL:
+   ALTER TABLE notifications 
+   ADD COLUMN target_id UUID,
+   ADD COLUMN target_type VARCHAR(20);
+
+================================================================================
+CAMBIOS ADICIONALES IMPORTANTES
+================================================================================
+
+10. PREFERENCIAS - CAMPOS DE PRIVACIDAD
+────────────────────────────────────────────────────────────────────────────
+
+A) ACTUALIZAR UserPreferences.java:
+   @Column(nullable = false)
+   private Boolean isPrivate = false;
+   
+   @Column(nullable = false)
+   private Boolean connectionMode = true;
+   
+   @Column(nullable = false, length = 20)
+   private String objective = "both"; // "social", "connection", "both"
+
+B) ACTUALIZAR DTOs y Mapper
+
+C) MIGRACIÓN SQL:
+   ALTER TABLE user_preferences 
+   ADD COLUMN is_private BOOLEAN NOT NULL DEFAULT false,
+   ADD COLUMN connection_mode BOOLEAN NOT NULL DEFAULT true,
+   ADD COLUMN objective VARCHAR(20) NOT NULL DEFAULT 'both';
+
+────────────────────────────────────────────────────────────────────────────
+
+11. INTERESES - ENDPOINT PARA ELIMINAR
+────────────────────────────────────────────────────────────────────────────
+
+A) SERVICE InterestService.java:
+   public void removeInterestFromUser(UUID interestId, UUID userId) {
+       // Buscar y eliminar UserInterest
+   }
+
+B) REPOSITORY UserInterestRepository.java:
+   Optional<UserInterest> findByProfileAndInterest(UserProfile profile, Interest interest);
+
+C) ENDPOINT (ya existe):
+   DELETE /api/interests/remove/{interestId}
+
+────────────────────────────────────────────────────────────────────────────
+
+12. FOTOS - ENDPOINT PARA REORDENAR
+────────────────────────────────────────────────────────────────────────────
+
+A) DTO ReorderPhotosRequest.java:
+   public class ReorderPhotosRequest {
+       private List<UUID> photoIds;
+   }
+
+B) SERVICE ProfilePhotosService.java:
+   public void reorderPhotos(UUID userId, List<UUID> photoIds) {
+       for (int i = 0; i < photoIds.size(); i++) {
+           ProfilePhoto photo = photoRepository.findById(photoIds.get(i))
+               .orElseThrow();
+           photo.setPosition(i);
+           photoRepository.save(photo);
+       }
+   }
+
+C) ENDPOINT:
+   PUT /api/photos/reorder
+   Body: { photoIds: ["uuid1", "uuid2", "uuid3"] }
+
+────────────────────────────────────────────────────────────────────────────
+
+13. MATCHES - UNMATCH Y BLOCK
+────────────────────────────────────────────────────────────────────────────
+
+A) SERVICE MatchService.java:
+   public void unmatch(UUID userId, UUID targetUserId) {
+       Match match = matchRepository.findByUserIds(userId, targetUserId)
+           .orElseThrow();
+       matchRepository.delete(match);
+   }
+   
+   public void blockUser(UUID userId, UUID targetUserId) {
+       // Eliminar match si existe
+       // Crear registro de bloqueo
+   }
+
+B) MODELO BlockedUser.java:
+   @Entity
+   @Table(name = "blocked_users")
+   public class BlockedUser {
+       @Id @GeneratedValue
+       private UUID id;
+       private UUID userId;
+       private UUID blockedUserId;
+       private LocalDateTime blockedAt;
+   }
+
+C) ENDPOINTS (ya existen):
+   POST /api/matches/{userId}/unmatch
+   POST /api/matches/{userId}/block
+
+D) MIGRACIÓN SQL:
+   CREATE TABLE blocked_users (
+       id UUID PRIMARY KEY,
+       user_id UUID NOT NULL,
+       blocked_user_id UUID NOT NULL,
+       blocked_at TIMESTAMP NOT NULL,
+       UNIQUE(user_id, blocked_user_id)
+   );
+
+────────────────────────────────────────────────────────────────────────────
+
+14. MATCHES - MÁS INFORMACIÓN (ESTILO TINDER)
+────────────────────────────────────────────────────────────────────────────
+
+PROBLEMA:
+MatchResponseDTO solo devuelve matchId, userId, nombre y matchedAt.
+
+CAMBIOS REQUERIDOS:
+
+A) ACTUALIZAR MatchResponseDTO.java:
+   private UUID matchId;
+   private UUID userId;
+   private String nombre;
+   private String apellidos;
+   private Integer edad;
+   private String photoUrl;
+   private String bio;
+   private List<String> interests;
+   private Integer compatibilityScore;
+   private String lastMessage;
+   private LocalDateTime lastMessageAt;
+   private LocalDateTime matchedAt;
+
+B) ACTUALIZAR MatchMapper.java:
+   - Calcular edad desde dateOfBirth
+   - Obtener foto principal
+   - Obtener bio
+   - Obtener primeros 3 intereses
+   - Calcular compatibility score
+   - Opcional: incluir último mensaje del chat
+
+────────────────────────────────────────────────────────────────────────────
+
+15. POSTS - CAMPO LIKED EN RESPONSE
+────────────────────────────────────────────────────────────────────────────
+
+A) ACTUALIZAR PostResponseDTO.java:
+   private Boolean liked;
+
+B) ACTUALIZAR PostMapper.java:
+   public PostResponseDTO toDTO(Post post, UUID currentUserId) {
+       PostResponseDTO dto = toDTO(post);
+       if (currentUserId != null) {
+           boolean liked = likeRepository.existsByUserIdAndTargetId(
+               currentUserId, post.getId());
+           dto.setLiked(liked);
+       }
+       return dto;
+   }
+
+C) ACTUALIZAR PostService.java:
+   Pasar currentUserId al mapper en todos los métodos
+
+────────────────────────────────────────────────────────────────────────────
+
+16. COMMENTS - CAMPO LIKED EN RESPONSE
+────────────────────────────────────────────────────────────────────────────
+
+Similar a posts, agregar campo liked en CommentResponseDTO y CommentMapper.
+
+================================================================================
+RESUMEN DE ENDPOINTS NUEVOS
+================================================================================
+
+PERFIL:
+✅ PUT /api/profile/update
+
+REACCIONES:
+✅ POST /api/reactions/toggle
+✅ GET /api/reactions/{targetId}
+
+BÚSQUEDA:
+✅ GET /api/search/users
+✅ GET /api/search/posts
+✅ GET /api/search/hashtag
+
+ENCUESTAS:
+✅ POST /api/polls/vote
+
+HASHTAGS:
+✅ GET /api/hashtags/trending
+✅ GET /api/hashtags/{tag}/posts
+
+FEED:
+✅ GET /api/feed/foryou
+✅ GET /api/feed/following
+
+GRUPOS:
+✅ POST /api/groups/{groupId}/posts
+✅ GET /api/groups/{groupId}/posts
+✅ PUT /api/groups/{groupId}/members/{userId}/role
+✅ DELETE /api/groups/{groupId}/members/{userId}
+
+NOTIFICACIONES:
+✅ PUT /api/notifications/{notificationId}/read
+
+FOTOS:
+✅ PUT /api/photos/reorder
+
+TOTAL: 16 endpoints nuevos
+
+================================================================================
+RESUMEN DE MIGRACIONES SQL
+================================================================================
+
+1. ALTER TABLE user_profile (username, bio, location, website)
+2. CREATE TABLE reactions
+3. CREATE TABLE polls
+4. CREATE TABLE poll_options
+5. CREATE TABLE poll_votes
+6. CREATE TABLE hashtags
+7. CREATE TABLE post_hashtags
+8. ALTER TABLE posts (group_id)
+9. ALTER TABLE group_members (role)
+10. ALTER TABLE notifications (target_id, target_type)
+11. ALTER TABLE user_preferences (is_private, connection_mode, objective)
+12. CREATE TABLE blocked_users
+
+TOTAL: 12 migraciones
+
+================================================================================
+RESUMEN DE MODELOS JAVA NUEVOS
+================================================================================
+
+1. Reaction.java
+2. ReactionType.java (enum)
+3. Poll.java
+4. PollOption.java
+5. PollVote.java
+6. Hashtag.java
+7. PostHashtag.java
+8. GroupRole.java (enum)
+9. BlockedUser.java
+
+TOTAL: 9 modelos
+
+================================================================================
+RESUMEN DE SERVICIOS NUEVOS
+================================================================================
+
+1. ReactionService.java
+2. PollService.java
+3. HashtagService.java
+4. SearchService.java
+5. FeedService.java
+
+TOTAL: 5 servicios
+
+================================================================================
+RESUMEN DE CONTROLLERS NUEVOS
+================================================================================
+
+1. ReactionController.java
+2. PollController.java
+3. HashtagController.java
+4. SearchController.java
+5. FeedController.java
+
+TOTAL: 5 controllers
+
+================================================================================
+ARCHIVOS EXISTENTES A MODIFICAR
+================================================================================
+
+1. UserProfile.java - Agregar campos
+2. UserProfileResponseDTO.java - Agregar campos
+3. UserProfileMapper.java - Mapear campos
+4. Posts.java - Agregar campo group_id
+5. GroupMember.java - Agregar campo role
+6. CreatePostRequest.java - Agregar poll
+7. PostResponseDTO.java - Agregar reactions, poll, liked
+8. CommentResponseDTO.java - Agregar liked
+9. MatchResponseDTO.java - Agregar más campos
+10. Notifications.java - Agregar targetId, targetType
+11. UserPreferences.java - Agregar campos privacidad
+
+TOTAL: 11 archivos existentes
+
+================================================================================
+PLAN DE IMPLEMENTACIÓN
+================================================================================
+
+SEMANA 1-2 (CRÍTICA):
+1. Perfil (username, bio, location, website) - 2-3 días
+2. Reacciones múltiples - 3-4 días
+3. Búsqueda básica - 2-3 días
+
+SEMANA 3-4 (ALTA):
+4. Encuestas - 4-5 días
+5. Hashtags - 3-4 días
+6. Feed personalizado - 3-4 días
+
+SEMANA 5-6 (MEDIA):
+7. Posts en grupos - 2-3 días
+8. Roles en grupos - 1-2 días
+9. Notificaciones (marcar leída, targetId/Type) - 2-3 días
+10. Preferencias privacidad - 1-2 días
+
+SEMANA 7-8 (MEJORAS):
+11. Intereses eliminar - 1 día
+12. Fotos reordenar - 1-2 días
+13. Matches unmatch/block - 2-3 días
+14. Matches más info - 2-3 días
+15. Posts/Comments liked field - 1-2 días
+
+TOTAL ESTIMADO: 6-8 semanas de desarrollo backend
+COMPLEJIDAD: Media-Alta
+
+================================================================================
+NOTAS FINALES
+================================================================================
+
+1. PRIORIZACIÓN:
+   - Implementar en orden de prioridad (Crítica → Alta → Media)
+   - Cada feature es independiente, se puede paralelizar
+
+
+
+2. DOCUMENTACIÓN:
+   - Actualizar Swagger/OpenAPI después de cada endpoint
+   - Documentar cambios en DTOs y modelos
+   - Mantener changelog actualizado
+
+
+
+================================================================================

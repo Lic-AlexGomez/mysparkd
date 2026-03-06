@@ -58,9 +58,16 @@ export function TopNavbar() {
   }, [fetchNotifications])
 
   const markAsRead = async (notificationId: string) => {
-    // El backend no tiene endpoint para marcar como leída por ID generado
-    // Solo refrescar las notificaciones
-    fetchNotifications()
+    // Marcar como leída localmente
+    setNotifications(prev => 
+      prev.map(n => 
+        n.notificationId === notificationId ? { ...n, read: true } : n
+      )
+    )
+    setUnreadCount(prev => Math.max(0, prev - 1))
+    
+    // TODO: Implementar endpoint en backend
+    // await api.put(`/api/notifications/${notificationId}/read`)
   }
 
   const getNotificationLink = (notification: Notification): string => {

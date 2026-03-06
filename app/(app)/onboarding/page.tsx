@@ -56,7 +56,18 @@ export default function OnboardingPage() {
     }
     setIsLoading(true)
     try {
-      await api.post("/api/profile", {
+      // Verificar si el perfil ya existe
+      let profileExists = false
+      try {
+        await api.get("/api/profile/me")
+        profileExists = true
+      } catch {
+        profileExists = false
+      }
+
+      // Usar PUT si existe, POST si no
+      const method = profileExists ? 'put' : 'post'
+      await api[method]("/api/profile", {
         nombres: nombres.trim(),
         apellidos: apellidos.trim(),
         sex,
@@ -65,7 +76,7 @@ export default function OnboardingPage() {
       })
       setStep(2)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al crear perfil")
+      toast.error(err instanceof Error ? err.message : "Error al guardar perfil")
     } finally {
       setIsLoading(false)
     }
@@ -74,9 +85,26 @@ export default function OnboardingPage() {
   const handleStep2 = async () => {
     setIsLoading(true)
     try {
-      for (const interestId of selectedInterests) {
-        await api.post(`/api/interests/add/${interestId}`)
+      // Obtener intereses actuales del usuario
+      let currentInterests: string[] = []
+      try {
+        const myInterests = await api.get<Interest[]>("/api/interests/me")
+        currentInterests = myInterests.map(i => i.interestId)
+      } catch {
+        // Si falla, intentar agregar todos
       }
+
+      // Solo agregar intereses que no existen
+      const newInterests = selectedInterests.filter(id => !currentInterests.includes(id))
+      
+      if (newInterests.length > 0) {
+        await Promise.all(
+          newInterests.map(interestId => 
+            api.post(`/api/interests/add/${interestId}`)
+          )
+        )
+      }
+      
       setStep(3)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al guardar intereses")

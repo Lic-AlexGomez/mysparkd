@@ -69,6 +69,10 @@ BACKEND PENDIENTE - LISTA COMPLETA Y PRIORIZADA
    - Endpoint para desbloquear posts
    - Verificar pago
 
+10. NOTIFICACIONES
+   - PUT /api/notifications/{notificationId}/read
+   - Marcar notificación como leída
+
 ================================================================================
 RESUMEN DE ENDPOINTS NUEVOS REQUERIDOS
 ================================================================================
@@ -102,7 +106,10 @@ GRUPOS:
 ✅ PUT /api/groups/{groupId}/members/{userId}/role
 ✅ DELETE /api/groups/{groupId}/members/{userId}
 
-TOTAL: 15 endpoints nuevos
+NOTIFICACIONES:
+✅ PUT /api/notifications/{notificationId}/read
+
+TOTAL: 16 endpoints nuevos
 
 ================================================================================
 MIGRACIONES SQL REQUERIDAS
@@ -246,6 +253,7 @@ SEMANA 5-6:
 7. Posts en grupos
 8. Roles en grupos
 9. Gestión suscripciones
+10. Marcar notificaciones como leídas
 
 SEMANA 7-8:
 10. Sistema de desbloqueo
@@ -269,7 +277,7 @@ TOTAL: 6 archivos existentes
 TOTAL DE TRABAJO BACKEND
 ================================================================================
 
-- 15 endpoints nuevos
+- 16 endpoints nuevos (agregado: marcar notificaciones como leídas)
 - 9 migraciones SQL
 - 8 modelos nuevos
 - 5 servicios nuevos
