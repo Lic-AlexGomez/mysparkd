@@ -22,15 +22,29 @@ export function GoogleSignInButton({ onSuccess, onError, text = "Continuar con G
     const style = document.createElement('style')
     style.id = 'google-btn-custom'
     style.innerHTML = `
-      iframe[src*="accounts.google.com"] {
-        position: relative !important;
+      .haAclf {
+        padding: 0 !important;
       }
-      div[role="button"][aria-labelledby] {
+      .nsm7Bb-HzV7m-LgbsSe {
         border-radius: 0.5rem !important;
         border: 2px solid #00e5ff !important;
         background: #1a1b23 !important;
         height: 44px !important;
-        overflow: hidden !important;
+        box-shadow: 0 2px 4px 0 rgba(255, 254, 254, 0.1) !important;
+      }
+      .nsm7Bb-HzV7m-LgbsSe:hover {
+        background: rgba(26, 27, 35, 0.8) !important;
+        border-color: rgba(0, 229, 255, 0.6) !important;
+        box-shadow: 0 4px 8px -1px rgb(0 0 0 / 0.2) !important;
+        transform: translateY(-1px);
+      }
+      .nsm7Bb-HzV7m-LgbsSe-BPrWId {
+        color: whitesmoke !important;
+        font-weight: 600 !important;
+        font-size: 14px !important;
+      }
+      .nsm7Bb-HzV7m-LgbsSe-Bz112c {
+        margin-right: 12px !important;
       }
     `
     if (!document.getElementById('google-btn-custom')) {
@@ -85,17 +99,5 @@ export function GoogleSignInButton({ onSuccess, onError, text = "Continuar con G
     }
   }, [])
 
-  return (
-    <div 
-      ref={buttonRef} 
-      className="w-full"
-      style={{
-        borderRadius: '0.5rem',
-        border: '2px solid #00e5ff',
-        background: '#1a1b23',
-        overflow: 'hidden',
-        height: '44px'
-      }}
-    />
-  )
+  return <div ref={buttonRef} className="w-full" />
 }
