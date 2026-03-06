@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef } from "react"
+import "@/styles/google-button.css"
 
 interface GoogleSignInButtonProps {
   onSuccess: (credential: string) => void
@@ -54,35 +55,6 @@ export function GoogleSignInButton({ onSuccess, onError, text = "Continuar con G
             logo_alignment: "left",
           }
         )
-
-        // Aplicar estilos después del render
-        const applyStyles = () => {
-          const container = buttonRef.current?.querySelector('#container-div') as HTMLElement
-          const button = buttonRef.current?.querySelector('.nsm7Bb-HzV7m-LgbsSe') as HTMLElement
-          const textEl = buttonRef.current?.querySelector('.nsm7Bb-HzV7m-LgbsSe-BPrWId') as HTMLElement
-          
-          if (container) container.setAttribute('style', 'padding: 0 !important;')
-          if (button) {
-            button.setAttribute('style', `
-              width: ${button.style.width};
-              max-width: ${button.style.maxWidth};
-              min-width: ${button.style.minWidth};
-              border-radius: 0.5rem !important;
-              border: 2px solid #00e5ff !important;
-              background: #1a1b23 !important;
-              height: 44px !important;
-              box-shadow: 0 2px 4px 0 rgba(255, 254, 254, 0.1) !important;
-            `)
-          }
-          if (textEl) {
-            textEl.setAttribute('style', 'color: whitesmoke !important; font-weight: 600 !important; font-size: 14px !important;')
-          }
-        }
-
-        setTimeout(applyStyles, 100)
-        setTimeout(applyStyles, 300)
-        setTimeout(applyStyles, 500)
-        setTimeout(applyStyles, 1000)
       }
     }
 
