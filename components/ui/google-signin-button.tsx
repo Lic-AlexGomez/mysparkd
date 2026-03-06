@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import "@/styles/google-button.css"
 
 interface GoogleSignInButtonProps {
   onSuccess: (credential: string) => void

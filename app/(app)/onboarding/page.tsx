@@ -17,8 +17,11 @@ import { Switch } from "@/components/ui/switch"
 export default function OnboardingPage() {
   const { refreshProfile } = useAuth()
   const router = useRouter()
-  const [step, setStep] = useState(1)
+  const [step, setStep] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
+
+  // Step 0: App Mode
+  const [appMode, setAppMode] = useState<"SOCIAL" | "DATING" | "BOTH">("BOTH")
 
   // Step 1: Profile
   const [nombres, setNombres] = useState("")
@@ -171,7 +174,7 @@ export default function OnboardingPage() {
 
       {/* Progress bar */}
       <div className="mb-8 flex gap-2">
-        {[1, 2, 3].map((s) => (
+        {[0, 1, 2, 3].map((s) => (
           <div
             key={s}
             className={`h-1.5 flex-1 rounded-full transition-colors ${
@@ -180,6 +183,104 @@ export default function OnboardingPage() {
           />
         ))}
       </div>
+
+      {step === 0 && (
+        <Card className="border-border bg-card">
+          <CardHeader>
+            <CardTitle className="text-foreground">¿Cómo quieres usar Sparkd?</CardTitle>
+            <CardDescription>Elige tu experiencia</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            {/* Promo Banner */}
+            <div className="bg-gradient-to-r from-primary/20 to-secondary/20 border border-primary/30 rounded-lg p-4 mb-2">
+              <div className="flex items-start gap-3">
+                <div className="bg-primary/20 rounded-full p-2">
+                  <Zap className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-foreground mb-1">🎉 Oferta de Bienvenida</h3>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    ¡6 meses de Premium GRATIS para nuevos usuarios!
+                  </p>
+                  <ul className="text-xs text-muted-foreground space-y-1">
+                    <li>✓ Swipes ilimitados</li>
+                    <li>✓ Ver quién te dio like</li>
+                    <li>✓ Rewind (deshacer swipes)</li>
+                    <li>✓ 5 Super Likes diarios</li>
+                    <li>✓ Boost mensual gratis</li>
+                    <li>✓ Sin anuncios</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Mode Selection */}
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => setAppMode("SOCIAL")}
+                className={`p-4 rounded-lg border-2 transition-all text-left ${
+                  appMode === "SOCIAL"
+                    ? "border-primary bg-primary/10"
+                    : "border-border hover:border-primary/50"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="text-3xl">🤝</div>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-foreground">Social</h3>
+                    <p className="text-sm text-muted-foreground">Solo red social</p>
+                  </div>
+                  {appMode === "SOCIAL" && <Check className="h-5 w-5 text-primary" />}
+                </div>
+              </button>
+
+              <button
+                onClick={() => setAppMode("DATING")}
+                className={`p-4 rounded-lg border-2 transition-all text-left ${
+                  appMode === "DATING"
+                    ? "border-primary bg-primary/10"
+                    : "border-border hover:border-primary/50"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="text-3xl">💫</div>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-foreground">Conexión</h3>
+                    <p className="text-sm text-muted-foreground">Solo dating/matching</p>
+                  </div>
+                  {appMode === "DATING" && <Check className="h-5 w-5 text-primary" />}
+                </div>
+              </button>
+
+              <button
+                onClick={() => setAppMode("BOTH")}
+                className={`p-4 rounded-lg border-2 transition-all text-left ${
+                  appMode === "BOTH"
+                    ? "border-primary bg-primary/10"
+                    : "border-border hover:border-primary/50"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="text-3xl">⚡</div>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-foreground">Ambos</h3>
+                    <p className="text-sm text-muted-foreground">Experiencia completa</p>
+                  </div>
+                  {appMode === "BOTH" && <Check className="h-5 w-5 text-primary" />}
+                </div>
+              </button>
+            </div>
+
+            <Button
+              onClick={() => setStep(1)}
+              className="mt-2 bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              <ArrowRight className="mr-2 h-4 w-4" />
+              Continuar
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {step === 1 && (
         <Card className="border-border bg-card">
@@ -308,7 +409,7 @@ export default function OnboardingPage() {
             <div className="flex gap-2 mt-2">
               <Button
                 variant="outline"
-                onClick={() => setStep(1)}
+                onClick={() => setStep(0)}
                 className="border-border text-foreground"
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />
