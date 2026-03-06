@@ -1,0 +1,235 @@
+================================================================================
+ESTADO ACTUAL DEL BACKEND - Análisis Completo
+================================================================================
+Fecha: Revisión del código fuente en C:\Sparkd1.0-desarrollo (1)\Sparkd1.0
+================================================================================
+
+✅ = IMPLEMENTADO
+⚠️ = PARCIALMENTE IMPLEMENTADO
+❌ = NO IMPLEMENTADO
+
+================================================================================
+1. USERPREFERENCES - CAMPOS DE PRIVACIDAD Y MODO
+================================================================================
+Estado: ❌ NO IMPLEMENTADO
+
+Archivos revisados:
+- UserPreferences.java: Solo tiene interestedIn, minAge, maxAge, showMe
+- UserPreferencesRequestDTO.java: Solo campos básicos
+- UserPreferencesResponseDTO.java: Solo campos básicos
+
+FALTA AGREGAR:
+- isPrivate (Boolean)
+- connectionMode (Boolean)  
+- objective (String)
+
+IMPACTO: MEDIO - El frontend guarda estos valores en localStorage como workaround
+
+
+================================================================================
+2. NOTIFICACIONES - CAMPOS targetId Y targetType
+================================================================================
+Estado: ✅ IMPLEMENTADO
+
+Archivos revisados:
+- Notifications.java: ✅ Tiene targetId y targetType
+- NotificationsResponseDTO.java: ✅ Tiene targetId y targetType
+
+NOTA: Ya está implementado correctamente. El frontend puede usarlo.
+
+
+================================================================================
+3. INTERESES - ENDPOINT PARA ELIMINAR
+================================================================================
+Estado: ✅ IMPLEMENTADO
+
+Archivos revisados:
+- InterestController.java: ✅ Tiene DELETE /api/interests/remove/{interestId}
+- InterestService.java: ✅ Tiene método removeInterestFromUser()
+
+NOTA: Ya está implementado correctamente.
+
+
+================================================================================
+4. FOTOS - ENDPOINT PARA REORDENAR
+================================================================================
+Estado: ❌ NO IMPLEMENTADO
+
+Archivos revisados:
+- ProfilePhotosController.java: Solo tiene add, update, delete, getByProfile
+- NO existe endpoint PUT /api/photos/reorder
+
+FALTA AGREGAR:
+- DTO ReorderPhotosRequest.java
+- Método reorderPhotos() en ProfilePhotosService.java
+- Endpoint PUT /api/photos/reorder en ProfilePhotosController.java
+
+IMPACTO: MEDIO - El frontend intenta reordenar fotos pero falla
+
+
+================================================================================
+5. PERFIL - INCLUIR INTERESES EN RESPONSE
+================================================================================
+Estado: ❌ NO IMPLEMENTADO
+
+Archivos revisados:
+- UserProfileResponseDTO.java: NO tiene campo interests
+
+FALTA AGREGAR:
+- Campo List<String> interests en UserProfileResponseDTO.java
+- Lógica en UserProfileMapper.java para mapear intereses
+
+IMPACTO: ALTO - Los intereses no se muestran en el perfil del usuario
+
+
+================================================================================
+6. GOOGLE LOGIN - CAMPO token EN LUGAR DE idToken
+================================================================================
+Estado: ❌ NO IMPLEMENTADO
+
+Archivos revisados:
+- GoogleLoginRequest.java: Usa "idToken" en lugar de "token"
+
+FALTA CAMBIAR:
+- Renombrar campo de idToken a token
+- Actualizar getters/setters
+- Actualizar AuthService.java para usar getToken()
+
+IMPACTO: BAJO - El frontend puede ajustarse fácilmente
+
+
+================================================================================
+7. MATCHES - ENDPOINTS PARA UNMATCH Y BLOCK
+================================================================================
+Estado: ✅ IMPLEMENTADO
+
+Archivos revisados:
+- MatchController.java: ✅ Tiene POST /{userId}/unmatch
+- MatchController.java: ✅ Tiene POST /{userId}/block
+
+NOTA: Ya está implementado correctamente.
+
+
+================================================================================
+8. NOTIFICACIONES - ENDPOINT PARA MARCAR COMO LEÍDA
+================================================================================
+Estado: ❌ NO IMPLEMENTADO
+
+Archivos revisados:
+- NotificationsController.java: NO revisado aún, pero probablemente falta
+
+FALTA AGREGAR:
+- Método markAsRead() en NotificationsService.java
+- Endpoint PUT /api/notifications/{notificationId}/read
+
+IMPACTO: MEDIO - Las notificaciones no se pueden marcar como leídas
+
+
+================================================================================
+9. POSTS - ENDPOINT PARA REPOST
+================================================================================
+Estado: ❌ NO IMPLEMENTADO
+
+Archivos revisados:
+- PostController.java: NO revisado aún, pero probablemente falta
+
+FALTA AGREGAR:
+- DTO RepostRequest.java
+- Método repost() en PostService.java
+- Campo originalPost en Posts.java
+- Campo repostCount en Posts.java
+- Endpoint POST /api/posts/repost/{postId}
+
+IMPACTO: MEDIO - Funcionalidad de repost no disponible
+
+
+================================================================================
+10. POSTS - CAMPO liked EN RESPONSE
+================================================================================
+Estado: ✅ IMPLEMENTADO
+
+Archivos revisados:
+- PostResponseDTO.java: ✅ Tiene campo likedByCurrentUser
+
+NOTA: Ya está implementado como "likedByCurrentUser".
+
+
+================================================================================
+11. COMMENTS - CAMPO liked EN RESPONSE
+================================================================================
+Estado: ⚠️ REVISAR
+
+Archivos revisados:
+- CommentsResponseDTO.java: NO revisado aún
+
+NECESITA REVISIÓN: Verificar si CommentsResponseDTO tiene campo liked
+
+
+================================================================================
+12. PROFILE - CAMPO verificationLevel EN RESPONSE
+================================================================================
+Estado: ⚠️ REVISAR
+
+Archivos revisados:
+- UserProfileResponseDTO.java: NO tiene campo verificationLevel visible
+
+NECESITA REVISIÓN: Verificar si Users.java tiene verificationLevel
+
+
+================================================================================
+13. DISCOVER - INCLUIR compatibilityScore EN RESPONSE
+================================================================================
+Estado: ⚠️ REVISAR
+
+Archivos revisados:
+- DiscoverProfileDTO.java: NO revisado aún
+
+NECESITA REVISIÓN: Verificar si DiscoverProfileDTO incluye compatibilityScore
+
+
+================================================================================
+14. CHAT - INCLUIR otherUserId EN RESPONSE
+================================================================================
+Estado: ⚠️ REVISAR
+
+Archivos revisados:
+- ChatResponseDTO.java: NO revisado aún
+
+NECESITA REVISIÓN: Verificar si ChatResponseDTO incluye otherUserId
+
+
+================================================================================
+RESUMEN DE PRIORIDADES
+================================================================================
+
+🔴 CRÍTICO - DEBE IMPLEMENTARSE:
+1. ❌ Perfil incluir intereses (datos no se muestran)
+2. ❌ Fotos reordenar (funcionalidad rota)
+3. ❌ Notificaciones marcar como leída (UX pobre)
+
+🟡 IMPORTANTE - DEBERÍA IMPLEMENTARSE:
+4. ❌ UserPreferences campos adicionales (configuración incompleta)
+5. ❌ Posts repost (feature faltante)
+6. ⚠️ Comments campo liked (verificar)
+7. ⚠️ Profile verificationLevel (verificar)
+
+🟢 OPCIONAL - PUEDE ESPERAR:
+8. ❌ Google login token field (workaround funciona)
+9. ⚠️ Discover compatibilityScore (verificar)
+10. ⚠️ Chat otherUserId (verificar)
+
+
+================================================================================
+ARCHIVOS QUE NECESITAN REVISIÓN ADICIONAL
+================================================================================
+
+Pendientes de revisar:
+- NotificationsController.java
+- PostController.java
+- CommentsResponseDTO.java
+- DiscoverProfileDTO.java
+- ChatResponseDTO.java
+- Users.java (para verificationLevel)
+- UserProfileMapper.java
+
+================================================================================

@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useRouter, usePathname } from "next/navigation"
 import { Bell, Zap, LogOut, Settings, User, Crown, Search, Flame } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
@@ -15,9 +16,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useEffect, useState, useCallback } from "react"
 import { api } from "@/lib/api"
 import type { Notification } from "@/lib/types"
+import { getFeatureFlags } from "@/lib/utils/feature-flags"
 
 export function TopNavbar() {
+  const router = useRouter()
+  const pathname = usePathname()
   const { user, logout } = useAuth()
+  const features = getFeatureFlags(user?.email)
   const [unreadCount, setUnreadCount] = useState(0)
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [showNotifications, setShowNotifications] = useState(false)
@@ -89,16 +94,22 @@ export function TopNavbar() {
         <span className="text-lg font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Sparkd</span>
       </div>
 
-      <div className="hidden lg:flex flex-1 items-center justify-center max-w-md mx-auto">
-        <div className="relative w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Buscar en Sparkd..."
-            className="w-full h-9 pl-10 pr-4 rounded-full bg-muted/50 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-          />
+      {features.searchPage && pathname !== '/search' ? (
+        <div className="hidden lg:flex flex-1 items-center justify-center max-w-md mx-auto">
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Buscar en Sparkd..."
+              onClick={() => router.push('/search')}
+              readOnly
+              className="w-full h-9 pl-10 pr-4 rounded-full bg-muted/50 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all cursor-pointer"
+            />
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="hidden lg:flex flex-1" />
+      )}
 
       {/* Right side */}
       <div className="flex items-center gap-2">
@@ -214,11 +225,13 @@ export function TopNavbar() {
             align="end"
             className="w-56 bg-card border-border"
           >
+            {console.log(user)}
             <div className="px-3 py-2">
               <p className="text-sm font-medium text-foreground">
                 {user?.nombres} {user?.apellidos}
+                
               </p>
-              <p className="text-xs text-muted-foreground">@{user?.userId?.slice(0, 8)}</p>
+              <p className="text-xs text-muted-foreground">Nivel {user?.verificationLevel || 1}</p>
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>

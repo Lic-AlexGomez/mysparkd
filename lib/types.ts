@@ -47,11 +47,15 @@ export interface Photo {
 
 export interface UserProfile {
   userId: string
+  username?: string
   nombres: string
   apellidos: string
   telefono: string
   dateOfBirth: string
   sex: Sex
+  bio?: string
+  location?: string
+  website?: string
   profileCompleted: boolean
   photos: Photo[]
   posts: Post[]
@@ -78,6 +82,37 @@ export interface UpdateProfileRequest {
   telefono: string
 }
 
+// Reactions
+export type ReactionType = 'LOVE' | 'HAHA' | 'WOW' | 'SAD' | 'ANGRY'
+
+export interface Reaction {
+  type: ReactionType
+  count: number
+  userReacted?: boolean
+}
+
+export interface ReactionSummary {
+  [key: string]: Reaction
+}
+
+// Polls
+export interface PollOption {
+  id: string
+  text: string
+  votes: number
+  percentage: number
+}
+
+export interface Poll {
+  id: string
+  question: string
+  options: PollOption[]
+  totalVotes: number
+  expiresAt: string
+  userVoted?: string | null
+  allowMultiple: boolean
+}
+
 // Posts
 export interface Post {
   id: string
@@ -99,6 +134,9 @@ export interface Post {
   verificationLevel?: number
   interests?: string[]
   liked?: boolean
+  reactions?: ReactionSummary
+  userReaction?: ReactionType | null
+  poll?: Poll
 }
 
 export interface CreatePostRequest {
@@ -128,6 +166,8 @@ export interface Comment {
   likeCount: number
   commentReplies: number
   liked?: boolean
+  reactions?: ReactionSummary
+  userReaction?: ReactionType | null
 }
 
 export interface CommentReply {
@@ -161,7 +201,54 @@ export interface Match {
   matchId: string
   userId: string
   nombre: string
+  apellidos?: string
+  edad?: number
+  photoUrl?: string
+  bio?: string
+  interests?: string[]
+  compatibilityScore?: number
+  lastMessage?: string
+  lastMessageAt?: string
   matchedAt: string
+}
+
+// Stories
+export interface Story {
+  id: string
+  userId: string
+  username: string
+  userPhoto?: string
+  mediaUrl: string
+  caption?: string
+  createdAt: string
+  expiresAt: string
+  viewCount: number
+  viewed?: boolean
+}
+
+export interface CreateStoryRequest {
+  mediaUrl: string
+  caption?: string
+}
+
+// Groups
+export interface Group {
+  id: string
+  name: string
+  description: string
+  coverPhoto?: string
+  privacy: 'PUBLIC' | 'PRIVATE'
+  memberCount: number
+  createdAt: string
+  isAdmin?: boolean
+  isMember?: boolean
+}
+
+export interface CreateGroupRequest {
+  name: string
+  description: string
+  privacy: 'PUBLIC' | 'PRIVATE'
+  coverPhoto?: string
 }
 
 // Chat

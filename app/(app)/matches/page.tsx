@@ -6,8 +6,9 @@ import { api } from "@/lib/api"
 import { matchService } from "@/lib/services/match"
 import { useAuth } from "@/lib/auth-context"
 import type { Match, Chat } from "@/lib/types"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +22,8 @@ import {
   MoreVertical,
   UserX,
   Ban,
+  Sparkles,
+  MapPin,
 } from "lucide-react"
 import { toast } from "sonner"
 import { formatDistanceToNow } from "date-fns"
@@ -113,71 +116,142 @@ export default function MatchesPage() {
             </Button>
           </div>
         ) : (
-          <div className="p-4 space-y-3">
+          <div className="p-4 space-y-4">
             {matches.map((match) => (
               <div
                 key={match.matchId}
-                className="relative overflow-hidden flex items-center gap-4 p-4 bg-gradient-to-br from-card to-muted/20 rounded-2xl border border-primary/10 hover:border-secondary/30 hover:shadow-xl hover:shadow-secondary/5 transition-all duration-300 group"
+                className="relative overflow-hidden rounded-3xl border border-primary/10 hover:border-secondary/30 hover:shadow-2xl hover:shadow-secondary/10 transition-all duration-300 group bg-gradient-to-br from-card to-muted/20"
               >
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-secondary/5 to-transparent rounded-full blur-2xl" />
-                <Avatar
-                  className="h-16 w-16 cursor-pointer border-2 border-secondary/30 ring-4 ring-secondary/10 group-hover:scale-110 transition-transform relative z-10"
-                  onClick={() => router.push(`/profile/${match.userId}`)}
-                >
-                  <AvatarFallback className="bg-gradient-to-br from-secondary/20 to-secondary/10 text-secondary font-bold text-lg">
-                    {match.nombre?.[0]?.toUpperCase() || "?"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0 relative z-10">
-                  <p className="font-bold text-lg text-foreground truncate">
-                    {match.nombre}
-                  </p>
-                  <p className="text-sm text-muted-foreground flex items-center gap-1">
-                    <Heart className="h-3 w-3 text-secondary fill-secondary" />
-                    Match{" "}
-                    {formatDistanceToNow(new Date(match.matchedAt), {
-                      addSuffix: true,
-                      locale: es,
-                    })}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 relative z-10">
+                {/* Background gradient */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-secondary/5 to-transparent rounded-full blur-3xl" />
+                
+                <div className="relative p-5">
+                  {/* Header con foto y nombre */}
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="relative">
+                      <Avatar
+                        className="h-20 w-20 cursor-pointer border-4 border-secondary/30 ring-4 ring-secondary/10 group-hover:scale-110 transition-transform"
+                        onClick={() => router.push(`/profile/${match.userId}`)}
+                      >
+                        {match.photoUrl ? (
+                          <AvatarImage src={match.photoUrl} alt={match.nombre} className="object-cover" />
+                        ) : null}
+                        <AvatarFallback className="bg-gradient-to-br from-secondary/20 to-secondary/10 text-secondary font-bold text-xl">
+                          {match.nombre?.[0]?.toUpperCase() || "?"}
+                        </AvatarFallback>
+                      </Avatar>
+                      {match.compatibilityScore && match.compatibilityScore > 70 && (
+                        <div className="absolute -top-1 -right-1 h-7 w-7 rounded-full bg-gradient-to-br from-secondary to-primary flex items-center justify-center shadow-lg">
+                          <Sparkles className="h-4 w-4 text-black" />
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-bold text-xl text-foreground truncate">
+                          {match.nombre}{match.apellidos ? ` ${match.apellidos}` : ''}
+                        </h3>
+                        {match.edad && (
+                          <span className="text-lg text-muted-foreground">{match.edad}</span>
+                        )}
+                      </div>
+                      
+                      {match.compatibilityScore && (
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-gradient-to-r from-primary to-secondary transition-all duration-500"
+                              style={{ width: `${match.compatibilityScore}%` }}
+                            />
+                          </div>
+                          <span className="text-xs font-bold text-primary">{match.compatibilityScore}%</span>
+                        </div>
+                      )}
+                      
+                      <p className="text-sm text-muted-foreground flex items-center gap-1">
+                        <Heart className="h-3 w-3 text-secondary fill-secondary" />
+                        Match{" "}
+                        {formatDistanceToNow(new Date(match.matchedAt), {
+                          addSuffix: true,
+                          locale: es,
+                        })}
+                      </p>
+                    </div>
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-10 w-10 text-muted-foreground hover:bg-muted/50 rounded-xl"
+                        >
+                          <MoreVertical className="h-5 w-5" />
+                          <span className="sr-only">Opciones</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-card border-border">
+                        <DropdownMenuItem
+                          onClick={() => handleUnmatch(match.userId)}
+                          className="cursor-pointer"
+                        >
+                          <UserX className="mr-2 h-4 w-4" />
+                          Eliminar match
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleBlock(match.userId)}
+                          className="text-destructive cursor-pointer"
+                        >
+                          <Ban className="mr-2 h-4 w-4" />
+                          Bloquear
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+
+                  {/* Bio */}
+                  {match.bio && (
+                    <p className="text-sm text-foreground/80 mb-3 line-clamp-2">
+                      {match.bio}
+                    </p>
+                  )}
+
+                  {/* Intereses */}
+                  {match.interests && match.interests.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {match.interests.map((interest, idx) => (
+                        <Badge
+                          key={idx}
+                          variant="secondary"
+                          className="bg-primary/10 text-primary border-0 text-xs px-2 py-1"
+                        >
+                          {interest}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Último mensaje */}
+                  {match.lastMessage && (
+                    <div className="bg-muted/30 rounded-xl p-3 mb-4">
+                      <p className="text-xs text-muted-foreground mb-1">
+                        {match.lastMessageAt && formatDistanceToNow(new Date(match.lastMessageAt), {
+                          addSuffix: true,
+                          locale: es,
+                        })}
+                      </p>
+                      <p className="text-sm text-foreground line-clamp-1">{match.lastMessage}</p>
+                    </div>
+                  )}
+
+                  {/* Botón de chat */}
                   <Button
-                    size="icon"
                     onClick={() => handleChat(match.userId)}
-                    className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-secondary text-black hover:scale-110 transition-transform shadow-lg"
+                    className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-secondary text-black font-semibold hover:scale-105 transition-transform shadow-lg"
                   >
-                    <MessageCircle className="h-5 w-5" />
-                    <span className="sr-only">Chat</span>
+                    <MessageCircle className="h-5 w-5 mr-2" />
+                    {match.lastMessage ? 'Continuar conversación' : 'Enviar mensaje'}
                   </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-10 w-10 text-muted-foreground hover:bg-muted/50 rounded-xl"
-                      >
-                        <MoreVertical className="h-5 w-5" />
-                        <span className="sr-only">Opciones</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="bg-card border-border">
-                      <DropdownMenuItem
-                        onClick={() => handleUnmatch(match.userId)}
-                        className="cursor-pointer"
-                      >
-                        <UserX className="mr-2 h-4 w-4" />
-                        Eliminar match
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleBlock(match.userId)}
-                        className="text-destructive cursor-pointer"
-                      >
-                        <Ban className="mr-2 h-4 w-4" />
-                        Bloquear
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
                 </div>
               </div>
             ))}

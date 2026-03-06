@@ -6,14 +6,18 @@ import { useFeed } from "@/hooks/use-feed"
 import { PostCard } from "@/components/feed/post-card"
 import { CreatePostDialog } from "@/components/feed/create-post-dialog"
 import { EngagementStats } from "@/components/feed/engagement-stats"
-import { Loader2, Newspaper, Sliders } from "lucide-react"
+import { StoriesBar } from "@/components/feed/stories-bar"
+import { Loader2, Newspaper, Sliders, Sparkles, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useAuth } from "@/lib/auth-context"
+import { getFeatureFlags } from "@/lib/utils/feature-flags"
 
 const sortOptions = [
   { value: 'chronological' as const, label: 'Cronológico', icon: '🕐' },
@@ -23,11 +27,14 @@ const sortOptions = [
 ]
 
 export default function FeedPage() {
+  const { user } = useAuth()
+  const features = getFeatureFlags(user?.email)
   const searchParams = useSearchParams()
   const highlightPostId = searchParams.get('post')
   const highlightCommentId = searchParams.get('comment')
   const { posts, sortMode, loading, onRefresh, changeSortMode } = useFeed()
   const [localPosts, setLocalPosts] = useState(posts)
+  const [feedTab, setFeedTab] = useState<'foryou' | 'following'>('foryou')
 
   useEffect(() => {
     setLocalPosts(posts)
@@ -49,6 +56,12 @@ export default function FeedPage() {
     setLocalPosts((prev) => prev.filter((p) => p.id !== postId))
   }
 
+  // Filtrar posts según el tab activo
+  const displayPosts = localPosts.length > 0 ? localPosts : posts
+  const filteredPosts = feedTab === 'following' 
+    ? displayPosts // TODO: Filtrar solo posts de seguidos cuando el backend lo soporte
+    : displayPosts
+
   if (loading && posts.length === 0) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
@@ -62,43 +75,69 @@ export default function FeedPage() {
       {/* Stats */}
       {posts.length > 0 && <EngagementStats posts={posts} />}
 
-      {/* Header */}
-      <div className="sticky top-16 z-20 border-b border-border bg-background/95 px-4 py-3 backdrop-blur-md flex items-center justify-between">
-        <h1 className="text-lg font-bold text-foreground">Feed</h1>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="gap-2">
-              <Sliders className="h-4 w-4" />
-              <span className="text-lg">{sortOptions.find(o => o.value === sortMode)?.icon}</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-card border-border">
-            {sortOptions.map((option) => (
-              <DropdownMenuItem
-                key={option.value}
-                onClick={() => changeSortMode(option.value)}
-                className={sortMode === option.value ? 'bg-primary/10 text-primary' : ''}
-              >
-                <span className="mr-2">{option.icon}</span>
-                {option.label}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+      {/* Stories */}
+      <StoriesBar />
+
+      {/* Header with Tabs */}
+      <div className="sticky top-16 z-20 border-b border-border bg-background/95 backdrop-blur-md">
+        <div className="flex items-center justify-between px-4 py-2">
+          {features.personalizedFeed ? (
+          <Tabs value={feedTab} onValueChange={(v) => setFeedTab(v as any)} className="flex-1">
+            <TabsList className="w-full grid grid-cols-2 max-w-md">
+              <TabsTrigger value="foryou" className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                Para ti
+              </TabsTrigger>
+              <TabsTrigger value="following" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Siguiendo
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          ) : (
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <Newspaper className="h-5 w-5" />
+              Feed
+            </h2>
+          )}
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="gap-2 ml-2">
+                <Sliders className="h-4 w-4" />
+                <span className="text-lg">{sortOptions.find(o => o.value === sortMode)?.icon}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-card border-border">
+              {sortOptions.map((option) => (
+                <DropdownMenuItem
+                  key={option.value}
+                  onClick={() => changeSortMode(option.value)}
+                  className={sortMode === option.value ? 'bg-primary/10 text-primary' : ''}
+                >
+                  <span className="mr-2">{option.icon}</span>
+                  {option.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {/* Posts */}
-      {(localPosts.length > 0 ? localPosts : posts).length === 0 ? (
+      {filteredPosts.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 py-20">
           <Newspaper className="h-12 w-12 text-muted-foreground" />
           <p className="text-muted-foreground">No hay posts aun</p>
           <p className="text-sm text-muted-foreground">
-            Se el primero en publicar algo!
+            {feedTab === 'following' 
+              ? 'Sigue a más personas para ver su contenido' 
+              : 'Se el primero en publicar algo!'}
           </p>
         </div>
       ) : (
         <div className="p-4">
-          {(localPosts.length > 0 ? localPosts : posts).map((post) => (
+          {filteredPosts.map((post) => (
             <PostCard
               key={post.id}
               post={post}
@@ -110,7 +149,7 @@ export default function FeedPage() {
         </div>
       )}
 
-          <CreatePostDialog onCreated={onRefresh} />
+      <CreatePostDialog onCreated={onRefresh} />
     </div>
   )
 }

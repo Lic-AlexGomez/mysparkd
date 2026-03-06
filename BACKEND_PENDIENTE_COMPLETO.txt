@@ -1,0 +1,282 @@
+================================================================================
+BACKEND PENDIENTE - LISTA COMPLETA Y PRIORIZADA
+================================================================================
+
+🔴 PRIORIDAD CRÍTICA (Implementar primero - 1-2 semanas)
+================================================================================
+
+1. PERFIL - USERNAME, BIO, LOCATION, WEBSITE
+   - Agregar campos en UserProfile.java
+   - Actualizar DTOs y Mapper
+   - Endpoint PUT /api/profile/update
+   - Migración SQL
+
+2. REACCIONES MÚLTIPLES
+   - Crear modelo Reaction.java
+   - Crear ReactionRepository
+   - POST /api/reactions/toggle
+   - GET /api/reactions/{targetId}
+   - Migración SQL (tabla reactions)
+
+3. BÚSQUEDA
+   - Crear SearchController
+   - Crear SearchService
+   - GET /api/search/users
+   - GET /api/search/posts
+   - Métodos en repositories
+
+================================================================================
+🟡 PRIORIDAD ALTA (Implementar después - 2-3 semanas)
+================================================================================
+
+4. ENCUESTAS
+   - Crear modelos Poll, PollOption, PollVote
+   - Crear repositories
+   - POST /api/polls/vote
+   - Integrar en CreatePostRequest
+   - Migración SQL (3 tablas)
+
+5. HASHTAGS
+   - Crear modelos Hashtag, PostHashtag
+   - Crear HashtagService
+   - GET /api/hashtags/trending
+   - GET /api/hashtags/{tag}/posts
+   - Migración SQL (2 tablas)
+
+6. FEED PERSONALIZADO
+   - GET /api/feed/foryou (algoritmo básico)
+   - GET /api/feed/following
+   - Queries optimizadas
+
+================================================================================
+🟢 PRIORIDAD MEDIA (Implementar al final - 3-4 semanas)
+================================================================================
+
+7. GRUPOS - POSTS Y ROLES
+   - POST /api/groups/{groupId}/posts
+   - GET /api/groups/{groupId}/posts
+   - PUT /api/groups/{groupId}/members/{userId}/role
+   - DELETE /api/groups/{groupId}/members/{userId}
+   - Agregar campo group_id en Posts
+   - Agregar campo role en GroupMember
+
+8. GESTIÓN DE SUSCRIPCIONES
+   - Webhook de Stripe
+   - Actualizar estado de suscripción
+   - Verificar acceso premium
+
+9. SISTEMA DE DESBLOQUEO
+   - Endpoint para desbloquear posts
+   - Verificar pago
+
+================================================================================
+RESUMEN DE ENDPOINTS NUEVOS REQUERIDOS
+================================================================================
+
+PERFIL:
+✅ PUT /api/profile/update
+
+REACCIONES:
+✅ POST /api/reactions/toggle
+✅ GET /api/reactions/{targetId}
+
+BÚSQUEDA:
+✅ GET /api/search/users
+✅ GET /api/search/posts
+✅ GET /api/search/hashtag
+
+ENCUESTAS:
+✅ POST /api/polls/vote
+
+HASHTAGS:
+✅ GET /api/hashtags/trending
+✅ GET /api/hashtags/{tag}/posts
+
+FEED:
+✅ GET /api/feed/foryou
+✅ GET /api/feed/following
+
+GRUPOS:
+✅ POST /api/groups/{groupId}/posts
+✅ GET /api/groups/{groupId}/posts
+✅ PUT /api/groups/{groupId}/members/{userId}/role
+✅ DELETE /api/groups/{groupId}/members/{userId}
+
+TOTAL: 15 endpoints nuevos
+
+================================================================================
+MIGRACIONES SQL REQUERIDAS
+================================================================================
+
+1. ALTER TABLE user_profile
+   ADD COLUMN username VARCHAR(30) UNIQUE,
+   ADD COLUMN bio VARCHAR(500),
+   ADD COLUMN location VARCHAR(100),
+   ADD COLUMN website VARCHAR(200);
+
+2. CREATE TABLE reactions (
+       id UUID PRIMARY KEY,
+       user_id UUID REFERENCES users(user_id),
+       target_id UUID NOT NULL,
+       target_type VARCHAR(20) NOT NULL,
+       type VARCHAR(20) NOT NULL,
+       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+       UNIQUE(user_id, target_id, target_type)
+   );
+
+3. CREATE TABLE polls (
+       id UUID PRIMARY KEY,
+       post_id UUID UNIQUE REFERENCES posts(id),
+       question VARCHAR(200) NOT NULL,
+       expires_at TIMESTAMP NOT NULL,
+       allow_multiple BOOLEAN DEFAULT FALSE
+   );
+
+4. CREATE TABLE poll_options (
+       id UUID PRIMARY KEY,
+       poll_id UUID REFERENCES polls(id),
+       text VARCHAR(100) NOT NULL,
+       vote_count INTEGER DEFAULT 0
+   );
+
+5. CREATE TABLE poll_votes (
+       id UUID PRIMARY KEY,
+       user_id UUID REFERENCES users(user_id),
+       poll_option_id UUID REFERENCES poll_options(id),
+       voted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+       UNIQUE(user_id, poll_option_id)
+   );
+
+6. CREATE TABLE hashtags (
+       id UUID PRIMARY KEY,
+       tag VARCHAR(50) UNIQUE NOT NULL,
+       usage_count INTEGER DEFAULT 0,
+       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+       last_used_at TIMESTAMP
+   );
+
+7. CREATE TABLE post_hashtags (
+       id UUID PRIMARY KEY,
+       post_id UUID REFERENCES posts(id),
+       hashtag_id UUID REFERENCES hashtags(id),
+       UNIQUE(post_id, hashtag_id)
+   );
+
+8. ALTER TABLE posts ADD COLUMN group_id UUID REFERENCES groups(id);
+
+9. ALTER TABLE group_members ADD COLUMN role VARCHAR(20) DEFAULT 'MEMBER';
+
+TOTAL: 9 migraciones
+
+================================================================================
+MODELOS JAVA NUEVOS REQUERIDOS
+================================================================================
+
+1. Reaction.java
+2. Poll.java
+3. PollOption.java
+4. PollVote.java
+5. Hashtag.java
+6. PostHashtag.java
+7. ReactionType.java (enum)
+8. GroupRole.java (enum)
+
+TOTAL: 8 modelos
+
+================================================================================
+SERVICIOS NUEVOS REQUERIDOS
+================================================================================
+
+1. ReactionService.java
+2. PollService.java
+3. HashtagService.java
+4. SearchService.java
+5. FeedService.java
+
+TOTAL: 5 servicios
+
+================================================================================
+CONTROLLERS NUEVOS REQUERIDOS
+================================================================================
+
+1. ReactionController.java
+2. PollController.java
+3. HashtagController.java
+4. SearchController.java
+5. FeedController.java
+
+TOTAL: 5 controllers
+
+================================================================================
+ESTIMACIÓN DE TIEMPO
+================================================================================
+
+PRIORIDAD CRÍTICA (1-2 semanas):
+- Perfil: 2-3 días
+- Reacciones: 3-4 días
+- Búsqueda: 2-3 días
+
+PRIORIDAD ALTA (2-3 semanas):
+- Encuestas: 4-5 días
+- Hashtags: 3-4 días
+- Feed personalizado: 3-4 días
+
+PRIORIDAD MEDIA (3-4 semanas):
+- Grupos posts/roles: 3-4 días
+- Suscripciones: 2-3 días
+- Desbloqueo: 2-3 días
+
+TOTAL ESTIMADO: 6-8 semanas de desarrollo backend
+
+================================================================================
+ORDEN DE IMPLEMENTACIÓN RECOMENDADO
+================================================================================
+
+SEMANA 1-2:
+1. Perfil (username, bio, location, website)
+2. Reacciones múltiples
+3. Búsqueda básica
+
+SEMANA 3-4:
+4. Encuestas
+5. Hashtags
+6. Feed personalizado
+
+SEMANA 5-6:
+7. Posts en grupos
+8. Roles en grupos
+9. Gestión suscripciones
+
+SEMANA 7-8:
+10. Sistema de desbloqueo
+11. Optimizaciones
+12. Testing completo
+
+================================================================================
+ARCHIVOS A MODIFICAR (EXISTENTES)
+================================================================================
+
+1. UserProfile.java - Agregar campos
+2. UserProfileResponseDTO.java - Agregar campos
+3. UserProfileMapper.java - Mapear campos
+4. Posts.java - Agregar campo group_id
+5. GroupMember.java - Agregar campo role
+6. CreatePostRequest.java - Agregar poll
+
+TOTAL: 6 archivos existentes
+
+================================================================================
+TOTAL DE TRABAJO BACKEND
+================================================================================
+
+- 15 endpoints nuevos
+- 9 migraciones SQL
+- 8 modelos nuevos
+- 5 servicios nuevos
+- 5 controllers nuevos
+- 6 archivos existentes a modificar
+
+ESTIMACIÓN: 6-8 semanas de desarrollo
+COMPLEJIDAD: Media-Alta
+
+================================================================================

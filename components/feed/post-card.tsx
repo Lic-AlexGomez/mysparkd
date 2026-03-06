@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import type { Post } from "@/lib/types"
+import type { Post, ReactionType } from "@/lib/types"
 import { api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -35,6 +35,12 @@ import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
 import { CommentsSheet } from "./comments-sheet"
 import { RepostModal } from "./repost-modal"
+import { ReactionPicker, getReactionEmoji } from "./reaction-picker"
+import { ReactionsModal } from "./reactions-modal"
+import { ShareModal } from "./share-modal"
+import { parseTextWithLinks } from "@/lib/utils/text-parser"
+import { PollComponent } from "./poll-component"
+import { getFeatureFlags } from "@/lib/utils/feature-flags"
 
 interface PostCardProps {
   post: Post
@@ -45,8 +51,11 @@ interface PostCardProps {
 
 export function PostCard({ post, onDelete, onUpdate, highlight }: PostCardProps) {
   const { user } = useAuth()
+  const features = getFeatureFlags(user?.email)
   const [likeCount, setLikeCount] = useState(post.likeCount)
   const [liked, setLiked] = useState(post.liked || false)
+  const [userReaction, setUserReaction] = useState<ReactionType | null>(post.userReaction || null)
+  const [reactionCounts, setReactionCounts] = useState(post.reactions || {})
   const [repostCount, setRepostCount] = useState(post.repostCount || 0)
   const [reposted, setReposted] = useState(false)
   const [bookmarked, setBookmarked] = useState(() => {
@@ -58,13 +67,65 @@ export function PostCard({ post, onDelete, onUpdate, highlight }: PostCardProps)
   const [showMenu, setShowMenu] = useState(false)
   const [showComments, setShowComments] = useState(false)
   const [showRepostModal, setShowRepostModal] = useState(false)
+  const [showReactionsModal, setShowReactionsModal] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [editedBody, setEditedBody] = useState(post.body)
   const [isSaving, setIsSaving] = useState(false)
   const isOwn = user?.userId === post.userId
-  console.log(post)
   const reputation = post.reputation || 75
   const reputationColor = reputationService.getReputationColor(reputation)
+
+  const handleReaction = async (type: ReactionType) => {
+    const prevReaction = userReaction
+    const prevCounts = { ...reactionCounts }
+    
+    // Optimistic update
+    if (prevReaction === type) {
+      // Remove reaction
+      setUserReaction(null)
+      setReactionCounts(prev => {
+        const updated = { ...prev }
+        if (updated[type]) {
+          updated[type] = { ...updated[type], count: updated[type].count - 1 }
+          if (updated[type].count === 0) delete updated[type]
+        }
+        return updated
+      })
+    } else {
+      // Add or change reaction
+      setUserReaction(type)
+      setReactionCounts(prev => {
+        const updated = { ...prev }
+        // Remove old reaction
+        if (prevReaction && updated[prevReaction]) {
+          updated[prevReaction] = { ...updated[prevReaction], count: updated[prevReaction].count - 1 }
+          if (updated[prevReaction].count === 0) delete updated[prevReaction]
+        }
+        // Add new reaction
+        updated[type] = {
+          type,
+          count: (updated[type]?.count || 0) + 1,
+          userReacted: true
+        }
+        return updated
+      })
+    }
+
+    try {
+      // TODO: Implementar endpoint de reacciones en backend
+      // await api.post(`/api/reactions/toggle`, { targetId: post.id, type })
+      if (prevReaction !== type && post.userId !== user?.userId) {
+        const { createNotification } = await import('@/lib/utils/notifications')
+        await createNotification(post.userId, 'reaction', `${user?.nombres || 'Alguien'} reaccionó a tu post`, user?.userId)
+      }
+    } catch {
+      // Revert on error
+      setUserReaction(prevReaction)
+      setReactionCounts(prevCounts)
+      toast.error("Error al reaccionar")
+    }
+  }
 
   const toggleLike = async () => {
     setLiked(!liked)
@@ -152,26 +213,18 @@ export function PostCard({ post, onDelete, onUpdate, highlight }: PostCardProps)
     toast.success('Repost guardado localmente (pendiente implementación en backend)')
   }
 
-  const handleShare = async () => {
-    const shareData = {
-      title: `Post de ${post.username}`,
-      text: post.body.substring(0, 100) + (post.body.length > 100 ? '...' : ''),
-      url: window.location.origin + `/post/${post.id}`
-    }
-
+  const handlePollVote = async (optionId: string) => {
     try {
-      if (navigator.share) {
-        await navigator.share(shareData)
-      } else {
-        await navigator.clipboard.writeText(shareData.url)
-        toast.success('Enlace copiado al portapapeles')
-      }
-    } catch (error) {
-      if (error instanceof Error && error.name !== 'AbortError') {
-        await navigator.clipboard.writeText(shareData.url)
-        toast.success('Enlace copiado al portapapeles')
-      }
+      // TODO: Implementar endpoint de votación
+      // await api.post(`/api/polls/vote`, { pollId: post.poll?.id, optionId })
+      toast.success('Voto registrado (pendiente backend)')
+    } catch {
+      toast.error('Error al votar')
     }
+  }
+
+  const handleShare = () => {
+    setShowShareModal(true)
   }
 
   const timeAgo = formatDistanceToNow(new Date(post.createdAt), {
@@ -319,7 +372,7 @@ export function PostCard({ post, onDelete, onUpdate, highlight }: PostCardProps)
             </div>
           ) : (
             <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
-              {post.body}
+              {features.hashtagsAndMentions ? parseTextWithLinks(post.body) : post.body}
             </p>
           )}
         </div>
@@ -336,25 +389,57 @@ export function PostCard({ post, onDelete, onUpdate, highlight }: PostCardProps)
           </div>
         )}
 
+        {/* Poll */}
+        {features.polls && post.poll && (
+          <PollComponent poll={post.poll} onVote={handlePollVote} />
+        )}
+
         {/* Actions */}
         <div className="mt-3 flex items-center gap-4">
-          <button
-            onClick={toggleLike}
-            className="flex items-center gap-1.5 text-sm transition-colors"
-          >
-            <Heart
-              className={`h-5 w-5 transition-all ${
-                liked
-                  ? "fill-secondary text-secondary drop-shadow-[0_0_8px_rgba(217,70,239,0.5)]"
-                  : "text-muted-foreground hover:text-secondary hover:scale-110"
-              }`}
-            />
-            <span
-              className={liked ? "text-secondary" : "text-muted-foreground"}
+          {features.multipleReactions ? (
+            <ReactionPicker onReact={handleReaction}>
+            <button
+              className="flex items-center gap-1.5 text-sm transition-colors group"
             >
-              {likeCount}
-            </span>
-          </button>
+              {userReaction ? (
+                <span className="text-xl group-hover:scale-125 transition-transform">
+                  {getReactionEmoji(userReaction)}
+                </span>
+              ) : (
+                <Heart
+                  className="h-5 w-5 text-muted-foreground group-hover:text-secondary group-hover:scale-110 transition-all"
+                />
+              )}
+              {Object.values(reactionCounts).reduce((sum, r) => sum + r.count, 0) > 0 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setShowReactionsModal(true)
+                  }}
+                  className="text-muted-foreground hover:underline"
+                >
+                  {Object.values(reactionCounts).reduce((sum, r) => sum + r.count, 0)}
+                </button>
+              )}
+            </button>
+          </ReactionPicker>
+          ) : (
+            <button
+              onClick={toggleLike}
+              className="flex items-center gap-1.5 text-sm transition-colors group"
+            >
+              <Heart
+                className={`h-5 w-5 transition-all ${
+                  liked
+                    ? "fill-secondary text-secondary"
+                    : "text-muted-foreground group-hover:text-secondary group-hover:scale-110"
+                }`}
+              />
+              <span className={liked ? "text-secondary" : "text-muted-foreground"}>
+                {likeCount}
+              </span>
+            </button>
+          )}
           <button
             onClick={() => setShowComments(true)}
             className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -377,9 +462,11 @@ export function PostCard({ post, onDelete, onUpdate, highlight }: PostCardProps)
               {repostCount}
             </span>
           </button>
-          <button onClick={handleShare} className="ml-auto text-muted-foreground hover:text-foreground transition-colors">
-            <Share2 className="h-5 w-5" />
-          </button>
+          {features.shareWithQR && (
+            <button onClick={handleShare} className="ml-auto text-muted-foreground hover:text-foreground transition-colors">
+              <Share2 className="h-5 w-5" />
+            </button>
+          )}
         </div>
       </article>
 
@@ -393,6 +480,18 @@ export function PostCard({ post, onDelete, onUpdate, highlight }: PostCardProps)
         open={showRepostModal}
         onOpenChange={setShowRepostModal}
         onRepost={handleRepost}
+      />
+      <ReactionsModal
+        open={showReactionsModal}
+        onOpenChange={setShowReactionsModal}
+        postId={post.id}
+      />
+      <ShareModal
+        open={showShareModal}
+        onOpenChange={setShowShareModal}
+        postId={post.id}
+        postContent={post.body}
+        username={post.username}
       />
     </>
   )

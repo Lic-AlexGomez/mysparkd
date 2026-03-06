@@ -1,20 +1,17 @@
 ================================================================================
-SOLICITUD DE CAMBIOS EN BACKEND - UserPreferences
+SOLICITUD DE CAMBIOS EN BACKEND - Funcionalidades Faltantes
 ================================================================================
 
-PROBLEMA:
----------
-El modelo UserPreferences actual solo guarda preferencias de búsqueda 
-(interestedIn, minAge, maxAge, showMe), pero faltan campos para 
-configuraciones de privacidad y modo de uso de la app.
+1. USERPREFERENCES - CAMPOS DE PRIVACIDAD Y MODO
+=================================================
 
+PROBLEMA:
+El modelo UserPreferences solo guarda preferencias de búsqueda, faltan campos
+para configuraciones de privacidad y modo de uso.
 
 CAMBIOS REQUERIDOS:
--------------------
 
-1. AGREGAR CAMPOS AL MODELO UserPreferences.java
-   -----------------------------------------------
-   
+a) AGREGAR CAMPOS AL MODELO UserPreferences.java:
    @Column(nullable = false)
    private Boolean isPrivate = false; // Perfil privado (solo seguidores ven posts)
 
@@ -24,70 +21,30 @@ CAMBIOS REQUERIDOS:
    @Column(nullable = false, length = 20)
    private String objective = "both"; // Valores: "social", "connection", "both"
 
-
-2. ACTUALIZAR UserPreferencesRequestDTO.java
-   ------------------------------------------
-   
-   Agregar estos campos al DTO de request:
-   
+b) ACTUALIZAR UserPreferencesRequestDTO.java:
    private Boolean isPrivate;
    private Boolean connectionMode;
    private String objective;
 
-
-3. ACTUALIZAR UserPreferencesResponseDTO.java
-   -------------------------------------------
-   
-   Agregar estos campos al DTO de response:
-   
+c) ACTUALIZAR UserPreferencesResponseDTO.java:
    private Boolean isPrivate;
    private Boolean connectionMode;
    private String objective;
 
-
-4. ACTUALIZAR UserPreferencesMapper.java
-   --------------------------------------
-   
+d) ACTUALIZAR UserPreferencesMapper.java:
    Mapear los nuevos campos en ambos métodos (toEntity y toDTO).
 
-
-5. ACTUALIZAR UserPreferencesService.java
-   ---------------------------------------
-   
-   Asegurarse de que los nuevos campos se guarden y recuperen correctamente.
-
-
-6. MIGRACIÓN DE BASE DE DATOS
-   ---------------------------
-   
-   Ejecutar migración para agregar las columnas:
-   
+e) MIGRACIÓN DE BASE DE DATOS:
    ALTER TABLE user_preferences 
    ADD COLUMN is_private BOOLEAN NOT NULL DEFAULT false,
    ADD COLUMN connection_mode BOOLEAN NOT NULL DEFAULT true,
    ADD COLUMN objective VARCHAR(20) NOT NULL DEFAULT 'both';
 
-
-VALORES POR DEFECTO:
---------------------
-- isPrivate: false (perfil público por defecto)
-- connectionMode: true (aparecer en matching por defecto)
-- objective: "both" (experiencia completa por defecto)
-
-
-VALIDACIÓN:
------------
-El campo objective debe aceptar solo estos valores:
-- "social" - Solo red social
-- "connection" - Solo dating/matching
-- "both" - Experiencia completa
-
-
 ENDPOINT AFECTADO:
-------------------
-POST /api/preferences/set/preferences debe aceptar y guardar estos nuevos campos.
+POST /api/preferences/set/preferences
+GET /api/preferences/get/my/preferences
 
-Ejemplo de request actualizado:
+Ejemplo de request:
 {
   "interestedIn": "FEMALE",
   "minAge": 18,
@@ -99,10 +56,1419 @@ Ejemplo de request actualizado:
 }
 
 
-PRIORIDAD: MEDIA
-----------------
-Actualmente el frontend guarda estos valores en localStorage como solución temporal,
-pero deberían persistirse en la base de datos para sincronización entre dispositivos.
+2. NOTIFICACIONES - CAMPOS targetId Y targetType
+=================================================
 
+PROBLEMA:
+Las notificaciones no incluyen el ID del post/comentario relacionado,
+impidiendo navegar directamente al contenido.
+
+CAMBIOS REQUERIDOS:
+
+a) AGREGAR CAMPOS AL MODELO Notifications.java:
+   @Column(name = "target_id")
+   private UUID targetId; // ID del post, comentario, etc.
+   
+   @Column(name = "target_type", length = 20)
+   private String targetType; // "post", "comment", "match", etc.
+
+b) ACTUALIZAR NotificationsResponseDTO.java:
+   private UUID targetId;
+   private String targetType;
+
+c) ACTUALIZAR NotificationsService.java:
+   Al crear notificaciones, incluir el targetId y targetType según el contexto:
+   - Para likes en posts: targetId = postId, targetType = "post"
+   - Para comentarios: targetId = commentId, targetType = "comment"
+   - Para matches: targetId = matchId, targetType = "match"
+   - Para follows: targetId = userId, targetType = "follow"
+
+d) ACTUALIZAR NotificationsMapper.java:
+   Mapear los campos targetId y targetType.
+
+e) MIGRACIÓN DE BASE DE DATOS:
+   ALTER TABLE notifications 
+   ADD COLUMN target_id UUID,
+   ADD COLUMN target_type VARCHAR(20);
+
+ENDPOINT AFECTADO:
+GET /api/notifications/{userId}
+
+Ejemplo de response:
+[
+  {
+    "senderId": "uuid",
+    "senderUsername": "test1",
+    "title": "Nuevo like en tu post",
+    "data": "test1 le dio like a tu post",
+    "type": "like",
+    "targetId": "post-uuid-123",
+    "targetType": "post",
+    "read": false,
+    "createdAt": "2026-03-01T22:00:03.47792"
+  }
+]
+
+
+3. INTERESES - ENDPOINT PARA ELIMINAR
+======================================
+
+PROBLEMA:
+Existe endpoint para agregar intereses pero falta el de eliminar.
+
+CAMBIOS REQUERIDOS:
+
+a) AGREGAR MÉTODO EN InterestService.java:
+   public void removeInterestFromUser(UUID interestId, UUID userId) {
+       Users user = usersRepository.findById(userId)
+               .orElseThrow(() -> new ResponseStatusException(
+                       HttpStatus.UNAUTHORIZED, "Usuario no encontrado"));
+
+       UserProfile profile = user.getProfile();
+       if (profile == null) {
+           throw new ResponseStatusException(
+                   HttpStatus.BAD_REQUEST, "El usuario no tiene perfil");
+       }
+
+       Interest interest = interestRepository.findById(interestId)
+               .orElseThrow(() -> new ResponseStatusException(
+                       HttpStatus.NOT_FOUND, "Interés no encontrado"));
+
+       UserInterest userInterest = userInterestRepository
+               .findByProfileAndInterest(profile, interest)
+               .orElseThrow(() -> new ResponseStatusException(
+                       HttpStatus.NOT_FOUND, "El interés no está asignado al usuario"));
+
+       profile.getInterests().remove(userInterest);
+       userInterestRepository.delete(userInterest);
+   }
+
+b) AGREGAR MÉTODO EN UserInterestRepository.java:
+   Optional<UserInterest> findByProfileAndInterest(UserProfile profile, Interest interest);
+
+c) ENDPOINT YA EXISTE EN InterestController.java:
+   DELETE /api/interests/remove/{interestId}
+
+
+4. FOTOS - ENDPOINT PARA REORDENAR
+===================================
+
+PROBLEMA:
+No existe endpoint para actualizar el orden de las fotos del perfil.
+
+CAMBIOS REQUERIDOS:
+
+a) CREAR DTO ReorderPhotosRequest.java:
+   public class ReorderPhotosRequest {
+       private List<UUID> photoIds;
+       // getters/setters
+   }
+
+b) AGREGAR MÉTODO EN ProfilePhotosService.java:
+   public void reorderPhotos(UUID userId, List<UUID> photoIds) {
+       Users user = usersRepository.findById(userId)
+           .orElseThrow(() -> new ResponseStatusException(
+               HttpStatus.UNAUTHORIZED, "Usuario no encontrado"));
+       
+       for (int i = 0; i < photoIds.size(); i++) {
+           ProfilePhoto photo = photoRepository.findById(photoIds.get(i))
+               .orElseThrow(() -> new ResponseStatusException(
+                   HttpStatus.NOT_FOUND, "Foto no encontrada"));
+           
+           // Verificar que la foto pertenece al usuario
+           if (!photo.getProfile().getUser().getUserId().equals(userId)) {
+               throw new ResponseStatusException(
+                   HttpStatus.FORBIDDEN, "No tienes permiso para modificar esta foto");
+           }
+           
+           photo.setPosition(i);
+           photoRepository.save(photo);
+       }
+   }
+
+c) AGREGAR ENDPOINT EN ProfilePhotosController.java:
+   @PutMapping("/reorder")
+   public ResponseEntity<Void> reorderPhotos(
+       @RequestBody ReorderPhotosRequest request,
+       @AuthenticationPrincipal Jwt jwt
+   ) {
+       UUID userId = UUID.fromString(jwt.getClaim("uuid"));
+       photoService.reorderPhotos(userId, request.getPhotoIds());
+       return ResponseEntity.ok().build();
+   }
+
+ENDPOINT:
+PUT /api/photos/reorder
+
+Body:
+{
+  "photoIds": ["uuid1", "uuid2", "uuid3"]
+}
+
+
+5. PERFIL - INCLUIR INTERESES EN RESPONSE
+==========================================
+
+PROBLEMA:
+El endpoint de perfil no devuelve los intereses del usuario.
+
+CAMBIOS REQUERIDOS:
+
+a) AGREGAR CAMPO EN UserProfileResponseDTO.java:
+   private List<String> interests;
+   // getter/setter
+
+b) ACTUALIZAR UserProfileMapper.java (método toResponseDTO):
+   if (profile.getInterests() != null) {
+       List<String> interestNames = profile.getInterests()
+           .stream()
+           .map(ui -> ui.getInterest().getName())
+           .collect(Collectors.toList());
+       dto.setInterests(interestNames);
+   }
+
+ENDPOINT AFECTADO:
+GET /api/profile/me
+GET /api/profile/{userId}
+
+Ejemplo de response:
+{
+  "userId": "uuid",
+  "nombres": "Alex",
+  "apellidos": "Gomez",
+  "interests": ["Cine", "Anime", "Deportes"],
+  ...
+}
+
+
+
+
+
+
+6. MATCHES - ENDPOINTS PARA UNMATCH Y BLOCK
+============================================
+
+PROBLEMA:
+El frontend intenta llamar endpoints para eliminar matches y bloquear usuarios
+que no existen en el backend.
+
+CAMBIOS REQUERIDOS:
+
+a) AGREGAR MÉTODO EN MatchService.java:
+   public void unmatch(UUID userId, UUID targetUserId) {
+       Match match = matchRepository.findByUserIds(userId, targetUserId)
+           .orElseThrow(() -> new ResponseStatusException(
+               HttpStatus.NOT_FOUND, "Match no encontrado"));
+       
+       matchRepository.delete(match);
+   }
+   
+   public void blockUser(UUID userId, UUID targetUserId) {
+       // Eliminar match si existe
+       matchRepository.findByUserIds(userId, targetUserId)
+           .ifPresent(matchRepository::delete);
+       
+       // Crear registro de bloqueo
+       BlockedUser blockedUser = new BlockedUser();
+       blockedUser.setUserId(userId);
+       blockedUser.setBlockedUserId(targetUserId);
+       blockedUser.setBlockedAt(LocalDateTime.now());
+       blockedUserRepository.save(blockedUser);
+   }
+
+b) AGREGAR MÉTODO EN MatchRepository.java:
+   Optional<Match> findByUserIds(UUID userId1, UUID userId2);
+
+c) CREAR MODELO BlockedUser.java (si no existe):
+   @Entity
+   @Table(name = "blocked_users")
+   public class BlockedUser {
+       @Id
+       @GeneratedValue
+       private UUID id;
+       
+       @Column(nullable = false)
+       private UUID userId;
+       
+       @Column(nullable = false)
+       private UUID blockedUserId;
+       
+       @Column(nullable = false)
+       private LocalDateTime blockedAt;
+       
+       // getters/setters
+   }
+
+d) CREAR BlockedUserRepository.java:
+   public interface BlockedUserRepository extends JpaRepository<BlockedUser, UUID> {
+       boolean existsByUserIdAndBlockedUserId(UUID userId, UUID blockedUserId);
+   }
+
+e) AGREGAR ENDPOINTS EN MatchController.java:
+   @PostMapping("/{userId}/unmatch")
+   public ResponseEntity<Void> unmatch(
+       @PathVariable UUID userId,
+       @AuthenticationPrincipal Jwt jwt
+   ) {
+       UUID currentUserId = UUID.fromString(jwt.getClaim("uuid"));
+       matchService.unmatch(currentUserId, userId);
+       return ResponseEntity.ok().build();
+   }
+   
+   @PostMapping("/{userId}/block")
+   public ResponseEntity<Void> blockUser(
+       @PathVariable UUID userId,
+       @AuthenticationPrincipal Jwt jwt
+   ) {
+       UUID currentUserId = UUID.fromString(jwt.getClaim("uuid"));
+       matchService.blockUser(currentUserId, userId);
+       return ResponseEntity.ok().build();
+   }
+
+f) MIGRACIÓN DE BASE DE DATOS:
+   CREATE TABLE blocked_users (
+       id UUID PRIMARY KEY,
+       user_id UUID NOT NULL,
+       blocked_user_id UUID NOT NULL,
+       blocked_at TIMESTAMP NOT NULL,
+       UNIQUE(user_id, blocked_user_id)
+   );
+
+ENDPOINTS:
+POST /api/matches/{userId}/unmatch
+POST /api/matches/{userId}/block
+
+
+7. NOTIFICACIONES - ENDPOINT PARA MARCAR COMO LEÍDA
+====================================================
+
+PROBLEMA:
+El frontend intenta marcar notificaciones como leídas pero no existe endpoint.
+
+CAMBIOS REQUERIDOS:
+
+a) AGREGAR MÉTODO EN NotificationsService.java:
+   public void markAsRead(UUID notificationId, UUID userId) {
+       Notifications notification = notificationRepository.findById(notificationId)
+           .orElseThrow(() -> new ResponseStatusException(
+               HttpStatus.NOT_FOUND, "Notificación no encontrada"));
+       
+       if (!notification.getReceiverId().equals(userId)) {
+           throw new ResponseStatusException(
+               HttpStatus.FORBIDDEN, "No tienes permiso");
+       }
+       
+       notification.setRead(true);
+       notificationRepository.save(notification);
+   }
+
+b) AGREGAR ENDPOINT EN NotificationsController.java:
+   @PutMapping("/{notificationId}/read")
+   public ResponseEntity<Void> markAsRead(
+       @PathVariable UUID notificationId,
+       @AuthenticationPrincipal Jwt jwt
+   ) {
+       UUID userId = UUID.fromString(jwt.getClaim("uuid"));
+       notificationService.markAsRead(notificationId, userId);
+       return ResponseEntity.ok().build();
+   }
+
+ENDPOINT:
+PUT /api/notifications/{notificationId}/read
+
+
+8. POSTS - ENDPOINT PARA REPOST
+================================
+
+PROBLEMA:
+El frontend tiene funcionalidad de repost pero no existe endpoint en el backend.
+
+CAMBIOS REQUERIDOS:
+
+a) CREAR DTO RepostRequest.java:
+   public class RepostRequest {
+       private String comment; // Comentario opcional al hacer repost
+       // getters/setters
+   }
+
+b) AGREGAR MÉTODO EN PostService.java:
+   public Post repost(UUID postId, UUID userId, String comment) {
+       Post originalPost = postRepository.findById(postId)
+           .orElseThrow(() -> new ResponseStatusException(
+               HttpStatus.NOT_FOUND, "Post no encontrado"));
+       
+       Users user = usersRepository.findById(userId)
+           .orElseThrow(() -> new ResponseStatusException(
+               HttpStatus.UNAUTHORIZED, "Usuario no encontrado"));
+       
+       Post repost = new Post();
+       repost.setUser(user);
+       repost.setBody(comment != null ? comment : "");
+       repost.setOriginalPost(originalPost);
+       repost.setCreatedAt(LocalDateTime.now());
+       repost.setPermanent(true);
+       
+       originalPost.setRepostCount(originalPost.getRepostCount() + 1);
+       postRepository.save(originalPost);
+       
+       return postRepository.save(repost);
+   }
+
+c) AGREGAR CAMPO EN Post.java:
+   @ManyToOne
+   @JoinColumn(name = "original_post_id")
+   private Post originalPost;
+   
+   @Column(name = "repost_count")
+   private Integer repostCount = 0;
+
+d) AGREGAR ENDPOINT EN PostController.java:
+   @PostMapping("/repost/{postId}")
+   public ResponseEntity<PostResponseDTO> repost(
+       @PathVariable UUID postId,
+       @RequestBody(required = false) RepostRequest request,
+       @AuthenticationPrincipal Jwt jwt
+   ) {
+       UUID userId = UUID.fromString(jwt.getClaim("uuid"));
+       String comment = request != null ? request.getComment() : null;
+       Post repost = postService.repost(postId, userId, comment);
+       return ResponseEntity.ok(postMapper.toDTO(repost));
+   }
+
+e) MIGRACIÓN DE BASE DE DATOS:
+   ALTER TABLE posts 
+   ADD COLUMN original_post_id UUID,
+   ADD COLUMN repost_count INTEGER DEFAULT 0,
+   ADD FOREIGN KEY (original_post_id) REFERENCES posts(id);
+
+ENDPOINT:
+POST /api/posts/repost/{postId}
+
+Body (opcional):
+{
+  "comment": "¡Totalmente de acuerdo!"
+}
+
+
+9. CHAT - INCLUIR LINK A PERFIL EN LISTA DE CHATS
+===================================================
+
+PROBLEMA:
+El frontend muestra el otherUserId en la lista de chats pero el backend
+debe asegurarse de incluirlo en el response.
+
+CAMBIOS REQUERIDOS:
+
+a) VERIFICAR ChatResponseDTO.java incluye:
+   private UUID otherUserId;
+   private String otherUsername;
+
+b) VERIFICAR ChatMapper.java mapea correctamente estos campos.
+
+ENDPOINT AFECTADO:
+GET /api/chat/chats
+
+
+10. DISCOVER - INCLUIR compatibilityScore EN RESPONSE
+======================================================
+
+PROBLEMA:
+El frontend espera un campo compatibilityScore en los perfiles de discover
+pero puede no estar siendo calculado o incluido.
+
+CAMBIOS REQUERIDOS:
+
+a) VERIFICAR DiscoverResponseDTO.java incluye:
+   private Integer compatibilityScore;
+
+b) ACTUALIZAR DiscoverService.java:
+   Calcular el compatibilityScore basado en:
+   - Intereses en común
+   - Preferencias de edad
+   - Otros factores de compatibilidad
+
+c) ACTUALIZAR DiscoverMapper.java:
+   Mapear el campo compatibilityScore.
+
+ENDPOINT AFECTADO:
+GET /api/discover
+
+
+11. POSTS - CAMPO liked EN RESPONSE
+====================================
+
+PROBLEMA:
+El frontend necesita saber si el usuario actual le dio like al post
+para mostrar el corazón relleno.
+
+CAMBIOS REQUERIDOS:
+
+a) AGREGAR CAMPO EN PostResponseDTO.java:
+   private Boolean liked;
+
+b) ACTUALIZAR PostMapper.java:
+   Al mapear un post, verificar si el usuario actual le dio like:
+   
+   public PostResponseDTO toDTO(Post post, UUID currentUserId) {
+       PostResponseDTO dto = toDTO(post);
+       if (currentUserId != null) {
+           boolean liked = likeRepository.existsByUserIdAndTargetId(
+               currentUserId, post.getId());
+           dto.setLiked(liked);
+       }
+       return dto;
+   }
+
+c) ACTUALIZAR PostService.java:
+   Pasar el currentUserId al mapper en todos los métodos que devuelven posts.
+
+ENDPOINT AFECTADO:
+GET /api/posts/feed
+GET /api/posts/{postId}
+
+
+12. COMMENTS - CAMPO liked EN RESPONSE
+=======================================
+
+PROBLEMA:
+Similar a los posts, los comentarios necesitan indicar si el usuario
+actual les dio like.
+
+CAMBIOS REQUERIDOS:
+
+a) AGREGAR CAMPO EN CommentResponseDTO.java:
+   private Boolean liked;
+
+b) ACTUALIZAR CommentMapper.java:
+   Similar al PostMapper, incluir lógica para verificar likes.
+
+ENDPOINT AFECTADO:
+GET /api/comments/post/{postId}
+
+
+13. PROFILE - CAMPO verificationLevel EN RESPONSE
+==================================================
+
+PROBLEMA:
+El frontend muestra un nivel de verificación pero puede no estar
+siendo devuelto por el backend.
+
+CAMBIOS REQUERIDOS:
+
+a) VERIFICAR UserProfileResponseDTO.java incluye:
+   private Integer verificationLevel;
+
+b) VERIFICAR Users.java o UserProfile.java tiene:
+   @Column(name = "verification_level")
+   private Integer verificationLevel = 1;
+
+c) ACTUALIZAR UserProfileMapper.java:
+   Mapear el campo verificationLevel.
+
+ENDPOINT AFECTADO:
+GET /api/profile/me
+GET /api/profile/{userId}
+
+
+================================================================================
+PRIORIDAD DE IMPLEMENTACIÓN:
+================================================================================
+
+CRÍTICA (Funcionalidad rota):
+1. Notificaciones targetId/targetType (navegación no funciona)
+2. Matches unmatch/block (botones no funcionan)
+3. Posts/Comments campo liked (UI inconsistente)
+4. Intereses eliminar (no se pueden quitar intereses)
+
+ALTA (Funcionalidad incompleta):
+5. Perfil incluir intereses (datos no se muestran)
+6. Fotos reordenar (UX limitada)
+7. Notificaciones marcar como leída (acumulación de no leídas)
+8. UserPreferences campos adicionales (configuración incompleta)
+
+MEDIA (Mejoras):
+9. Posts repost (feature no disponible)
+10. Discover compatibilityScore (matching menos efectivo)
+11. Profile verificationLevel (gamificación incompleta)
+
+BAJA (Workarounds funcionan):
+
+12. Chat otherUserId (probablemente ya existe)
+
+================================================================================
+
+
+15. MATCHES - MÁS INFORMACIÓN ESTILO TINDER
+============================================
+
+PROBLEMA:
+El MatchResponseDTO solo devuelve matchId, userId, nombre y matchedAt.
+Falta información visual importante como foto, edad, bio, intereses, etc.
+
+ESTADO ACTUAL:
+{
+  "matchId": "uuid",
+  "userId": "uuid",
+  "nombre": "Carlos",
+  "matchedAt": "2024-01-15T10:30:00"
+}
+
+CAMBIOS REQUERIDOS:
+
+a) ACTUALIZAR MatchResponseDTO.java:
+   private UUID matchId;
+   private UUID userId;
+   private String nombre;
+   private String apellidos;
+   private Integer edad;
+   private String photoUrl;              // Foto principal
+   private String bio;                   // Biografía corta
+   private List<String> interests;       // Intereses en común
+   private Integer compatibilityScore;   // Score de compatibilidad
+   private String lastMessage;           // Último mensaje del chat
+   private LocalDateTime lastMessageAt;  // Fecha del último mensaje
+   private LocalDateTime matchedAt;
+
+b) ACTUALIZAR MatchMapper.java:
+   public static MatchResponseDTO toDTO(Match match, UUID currentUserId) {
+       Users otherUser = match.getUser1().getUserId().equals(currentUserId) 
+           ? match.getUser2() 
+           : match.getUser1();
+       
+       MatchResponseDTO dto = new MatchResponseDTO();
+       dto.setMatchId(match.getId());
+       dto.setUserId(otherUser.getUserId());
+       dto.setNombre(otherUser.getProfile().getNombres());
+       dto.setApellidos(otherUser.getProfile().getApellidos());
+       
+       // Calcular edad
+       if (otherUser.getProfile().getDateOfBirth() != null) {
+           dto.setEdad(Period.between(
+               otherUser.getProfile().getDateOfBirth(), 
+               LocalDate.now()
+           ).getYears());
+       }
+       
+       // Foto principal
+       if (otherUser.getProfile().getPhotos() != null) {
+           otherUser.getProfile().getPhotos().stream()
+               .filter(ProfilePhoto::isPrimary)
+               .findFirst()
+               .ifPresent(photo -> dto.setPhotoUrl(photo.getUrl()));
+       }
+       
+       // Bio (si existe en el modelo)
+       dto.setBio(otherUser.getProfile().getBio());
+       
+       // Intereses
+       if (otherUser.getProfile().getInterests() != null) {
+           List<String> interests = otherUser.getProfile().getInterests()
+               .stream()
+               .map(ui -> ui.getInterest().getName())
+               .limit(3)  // Solo los primeros 3
+               .collect(Collectors.toList());
+           dto.setInterests(interests);
+       }
+       
+       // Compatibility score (calcular o traer de BD)
+       dto.setCompatibilityScore(calculateCompatibility(currentUserId, otherUser.getUserId()));
+       
+       dto.setMatchedAt(match.getMatchedAt());
+       
+       return dto;
+   }
+
+c) ACTUALIZAR MatchService.java:
+   Modificar getMyMatches() para usar el nuevo mapper con currentUserId
+
+d) OPCIONAL - AGREGAR CAMPO BIO EN UserProfile.java:
+   @Column(length = 500)
+   private String bio;
+
+e) OPCIONAL - INCLUIR ÚLTIMO MENSAJE:
+   En MatchService, hacer join con Chat para obtener lastMessage y lastMessageAt
+
+ENDPOINT AFECTADO:
+GET /api/matches/my/matches
+
+RESPONSE MEJORADO:
+[
+  {
+    "matchId": "uuid",
+    "userId": "uuid",
+    "nombre": "Carlos",
+    "apellidos": "Gomez",
+    "edad": 28,
+    "photoUrl": "https://cloudinary.com/photo.jpg",
+    "bio": "Amante del café y los viajes ☕✈️",
+    "interests": ["Viajes", "Fotografía", "Música"],
+    "compatibilityScore": 85,
+    "lastMessage": "Hola! ¿Cómo estás?",
+    "lastMessageAt": "2024-01-15T14:20:00",
+    "matchedAt": "2024-01-15T10:30:00"
+  }
+]
+
+BENEFICIOS:
+- UI más rica y atractiva estilo Tinder
+- Usuarios pueden ver información relevante sin entrar al perfil
+- Mejor experiencia de usuario
+- Facilita decidir con quién chatear primero
+
+
+================================================================================
+PRIORIDAD ACTUALIZADA:
+================================================================================
+
+CRÍTICA (Funcionalidad rota):
+1. Perfil incluir intereses (datos no se muestran)
+2. Fotos reordenar (funcionalidad rota)
+3. Notificaciones marcar como leída (acumulación de no leídas)
+
+ALTA (Funcionalidad incompleta):
+4. UserPreferences campos adicionales (configuración incompleta)
+5. Matches más información (UX pobre, solo muestra nombre)
+6. Posts repost (feature no disponible)
+
+MEDIA (Mejoras):
+7. Discover compatibilityScore (matching menos efectivo)
+8. Profile verificationLevel (gamificación incompleta)
+9. Google login token field (workaround funciona)
+
+================================================================================
+
+
+agregar al endpoint que profile/me el campo username
+
+
+================================================================================
+NUEVOS CAMBIOS REQUERIDOS - FUNCIONALIDADES FALTANTES
+================================================================================
+
+16. PERFIL - AGREGAR USERNAME Y BIO
+====================================
+
+PROBLEMA:
+El perfil no tiene username único ni bio/descripción personal.
+
+CAMBIOS REQUERIDOS:
+
+a) AGREGAR CAMPOS EN UserProfile.java:
+   @Column(unique = true, nullable = false, length = 30)
+   private String username;
+   
+   @Column(length = 500)
+   private String bio;
+   
+   @Column(length = 100)
+   private String location;
+   
+   @Column(length = 200)
+   private String website;
+
+b) ACTUALIZAR UserProfileRequestDTO.java:
+   private String username;
+   private String bio;
+   private String location;
+   private String website;
+
+c) ACTUALIZAR UserProfileResponseDTO.java:
+   private String username;
+   private String bio;
+   private String location;
+   private String website;
+   private List<String> interests;
+   private Integer verificationLevel;
+   private Integer reputation;
+
+d) ACTUALIZAR UserProfileMapper.java:
+   Mapear todos los nuevos campos
+
+e) MIGRACIÓN DE BASE DE DATOS:
+   ALTER TABLE user_profile 
+   ADD COLUMN username VARCHAR(30) UNIQUE NOT NULL,
+   ADD COLUMN bio VARCHAR(500),
+   ADD COLUMN location VARCHAR(100),
+   ADD COLUMN website VARCHAR(200);
+
+ENDPOINTS AFECTADOS:
+GET /api/profile/me
+GET /api/profile/{userId}
+PUT /api/profile
+
+
+17. BÚSQUEDA - ENDPOINT PARA BUSCAR USUARIOS Y POSTS
+=====================================================
+
+PROBLEMA:
+No existe funcionalidad de búsqueda en la aplicación.
+
+CAMBIOS REQUERIDOS:
+
+a) CREAR SearchController.java:
+   @GetMapping("/api/search/users")
+   public ResponseEntity<List<UserProfileResponseDTO>> searchUsers(
+       @RequestParam String query,
+       @RequestParam(defaultValue = "0") int page,
+       @RequestParam(defaultValue = "20") int size
+   ) {
+       return ResponseEntity.ok(searchService.searchUsers(query, page, size));
+   }
+   
+   @GetMapping("/api/search/posts")
+   public ResponseEntity<List<PostResponseDTO>> searchPosts(
+       @RequestParam String query,
+       @RequestParam(defaultValue = "0") int page,
+       @RequestParam(defaultValue = "20") int size
+   ) {
+       return ResponseEntity.ok(searchService.searchPosts(query, page, size));
+   }
+
+b) CREAR SearchService.java:
+   public List<UserProfileResponseDTO> searchUsers(String query, int page, int size) {
+       Pageable pageable = PageRequest.of(page, size);
+       List<UserProfile> profiles = userProfileRepository
+           .findByUsernameContainingIgnoreCaseOrNombresContainingIgnoreCase(
+               query, query, pageable);
+       return profiles.stream()
+           .map(userProfileMapper::toResponseDTO)
+           .collect(Collectors.toList());
+   }
+
+c) AGREGAR MÉTODOS EN UserProfileRepository.java:
+   List<UserProfile> findByUsernameContainingIgnoreCaseOrNombresContainingIgnoreCase(
+       String username, String nombres, Pageable pageable);
+
+d) AGREGAR MÉTODOS EN PostsRepository.java:
+   List<Posts> findByBodyContainingIgnoreCase(String query, Pageable pageable);
+
+ENDPOINTS:
+GET /api/search/users?query=carlos&page=0&size=20
+GET /api/search/posts?query=viajes&page=0&size=20
+
+
+18. HASHTAGS - SISTEMA DE HASHTAGS EN POSTS
+============================================
+
+PROBLEMA:
+No existe sistema de hashtags para categorizar y buscar contenido.
+
+CAMBIOS REQUERIDOS:
+
+a) CREAR MODELO Hashtag.java:
+   @Entity
+   @Table(name = "hashtags")
+   public class Hashtag {
+       @Id
+       @GeneratedValue
+       private UUID id;
+       
+       @Column(unique = true, nullable = false)
+       private String tag;
+       
+       @Column(nullable = false)
+       private Integer usageCount = 0;
+       
+       private LocalDateTime createdAt;
+       private LocalDateTime lastUsedAt;
+   }
+
+b) CREAR MODELO PostHashtag.java (relación muchos a muchos):
+   @Entity
+   @Table(name = "post_hashtags")
+   public class PostHashtag {
+       @Id
+       @GeneratedValue
+       private UUID id;
+       
+       @ManyToOne
+       @JoinColumn(name = "post_id")
+       private Posts post;
+       
+       @ManyToOne
+       @JoinColumn(name = "hashtag_id")
+       private Hashtag hashtag;
+   }
+
+c) ACTUALIZAR Posts.java:
+   @OneToMany(mappedBy = "post", cascade = CascadeType.ALL)
+   private List<PostHashtag> hashtags = new ArrayList<>();
+
+d) CREAR HashtagService.java:
+   - Extraer hashtags del texto del post
+   - Crear hashtags si no existen
+   - Asociar hashtags al post
+   - Incrementar contador de uso
+
+e) CREAR HashtagController.java:
+   @GetMapping("/api/hashtags/trending")
+   public ResponseEntity<List<HashtagDTO>> getTrending() {
+       return ResponseEntity.ok(hashtagService.getTrending(10));
+   }
+   
+   @GetMapping("/api/hashtags/{tag}/posts")
+   public ResponseEntity<List<PostResponseDTO>> getPostsByHashtag(
+       @PathVariable String tag,
+       @RequestParam(defaultValue = "0") int page
+   ) {
+       return ResponseEntity.ok(hashtagService.getPostsByHashtag(tag, page));
+   }
+
+f) MIGRACIÓN DE BASE DE DATOS:
+   CREATE TABLE hashtags (
+       id UUID PRIMARY KEY,
+       tag VARCHAR(100) UNIQUE NOT NULL,
+       usage_count INTEGER DEFAULT 0,
+       created_at TIMESTAMP,
+       last_used_at TIMESTAMP
+   );
+   
+   CREATE TABLE post_hashtags (
+       id UUID PRIMARY KEY,
+       post_id UUID REFERENCES posts(id),
+       hashtag_id UUID REFERENCES hashtags(id)
+   );
+
+ENDPOINTS:
+GET /api/hashtags/trending
+GET /api/hashtags/{tag}/posts
+
+
+19. STORIES - SISTEMA DE HISTORIAS 24H
+=======================================
+
+PROBLEMA:
+No existe funcionalidad de stories/historias temporales.
+
+CAMBIOS REQUERIDOS:
+
+a) CREAR MODELO Story.java:
+   @Entity
+   @Table(name = "stories")
+   public class Story {
+       @Id
+       @GeneratedValue
+       private UUID id;
+       
+       @ManyToOne
+       @JoinColumn(name = "user_id")
+       private Users user;
+       
+       @Column(nullable = false)
+       private String mediaUrl;
+       
+       @Column(length = 200)
+       private String caption;
+       
+       @Column(nullable = false)
+       private LocalDateTime createdAt;
+       
+       @Column(nullable = false)
+       private LocalDateTime expiresAt;
+       
+       private Integer viewCount = 0;
+   }
+
+b) CREAR MODELO StoryView.java:
+   @Entity
+   @Table(name = "story_views")
+   public class StoryView {
+       @Id
+       @GeneratedValue
+       private UUID id;
+       
+       @ManyToOne
+       @JoinColumn(name = "story_id")
+       private Story story;
+       
+       @ManyToOne
+       @JoinColumn(name = "viewer_id")
+       private Users viewer;
+       
+       private LocalDateTime viewedAt;
+   }
+
+c) CREAR StoryService.java:
+   - Crear story (expira en 24h)
+   - Ver stories de seguidos
+   - Marcar story como vista
+   - Eliminar stories expiradas (scheduled task)
+
+d) CREAR StoryController.java:
+   @PostMapping("/api/stories/create")
+   public ResponseEntity<StoryDTO> createStory(
+       @RequestBody StoryRequestDTO request,
+       @AuthenticationPrincipal Jwt jwt
+   ) {
+       UUID userId = UUID.fromString(jwt.getClaim("uuid"));
+       return ResponseEntity.ok(storyService.createStory(request, userId));
+   }
+   
+   @GetMapping("/api/stories/following")
+   public ResponseEntity<List<StoryDTO>> getFollowingStories(
+       @AuthenticationPrincipal Jwt jwt
+   ) {
+       UUID userId = UUID.fromString(jwt.getClaim("uuid"));
+       return ResponseEntity.ok(storyService.getFollowingStories(userId));
+   }
+
+e) MIGRACIÓN DE BASE DE DATOS:
+   CREATE TABLE stories (
+       id UUID PRIMARY KEY,
+       user_id UUID REFERENCES users(user_id),
+       media_url VARCHAR(500) NOT NULL,
+       caption VARCHAR(200),
+       created_at TIMESTAMP NOT NULL,
+       expires_at TIMESTAMP NOT NULL,
+       view_count INTEGER DEFAULT 0
+   );
+   
+   CREATE TABLE story_views (
+       id UUID PRIMARY KEY,
+       story_id UUID REFERENCES stories(id),
+       viewer_id UUID REFERENCES users(user_id),
+       viewed_at TIMESTAMP
+   );
+
+ENDPOINTS:
+POST /api/stories/create
+GET /api/stories/following
+GET /api/stories/{storyId}/views
+POST /api/stories/{storyId}/view
+DELETE /api/stories/{storyId}
+
+
+20. REACCIONES - MÚLTIPLES TIPOS DE REACCIONES
+===============================================
+
+PROBLEMA:
+Solo existe "like", faltan otras reacciones (love, haha, wow, sad, angry).
+
+CAMBIOS REQUERIDOS:
+
+a) CREAR ENUM ReactionType.java:
+   public enum ReactionType {
+       LIKE,
+       LOVE,
+       HAHA,
+       WOW,
+       SAD,
+       ANGRY
+   }
+
+b) ACTUALIZAR LikeEntity.java:
+   @Enumerated(EnumType.STRING)
+   @Column(nullable = false)
+   private ReactionType reactionType = ReactionType.LIKE;
+
+c) ACTUALIZAR PostResponseDTO.java:
+   private Map<String, Integer> reactions; // {"LIKE": 10, "LOVE": 5}
+   private String currentUserReaction; // "LIKE" o null
+
+d) ACTUALIZAR LikeService.java:
+   public void addReaction(UUID userId, UUID targetId, ReactionType type) {
+       // Buscar reacción existente
+       Optional<LikeEntity> existing = likesRepository
+           .findByUserIdAndTargetId(userId, targetId);
+       
+       if (existing.isPresent()) {
+           // Actualizar tipo de reacción
+           existing.get().setReactionType(type);
+           likesRepository.save(existing.get());
+       } else {
+           // Crear nueva reacción
+           LikeEntity like = new LikeEntity();
+           like.setUserId(userId);
+           like.setTargetId(targetId);
+           like.setReactionType(type);
+           likesRepository.save(like);
+       }
+   }
+
+e) MIGRACIÓN DE BASE DE DATOS:
+   ALTER TABLE likes 
+   ADD COLUMN reaction_type VARCHAR(20) DEFAULT 'LIKE';
+
+ENDPOINTS:
+POST /api/reactions/add
+Body: { "targetId": "uuid", "type": "LOVE" }
+
+GET /api/reactions/{postId}
+Response: { "LIKE": 10, "LOVE": 5, "HAHA": 2 }
+
+
+21. ENCUESTAS - SISTEMA DE POLLS EN POSTS
+==========================================
+
+PROBLEMA:
+No existe funcionalidad de encuestas/votaciones en posts.
+
+CAMBIOS REQUERIDOS:
+
+a) CREAR MODELO Poll.java:
+   @Entity
+   @Table(name = "polls")
+   public class Poll {
+       @Id
+       @GeneratedValue
+       private UUID id;
+       
+       @OneToOne
+       @JoinColumn(name = "post_id")
+       private Posts post;
+       
+       @Column(nullable = false)
+       private String question;
+       
+       private LocalDateTime expiresAt;
+       
+       @OneToMany(mappedBy = "poll", cascade = CascadeType.ALL)
+       private List<PollOption> options;
+   }
+
+b) CREAR MODELO PollOption.java:
+   @Entity
+   @Table(name = "poll_options")
+   public class PollOption {
+       @Id
+       @GeneratedValue
+       private UUID id;
+       
+       @ManyToOne
+       @JoinColumn(name = "poll_id")
+       private Poll poll;
+       
+       @Column(nullable = false)
+       private String optionText;
+       
+       private Integer voteCount = 0;
+   }
+
+c) CREAR MODELO PollVote.java:
+   @Entity
+   @Table(name = "poll_votes")
+   public class PollVote {
+       @Id
+       @GeneratedValue
+       private UUID id;
+       
+       @ManyToOne
+       @JoinColumn(name = "poll_option_id")
+       private PollOption option;
+       
+       @ManyToOne
+       @JoinColumn(name = "user_id")
+       private Users user;
+       
+       private LocalDateTime votedAt;
+   }
+
+d) ACTUALIZAR Posts.java:
+   @OneToOne(mappedBy = "post", cascade = CascadeType.ALL)
+   private Poll poll;
+
+e) CREAR PollService.java y PollController.java
+
+f) MIGRACIÓN DE BASE DE DATOS:
+   CREATE TABLE polls (
+       id UUID PRIMARY KEY,
+       post_id UUID UNIQUE REFERENCES posts(id),
+       question VARCHAR(200) NOT NULL,
+       expires_at TIMESTAMP
+   );
+   
+   CREATE TABLE poll_options (
+       id UUID PRIMARY KEY,
+       poll_id UUID REFERENCES polls(id),
+       option_text VARCHAR(100) NOT NULL,
+       vote_count INTEGER DEFAULT 0
+   );
+   
+   CREATE TABLE poll_votes (
+       id UUID PRIMARY KEY,
+       poll_option_id UUID REFERENCES poll_options(id),
+       user_id UUID REFERENCES users(user_id),
+       voted_at TIMESTAMP,
+       UNIQUE(poll_option_id, user_id)
+   );
+
+ENDPOINTS:
+POST /api/polls/create
+POST /api/polls/{pollId}/vote
+GET /api/polls/{pollId}/results
+
+
+22. GRUPOS - SISTEMA DE COMUNIDADES
+====================================
+
+PROBLEMA:
+No existe funcionalidad de grupos/comunidades.
+
+CAMBIOS REQUERIDOS:
+
+a) CREAR MODELO Group.java:
+   @Entity
+   @Table(name = "groups")
+   public class Group {
+       @Id
+       @GeneratedValue
+       private UUID id;
+       
+       @Column(nullable = false)
+       private String name;
+       
+       @Column(length = 1000)
+       private String description;
+       
+       private String coverPhoto;
+       
+       @ManyToOne
+       @JoinColumn(name = "creator_id")
+       private Users creator;
+       
+       @Enumerated(EnumType.STRING)
+       private GroupPrivacy privacy; // PUBLIC, PRIVATE
+       
+       private LocalDateTime createdAt;
+       private Integer memberCount = 0;
+   }
+
+b) CREAR MODELO GroupMember.java:
+   @Entity
+   @Table(name = "group_members")
+   public class GroupMember {
+       @Id
+       @GeneratedValue
+       private UUID id;
+       
+       @ManyToOne
+       @JoinColumn(name = "group_id")
+       private Group group;
+       
+       @ManyToOne
+       @JoinColumn(name = "user_id")
+       private Users user;
+       
+       @Enumerated(EnumType.STRING)
+       private GroupRole role; // ADMIN, MODERATOR, MEMBER
+       
+       private LocalDateTime joinedAt;
+   }
+
+c) ACTUALIZAR Posts.java:
+   @ManyToOne
+   @JoinColumn(name = "group_id")
+   private Group group;
+
+d) CREAR GroupService.java y GroupController.java
+
+e) MIGRACIÓN DE BASE DE DATOS:
+   CREATE TABLE groups (
+       id UUID PRIMARY KEY,
+       name VARCHAR(100) NOT NULL,
+       description VARCHAR(1000),
+       cover_photo VARCHAR(500),
+       creator_id UUID REFERENCES users(user_id),
+       privacy VARCHAR(20) NOT NULL,
+       created_at TIMESTAMP,
+       member_count INTEGER DEFAULT 0
+   );
+   
+   CREATE TABLE group_members (
+       id UUID PRIMARY KEY,
+       group_id UUID REFERENCES groups(id),
+       user_id UUID REFERENCES users(user_id),
+       role VARCHAR(20) NOT NULL,
+       joined_at TIMESTAMP,
+       UNIQUE(group_id, user_id)
+   );
+   
+   ALTER TABLE posts ADD COLUMN group_id UUID REFERENCES groups(id);
+
+ENDPOINTS:
+POST /api/groups/create
+GET /api/groups/{groupId}
+POST /api/groups/{groupId}/join
+POST /api/groups/{groupId}/leave
+GET /api/groups/{groupId}/members
+GET /api/groups/{groupId}/posts
+
+
+23. SEGUIR/FOLLOW - SISTEMA DE SEGUIMIENTO
+===========================================
+
+PROBLEMA:
+Puede existir pero necesita endpoints completos.
+
+CAMBIOS REQUERIDOS:
+
+a) VERIFICAR MODELO Follow.java existe
+
+b) CREAR/ACTUALIZAR FollowController.java:
+   @PostMapping("/api/follow/{userId}")
+   public ResponseEntity<Void> follow(
+       @PathVariable UUID userId,
+       @AuthenticationPrincipal Jwt jwt
+   ) {
+       UUID currentUserId = UUID.fromString(jwt.getClaim("uuid"));
+       followService.follow(currentUserId, userId);
+       return ResponseEntity.ok().build();
+   }
+   
+   @DeleteMapping("/api/follow/{userId}")
+   public ResponseEntity<Void> unfollow(
+       @PathVariable UUID userId,
+       @AuthenticationPrincipal Jwt jwt
+   ) {
+       UUID currentUserId = UUID.fromString(jwt.getClaim("uuid"));
+       followService.unfollow(currentUserId, userId);
+       return ResponseEntity.ok().build();
+   }
+   
+   @GetMapping("/api/follow/{userId}/followers")
+   public ResponseEntity<List<UserProfileResponseDTO>> getFollowers(
+       @PathVariable UUID userId
+   ) {
+       return ResponseEntity.ok(followService.getFollowers(userId));
+   }
+   
+   @GetMapping("/api/follow/{userId}/following")
+   public ResponseEntity<List<UserProfileResponseDTO>> getFollowing(
+       @PathVariable UUID userId
+   ) {
+       return ResponseEntity.ok(followService.getFollowing(userId));
+   }
+
+ENDPOINTS:
+POST /api/follow/{userId}
+DELETE /api/follow/{userId}
+GET /api/follow/{userId}/followers
+GET /api/follow/{userId}/following
+
+
+24. REPORTES - SISTEMA DE MODERACIÓN
+=====================================
+
+PROBLEMA:
+No existe sistema para reportar contenido inapropiado.
+
+CAMBIOS REQUERIDOS:
+
+a) CREAR MODELO Report.java:
+   @Entity
+   @Table(name = "reports")
+   public class Report {
+       @Id
+       @GeneratedValue
+       private UUID id;
+       
+       @ManyToOne
+       @JoinColumn(name = "reporter_id")
+       private Users reporter;
+       
+       @Enumerated(EnumType.STRING)
+       private ReportType type; // POST, COMMENT, USER, STORY
+       
+       private UUID targetId;
+       
+       @Enumerated(EnumType.STRING)
+       private ReportReason reason;
+       
+       @Column(length = 500)
+       private String description;
+       
+       @Enumerated(EnumType.STRING)
+       private ReportStatus status; // PENDING, REVIEWED, RESOLVED
+       
+       private LocalDateTime createdAt;
+   }
+
+b) CREAR ENUMS:
+   - ReportType: POST, COMMENT, USER, STORY
+   - ReportReason: SPAM, HARASSMENT, INAPPROPRIATE, FAKE, OTHER
+   - ReportStatus: PENDING, REVIEWED, RESOLVED
+
+c) CREAR ReportService.java y ReportController.java
+
+d) MIGRACIÓN DE BASE DE DATOS:
+   CREATE TABLE reports (
+       id UUID PRIMARY KEY,
+       reporter_id UUID REFERENCES users(user_id),
+       type VARCHAR(20) NOT NULL,
+       target_id UUID NOT NULL,
+       reason VARCHAR(50) NOT NULL,
+       description VARCHAR(500),
+       status VARCHAR(20) DEFAULT 'PENDING',
+       created_at TIMESTAMP
+   );
+
+ENDPOINTS:
+POST /api/reports/create
+GET /api/reports/my-reports
+GET /api/admin/reports (admin only)
+
+
+25. ANALYTICS - ESTADÍSTICAS DE USUARIO
+========================================
+
+PROBLEMA:
+No existe sistema de analytics para creadores.
+
+CAMBIOS REQUERIDOS:
+
+a) CREAR AnalyticsService.java:
+   - Calcular alcance de posts
+   - Engagement rate
+   - Crecimiento de seguidores
+   - Mejores horarios de publicación
+   - Demografía de seguidores
+
+b) CREAR AnalyticsController.java:
+   @GetMapping("/api/analytics/profile")
+   public ResponseEntity<ProfileAnalyticsDTO> getProfileAnalytics(
+       @AuthenticationPrincipal Jwt jwt
+   ) {
+       UUID userId = UUID.fromString(jwt.getClaim("uuid"));
+       return ResponseEntity.ok(analyticsService.getProfileAnalytics(userId));
+   }
+   
+   @GetMapping("/api/analytics/post/{postId}")
+   public ResponseEntity<PostAnalyticsDTO> getPostAnalytics(
+       @PathVariable UUID postId
+   ) {
+       return ResponseEntity.ok(analyticsService.getPostAnalytics(postId));
+   }
+
+c) CREAR DTOs:
+   - ProfileAnalyticsDTO
+   - PostAnalyticsDTO
+   - FollowerDemographicsDTO
+
+ENDPOINTS:
+GET /api/analytics/profile
+GET /api/analytics/post/{postId}
+GET /api/analytics/followers/demographics
+
+
+================================================================================
+RESUMEN DE CAMBIOS PRIORITARIOS PARA BACKEND
+================================================================================
+
+FASE 1 - INMEDIATO (1 semana):
+1. ✅ Username y bio en perfil
+2. ✅ Búsqueda de usuarios
+3. ✅ Sistema de follow completo
+4. ✅ Reportes básicos
+
+FASE 2 - CORTO PLAZO (2-3 semanas):
+5. ✅ Hashtags
+6. ✅ Reacciones múltiples
+7. ✅ Stories
+8. ✅ Encuestas
+
+FASE 3 - MEDIANO PLAZO (1-2 meses):
+9. ✅ Grupos/Comunidades
+10. ✅ Analytics básico
+11. ✅ Moderación avanzada
 
 ================================================================================

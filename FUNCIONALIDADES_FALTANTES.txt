@@ -1,0 +1,365 @@
+================================================================================
+FUNCIONALIDADES Y ASPECTOS FALTANTES - RED SOCIAL SPARKD
+================================================================================
+
+🔴 CRÍTICO - FUNCIONALIDAD BÁSICA
+================================================================================
+
+1. SISTEMA DE BÚSQUEDA
+   ✅ Buscar usuarios por nombre/username
+   ⚠️ Buscar posts por contenido (UI lista, falta backend)
+   ⚠️ Buscar posts por hashtags (UI lista, falta backend)
+   ❌ Filtros avanzados (ubicación, edad, intereses)
+   ❌ Historial de búsquedas
+   ❌ Sugerencias de búsqueda
+
+2. STORIES/HISTORIAS (24h)
+   ✅ Crear stories con foto/video
+   ✅ Ver stories de seguidos
+   ❌ Reacciones a stories
+   ❌ Responder stories por DM
+   ❌ Indicador de visto
+
+3. HASHTAGS Y MENCIONES
+   ✅ Crear/usar hashtags en posts
+   ✅ Mencionar usuarios con @
+   ⚠️ Página de hashtag con posts relacionados (UI lista, falta backend)
+   ❌ Trending hashtags (falta backend)
+   ❌ Notificaciones de menciones
+
+4. COMPARTIR CONTENIDO
+   ✅ Compartir posts por DM
+   ✅ Compartir perfiles
+   ✅ Compartir a otras redes sociales (Facebook, Twitter, LinkedIn, WhatsApp)
+   ✅ Copiar enlace
+   ✅ Código QR del post
+   ❌ Código QR del perfil
+
+5. GRUPOS/COMUNIDADES
+   ✅ Crear grupos públicos/privados
+   ✅ Unirse a grupos
+   ❌ Posts dentro de grupos
+   ❌ Roles (admin, moderador, miembro)
+   ❌ Eventos de grupo
+
+
+🟡 IMPORTANTE - ENGAGEMENT Y RETENCIÓN
+================================================================================
+
+6. SISTEMA DE REACCIONES
+   ✅ Múltiples reacciones (❤️😂😮😢😡)
+   ✅ Ver quién reaccionó
+   ✅ Reacciones a comentarios
+   ✅ Reacciones a respuestas
+   ⚠️ Integración backend (pendiente endpoints)
+
+7. ENCUESTAS Y VOTACIONES
+   - Crear encuestas en posts
+   - Votar en encuestas
+   - Ver resultados en tiempo real
+   - Encuestas con múltiples opciones
+   - Fecha de expiración
+
+8. LIVE STREAMING
+   - Transmisiones en vivo
+   - Chat en vivo
+   - Notificar seguidores
+   - Guardar transmisión
+   - Donaciones/gifts
+
+9. SISTEMA DE LOGROS/BADGES
+   - Badges por actividad
+   - Badges por verificación
+   - Badges especiales (early adopter, etc)
+   - Mostrar badges en perfil
+   - Gamificación completa
+
+10. FEED PERSONALIZADO
+    - Algoritmo de recomendación
+    - "Para ti" vs "Siguiendo"
+    - Contenido sugerido
+    - Posts patrocinados
+    - Filtrar por tipo de contenido
+
+
+🟢 MEJORAS - UX Y FUNCIONALIDAD
+================================================================================
+
+11. PERFIL MEJORADO
+    ✅ Bio/descripción (tipos listos, falta UI edición)
+    ✅ Username único (tipos listos, falta UI edición)
+    ⚠️ Ubicación (tipos listos, falta UI)
+    ⚠️ Sitio web/links (tipos listos, falta UI)
+    ❌ Trabajo/educación
+    ❌ Estadísticas detalladas
+    ❌ Highlights de stories
+
+12. CONFIGURACIÓN DE PRIVACIDAD
+    - Quién puede ver posts
+    - Quién puede comentar
+    - Quién puede enviar DMs
+    - Bloquear palabras/frases
+    - Cuentas bloqueadas
+    - Cuentas silenciadas
+    - Solicitudes de seguimiento
+
+13. MENSAJERÍA AVANZADA
+    - Mensajes de voz
+    - Mensajes de video
+    - Compartir ubicación
+    - GIFs y stickers
+    - Reacciones a mensajes
+    - Responder mensaje específico
+    - Mensajes temporales
+    - Videollamadas
+    - Llamadas de voz
+
+14. NOTIFICACIONES MEJORADAS
+    - Categorías de notificaciones
+    - Notificaciones push personalizadas
+    - Horario de no molestar
+    - Sonidos personalizados
+    - Agrupar notificaciones
+    - Marcar todas como leídas
+
+15. MODERACIÓN DE CONTENIDO
+    - Reportar posts/usuarios
+    - Reportar comentarios
+    - Razones de reporte
+    - Sistema de revisión
+    - Contenido sensible (blur)
+    - Filtro de spam
+
+
+🔵 AVANZADO - MONETIZACIÓN Y PREMIUM
+================================================================================
+
+16. SISTEMA PREMIUM/SUSCRIPCIÓN
+    ✅ Planes de suscripción
+    ✅ Beneficios premium
+    ⚠️ Badges exclusivos (falta mostrar en UI)
+    ✅ Funciones premium
+    ❌ Gestión de suscripción activa
+
+17. MARKETPLACE
+    - Vender productos
+    - Catálogo de productos
+    - Carrito de compras
+    - Pagos integrados
+    - Reseñas de productos
+
+18. CONTENIDO EXCLUSIVO
+    - Posts solo para suscriptores
+    - Contenido de pago
+    - Membresías de creadores
+    - Tips/propinas
+    - Contenido desbloqueado
+
+19. PUBLICIDAD
+    - Crear anuncios
+    - Segmentación de audiencia
+    - Estadísticas de anuncios
+    - Presupuesto y pujas
+    - Formatos de anuncios
+
+20. ANALYTICS
+    ✅ Estadísticas de perfil
+    ✅ Alcance de posts
+    ❌ Demografía de seguidores
+    ❌ Mejores horarios
+    ✅ Crecimiento de seguidores
+    ✅ Engagement rate
+
+
+⚙️ TÉCNICO - INFRAESTRUCTURA
+================================================================================
+
+21. OPTIMIZACIÓN DE RENDIMIENTO
+    ✅ Lazy loading de imágenes
+    ❌ Infinite scroll optimizado
+    ❌ Cache de datos
+    ✅ Compresión de imágenes (Cloudinary)
+    ❌ CDN para assets
+    ❌ Service workers (PWA)
+
+22. SEGURIDAD
+    - Autenticación 2FA
+    - Verificación de email
+    - Verificación de teléfono
+    - Sesiones activas
+    - Cerrar sesión remota
+    - Logs de actividad
+
+23. ACCESIBILIDAD
+    - Modo alto contraste
+    - Tamaños de fuente
+    - Lector de pantalla
+    - Navegación por teclado
+    - Alt text en imágenes
+    - Subtítulos en videos
+
+24. INTERNACIONALIZACIÓN
+    - Múltiples idiomas
+    - Traducción automática
+    - Formatos de fecha/hora
+    - Monedas locales
+    - Contenido regionalizado
+
+25. BACKUP Y RECUPERACIÓN
+    - Exportar datos
+    - Descargar contenido
+    - Recuperar cuenta
+    - Historial de cambios
+    - Papelera de reciclaje
+
+
+📱 MOBILE - EXPERIENCIA MÓVIL
+================================================================================
+
+26. APP NATIVA
+    - iOS app
+    - Android app
+    - Notificaciones push nativas
+    - Compartir nativo
+    - Cámara integrada
+    - Geolocalización
+
+27. GESTOS Y NAVEGACIÓN
+    - Swipe para acciones
+    - Pull to refresh
+    - Navegación por gestos
+    - Haptic feedback
+    - Modo una mano
+
+28. OFFLINE MODE
+    - Ver contenido offline
+    - Sincronización automática
+    - Cola de acciones
+    - Indicador de conexión
+
+
+🎨 DISEÑO Y UX
+================================================================================
+
+29. TEMAS Y PERSONALIZACIÓN
+    ✅ Tema claro/oscuro
+    ❌ Temas personalizados
+    ❌ Colores de acento
+    ❌ Fondos personalizados
+    ❌ Layouts alternativos
+
+30. ONBOARDING
+    ✅ Tutorial interactivo
+    ❌ Tips contextuales
+    ❌ Progreso de perfil
+    ❌ Sugerencias de seguir
+    ❌ Importar contactos
+
+31. ANIMACIONES
+    ✅ Transiciones suaves
+    ✅ Micro-interacciones
+    ✅ Loading states
+    ✅ Skeleton screens
+    ✅ Animaciones de éxito/error
+
+
+🔧 FUNCIONALIDADES ESPECÍFICAS DE DATING
+================================================================================
+
+32. MATCHING AVANZADO
+    ✅ Filtros de búsqueda
+    ❌ Super likes
+    ❌ Boost de perfil
+    ❌ Ver quién te dio like
+    ❌ Deshacer swipe
+    ❌ Passport (cambiar ubicación)
+
+33. VERIFICACIÓN DE PERFIL
+    - Verificación por foto
+    - Verificación por video
+    - Badge verificado
+    - Reportar perfiles falsos
+
+34. ICEBREAKERS
+    - Preguntas sugeridas
+    - Juegos para romper hielo
+    - Prompts de perfil
+    - Datos curiosos
+
+
+================================================================================
+PRIORIZACIÓN ACTUALIZADA (POST SPRINT 1)
+================================================================================
+
+FASE 1 - MVP COMPLETO: ✅ 70% COMPLETADO
+✅ 1. Username en perfil (tipos listos)
+✅ 2. Bio en perfil (tipos listos)
+✅ 3. Búsqueda básica de usuarios
+✅ 4. Hashtags básicos (detección y links)
+✅ 5. Compartir posts (completo con QR)
+✅ 6. Reacciones múltiples (5 tipos)
+⚠️ 7. Configuración de privacidad básica (parcial)
+
+FASE 2 - ENGAGEMENT: ⚠️ 40% COMPLETADO
+✅ 8. Stories/Historias (crear y ver)
+❌ 9. Encuestas (pendiente)
+❌ 10. Sistema de logros (pendiente)
+❌ 11. Feed personalizado (pendiente tabs)
+❌ 12. Mensajería avanzada (básica existe)
+
+FASE 3 - MONETIZACIÓN: ✅ 60% COMPLETADO
+✅ 13. Sistema premium (planes y checkout)
+⚠️ 14. Contenido exclusivo (posts locked)
+✅ 15. Analytics básico (dashboard completo)
+❌ 16. Publicidad (pendiente)
+
+FASE 4 - ESCALABILIDAD: ⚠️ 40% COMPLETADO
+⚠️ 17. Optimización de rendimiento (parcial)
+❌ 18. App nativa (pendiente)
+⚠️ 19. Grupos/Comunidades (crear y unirse)
+❌ 20. Live streaming (pendiente)
+
+
+================================================================================
+CAMBIOS COMPLETADOS (SPRINT 1)
+================================================================================
+
+✅ 1. HASHTAGS Y MENCIONES
+   - Parser de texto con detección automática
+   - Links clickeables para #hashtags y @menciones
+   - Página de búsqueda con tabs
+   - Navegación integrada
+
+✅ 2. COMPARTIR CONTENIDO
+   - Modal de compartir completo
+   - Integración con redes sociales
+   - Generador de código QR
+   - Copiar enlace al portapapeles
+
+✅ 3. REACCIONES MÚLTIPLES
+   - 5 tipos de reacciones (❤️😂😮😢😡)
+   - Selector con popover
+   - Modal "Ver quién reaccionó"
+   - Reacciones en posts, comentarios y respuestas
+   - Optimistic updates
+
+================================================================================
+PENDIENTE DE BACKEND (CRÍTICO)
+================================================================================
+
+❌ 1. Endpoints de reacciones:
+   - POST /api/reactions/toggle
+   - GET /api/reactions/{postId}
+
+❌ 2. Endpoints de búsqueda:
+   - GET /api/search/posts?query={query}
+   - GET /api/search/hashtag?tag={tag}
+   - GET /api/hashtags/trending
+
+❌ 3. Campos de perfil en backend:
+   - username (único)
+   - bio (500 chars)
+   - location
+   - website
+
+================================================================================

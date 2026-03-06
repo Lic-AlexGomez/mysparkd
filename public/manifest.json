@@ -27,5 +27,22 @@
       "sizes": "540x720",
       "type": "image/jpeg"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "Feed",
+      "url": "/feed",
+      "description": "Ver tu feed"
+    },
+    {
+      "name": "Matches",
+      "url": "/matches",
+      "description": "Ver tus matches"
+    },
+    {
+      "name": "Chat",
+      "url": "/chat",
+      "description": "Mensajes"
+    }
   ]
 }

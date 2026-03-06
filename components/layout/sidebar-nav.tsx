@@ -11,22 +11,39 @@ import {
   Settings,
   Crown,
   Bookmark,
+  Search,
+  BarChart3,
+  Users,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/lib/auth-context"
+import { getFeatureFlags } from "@/lib/utils/feature-flags"
 
 const navItems = [
   { href: "/feed", label: "Feed", icon: Newspaper },
+  { href: "/search", label: "Buscar", icon: Search },
   { href: "/swipes", label: "Swipes", icon: Zap },
   { href: "/matches", label: "Matches", icon: Heart },
   { href: "/chat", label: "Chat", icon: MessageCircle },
+  { href: "/groups", label: "Grupos", icon: Users },
   { href: "/saved", label: "Guardados", icon: Bookmark },
   { href: "/profile", label: "Mi Perfil", icon: User },
+  { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/settings", label: "Configuracion", icon: Settings },
   { href: "/premium", label: "Premium", icon: Crown },
 ]
 
 export function SidebarNav() {
   const pathname = usePathname()
+  const { user } = useAuth()
+  const features = getFeatureFlags(user?.email)
+
+  const filteredNavItems = navItems.filter(item => {
+    if (item.href === '/search' && !features.searchPage) return false
+    if (item.href === '/groups' && !features.groupsPage) return false
+    if (item.href === '/analytics' && !features.analyticsPage) return false
+    return true
+  })
 
   return (
     <aside className="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:z-50 bg-gradient-to-b from-background via-background to-muted/20 border-r border-primary/10 lg:w-20 xl:w-72 shadow-xl shadow-primary/5">
@@ -44,7 +61,7 @@ export function SidebarNav() {
       {/* Nav items */}
       <nav className="flex-1 px-2 xl:px-4 py-6">
         <ul className="flex flex-col gap-3">
-          {navItems.map((item) => {
+          {filteredNavItems.map((item) => {
             const isActive =
               pathname === item.href || pathname.startsWith(item.href + "/")
             return (

@@ -25,10 +25,12 @@ import { toast } from "sonner"
 import { PostCard } from "@/components/feed/post-card"
 import { useRouter } from "next/navigation"
 import { uploadToCloudinary } from "@/lib/cloudinary"
+import { getFeatureFlags } from "@/lib/utils/feature-flags"
 
 export default function ProfilePage() {
   const { user, refreshProfile, isLoading } = useAuth()
   const router = useRouter()
+  const features = getFeatureFlags(user?.email)
   
   const [editOpen, setEditOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -246,11 +248,13 @@ export default function ProfilePage() {
                   variant="outline"
                   size="sm"
                   className="border-border text-foreground hover:bg-muted"
-                  onClick={() => {
-                    setNombres(user.nombres || "")
-                    setApellidos(user.apellidos || "")
-                    setSex(user.sex || "MALE")
-                    setTelefono(user.telefono || "")
+                  onClick={(e) => {
+                    e.preventDefault()
+                    if (features.profileEdit) {
+                      router.push('/profile/edit')
+                    } else {
+                      setEditOpen(true)
+                    }
                   }}
                 >
                   <Pencil className="mr-2 h-3.5 w-3.5" />
@@ -337,6 +341,20 @@ export default function ProfilePage() {
                 {reputation}
               </Badge>
             </div>
+            {features.profileEdit && user.username && (
+              <p className="text-sm text-muted-foreground mb-1">@{user.username}</p>
+            )}
+            {features.profileEdit && user.bio && (
+              <p className="text-sm text-foreground mb-2">{user.bio}</p>
+            )}
+            {features.profileEdit && user.location && (
+              <p className="text-xs text-muted-foreground mb-1">📍 {user.location}</p>
+            )}
+            {features.profileEdit && user.website && (
+              <a href={user.website} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline mb-2 block">
+                🔗 {user.website}
+              </a>
+            )}
             <p className="text-sm text-muted-foreground mb-2">Nivel {user.verificationLevel || 1} verificado</p>
             <div className="mt-1 flex items-center gap-2">
               <Badge

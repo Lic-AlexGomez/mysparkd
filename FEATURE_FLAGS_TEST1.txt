@@ -1,0 +1,221 @@
+================================================================================
+SISTEMA DE FEATURE FLAGS - USUARIO TEST1
+================================================================================
+
+OBJETIVO:
+Todas las funcionalidades nuevas implementadas en el frontend (que aún no tienen
+endpoints en el backend) solo serán visibles cuando el usuario inicie sesión con
+el email: test1@test.com
+
+================================================================================
+IMPLEMENTACIÓN
+================================================================================
+
+1. ARCHIVO PRINCIPAL: lib/utils/feature-flags.ts
+   - Define interface FeatureFlags con todas las features nuevas
+   - Función canUseNewFeatures(userEmail): verifica si es TEST1
+   - Función getFeatureFlags(userEmail): retorna objeto con flags booleanos
+
+2. FEATURES CONTROLADAS:
+   ✅ multipleReactions - Reacciones múltiples (5 tipos: ❤️😂😮😢😡)
+   ✅ shareWithQR - Compartir posts con código QR
+   ✅ polls - Encuestas/Polls en posts
+   ✅ personalizedFeed - Feed personalizado (Para ti / Siguiendo)
+   ✅ profileEdit - Edición de perfil (username, bio, location, website)
+   ✅ groupPosts - Posts dentro de grupos
+   ✅ groupRoles - Roles en grupos (admin/moderator/member)
+   ✅ hashtagsAndMentions - Hashtags y menciones parseadas
+   ✅ advancedSearch - Búsqueda avanzada (preparado para futuro)
+   ✅ searchPage - Página completa de búsqueda (/search)
+   ✅ storiesPage - Página de stories (/stories)
+   ✅ analyticsPage - Página de analytics (/analytics)
+   ✅ groupsPage - Página de grupos (/groups)
+
+================================================================================
+ARCHIVOS MODIFICADOS
+================================================================================
+
+1. components/feed/post-card.tsx
+   - Reacciones múltiples solo para TEST1, likes simples para otros
+   - Botón compartir con QR solo para TEST1
+   - Hashtags/menciones parseados solo para TEST1
+   - Polls solo visibles para TEST1
+
+2. components/feed/create-post-dialog.tsx
+   - Tab de encuestas solo visible para TEST1
+   - Otros usuarios solo ven formulario simple de post
+
+3. components/feed/comments-sheet.tsx
+   - Reacciones múltiples en comentarios solo para TEST1
+   - Otros usuarios ven likes simples tradicionales
+
+4. app/(app)/feed/page.tsx
+   - Tabs "Para ti" / "Siguiendo" solo para TEST1
+   - Otros usuarios ven header simple "Feed"
+
+5. app/(app)/profile/edit/page.tsx
+   - Página completa bloqueada para no-TEST1
+   - Redirige automáticamente con mensaje de error
+
+6. app/(app)/profile/page.tsx
+   - Campos username, bio, location, website solo visibles para TEST1
+   - Botón "Editar perfil" funciona diferente según usuario
+
+7. app/(app)/profile/[userId]/page.tsx
+   - Campos extendidos de perfil solo visibles para TEST1
+
+8. app/(app)/groups/[id]/page.tsx
+   - Botón "Publicar en el grupo" solo para TEST1
+   - Tab "Miembros" con gestión de roles solo para TEST1
+
+9. app/(app)/search/page.tsx
+   - Página completa bloqueada para no-TEST1
+   - Redirige automáticamente con mensaje de error
+
+10. app/(app)/stories/page.tsx
+    - Página completa bloqueada para no-TEST1
+    - Redirige automáticamente con mensaje de error
+
+11. app/(app)/analytics/page.tsx
+    - Página completa bloqueada para no-TEST1
+    - Redirige automáticamente con mensaje de error
+
+12. app/(app)/groups/page.tsx
+    - Página completa bloqueada para no-TEST1
+    - Redirige automáticamente con mensaje de error
+
+13. components/layout/sidebar-nav.tsx
+    - Links de Buscar, Grupos y Analytics ocultos para no-TEST1
+
+14. components/layout/top-navbar.tsx
+    - Input de búsqueda oculto para no-TEST1
+
+15. components/feed/stories-bar.tsx
+    - Barra de stories oculta para no-TEST1
+
+================================================================================
+COMPORTAMIENTO POR USUARIO
+================================================================================
+
+USUARIO TEST1 (test1@test.com):
+✅ Ve todas las funcionalidades nuevas
+✅ Puede usar reacciones múltiples
+✅ Puede compartir con QR
+✅ Puede crear y votar encuestas
+✅ Ve tabs "Para ti" / "Siguiendo"
+✅ Puede editar username, bio, location, website
+✅ Puede publicar en grupos
+✅ Puede gestionar roles en grupos
+✅ Ve hashtags y menciones como links
+✅ Acceso a página de Búsqueda (/search)
+✅ Acceso a página de Stories (/stories)
+✅ Acceso a página de Analytics (/analytics)
+✅ Acceso a página de Grupos (/groups)
+✅ Ve links en el sidebar para estas páginas
+✅ Ve input de búsqueda en el navbar
+✅ Ve barra de stories en el feed
+
+OTROS USUARIOS:
+❌ Solo ven funcionalidades con backend completo
+❌ Likes simples tradicionales (no reacciones múltiples)
+❌ No ven botón compartir con QR
+❌ No pueden crear encuestas
+❌ Feed simple sin tabs personalizados
+❌ No pueden editar campos extendidos de perfil
+❌ No pueden publicar en grupos
+❌ No ven gestión de roles en grupos
+❌ Texto plano sin parseo de hashtags/menciones
+❌ No pueden acceder a /search (redirige a /feed)
+❌ No pueden acceder a /stories (redirige a /feed)
+❌ No pueden acceder a /analytics (redirige a /feed)
+❌ No pueden acceder a /groups (redirige a /feed)
+❌ No ven links de Buscar, Grupos, Analytics en sidebar
+❌ No ven input de búsqueda en navbar
+❌ No ven barra de stories en el feed
+
+================================================================================
+VENTAJAS DE ESTE SISTEMA
+================================================================================
+
+1. TESTING SEGURO
+   - Puedes probar todas las features sin afectar a otros usuarios
+   - No hay riesgo de errores en producción para usuarios reales
+
+2. DESARROLLO GRADUAL
+   - Implementas frontend completo
+   - Backend se desarrolla por fases
+   - Activas features cuando el backend esté listo
+
+3. DEMO CONTROLADO
+   - Puedes mostrar features nuevas a stakeholders con TEST1
+   - Usuarios normales no ven funcionalidades incompletas
+
+4. ROLLBACK FÁCIL
+   - Si hay problemas, solo cambias el flag
+   - No necesitas revertir código
+
+5. CÓDIGO LIMPIO
+   - Un solo archivo controla todas las features
+   - Fácil de mantener y modificar
+
+================================================================================
+CÓMO ACTIVAR FEATURES PARA TODOS
+================================================================================
+
+Cuando el backend esté listo para una feature, hay 2 opciones:
+
+OPCIÓN 1 - Activar para todos (recomendado):
+En lib/utils/feature-flags.ts, cambiar:
+
+export function getFeatureFlags(userEmail?: string | null): FeatureFlags {
+  const isTestUser = canUseNewFeatures(userEmail)
+  
+  return {
+    multipleReactions: true,  // Cambiar de isTestUser a true
+    shareWithQR: true,        // Cambiar de isTestUser a true
+    polls: isTestUser,        // Dejar isTestUser si aún no está listo
+    // ... etc
+  }
+}
+
+OPCIÓN 2 - Remover el código de feature flags:
+Una vez todas las features estén listas, puedes:
+1. Eliminar todas las condiciones features.xxx
+2. Dejar solo el código de las features activas
+3. Eliminar el archivo feature-flags.ts
+
+================================================================================
+TESTING
+================================================================================
+
+PARA PROBAR COMO TEST1:
+1. Hacer logout si estás logueado
+2. Hacer login con: test1@test.com
+3. Verificar que ves todas las features nuevas
+
+PARA PROBAR COMO USUARIO NORMAL:
+1. Hacer logout
+2. Hacer login con cualquier otro email
+3. Verificar que NO ves las features nuevas
+
+================================================================================
+NOTAS IMPORTANTES
+================================================================================
+
+⚠️ El email test1@test.com debe existir en tu base de datos
+⚠️ La comparación es case-insensitive (TEST1@test.com también funciona)
+⚠️ Las features siguen llamando a endpoints que no existen (retornan error)
+⚠️ Los errores de backend se manejan con toast.error() para no romper la UI
+⚠️ Datos de features nuevas se guardan en localStorage como fallback
+
+================================================================================
+PRÓXIMOS PASOS
+================================================================================
+
+1. Crear usuario test1@test.com en la base de datos si no existe
+2. Probar todas las features con ese usuario
+3. Verificar que otros usuarios NO ven las features
+4. Desarrollar backend según BACKEND_PENDIENTE_COMPLETO.txt
+5. Activar features gradualmente cuando el backend esté listo
+
+================================================================================

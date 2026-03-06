@@ -1,0 +1,580 @@
+================================================================================
+CAMBIOS DE BACKEND REQUERIDOS - SPARKD
+================================================================================
+
+PRIORIDAD: CRÍTICA
+Estos cambios son necesarios para que las funcionalidades del frontend funcionen.
+
+================================================================================
+1. PERFIL - USERNAME, BIO, LOCATION, WEBSITE
+================================================================================
+
+A) ACTUALIZAR UserProfile.java:
+
+@Column(unique = true, length = 30)
+private String username;
+
+@Column(length = 500)
+private String bio;
+
+@Column(length = 100)
+private String location;
+
+@Column(length = 200)
+private String website;
+
+B) ACTUALIZAR UserProfileResponseDTO.java:
+
+private String username;
+private String bio;
+private String location;
+private String website;
+private List<String> interests;
+private Integer verificationLevel;
+private Integer reputation;
+
+C) ACTUALIZAR UserProfileMapper.java para mapear los nuevos campos
+
+D) ENDPOINT PARA ACTUALIZAR PERFIL:
+
+PUT /api/profile/update
+Body: {
+  "username": "string",
+  "bio": "string",
+  "location": "string",
+  "website": "string"
+}
+
+E) MIGRACIÓN SQL:
+
+ALTER TABLE user_profile 
+ADD COLUMN username VARCHAR(30) UNIQUE,
+ADD COLUMN bio VARCHAR(500),
+ADD COLUMN location VARCHAR(100),
+ADD COLUMN website VARCHAR(200);
+
+================================================================================
+2. REACCIONES MÚLTIPLES
+================================================================================
+
+A) CREAR ENUM ReactionType.java:
+
+public enum ReactionType {
+    LOVE,
+    HAHA,
+    WOW,
+    SAD,
+    ANGRY
+}
+
+B) CREAR MODELO Reaction.java:
+
+@Entity
+@Table(name = "reactions")
+public class Reaction {
+    @Id
+    @GeneratedValue
+    private UUID id;
+    
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private Users user;
+    
+    @Column(name = "target_id", nullable = false)
+    private UUID targetId;
+    
+    @Column(name = "target_type", nullable = false)
+    private String targetType; // "POST", "COMMENT", "REPLY"
+    
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ReactionType type;
+    
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+}
+
+C) CREAR ReactionRepository.java:
+
+Optional<Reaction> findByUserAndTargetIdAndTargetType(Users user, UUID targetId, String targetType);
+List<Reaction> findByTargetIdAndTargetType(UUID targetId, String targetType);
+void deleteByUserAndTargetIdAndTargetType(Users user, UUID targetId, String targetType);
+
+D) CREAR ReactionController.java:
+
+POST /api/reactions/toggle
+Body: {
+  "targetId": "uuid",
+  "targetType": "POST",
+  "type": "LOVE"
+}
+Response: { "success": true }
+
+GET /api/reactions/{targetId}?targetType=POST
+Response: [
+  {
+    "userId": "uuid",
+    "username": "string",
+    "reactionType": "LOVE"
+  }
+]
+
+E) ACTUALIZAR PostResponseDTO.java:
+
+private Map<String, Integer> reactions; // {"LOVE": 5, "HAHA": 2}
+private String userReaction; // "LOVE" o null
+
+F) MIGRACIÓN SQL:
+
+CREATE TABLE reactions (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(user_id),
+    target_id UUID NOT NULL,
+    target_type VARCHAR(20) NOT NULL,
+    type VARCHAR(20) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, target_id, target_type)
+);
+
+CREATE INDEX idx_reactions_target ON reactions(target_id, target_type);
+
+================================================================================
+3. ENCUESTAS (POLLS)
+================================================================================
+
+A) CREAR MODELO Poll.java:
+
+@Entity
+@Table(name = "polls")
+public class Poll {
+    @Id
+    @GeneratedValue
+    private UUID id;
+    
+    @OneToOne
+    @JoinColumn(name = "post_id")
+    private Posts post;
+    
+    @Column(nullable = false, length = 200)
+    private String question;
+    
+    @Column(name = "expires_at")
+    private LocalDateTime expiresAt;
+    
+    @Column(name = "allow_multiple")
+    private Boolean allowMultiple = false;
+    
+    @OneToMany(mappedBy = "poll", cascade = CascadeType.ALL)
+    private List<PollOption> options;
+}
+
+B) CREAR MODELO PollOption.java:
+
+@Entity
+@Table(name = "poll_options")
+public class PollOption {
+    @Id
+    @GeneratedValue
+    private UUID id;
+    
+    @ManyToOne
+    @JoinColumn(name = "poll_id")
+    private Poll poll;
+    
+    @Column(nullable = false, length = 100)
+    private String text;
+    
+    @Column(name = "vote_count")
+    private Integer voteCount = 0;
+}
+
+C) CREAR MODELO PollVote.java:
+
+@Entity
+@Table(name = "poll_votes")
+public class PollVote {
+    @Id
+    @GeneratedValue
+    private UUID id;
+    
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private Users user;
+    
+    @ManyToOne
+    @JoinColumn(name = "poll_option_id")
+    private PollOption option;
+    
+    @Column(name = "voted_at")
+    private LocalDateTime votedAt;
+}
+
+D) CREAR PollController.java:
+
+POST /api/polls/vote
+Body: {
+  "pollId": "uuid",
+  "optionId": "uuid"
+}
+Response: {
+  "success": true,
+  "results": {
+    "options": [
+      {"id": "uuid", "text": "Opción 1", "votes": 10, "percentage": 66.7},
+      {"id": "uuid", "text": "Opción 2", "votes": 5, "percentage": 33.3}
+    ],
+    "totalVotes": 15
+  }
+}
+
+E) ACTUALIZAR CreatePostRequest.java:
+
+private PollRequest poll; // Opcional
+
+public class PollRequest {
+    private String question;
+    private List<String> options;
+    private Integer durationHours;
+}
+
+F) ACTUALIZAR PostResponseDTO.java:
+
+private PollDTO poll; // Opcional
+
+public class PollDTO {
+    private UUID id;
+    private String question;
+    private List<PollOptionDTO> options;
+    private Integer totalVotes;
+    private LocalDateTime expiresAt;
+    private String userVoted; // ID de la opción votada o null
+}
+
+G) MIGRACIÓN SQL:
+
+CREATE TABLE polls (
+    id UUID PRIMARY KEY,
+    post_id UUID UNIQUE REFERENCES posts(id) ON DELETE CASCADE,
+    question VARCHAR(200) NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    allow_multiple BOOLEAN DEFAULT FALSE
+);
+
+CREATE TABLE poll_options (
+    id UUID PRIMARY KEY,
+    poll_id UUID REFERENCES polls(id) ON DELETE CASCADE,
+    text VARCHAR(100) NOT NULL,
+    vote_count INTEGER DEFAULT 0
+);
+
+CREATE TABLE poll_votes (
+    id UUID PRIMARY KEY,
+    user_id UUID REFERENCES users(user_id),
+    poll_option_id UUID REFERENCES poll_options(id) ON DELETE CASCADE,
+    voted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, poll_option_id)
+);
+
+================================================================================
+4. BÚSQUEDA AVANZADA
+================================================================================
+
+A) CREAR SearchController.java:
+
+GET /api/search/users?query=carlos&page=0&size=20
+Response: [UserProfileResponseDTO]
+
+GET /api/search/posts?query=viajes&page=0&size=20
+Response: [PostResponseDTO]
+
+GET /api/search/hashtag?tag=viajes&page=0&size=20
+Response: [PostResponseDTO]
+
+B) CREAR SearchService.java:
+
+public List<UserProfileResponseDTO> searchUsers(String query, int page, int size) {
+    Pageable pageable = PageRequest.of(page, size);
+    List<UserProfile> profiles = userProfileRepository
+        .findByUsernameContainingIgnoreCaseOrNombresContainingIgnoreCase(
+            query, query, pageable);
+    return profiles.stream()
+        .map(userProfileMapper::toResponseDTO)
+        .collect(Collectors.toList());
+}
+
+public List<PostResponseDTO> searchPosts(String query, int page, int size) {
+    Pageable pageable = PageRequest.of(page, size);
+    List<Posts> posts = postsRepository
+        .findByBodyContainingIgnoreCase(query, pageable);
+    return posts.stream()
+        .map(postMapper::toResponseDTO)
+        .collect(Collectors.toList());
+}
+
+C) AGREGAR EN UserProfileRepository.java:
+
+List<UserProfile> findByUsernameContainingIgnoreCaseOrNombresContainingIgnoreCase(
+    String username, String nombres, Pageable pageable);
+
+D) AGREGAR EN PostsRepository.java:
+
+List<Posts> findByBodyContainingIgnoreCase(String query, Pageable pageable);
+
+================================================================================
+5. HASHTAGS
+================================================================================
+
+A) CREAR MODELO Hashtag.java:
+
+@Entity
+@Table(name = "hashtags")
+public class Hashtag {
+    @Id
+    @GeneratedValue
+    private UUID id;
+    
+    @Column(unique = true, nullable = false, length = 50)
+    private String tag;
+    
+    @Column(name = "usage_count")
+    private Integer usageCount = 0;
+    
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+    
+    @Column(name = "last_used_at")
+    private LocalDateTime lastUsedAt;
+}
+
+B) CREAR MODELO PostHashtag.java:
+
+@Entity
+@Table(name = "post_hashtags")
+public class PostHashtag {
+    @Id
+    @GeneratedValue
+    private UUID id;
+    
+    @ManyToOne
+    @JoinColumn(name = "post_id")
+    private Posts post;
+    
+    @ManyToOne
+    @JoinColumn(name = "hashtag_id")
+    private Hashtag hashtag;
+}
+
+C) CREAR HashtagService.java:
+
+public void extractAndSaveHashtags(Posts post, String body) {
+    Pattern pattern = Pattern.compile("#(\\w+)");
+    Matcher matcher = pattern.matcher(body);
+    
+    while (matcher.find()) {
+        String tag = matcher.group(1).toLowerCase();
+        Hashtag hashtag = hashtagRepository.findByTag(tag)
+            .orElseGet(() -> {
+                Hashtag newTag = new Hashtag();
+                newTag.setTag(tag);
+                newTag.setCreatedAt(LocalDateTime.now());
+                return hashtagRepository.save(newTag);
+            });
+        
+        hashtag.setUsageCount(hashtag.getUsageCount() + 1);
+        hashtag.setLastUsedAt(LocalDateTime.now());
+        hashtagRepository.save(hashtag);
+        
+        PostHashtag postHashtag = new PostHashtag();
+        postHashtag.setPost(post);
+        postHashtag.setHashtag(hashtag);
+        postHashtagRepository.save(postHashtag);
+    }
+}
+
+D) CREAR HashtagController.java:
+
+GET /api/hashtags/trending?limit=10
+Response: [
+  {"tag": "viajes", "count": 150},
+  {"tag": "comida", "count": 120}
+]
+
+GET /api/hashtags/{tag}/posts?page=0&size=20
+Response: [PostResponseDTO]
+
+E) MIGRACIÓN SQL:
+
+CREATE TABLE hashtags (
+    id UUID PRIMARY KEY,
+    tag VARCHAR(50) UNIQUE NOT NULL,
+    usage_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_used_at TIMESTAMP
+);
+
+CREATE TABLE post_hashtags (
+    id UUID PRIMARY KEY,
+    post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
+    hashtag_id UUID REFERENCES hashtags(id) ON DELETE CASCADE,
+    UNIQUE(post_id, hashtag_id)
+);
+
+CREATE INDEX idx_hashtags_usage ON hashtags(usage_count DESC);
+CREATE INDEX idx_post_hashtags_hashtag ON post_hashtags(hashtag_id);
+
+================================================================================
+6. FEED PERSONALIZADO
+================================================================================
+
+A) CREAR FeedController.java:
+
+GET /api/feed/foryou?page=0&size=20
+Response: [PostResponseDTO] // Algoritmo de recomendación
+
+GET /api/feed/following?page=0&size=20
+Response: [PostResponseDTO] // Solo posts de seguidos
+
+B) CREAR FeedService.java:
+
+public List<PostResponseDTO> getForYouFeed(UUID userId, int page, int size) {
+    // Algoritmo básico:
+    // 1. Posts de usuarios con intereses similares
+    // 2. Posts populares (más likes/comentarios)
+    // 3. Posts recientes
+    // 4. Mezclar con posts de seguidos
+    
+    Pageable pageable = PageRequest.of(page, size);
+    List<Posts> posts = postsRepository.findRecommendedPosts(userId, pageable);
+    return posts.stream()
+        .map(postMapper::toResponseDTO)
+        .collect(Collectors.toList());
+}
+
+public List<PostResponseDTO> getFollowingFeed(UUID userId, int page, int size) {
+    Pageable pageable = PageRequest.of(page, size);
+    List<UUID> followingIds = followRepository.findFollowingIds(userId);
+    List<Posts> posts = postsRepository.findByUserIdIn(followingIds, pageable);
+    return posts.stream()
+        .map(postMapper::toResponseDTO)
+        .collect(Collectors.toList());
+}
+
+C) AGREGAR EN PostsRepository.java:
+
+@Query("SELECT p FROM Posts p WHERE p.user.userId IN :userIds ORDER BY p.createdAt DESC")
+List<Posts> findByUserIdIn(@Param("userIds") List<UUID> userIds, Pageable pageable);
+
+@Query("SELECT p FROM Posts p WHERE p.permanent = true OR p.expiresAt > :now ORDER BY p.createdAt DESC")
+List<Posts> findRecommendedPosts(@Param("userId") UUID userId, Pageable pageable);
+
+================================================================================
+7. GRUPOS - POSTS DENTRO DE GRUPOS
+================================================================================
+
+A) ACTUALIZAR Posts.java:
+
+@ManyToOne
+@JoinColumn(name = "group_id")
+private Groups group; // Opcional, null si es post normal
+
+B) ACTUALIZAR CreatePostRequest.java:
+
+private UUID groupId; // Opcional
+
+C) CREAR ENDPOINT:
+
+POST /api/groups/{groupId}/posts
+Body: CreatePostRequest
+Response: PostResponseDTO
+
+GET /api/groups/{groupId}/posts?page=0&size=20
+Response: [PostResponseDTO]
+
+D) MIGRACIÓN SQL:
+
+ALTER TABLE posts ADD COLUMN group_id UUID REFERENCES groups(id);
+CREATE INDEX idx_posts_group ON posts(group_id);
+
+================================================================================
+8. GRUPOS - ROLES
+================================================================================
+
+A) CREAR ENUM GroupRole.java:
+
+public enum GroupRole {
+    ADMIN,
+    MODERATOR,
+    MEMBER
+}
+
+B) ACTUALIZAR GroupMember.java:
+
+@Enumerated(EnumType.STRING)
+@Column(nullable = false)
+private GroupRole role = GroupRole.MEMBER;
+
+C) CREAR GroupController endpoints:
+
+PUT /api/groups/{groupId}/members/{userId}/role
+Body: { "role": "MODERATOR" }
+Response: { "success": true }
+
+DELETE /api/groups/{groupId}/members/{userId}
+Response: { "success": true }
+
+D) MIGRACIÓN SQL:
+
+ALTER TABLE group_members ADD COLUMN role VARCHAR(20) DEFAULT 'MEMBER';
+
+================================================================================
+RESUMEN DE ENDPOINTS NUEVOS
+================================================================================
+
+PERFIL:
+PUT /api/profile/update
+
+REACCIONES:
+POST /api/reactions/toggle
+GET /api/reactions/{targetId}
+
+ENCUESTAS:
+POST /api/polls/vote
+
+BÚSQUEDA:
+GET /api/search/users
+GET /api/search/posts
+GET /api/search/hashtag
+
+HASHTAGS:
+GET /api/hashtags/trending
+GET /api/hashtags/{tag}/posts
+
+FEED:
+GET /api/feed/foryou
+GET /api/feed/following
+
+GRUPOS:
+POST /api/groups/{groupId}/posts
+GET /api/groups/{groupId}/posts
+PUT /api/groups/{groupId}/members/{userId}/role
+DELETE /api/groups/{groupId}/members/{userId}
+
+================================================================================
+PRIORIDAD DE IMPLEMENTACIÓN
+================================================================================
+
+CRÍTICA (Implementar primero):
+1. Perfil (username, bio, location, website)
+2. Reacciones múltiples
+3. Búsqueda (usuarios, posts)
+
+ALTA (Implementar después):
+4. Encuestas
+5. Hashtags
+6. Feed personalizado
+
+MEDIA (Implementar al final):
+7. Posts en grupos
+8. Roles en grupos
+
+================================================================================

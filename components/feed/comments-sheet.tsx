@@ -5,7 +5,7 @@ import Link from "next/link"
 import { api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
 
-import type { Comment as CommentType, CommentReply } from "@/lib/types"
+import type { Comment as CommentType, CommentReply, ReactionType } from "@/lib/types"
 import {
   Dialog,
   DialogContent,
@@ -20,6 +20,8 @@ import { Heart, Send, ChevronDown, ChevronUp, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
+import { ReactionPicker, getReactionEmoji } from "./reaction-picker"
+import { getFeatureFlags } from "@/lib/utils/feature-flags"
 
 interface CommentsSheetProps {
   postId: string
@@ -30,6 +32,7 @@ interface CommentsSheetProps {
 
 export function CommentsSheet({ postId, open, onOpenChange, onUpdate }: CommentsSheetProps) {
   const { user } = useAuth()
+  const features = getFeatureFlags(user?.email)
   const [comments, setComments] = useState<CommentType[]>([])
   const [newComment, setNewComment] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -153,6 +156,41 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate }: Comments
     }
   }
 
+  const handleReaction = async (targetId: string, type: ReactionType, isReply: boolean = false) => {
+    try {
+      // TODO: Implementar endpoint de reacciones
+      // await api.post(`/api/reactions/toggle`, { targetId, type })
+      
+      if (isReply) {
+        setExpandedReplies(prev => {
+          const updated = { ...prev }
+          Object.keys(updated).forEach(parentId => {
+            updated[parentId] = updated[parentId].map(reply => {
+              if (reply.commentReplyId === targetId) {
+                const currentReaction = reply.userReaction
+                const newReaction = currentReaction === type ? null : type
+                return { ...reply, userReaction: newReaction }
+              }
+              return reply
+            })
+          })
+          return updated
+        })
+      } else {
+        setComments(prev => prev.map(comment => {
+          if (comment.commentsId === targetId) {
+            const currentReaction = comment.userReaction
+            const newReaction = currentReaction === type ? null : type
+            return { ...comment, userReaction: newReaction }
+          }
+          return comment
+        }))
+      }
+    } catch {
+      toast.error("Error al reaccionar")
+    }
+  }
+
   const toggleLike = async (targetId: string) => {
     try {
       await api.post(`/api/likes/toggle?targetId=${targetId}`)
@@ -260,13 +298,28 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate }: Comments
                         {comment.text}
                       </p>
                       <div className="mt-1 flex items-center gap-3">
-                        <button
-                          onClick={() => toggleLike(comment.commentsId)}
-                          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-secondary"
-                        >
-                          <Heart className={`h-3.5 w-3.5 ${comment.liked ? 'fill-secondary text-secondary' : ''}`} />
-                          {comment.likeCount}
-                        </button>
+                        {features.multipleReactions ? (
+                        <ReactionPicker onReact={(type) => handleReaction(comment.commentsId, type)}>
+                          <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-secondary group">
+                            {comment.userReaction ? (
+                              <span className="text-sm group-hover:scale-125 transition-transform">
+                                {getReactionEmoji(comment.userReaction)}
+                              </span>
+                            ) : (
+                              <Heart className="h-3.5 w-3.5 group-hover:scale-110 transition-transform" />
+                            )}
+                            {comment.likeCount}
+                          </button>
+                        </ReactionPicker>
+                        ) : (
+                          <button
+                            onClick={() => toggleLike(comment.commentsId)}
+                            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-secondary"
+                          >
+                            <Heart className={`h-3.5 w-3.5 ${comment.liked ? 'fill-secondary text-secondary' : ''}`} />
+                            {comment.likeCount}
+                          </button>
+                        )}
                         <button
                           onClick={() =>
                             setReplyingTo(
@@ -362,13 +415,28 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate }: Comments
                                 {reply.body}
                               </p>
                               <div className="mt-0.5 flex items-center gap-2">
-                                <button
-                                  onClick={() => toggleLike(reply.commentReplyId)}
-                                  className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-secondary"
-                                >
-                                  <Heart className={`h-3 w-3 ${reply.liked ? 'fill-secondary text-secondary' : ''}`} />
-                                  {reply.likeCount}
-                                </button>
+                                {features.multipleReactions ? (
+                                <ReactionPicker onReact={(type) => handleReaction(reply.commentReplyId, type, true)}>
+                                  <button className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-secondary group">
+                                    {reply.userReaction ? (
+                                      <span className="text-xs group-hover:scale-125 transition-transform">
+                                        {getReactionEmoji(reply.userReaction)}
+                                      </span>
+                                    ) : (
+                                      <Heart className="h-3 w-3 group-hover:scale-110 transition-transform" />
+                                    )}
+                                    {reply.likeCount}
+                                  </button>
+                                </ReactionPicker>
+                                ) : (
+                                  <button
+                                    onClick={() => toggleLike(reply.commentReplyId)}
+                                    className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-secondary"
+                                  >
+                                    <Heart className={`h-3 w-3 ${reply.liked ? 'fill-secondary text-secondary' : ''}`} />
+                                    {reply.likeCount}
+                                  </button>
+                                )}
                                 {user?.userId === reply.userId && (
                                   <button
                                     onClick={() => deleteComment(reply.commentReplyId)}

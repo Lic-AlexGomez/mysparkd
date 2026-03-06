@@ -23,9 +23,11 @@ import {
 import { Loader2, Camera, Newspaper, MoreHorizontal, Shield } from "lucide-react"
 import { PostCard } from "@/components/feed/post-card"
 import { toast } from "sonner"
+import { getFeatureFlags } from "@/lib/utils/feature-flags"
 
 export default function UserProfilePage() {
   const { user } = useAuth()
+  const features = getFeatureFlags(user?.email)
   const params = useParams()
   const userId = params.userId as string
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -135,9 +137,23 @@ export default function UserProfilePage() {
                     {reputation}
                   </Badge>
                 </div>
+                {features.profileEdit && profile.username && (
+                  <p className="text-sm text-muted-foreground mt-1">@{profile.username}</p>
+                )}
+                {features.profileEdit && profile.bio && (
+                  <p className="text-sm text-foreground mt-2">{profile.bio}</p>
+                )}
+                {features.profileEdit && profile.location && (
+                  <p className="text-xs text-muted-foreground mt-1">📍 {profile.location}</p>
+                )}
+                {features.profileEdit && profile.website && (
+                  <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline mt-1 block">
+                    🔗 {profile.website}
+                  </a>
+                )}
                 <Badge
                   variant="secondary"
-                  className="mt-1 bg-primary/10 text-primary border-0 text-xs"
+                  className="mt-2 bg-primary/10 text-primary border-0 text-xs"
                 >
                   {profile.sex === "MALE" ? "Hombre" : "Mujer"}
                 </Badge>

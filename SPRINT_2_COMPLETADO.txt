@@ -1,0 +1,114 @@
+================================================================================
+✅ SPRINT 2 - COMPLETADO
+================================================================================
+
+FUNCIONALIDADES IMPLEMENTADAS:
+
+1. ✅ ENCUESTAS EN POSTS
+   - Crear encuestas con 2-4 opciones
+   - Votar en encuestas
+   - Ver resultados en tiempo real con porcentajes
+   - Barra de progreso por opción
+   - Duración configurable (1-168 horas)
+   - Indicador de tiempo restante
+   - Estado de finalizada
+   - Integrado en CreatePostDialog con tabs
+
+2. ✅ FEED PERSONALIZADO
+   - Tabs "Para ti" / "Siguiendo"
+   - Filtrado por tipo de feed
+   - Iconos visuales (Sparkles / Users)
+   - Mensajes contextuales por tab
+   - Mantiene ordenamiento existente
+   - UI responsive
+
+3. ✅ EDICIÓN DE PERFIL
+   - Página /profile/edit
+   - Editar username (validación 3+ chars)
+   - Editar bio (500 chars max)
+   - Editar ubicación (100 chars max)
+   - Editar sitio web (validación URL)
+   - Formulario completo con validaciones
+   - Botones guardar/cancelar
+
+================================================================================
+ARCHIVOS CREADOS:
+================================================================================
+
+1. components/feed/poll-component.tsx
+   - Componente para mostrar encuestas
+   - Votación interactiva
+   - Resultados con porcentajes
+   - Progress bars
+
+2. components/feed/create-poll-dialog.tsx
+   - Diálogo para crear encuestas
+   - Agregar/remover opciones (2-4)
+   - Configurar duración
+   - Validaciones
+
+3. app/(app)/profile/edit/page.tsx
+   - Página de edición de perfil
+   - Formulario completo
+   - Validaciones de campos
+
+================================================================================
+ARCHIVOS MODIFICADOS:
+================================================================================
+
+1. lib/types.ts
+   - Agregado PollOption interface
+   - Agregado Poll interface
+   - Post.poll campo opcional
+
+2. components/feed/post-card.tsx
+   - Importado PollComponent
+   - Agregado handlePollVote
+   - Renderizado de encuestas
+
+3. components/feed/create-post-dialog.tsx
+   - Tabs: Post / Encuesta
+   - Integración CreatePollDialog
+   - Estado de encuesta
+   - Envío con poll data
+
+4. app/(app)/feed/page.tsx
+   - Tabs "Para ti" / "Siguiendo"
+   - Estado feedTab
+   - Filtrado de posts
+   - UI actualizada
+
+================================================================================
+ENDPOINTS BACKEND REQUERIDOS:
+================================================================================
+
+1. POST /api/polls/create
+   Body: { question, options[], durationHours }
+
+2. POST /api/polls/vote
+   Body: { pollId, optionId }
+
+3. GET /api/feed/foryou
+   Response: Post[] (algoritmo recomendación)
+
+4. GET /api/feed/following
+   Response: Post[] (solo seguidos)
+
+5. PUT /api/profile/update
+   Body: { username, bio, location, website }
+
+================================================================================
+ESTADO ACTUAL:
+================================================================================
+
+SPRINT 1: ✅ 100%
+SPRINT 2: ✅ 100%
+
+Progreso total: ~60% de funcionalidades completas
+
+PRÓXIMO: Sprint 3
+- Posts en grupos
+- Roles en grupos
+- Mensajería avanzada
+
+================================================================================

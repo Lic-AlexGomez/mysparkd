@@ -138,11 +138,6 @@ export default function NotificationsPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-foreground">{n.message}</p>
-                {n.relatedUsername && (
-                  <p className="text-xs text-primary mt-0.5">
-                    @{n.relatedUsername}
-                  </p>
-                )}
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {formatDistanceToNow(new Date(n.createdAt), {
                     addSuffix: true,
