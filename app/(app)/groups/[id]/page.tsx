@@ -13,11 +13,11 @@ import { ArrowLeft, Users, Settings, Shield, Crown, Plus, Send } from "lucide-re
 import { toast } from "sonner"
 import type { Post } from "@/lib/types"
 import { useAuth } from "@/lib/auth-context"
-import { getFeatureFlags } from "@/lib/utils/feature-flags"
+import { useFeatureFlags } from "@/hooks/use-feature-flags"
 
 export default function GroupDetailPage() {
   const { user } = useAuth()
-  const features = getFeatureFlags(user?.email)
+  const features = useFeatureFlags()
   const params = useParams()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState("posts")

@@ -16,8 +16,7 @@ import {
   Users,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useAuth } from "@/lib/auth-context"
-import { getFeatureFlags } from "@/lib/utils/feature-flags"
+import { useFeatureFlags } from "@/hooks/use-feature-flags"
 
 const navItems = [
   { href: "/feed", label: "Feed", icon: Newspaper },
@@ -35,8 +34,7 @@ const navItems = [
 
 export function SidebarNav() {
   const pathname = usePathname()
-  const { user } = useAuth()
-  const features = getFeatureFlags(user?.email)
+  const features = useFeatureFlags()
 
   const filteredNavItems = navItems.filter(item => {
     if (item.href === '/search' && !features.searchPage) return false

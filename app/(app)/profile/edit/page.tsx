@@ -11,11 +11,12 @@ import { Card } from "@/components/ui/card"
 import { ArrowLeft, Loader2, Save } from "lucide-react"
 import { toast } from "sonner"
 import { getFeatureFlags } from "@/lib/utils/feature-flags"
+import { useFeatureFlags } from "@/hooks/use-feature-flags"
 
 export default function EditProfilePage() {
   const router = useRouter()
   const { user } = useAuth()
-  const features = getFeatureFlags(user?.email)
+  const features = useFeatureFlags()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     username: "",

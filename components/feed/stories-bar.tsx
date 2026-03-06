@@ -4,12 +4,12 @@ import { useRouter } from "next/navigation"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Plus } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
-import { getFeatureFlags } from "@/lib/utils/feature-flags"
+import { useFeatureFlags } from "@/hooks/use-feature-flags"
 
 export function StoriesBar() {
   const router = useRouter()
   const { user } = useAuth()
-  const features = getFeatureFlags(user?.email)
+  const features = useFeatureFlags()
 
   if (!features.storiesPage) {
     return null

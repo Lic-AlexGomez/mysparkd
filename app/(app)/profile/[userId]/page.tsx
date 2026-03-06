@@ -23,11 +23,11 @@ import {
 import { Loader2, Camera, Newspaper, MoreHorizontal, Shield } from "lucide-react"
 import { PostCard } from "@/components/feed/post-card"
 import { toast } from "sonner"
-import { getFeatureFlags } from "@/lib/utils/feature-flags"
+import { useFeatureFlags } from "@/hooks/use-feature-flags"
 
 export default function UserProfilePage() {
   const { user } = useAuth()
-  const features = getFeatureFlags(user?.email)
+  const features = useFeatureFlags()
   const params = useParams()
   const userId = params.userId as string
   const [profile, setProfile] = useState<UserProfile | null>(null)

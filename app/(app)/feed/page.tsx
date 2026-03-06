@@ -17,7 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/lib/auth-context"
-import { getFeatureFlags } from "@/lib/utils/feature-flags"
+import { useFeatureFlags } from "@/hooks/use-feature-flags"
 
 const sortOptions = [
   { value: 'chronological' as const, label: 'Cronológico', icon: '🕐' },
@@ -28,7 +28,7 @@ const sortOptions = [
 
 export default function FeedPage() {
   const { user } = useAuth()
-  const features = getFeatureFlags(user?.email)
+  const features = useFeatureFlags()
   const searchParams = useSearchParams()
   const highlightPostId = searchParams.get('post')
   const highlightCommentId = searchParams.get('comment')

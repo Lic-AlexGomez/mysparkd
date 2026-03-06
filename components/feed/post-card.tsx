@@ -40,7 +40,7 @@ import { ReactionsModal } from "./reactions-modal"
 import { ShareModal } from "./share-modal"
 import { parseTextWithLinks } from "@/lib/utils/text-parser"
 import { PollComponent } from "./poll-component"
-import { getFeatureFlags } from "@/lib/utils/feature-flags"
+import { useFeatureFlags } from "@/hooks/use-feature-flags"
 
 interface PostCardProps {
   post: Post
@@ -51,7 +51,7 @@ interface PostCardProps {
 
 export function PostCard({ post, onDelete, onUpdate, highlight }: PostCardProps) {
   const { user } = useAuth()
-  const features = getFeatureFlags(user?.email)
+  const features = useFeatureFlags()
   const [likeCount, setLikeCount] = useState(post.likeCount)
   const [liked, setLiked] = useState(post.liked || false)
   const [userReaction, setUserReaction] = useState<ReactionType | null>(post.userReaction || null)

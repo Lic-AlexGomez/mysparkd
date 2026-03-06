@@ -13,11 +13,11 @@ import { toast } from "sonner"
 import type { Group } from "@/lib/types"
 import { useAuth } from "@/lib/auth-context"
 import { useEffect } from "react"
-import { getFeatureFlags } from "@/lib/utils/feature-flags"
+import { useFeatureFlags } from "@/hooks/use-feature-flags"
 
 export default function GroupsPage() {
   const { user } = useAuth()
-  const features = getFeatureFlags(user?.email)
+  const features = useFeatureFlags()
   const router = useRouter()
   const [createOpen, setCreateOpen] = useState(false)
   const [name, setName] = useState("")

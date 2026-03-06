@@ -25,12 +25,12 @@ import { toast } from "sonner"
 import { PostCard } from "@/components/feed/post-card"
 import { useRouter } from "next/navigation"
 import { uploadToCloudinary } from "@/lib/cloudinary"
-import { getFeatureFlags } from "@/lib/utils/feature-flags"
+import { useFeatureFlags } from "@/hooks/use-feature-flags"
 
 export default function ProfilePage() {
   const { user, refreshProfile, isLoading } = useAuth()
   const router = useRouter()
-  const features = getFeatureFlags(user?.email)
+  const features = useFeatureFlags()
   
   const [editOpen, setEditOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)

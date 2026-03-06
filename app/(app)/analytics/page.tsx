@@ -7,12 +7,12 @@ import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import { toast } from "sonner"
-import { getFeatureFlags } from "@/lib/utils/feature-flags"
+import { useFeatureFlags } from "@/hooks/use-feature-flags"
 
 export default function AnalyticsPage() {
   const { user } = useAuth()
   const router = useRouter()
-  const features = getFeatureFlags(user?.email)
+  const features = useFeatureFlags()
 
   useEffect(() => {
     if (!features.analyticsPage) {

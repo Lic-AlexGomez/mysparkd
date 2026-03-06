@@ -20,7 +20,7 @@ import { Loader2, Plus, ImageIcon, X, BarChart3 } from "lucide-react"
 import { uploadToCloudinary } from "@/lib/cloudinary"
 import { CreatePollDialog } from "./create-poll-dialog"
 import { useAuth } from "@/lib/auth-context"
-import { getFeatureFlags } from "@/lib/utils/feature-flags"
+import { useFeatureFlags } from "@/hooks/use-feature-flags"
 
 interface CreatePostDialogProps {
   onCreated: () => void
@@ -28,7 +28,7 @@ interface CreatePostDialogProps {
 
 export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
   const { user } = useAuth()
-  const features = getFeatureFlags(user?.email)
+  const features = useFeatureFlags()
   const [open, setOpen] = useState(false)
   const [body, setBody] = useState("")
   const [file, setFile] = useState<File | null>(null)

@@ -21,7 +21,7 @@ import { toast } from "sonner"
 import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
 import { ReactionPicker, getReactionEmoji } from "./reaction-picker"
-import { getFeatureFlags } from "@/lib/utils/feature-flags"
+import { useFeatureFlags } from "@/hooks/use-feature-flags"
 
 interface CommentsSheetProps {
   postId: string
@@ -32,7 +32,7 @@ interface CommentsSheetProps {
 
 export function CommentsSheet({ postId, open, onOpenChange, onUpdate }: CommentsSheetProps) {
   const { user } = useAuth()
-  const features = getFeatureFlags(user?.email)
+  const features = useFeatureFlags()
   const [comments, setComments] = useState<CommentType[]>([])
   const [newComment, setNewComment] = useState("")
   const [isLoading, setIsLoading] = useState(false)

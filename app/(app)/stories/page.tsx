@@ -10,12 +10,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { X, ChevronLeft, ChevronRight, Plus } from "lucide-react"
 import { toast } from "sonner"
 import { uploadToCloudinary } from "@/lib/cloudinary"
-import { getFeatureFlags } from "@/lib/utils/feature-flags"
+import { useFeatureFlags } from "@/hooks/use-feature-flags"
 
 export default function StoriesPage() {
   const router = useRouter()
   const { user } = useAuth()
-  const features = getFeatureFlags(user?.email)
+  const features = useFeatureFlags()
   const [stories, setStories] = useState<Story[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isUploading, setIsUploading] = useState(false)
