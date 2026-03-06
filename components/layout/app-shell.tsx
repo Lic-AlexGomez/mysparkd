@@ -3,6 +3,7 @@
 import { TopNavbar } from "./top-navbar"
 import { BottomNav } from "./bottom-nav"
 import { SidebarNav } from "./sidebar-nav"
+import { MobileQuickMenu } from "./mobile-quick-menu"
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
@@ -15,6 +16,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </main>
       </div>
       <BottomNav />
+      <MobileQuickMenu />
     </div>
   )
 }

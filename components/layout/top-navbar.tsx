@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
-import { Bell, Zap, LogOut, Settings, User, Crown, Search, Flame } from "lucide-react"
+import { Bell, Zap, LogOut, Settings, User, Crown, Search, Flame, BarChart3, Users } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
 import {
@@ -113,6 +113,17 @@ export function TopNavbar() {
 
       {/* Right side */}
       <div className="flex items-center gap-2">
+        {/* Search button - mobile */}
+        {features.searchPage && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden text-muted-foreground hover:text-foreground"
+            onClick={() => router.push('/search')}
+          >
+            <Search className="h-5 w-5" />
+          </Button>
+        )}
         {/* Trending button - desktop only */}
         <Button
           variant="ghost"
@@ -239,6 +250,20 @@ export function TopNavbar() {
                 <User className="h-4 w-4" /> Mi Perfil
               </Link>
             </DropdownMenuItem>
+            {features.analyticsPage && (
+              <DropdownMenuItem asChild>
+                <Link href="/analytics" className="flex items-center gap-2 cursor-pointer">
+                  <BarChart3 className="h-4 w-4" /> Analytics
+                </Link>
+              </DropdownMenuItem>
+            )}
+            {features.groupsPage && (
+              <DropdownMenuItem asChild>
+                <Link href="/groups" className="flex items-center gap-2 cursor-pointer">
+                  <Users className="h-4 w-4" /> Grupos
+                </Link>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem asChild>
               <Link href="/settings" className="flex items-center gap-2 cursor-pointer">
                 <Settings className="h-4 w-4" /> Configuracion
