@@ -40,13 +40,25 @@ export default function FeedPage() {
     setLocalPosts(posts)
   }, [posts])
 
+  // Scroll to top on mount
   useEffect(() => {
-    if (highlightPostId || highlightCommentId) {
+    if (!highlightPostId && !highlightCommentId) {
+      window.scrollTo({ top: 0, behavior: 'instant' })
+    }
+  }, [])
+
+  useEffect(() => {
+    if ((highlightPostId || highlightCommentId) && posts.length > 0) {
       setTimeout(() => {
         const element = document.getElementById(`post-${highlightPostId}`) || 
                        document.getElementById(`comment-${highlightCommentId}`)
         if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          // Solo hacer scroll si el elemento no está visible
+          const rect = element.getBoundingClientRect()
+          const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight
+          if (!isVisible) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          }
         }
       }, 500)
     }
