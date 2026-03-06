@@ -18,33 +18,6 @@ export function GoogleSignInButton({ onSuccess, onError, text = "Continuar con G
   const buttonRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const styleSheet = document.createElement('style')
-    styleSheet.textContent = `
-      .nsm7Bb-HzV7m-LgbsSe {
-        border-radius: 0.5rem !important;
-        border: 2px solid hsl(var(--primary) / 1) !important;
-        background: hsl(var(--muted)) !important;
-        transition: all 0.2s !important;
-        height: 44px !important;
-        box-shadow: 0 2px 4px 0 rgba(255, 254, 254, 0.1) !important;
-      }
-      .nsm7Bb-HzV7m-LgbsSe:hover {
-        background: hsl(var(--muted) / 0.8) !important;
-        border-color: hsl(var(--primary) / 0.6) !important;
-        box-shadow: 0 4px 8px -1px rgb(0 0 0 / 0.2) !important;
-        transform: translateY(-1px);
-      }
-      .nsm7Bb-HzV7m-LgbsSe-BPrWId {
-        color: whitesmoke !important;
-        font-weight: 600 !important;
-        font-size: 14px !important;
-      }
-      .nsm7Bb-HzV7m-LgbsSe-Bz112c {
-        margin-right: 12px !important;
-      }
-    `
-    document.head.appendChild(styleSheet)
-
     const script = document.createElement("script")
     script.src = "https://accounts.google.com/gsi/client"
     script.async = true
@@ -81,6 +54,37 @@ export function GoogleSignInButton({ onSuccess, onError, text = "Continuar con G
             logo_alignment: "left",
           }
         )
+
+        // Forzar estilos con MutationObserver
+        const applyStyles = () => {
+          const btn = buttonRef.current?.querySelector('.nsm7Bb-HzV7m-LgbsSe') as HTMLElement
+          const text = buttonRef.current?.querySelector('.nsm7Bb-HzV7m-LgbsSe-BPrWId') as HTMLElement
+          const icon = buttonRef.current?.querySelector('.nsm7Bb-HzV7m-LgbsSe-Bz112c') as HTMLElement
+          
+          if (btn) {
+            btn.style.setProperty('border-radius', '0.5rem', 'important')
+            btn.style.setProperty('border', '2px solid hsl(var(--primary))', 'important')
+            btn.style.setProperty('background', 'hsl(var(--muted))', 'important')
+            btn.style.setProperty('height', '44px', 'important')
+            btn.style.setProperty('box-shadow', '0 2px 4px 0 rgba(255, 254, 254, 0.1)', 'important')
+          }
+          if (text) {
+            text.style.setProperty('color', 'whitesmoke', 'important')
+            text.style.setProperty('font-weight', '600', 'important')
+          }
+          if (icon) {
+            icon.style.setProperty('margin-right', '12px', 'important')
+          }
+        }
+
+        setTimeout(applyStyles, 0)
+        setTimeout(applyStyles, 100)
+        setTimeout(applyStyles, 500)
+
+        const observer = new MutationObserver(applyStyles)
+        if (buttonRef.current) {
+          observer.observe(buttonRef.current, { childList: true, subtree: true, attributes: true })
+        }
       }
     }
 
@@ -89,9 +93,6 @@ export function GoogleSignInButton({ onSuccess, onError, text = "Continuar con G
     return () => {
       if (document.body.contains(script)) {
         document.body.removeChild(script)
-      }
-      if (document.head.contains(styleSheet)) {
-        document.head.removeChild(styleSheet)
       }
     }
   }, [])
