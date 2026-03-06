@@ -10,7 +10,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card } from "@/components/ui/card"
 import { ArrowLeft, Loader2, Save } from "lucide-react"
 import { toast } from "sonner"
-import { useAuth } from "@/lib/auth-context"
 import { getFeatureFlags } from "@/lib/utils/feature-flags"
 
 export default function EditProfilePage() {
