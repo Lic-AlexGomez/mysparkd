@@ -57,6 +57,23 @@ export function TopNavbar() {
     return () => clearInterval(interval)
   }, [fetchNotifications])
 
+  useEffect(() => {
+    if (!showNotifications) return
+    
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (!target.closest('[data-notifications-dropdown]') && !target.closest('[data-notifications-button]')) {
+        setShowNotifications(false)
+      }
+    }
+    
+    setTimeout(() => {
+      document.addEventListener('click', handleClickOutside)
+    }, 0)
+    
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [showNotifications])
+
   const markAsRead = async (notificationId: string) => {
     // Marcar como leída localmente
     setNotifications(prev => 
@@ -149,6 +166,7 @@ export function TopNavbar() {
             size="icon"
             className="relative text-muted-foreground hover:text-foreground"
             onClick={() => setShowNotifications(!showNotifications)}
+            data-notifications-button
           >
             <Bell className="h-5 w-5" />
             {unreadCount > 0 && (
@@ -160,64 +178,58 @@ export function TopNavbar() {
           </Button>
 
           {showNotifications && (
-            <>
-              <div
-                className="fixed inset-0 z-40"
-                onClick={() => setShowNotifications(false)}
-              />
-              <div className="absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-xl border border-border bg-card shadow-xl">
-                <div className="flex items-center justify-between border-b border-border px-4 py-3">
-                  <h3 className="font-semibold text-foreground">
-                    Notificaciones
-                  </h3>
-                  <Link
-                    href="/notifications"
-                    className="text-xs text-primary hover:underline"
-                    onClick={() => setShowNotifications(false)}
-                  >
-                    Ver todas
-                  </Link>
-                </div>
-                <div className="max-h-80 overflow-y-auto">
-                  {notifications.length === 0 ? (
-                    <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-                      Sin notificaciones
-                    </p>
-                  ) : (
-                    notifications.slice(0, 5).map((n) => (
-                      <Link
-                        key={n.notificationId}
-                        href={getNotificationLink(n)}
-                        onClick={() => {
-                          markAsRead(n.notificationId)
-                          setShowNotifications(false)
-                        }}
-                        className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50 ${
-                          !n.read ? "bg-primary/5" : ""
-                        }`}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-foreground truncate">
-                            {n.message}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {new Date(n.createdAt).toLocaleString("es", {
-                              day: "numeric",
-                              month: "short",
-                              hour: "2-digit",
-                              minute: "2-digit"
-                            })}
-                          </p>
-                        </div>
-                        {!n.read && (
-                          <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
-                        )}
-                      </Link>
-                    ))
-                  )}
-                </div>
+            <div className="absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-xl border border-border bg-card shadow-xl" data-notifications-dropdown>
+              <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                <h3 className="font-semibold text-foreground">
+                  Notificaciones
+                </h3>
+                <Link
+                  href="/notifications"
+                  className="text-xs text-primary hover:underline"
+                  onClick={() => setShowNotifications(false)}
+                >
+                  Ver todas
+                </Link>
               </div>
-            </>
+              <div className="max-h-80 overflow-y-auto">
+                {notifications.length === 0 ? (
+                  <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+                    Sin notificaciones
+                  </p>
+                ) : (
+                  notifications.slice(0, 5).map((n) => (
+                    <Link
+                      key={n.notificationId}
+                      href={getNotificationLink(n)}
+                      onClick={() => {
+                        markAsRead(n.notificationId)
+                        setShowNotifications(false)
+                      }}
+                      className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50 ${
+                        !n.read ? "bg-primary/5" : ""
+                      }`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-foreground truncate">
+                          {n.message}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {new Date(n.createdAt).toLocaleString("es", {
+                            day: "numeric",
+                            month: "short",
+                            hour: "2-digit",
+                            minute: "2-digit"
+                          })}
+                        </p>
+                      </div>
+                      {!n.read && (
+                        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
+                      )}
+                    </Link>
+                  ))
+                )}
+              </div>
+            </div>
           )}
         </div>
 

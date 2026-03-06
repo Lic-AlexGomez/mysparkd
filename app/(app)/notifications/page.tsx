@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
 import { notificationService } from "@/lib/services/notification"
@@ -15,8 +15,10 @@ import { es } from "date-fns/locale"
 export default function NotificationsPage() {
   const { user } = useAuth()
   const router = useRouter()
+  const pathname = usePathname()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const fetchNotifications = useCallback(async () => {
     if (!user?.userId) return
@@ -64,6 +66,16 @@ export default function NotificationsPage() {
   useEffect(() => {
     fetchNotifications()
   }, [fetchNotifications])
+
+  useEffect(() => {
+    setExpandedId(null)
+  }, [pathname])
+
+  useEffect(() => {
+    const handleClickOutside = () => setExpandedId(null)
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [])
 
   const handleNotificationClick = (notification: Notification) => {
     markAsRead(notification.notificationId)
@@ -120,7 +132,15 @@ export default function NotificationsPage() {
           {notifications.map((n) => (
             <div
               key={n.notificationId}
-              onClick={() => handleNotificationClick(n)}
+              onClick={(e) => {
+                e.stopPropagation()
+                if (expandedId === n.notificationId) {
+                  setExpandedId(null)
+                } else {
+                  setExpandedId(n.notificationId)
+                  handleNotificationClick(n)
+                }
+              }}
               className={`flex items-start gap-3 px-4 py-3 transition-colors cursor-pointer hover:bg-muted/50 ${
                 !n.read ? "bg-primary/5" : ""
               }`}
@@ -145,30 +165,38 @@ export default function NotificationsPage() {
                   })}
                 </p>
               </div>
-              <div className="flex items-center gap-1">
-                {!n.read && (
+              {expandedId === n.notificationId && (
+                <div className="flex items-center gap-1">
+                  {!n.read && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-primary"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        markAsRead(n.notificationId)
+                      }}
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                      <span className="sr-only">Marcar como leida</span>
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 text-muted-foreground hover:text-primary"
-                    onClick={() => markAsRead(n.notificationId)}
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      deleteNotification(n.notificationId)
+                    }}
                   >
-                    <Check className="h-3.5 w-3.5" />
-                    <span className="sr-only">Marcar como leida</span>
+                    <Trash2 className="h-3.5 w-3.5" />
+                    <span className="sr-only">Eliminar</span>
                   </Button>
-                )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                  onClick={() => deleteNotification(n.notificationId)}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  <span className="sr-only">Eliminar</span>
-                </Button>
-              </div>
+                </div>
+              )}
             </div>
-          ))}
+          ))}}
         </div>
       )}
     </div>
