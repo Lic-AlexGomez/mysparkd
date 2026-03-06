@@ -18,39 +18,6 @@ export function GoogleSignInButton({ onSuccess, onError, text = "Continuar con G
   const buttonRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    // Inyectar estilos globales
-    const style = document.createElement('style')
-    style.id = 'google-btn-custom'
-    style.innerHTML = `
-      .haAclf {
-        padding: 0 !important;
-      }
-      .nsm7Bb-HzV7m-LgbsSe {
-        border-radius: 0.5rem !important;
-        border: 2px solid #00e5ff !important;
-        background: #1a1b23 !important;
-        height: 44px !important;
-        box-shadow: 0 2px 4px 0 rgba(255, 254, 254, 0.1) !important;
-      }
-      .nsm7Bb-HzV7m-LgbsSe:hover {
-        background: rgba(26, 27, 35, 0.8) !important;
-        border-color: rgba(0, 229, 255, 0.6) !important;
-        box-shadow: 0 4px 8px -1px rgb(0 0 0 / 0.2) !important;
-        transform: translateY(-1px);
-      }
-      .nsm7Bb-HzV7m-LgbsSe-BPrWId {
-        color: whitesmoke !important;
-        font-weight: 600 !important;
-        font-size: 14px !important;
-      }
-      .nsm7Bb-HzV7m-LgbsSe-Bz112c {
-        margin-right: 12px !important;
-      }
-    `
-    if (!document.getElementById('google-btn-custom')) {
-      document.head.appendChild(style)
-    }
-
     const script = document.createElement("script")
     script.src = "https://accounts.google.com/gsi/client"
     script.async = true
@@ -87,6 +54,26 @@ export function GoogleSignInButton({ onSuccess, onError, text = "Continuar con G
             logo_alignment: "left",
           }
         )
+
+        // Aplicar estilos después del render
+        setTimeout(() => {
+          const container = buttonRef.current?.querySelector('#container-div') as HTMLElement
+          const button = buttonRef.current?.querySelector('.nsm7Bb-HzV7m-LgbsSe') as HTMLElement
+          const text = buttonRef.current?.querySelector('.nsm7Bb-HzV7m-LgbsSe-BPrWId') as HTMLElement
+          
+          if (container) container.style.padding = '0'
+          if (button) {
+            button.style.borderRadius = '0.5rem'
+            button.style.border = '2px solid #00e5ff'
+            button.style.background = '#1a1b23'
+            button.style.height = '44px'
+            button.style.boxShadow = '0 2px 4px 0 rgba(255, 254, 254, 0.1)'
+          }
+          if (text) {
+            text.style.color = 'whitesmoke'
+            text.style.fontWeight = '600'
+          }
+        }, 100)
       }
     }
 
