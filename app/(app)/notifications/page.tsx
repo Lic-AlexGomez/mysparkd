@@ -12,6 +12,7 @@ import { toast } from "sonner"
 import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
 
+
 export default function NotificationsPage() {
   const { user } = useAuth()
   const router = useRouter()
