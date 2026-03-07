@@ -57,6 +57,7 @@ export interface UserProfile {
   location?: string
   website?: string
   profileCompleted: boolean
+  premium: boolean
   photos: Photo[]
   posts: Post[]
   totalPosts: number
@@ -308,6 +309,17 @@ export interface Notification {
   relatedUsername: string
   targetId?: string
   targetType?: string
+}
+
+// Subscription
+export interface UserSubscription {
+  id: string
+  userId: string
+  stripeCustomerId: string
+  stripeSubscriptionId: string
+  status: 'ACTIVE' | 'CANCELED' | 'PAST_DUE'
+  currentPeriodEnd: string
+  active: boolean
 }
 
 // Auth state

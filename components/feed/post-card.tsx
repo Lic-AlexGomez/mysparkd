@@ -38,6 +38,7 @@ import { RepostModal } from "./repost-modal"
 import { ReactionPicker, getReactionEmoji } from "./reaction-picker"
 import { ReactionsModal } from "./reactions-modal"
 import { ShareModal } from "./share-modal"
+import { UnlockPostModal } from "./unlock-post-modal"
 import { parseTextWithLinks } from "@/lib/utils/text-parser"
 import { PollComponent } from "./poll-component"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
@@ -69,6 +70,7 @@ export function PostCard({ post, onDelete, onUpdate, highlight }: PostCardProps)
   const [showRepostModal, setShowRepostModal] = useState(false)
   const [showReactionsModal, setShowReactionsModal] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
+  const [showUnlockModal, setShowUnlockModal] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [editedBody, setEditedBody] = useState(post.body)
   const [isSaving, setIsSaving] = useState(false)
@@ -242,9 +244,17 @@ export function PostCard({ post, onDelete, onUpdate, highlight }: PostCardProps)
       >
         {/* Locked overlay */}
         {post.locked && !post.unlocked && (
-          <div className="mb-3 flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
-            <Lock className="h-4 w-4" />
-            <span>Contenido premium</span>
+          <div 
+            onClick={() => setShowUnlockModal(true)}
+            className="mb-3 flex items-center justify-between rounded-lg bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/30 px-4 py-3 cursor-pointer hover:from-primary/20 hover:to-secondary/20 transition-all"
+          >
+            <div className="flex items-center gap-2">
+              <Lock className="h-5 w-5 text-primary" />
+              <span className="font-medium text-foreground">Contenido Premium Bloqueado</span>
+            </div>
+            <Button size="sm" variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground">
+              Desbloquear
+            </Button>
           </div>
         )}
 
@@ -492,6 +502,12 @@ export function PostCard({ post, onDelete, onUpdate, highlight }: PostCardProps)
         postId={post.id}
         postContent={post.body}
         username={post.username}
+      />
+      <UnlockPostModal
+        postId={post.id}
+        open={showUnlockModal}
+        onClose={() => setShowUnlockModal(false)}
+        onUnlocked={onUpdate || (() => {})}
       />
     </>
   )

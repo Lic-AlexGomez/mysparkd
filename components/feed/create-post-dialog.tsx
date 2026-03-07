@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
-import { Loader2, Plus, ImageIcon, X, BarChart3 } from "lucide-react"
+import { Loader2, Plus, ImageIcon, X, BarChart3, Lock } from "lucide-react"
 import { uploadToCloudinary } from "@/lib/cloudinary"
 import { CreatePollDialog } from "./create-poll-dialog"
 import { useAuth } from "@/lib/auth-context"
@@ -34,6 +34,7 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
   const [file, setFile] = useState<File | null>(null)
   const [filePreview, setFilePreview] = useState("")
   const [permanent, setPermanent] = useState(true)
+  const [locked, setLocked] = useState(false)
   const [durationHours, setDurationHours] = useState(24)
   const [isLoading, setIsLoading] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
@@ -61,6 +62,7 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
       const postData: any = {
         body: body.trim(),
         permanent,
+        locked,
         ...(!permanent && { durationHours: Math.min(durationHours, 24) })
       }
       
@@ -279,6 +281,15 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
             <Label className="text-foreground">Post permanente</Label>
             <Switch checked={permanent} onCheckedChange={setPermanent} />
           </div>
+          {user?.premium && (
+            <div className="flex items-center justify-between">
+              <Label className="text-foreground flex items-center gap-2">
+                <Lock className="h-4 w-4 text-primary" />
+                Post Premium (bloqueado)
+              </Label>
+              <Switch checked={locked} onCheckedChange={setLocked} />
+            </div>
+          )}
           {!permanent && (
             <div className="flex flex-col gap-2">
               <Label className="text-foreground">

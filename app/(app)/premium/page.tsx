@@ -1,7 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useAuth } from "@/lib/auth-context"
 import { api } from "@/lib/api"
+import type { UserSubscription } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -39,7 +41,25 @@ const features = {
 }
 
 export default function PremiumPage() {
+  const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
+  const [subscription, setSubscription] = useState<UserSubscription | null>(null)
+  const isPremium = user?.premium || false
+
+  useEffect(() => {
+    if (isPremium) {
+      fetchSubscription()
+    }
+  }, [isPremium])
+
+  const fetchSubscription = async () => {
+    try {
+      const data = await api.get<UserSubscription>("/api/user-subscription/status")
+      setSubscription(data)
+    } catch {
+      // Silent fail
+    }
+  }
 
   const handleSubscribe = async () => {
     setIsLoading(true)
@@ -68,9 +88,41 @@ export default function PremiumPage() {
         </div>
         <h1 className="text-2xl font-bold text-foreground">Sparkd Premium</h1>
         <p className="mt-2 text-muted-foreground">
-          Desbloquea todo el potencial de Sparkd
+          {isPremium ? "Ya eres miembro Premium" : "Desbloquea todo el potencial de Sparkd"}
         </p>
       </div>
+
+      {isPremium && subscription && (
+        <Card className="mb-8 border-primary bg-primary/5">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <Crown className="h-8 w-8 text-primary" />
+                <div>
+                  <h3 className="font-bold text-foreground">¡Eres Premium!</h3>
+                  <p className="text-sm text-muted-foreground">Disfruta de todas las funciones exclusivas</p>
+                </div>
+              </div>
+              <Badge className={`${
+                subscription.status === 'ACTIVE' ? 'bg-success' :
+                subscription.status === 'PAST_DUE' ? 'bg-destructive' :
+                'bg-muted'
+              } text-white border-0`}>
+                {subscription.status}
+              </Badge>
+            </div>
+            {subscription.currentPeriodEnd && (
+              <div className="text-sm text-muted-foreground">
+                Renovación: {new Date(subscription.currentPeriodEnd).toLocaleDateString('es', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Feature highlights */}
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -107,9 +159,11 @@ export default function PremiumPage() {
           <CardHeader>
             <CardTitle className="flex items-center justify-between text-foreground">
               <span>Gratis</span>
-              <Badge variant="secondary" className="bg-muted text-muted-foreground border-0">
-                Plan actual
-              </Badge>
+              {!isPremium && (
+                <Badge variant="secondary" className="bg-muted text-muted-foreground border-0">
+                  Plan actual
+                </Badge>
+              )}
             </CardTitle>
             <p className="text-2xl font-bold text-foreground">
               $0
@@ -149,9 +203,15 @@ export default function PremiumPage() {
                 <Crown className="h-5 w-5 text-accent" />
                 Premium
               </span>
-              <Badge className="bg-primary text-primary-foreground border-0">
-                Recomendado
-              </Badge>
+              {isPremium ? (
+                <Badge className="bg-success text-success-foreground border-0">
+                  Activo
+                </Badge>
+              ) : (
+                <Badge className="bg-primary text-primary-foreground border-0">
+                  Recomendado
+                </Badge>
+              )}
             </CardTitle>
             <p className="text-2xl font-bold text-foreground">
               $9.99
@@ -171,10 +231,15 @@ export default function PremiumPage() {
             </ul>
             <Button
               onClick={handleSubscribe}
-              disabled={isLoading}
-              className="w-full bg-gradient-to-r from-primary to-secondary text-white hover:opacity-90"
+              disabled={isLoading || isPremium}
+              className="w-full bg-gradient-to-r from-primary to-secondary text-white hover:opacity-90 disabled:opacity-50"
             >
-              {isLoading ? (
+              {isPremium ? (
+                <>
+                  <Crown className="mr-2 h-4 w-4" />
+                  Ya eres Premium
+                </>
+              ) : isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Procesando...

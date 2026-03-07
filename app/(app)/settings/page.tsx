@@ -31,11 +31,14 @@ import {
   LogOut,
   Check,
   X,
+  Bell,
 } from "lucide-react"
+import { usePushNotifications } from "@/hooks/use-push-notifications"
 
 export default function SettingsPage() {
   const { user, logout, refreshProfile } = useAuth()
   const router = useRouter()
+  const { permission, requestPermission, isSupported } = usePushNotifications()
 
   // Preferences
   const [preferences, setPreferences] = useState<UserPreferences | null>(null)
@@ -223,6 +226,31 @@ export default function SettingsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
+          {isSupported && (
+            <div className="flex items-center justify-between p-4 rounded-lg border border-primary/30 bg-card">
+              <div className="flex-1">
+                <Label className="text-foreground font-medium flex items-center gap-2">
+                  <Bell className="h-4 w-4" />
+                  Notificaciones Push
+                </Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {permission === 'granted' ? 'Activadas' : permission === 'denied' ? 'Bloqueadas' : 'Desactivadas'}
+                </p>
+              </div>
+              {permission !== 'granted' && (
+                <Button
+                  size="sm"
+                  onClick={requestPermission}
+                  className="bg-primary text-primary-foreground"
+                >
+                  Activar
+                </Button>
+              )}
+              {permission === 'granted' && (
+                <Check className="h-5 w-5 text-success" />
+              )}
+            </div>
+          )}
           <div className="flex items-center justify-between p-4 rounded-lg border border-primary/30 bg-card">
             <div className="flex-1">
               <Label className="text-foreground font-medium">Perfil Privado</Label>
