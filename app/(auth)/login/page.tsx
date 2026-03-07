@@ -74,7 +74,7 @@ export default function LoginPage() {
   }
 
   return (
-    <Card className="border-border bg-card">
+    <Card className="border-primary/20 bg-background/95 backdrop-blur-xl shadow-lg shadow-primary/5">
       <CardContent className="pt-6">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
@@ -148,10 +148,10 @@ export default function LoginPage() {
         </form>
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-border" />
+            <span className="w-full border-t border-primary/20" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-card px-2 text-muted-foreground">O continua con</span>
+            <span className="bg-background/95 px-2 text-muted-foreground">O continua con</span>
           </div>
         </div>
         <GoogleSignInButton 
