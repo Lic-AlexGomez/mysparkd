@@ -72,43 +72,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const response = await api.post<LoginResponse>("/auth/login", data)
     localStorage.setItem("sparkd_token", response.token)
     setToken(response.token)
-    
-    try {
-      const profile = await api.get<UserProfile>("/api/profile/me")
-      setUser(profile)
-      localStorage.setItem('sparkd_user', JSON.stringify(profile))
-    } catch (error) {
-      const mockUser: UserProfile = {
-        userId: 'user_' + Date.now(),
-        nombres: data.username,
-        apellidos: '',
-        telefono: '',
-        sex: 'MALE',
-        profileCompleted: false,
-        photos: [],
-        posts: [],
-        totalPosts: 0,
-        reputation: 75,
-        verificationLevel: 1
-      }
-      setUser(mockUser)
-      localStorage.setItem('sparkd_user', JSON.stringify(mockUser))
-    }
+    await fetchProfile()
   }
 
   const loginWithGoogle = async (idToken: string) => {
     const response = await api.post<LoginResponse>("/auth/google", { token: idToken })
     localStorage.setItem("sparkd_token", response.token)
-    console.log("[Auth] Token recibido del servidor:", response.token)
     setToken(response.token)
-    
-    try {
-      const profile = await api.get<UserProfile>("/api/profile/me")
-      setUser(profile)
-      localStorage.setItem('sparkd_user', JSON.stringify(profile))
-    } catch (error) {
-      await fetchProfile()
-    }
+    await fetchProfile()
   }
 
   const register = async (data: RegisterRequest) => {

@@ -59,6 +59,10 @@ export interface UserProfile {
   coverPhoto?: string
   profileCompleted: boolean
   premium: boolean
+  stripeCustomerId?: string
+  stripeSubscriptionId?: string
+  subscriptionStatus?: 'ACTIVE' | 'CANCELED' | 'PAST_DUE'
+  currentPeriodEnd?: string
   photos: Photo[]
   posts: Post[]
   totalPosts: number

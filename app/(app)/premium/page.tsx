@@ -55,9 +55,10 @@ export default function PremiumPage() {
   const fetchSubscription = async () => {
     try {
       const data = await api.get<UserSubscription>("/api/user-subscription/status")
+      console.log('Datos de suscripción:', data)
       setSubscription(data)
-    } catch {
-      // Silent fail
+    } catch (error) {
+      console.log('Error al obtener suscripción:', error)
     }
   }
 

@@ -75,3 +75,21 @@ NOTAS:
 - Esta funcionalidad incentiva las suscripciones premium
 - Puede generar ingresos adicionales por desbloqueos individuales
 - Considerar límite de posts bloqueados por usuario premium (ej: 5 por semana)
+
+
+===============================================
+CÓDIGO MOCK PENDIENTE DE IMPLEMENTACIÓN
+===============================================
+
+1. PUSH NOTIFICATIONS TOKEN (hooks/use-push-notifications.ts)
+   - Línea 40: mockToken generado localmente
+   - ACCIÓN: Implementar Firebase Cloud Messaging
+   - PRIORIDAD: BAJA (funciona como está para desarrollo)
+
+2. REACTIONS MODAL (components/feed/reactions-modal.tsx)
+   - Línea 33-41: Datos mock de usuarios que reaccionaron
+   - ACCIÓN: Crear endpoint GET /api/posts/{postId}/reactions en backend
+   - RESPUESTA ESPERADA: Array de { userId, username, reactionType }
+   - PRIORIDAD: MEDIA
+
+NOTA: El código mock permite que la app funcione mientras se implementa el backend.
