@@ -43,8 +43,11 @@ export default function SwipesPage() {
         }))
       
       setProfiles(profiles)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching profiles:', error)
+      if (error.message?.includes('403') || error.message?.includes('Forbidden')) {
+        console.log('Acceso denegado. Verifica que tu perfil esté completo y tengas preferencias configuradas.')
+      }
       setProfiles([])
     } finally {
       setIsLoading(false)

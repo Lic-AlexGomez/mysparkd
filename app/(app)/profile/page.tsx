@@ -51,6 +51,11 @@ export default function ProfilePage() {
   }, [user?.coverPhoto])
 
   const handleSaveProfile = async () => {
+    if (!user?.dateOfBirth) {
+      toast.error("No se puede actualizar el perfil sin fecha de nacimiento")
+      return
+    }
+    
     setIsSaving(true)
     try {
       await api.put("/api/profile", {
@@ -58,6 +63,7 @@ export default function ProfilePage() {
         apellidos: apellidos.trim(),
         sex,
         telefono: telefono.trim(),
+        dateOfBirth: user.dateOfBirth
       })
       await refreshProfile()
       toast.success("Perfil actualizado")

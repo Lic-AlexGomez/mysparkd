@@ -27,8 +27,12 @@ async function request<T>(
 ): Promise<T> {
   const token = getToken()
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
     ...((options.headers as Record<string, string>) || {}),
+  }
+
+  // Solo agregar Content-Type si no es FormData
+  if (!(options.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json"
   }
 
   if (token) {
@@ -78,7 +82,7 @@ export const api = {
   post: <T>(endpoint: string, body?: unknown) =>
     request<T>(endpoint, {
       method: "POST",
-      body: body ? JSON.stringify(body) : undefined,
+      body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
     }),
 
   put: <T>(endpoint: string, body?: unknown) =>

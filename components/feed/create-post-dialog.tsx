@@ -22,12 +22,15 @@ import { CreatePollDialog } from "./create-poll-dialog"
 import { useAuth } from "@/lib/auth-context"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
 
+import { usePremiumStatus } from "@/hooks/use-premium-status"
+
 interface CreatePostDialogProps {
   onCreated: () => void
 }
 
 export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
   const { user } = useAuth()
+  const { isPremium } = usePremiumStatus()
   const features = useFeatureFlags()
   const [open, setOpen] = useState(false)
   const [body, setBody] = useState("")
@@ -62,6 +65,7 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
       const postData: any = {
         body: body.trim(),
         permanent,
+        locked,
         ...(!permanent && { durationHours: Math.min(durationHours, 24) })
       }
       
@@ -280,7 +284,7 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
             <Label className="text-foreground">Post permanente</Label>
             <Switch checked={permanent} onCheckedChange={setPermanent} />
           </div>
-          {user?.premium && (
+          {isPremium && (
             <div className="flex items-center justify-between">
               <Label className="text-foreground flex items-center gap-2">
                 <Lock className="h-4 w-4 text-primary" />

@@ -40,11 +40,15 @@ const features = {
   ],
 }
 
+import { usePremiumStatus } from "@/hooks/use-premium-status"
+
 export default function PremiumPage() {
   const { user } = useAuth()
+  const { isPremium } = usePremiumStatus()
   const [isLoading, setIsLoading] = useState(false)
   const [subscription, setSubscription] = useState<UserSubscription | null>(null)
-  const isPremium = user?.premium || false
+
+  console.log('Usuario completo:', user)
 
   useEffect(() => {
     if (isPremium) {
