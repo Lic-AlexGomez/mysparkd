@@ -35,8 +35,10 @@ export default function ChatRoomPage() {
   const [isUploading, setIsUploading] = useState(false)
   const [isTyping, setIsTyping] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
+  const [recordingTime, setRecordingTime] = useState(0)
   const [replyTo, setReplyTo] = useState<Message | null>(null)
   const [showReactions, setShowReactions] = useState<string | null>(null)
+  const [messageReactions, setMessageReactions] = useState<Record<string, string[]>>({})
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const emojiPickerRef = useRef<HTMLDivElement>(null)
@@ -45,6 +47,7 @@ export default function ChatRoomPage() {
   const audioChunksRef = useRef<Blob[]>([])
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const reactionsRef = useRef<HTMLDivElement>(null)
+  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // WebSocket para mensajes en tiempo real
   const { sendMessage: sendViaWebSocket, isConnected } = useWebSocket(
@@ -99,13 +102,14 @@ export default function ChatRoomPage() {
       if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
         setShowEmojiPicker(false)
       }
-      if (reactionsRef.current && !reactionsRef.current.contains(event.target as Node)) {
+      const target = event.target as HTMLElement
+      if (showReactions && !target.closest('.reactions-menu') && !target.closest('.reactions-button')) {
         setShowReactions(null)
       }
     }
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
+  }, [showReactions])
 
   // Indicador de escribiendo
   useEffect(() => {
@@ -117,6 +121,21 @@ export default function ChatRoomPage() {
       setIsTyping(false)
     }
   }, [newMessage])
+
+  const handleReaction = async (messageId: string, emoji: string) => {
+    setMessageReactions(prev => ({
+      ...prev,
+      [messageId]: [...(prev[messageId] || []), emoji]
+    }))
+    setShowReactions(null)
+    
+    // TODO: Cuando tengas el endpoint en el backend, descomenta esto:
+    // try {
+    //   await api.post(`/api/chat/messages/${messageId}/react`, { emoji })
+    // } catch (error) {
+    //   console.error('Error al guardar reacción:', error)
+    // }
+  }
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -142,6 +161,11 @@ export default function ChatRoomPage() {
       const mediaRecorder = new MediaRecorder(stream)
       mediaRecorderRef.current = mediaRecorder
       audioChunksRef.current = []
+      setRecordingTime(0)
+
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1)
+      }, 1000)
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -150,6 +174,10 @@ export default function ChatRoomPage() {
       }
 
       mediaRecorder.onstop = async () => {
+        if (recordingIntervalRef.current) {
+          clearInterval(recordingIntervalRef.current)
+        }
+        
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
         
         // Convertir a MP3 usando Cloudinary o enviar como base64 temporalmente
@@ -185,6 +213,7 @@ export default function ChatRoomPage() {
         reader.readAsDataURL(audioBlob)
         
         stream.getTracks().forEach(track => track.stop())
+        setRecordingTime(0)
       }
 
       mediaRecorder.start()
@@ -199,6 +228,9 @@ export default function ChatRoomPage() {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop()
       setIsRecording(false)
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current)
+      }
     }
   }
 
@@ -341,6 +373,7 @@ export default function ChatRoomPage() {
               const repliedMsg = replyToId ? messages.find(m => m.messageId === replyToId) : null
               const isAudio = actualContent.startsWith('🎤 ')
               const audioUrl = isAudio ? actualContent.substring(3) : null
+              const reactions = messageReactions[msg.messageId] || []
               
               return (
                 <div
@@ -355,7 +388,7 @@ export default function ChatRoomPage() {
                       "max-w-[75%] rounded-2xl px-4 py-3 shadow-lg relative group",
                       isOwn
                         ? "bg-gradient-to-br from-primary to-secondary text-black rounded-br-md"
-                        : "bg-gradient-to-br from-card to-muted/50 text-foreground rounded-bl-md border border-primary/10"
+                        : "bg-gradient-to-br from-card to-muted/50 text-foreground rounded-bl-md border border-primary/5"
                     )}
                   >
                     {repliedMsg && (
@@ -367,9 +400,18 @@ export default function ChatRoomPage() {
                     {isAudio && audioUrl ? (
                       <AudioMessage src={audioUrl} className="min-w-[200px]" />
                     ) : actualContent.startsWith('http') && (actualContent.includes('cloudinary.com') || actualContent.match(/\.(jpg|jpeg|png|gif|webp)$/i)) ? (
-                      <img src={actualContent} alt="Imagen" className="rounded-lg max-w-full max-h-64 object-cover" />
+                      <img src={actualContent} alt="Imagen" className="rounded-lg w-[280px] h-[280px] object-cover" />
                     ) : (
                       <p className="text-sm leading-relaxed">{actualContent}</p>
+                    )}
+                    {reactions.length > 0 && (
+                      <div className="flex gap-1 mt-2 flex-wrap">
+                        {reactions.map((emoji, idx) => (
+                          <span key={idx} className="text-sm bg-black/10 px-2 py-0.5 rounded-full">
+                            {emoji}
+                          </span>
+                        ))}
+                      </div>
                     )}
                     <div className="flex items-center justify-between gap-2">
                       <p
@@ -388,15 +430,21 @@ export default function ChatRoomPage() {
                           size="icon"
                           variant="ghost"
                           className="h-6 w-6"
-                          onClick={() => setReplyTo(msg)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setReplyTo(msg)
+                          }}
                         >
                           <Reply className="h-3 w-3" />
                         </Button>
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="h-6 w-6"
-                          onClick={() => setShowReactions(showReactions === msg.messageId ? null : msg.messageId)}
+                          className="h-6 w-6 reactions-button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setShowReactions(showReactions === msg.messageId ? null : msg.messageId)
+                          }}
                         >
                           <Smile className="h-3 w-3" />
                         </Button>
@@ -404,17 +452,15 @@ export default function ChatRoomPage() {
                     </div>
                     {showReactions === msg.messageId && (
                       <div 
-                        ref={reactionsRef}
-                        className="absolute -top-10 right-0 bg-background border border-primary/20 rounded-full px-2 py-1 shadow-lg flex gap-1 z-50"
+                        className="reactions-menu absolute -top-10 right-0 bg-background border border-primary/20 rounded-full px-2 py-1 shadow-lg flex gap-1 z-50"
                       >
                         {['❤️', '👍', '😂', '😮', '😢', '😡'].map(emoji => (
                           <button
                             key={emoji}
-                            className="hover:scale-125 transition-transform text-lg p-1"
+                            className="hover:scale-125 transition-transform text-lg p-1 cursor-pointer"
                             onClick={(e) => {
                               e.stopPropagation()
-                              console.log(`Reacción ${emoji} al mensaje ${msg.messageId}`)
-                              setShowReactions(null)
+                              handleReaction(msg.messageId, emoji)
                             }}
                           >
                             {emoji}
@@ -484,6 +530,14 @@ export default function ChatRoomPage() {
               >
                 <X className="h-3 w-3" />
               </Button>
+            </div>
+          )}
+          {isRecording && (
+            <div className="mb-2 flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+              <div className="h-3 w-3 bg-red-500 rounded-full animate-pulse" />
+              <span className="text-sm font-medium text-red-500">
+                Grabando... {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
+              </span>
             </div>
           )}
           <div className="flex gap-2">
