@@ -160,7 +160,7 @@ export function TopNavbar() {
           </Link>
         </Button>
         {/* Notifications */}
-        <div className="relative">
+        <div className="relative mr-4">
           <Button
             variant="ghost"
             size="icon"
@@ -255,7 +255,7 @@ export function TopNavbar() {
             align="end"
             className="w-56 bg-card border-border"
           >
-            {console.log(user)}
+            
             <div className="px-3 py-2">
               <p className="text-sm font-medium text-foreground">
                 {user?.nombres} {user?.apellidos}

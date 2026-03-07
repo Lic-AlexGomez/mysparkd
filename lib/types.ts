@@ -56,6 +56,7 @@ export interface UserProfile {
   bio?: string
   location?: string
   website?: string
+  coverPhoto?: string
   profileCompleted: boolean
   premium: boolean
   photos: Photo[]

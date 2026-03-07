@@ -62,7 +62,6 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
       const postData: any = {
         body: body.trim(),
         permanent,
-        locked,
         ...(!permanent && { durationHours: Math.min(durationHours, 24) })
       }
       

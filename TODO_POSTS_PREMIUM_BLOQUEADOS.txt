@@ -1,0 +1,77 @@
+===============================================
+FUNCIONALIDAD PENDIENTE: POSTS PREMIUM BLOQUEADOS
+===============================================
+
+DESCRIPCIÓN:
+------------
+Implementar la funcionalidad de posts con contenido exclusivo para usuarios premium.
+
+CÓMO DEBERÍA FUNCIONAR:
+-----------------------
+1. Usuarios PREMIUM pueden crear posts marcados como "bloqueados" (locked: true)
+2. Usuarios NO-PREMIUM pueden ver el post pero el contenido está:
+   - Difuminado/oculto
+   - Con un mensaje "Contenido Premium - Hazte Premium para ver"
+   - Opción de desbloquear pagando o suscribiéndose
+3. Usuarios PREMIUM pueden ver todo el contenido sin restricciones
+
+CAMBIOS NECESARIOS EN EL BACKEND:
+----------------------------------
+1. Agregar campo "locked" al DTO PostRequestDTO (Java):
+   - locked: boolean
+
+2. Agregar campo "locked" a la entidad Post en la base de datos
+
+3. Modificar el endpoint POST /api/posts/new para aceptar el campo "locked"
+
+4. Modificar el endpoint GET /api/posts para:
+   - Verificar si el usuario es premium
+   - Si el post está locked y el usuario NO es premium:
+     * Ocultar/censurar el contenido del body
+     * Marcar el post como "canUnlock: true"
+     * No mostrar la imagen completa (opcional)
+
+5. Crear endpoint para desbloquear posts individuales (opcional):
+   - POST /api/posts/{postId}/unlock
+   - Cobrar un monto o verificar suscripción premium
+
+CAMBIOS EN EL FRONTEND:
+-----------------------
+1. El switch "Post Premium (bloqueado)" ya existe en create-post-dialog.tsx (líneas 283-289)
+   - Actualmente está comentado/deshabilitado en el envío
+
+2. Descomentar el campo "locked" en create-post-dialog.tsx línea 67:
+   const postData: any = {
+     body: body.trim(),
+     permanent,
+     locked,  // <-- Descomentar esto
+     ...(!permanent && { durationHours: Math.min(durationHours, 24) })
+   }
+
+3. En PostCard component, agregar lógica para mostrar contenido bloqueado:
+   - Si post.locked && !user.premium:
+     * Mostrar contenido difuminado
+     * Botón "Desbloquear con Premium"
+     * Icono de candado
+
+ARCHIVOS A MODIFICAR:
+---------------------
+Frontend:
+- components/feed/create-post-dialog.tsx (línea 67)
+- components/feed/post-card.tsx (agregar UI para posts bloqueados)
+- lib/types.ts (el campo "locked" ya existe en Post interface)
+
+Backend:
+- DTOs/PostRequestDTO.java (agregar campo locked)
+- entities/Post.java (agregar campo locked)
+- controllers/PostController.java (manejar campo locked)
+- services/PostService.java (lógica de bloqueo/desbloqueo)
+
+PRIORIDAD: MEDIA
+ESTIMACIÓN: 4-6 horas de desarrollo
+
+NOTAS:
+------
+- Esta funcionalidad incentiva las suscripciones premium
+- Puede generar ingresos adicionales por desbloqueos individuales
+- Considerar límite de posts bloqueados por usuario premium (ej: 5 por semana)

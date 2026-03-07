@@ -47,9 +47,8 @@ export default function ProfilePage() {
   }, [user?.photos])
 
   useEffect(() => {
-    const savedCover = localStorage.getItem('sparkd_cover')
-    if (savedCover) setCoverPhoto(savedCover)
-  }, [])
+    setCoverPhoto(user?.coverPhoto || null)
+  }, [user?.coverPhoto])
 
   const handleSaveProfile = async () => {
     setIsSaving(true)
@@ -155,8 +154,9 @@ export default function ProfilePage() {
               
               try {
                 const imageUrl = await uploadToCloudinary(file)
+                await api.put('/api/profile', { coverPhoto: imageUrl })
                 setCoverPhoto(imageUrl)
-                localStorage.setItem('sparkd_cover', imageUrl)
+                await refreshProfile()
                 toast.dismiss(toastId)
                 toast.success('Portada actualizada')
               } catch (error) {
