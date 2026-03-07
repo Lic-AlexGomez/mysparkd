@@ -262,6 +262,7 @@ export interface Chat {
   chatId: string
   otherUserId: string
   otherUsername: string
+  otherUserPhoto?: string
   lastMessage: string | null
   lastMessageAt: string | null
 }

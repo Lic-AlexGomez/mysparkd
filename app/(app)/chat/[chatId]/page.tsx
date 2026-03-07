@@ -9,8 +9,8 @@ import { useWebSocket } from "@/hooks/use-websocket"
 import type { Message, Chat } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { ArrowLeft, Send, Loader2, MessageCircle, Smile, Image as ImageIcon, X, Mic, Reply, MoreVertical } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { ArrowLeft, Send, Loader2, MessageCircle, Smile, Image as ImageIcon, X, Mic, Reply, MoreVertical, Copy, Paperclip, Check, Search, Star, Images } from "lucide-react"
 import dynamic from "next/dynamic"
 import { AudioMessage } from "@/components/audio-message"
 
@@ -39,6 +39,14 @@ export default function ChatRoomPage() {
   const [replyTo, setReplyTo] = useState<Message | null>(null)
   const [showReactions, setShowReactions] = useState<string | null>(null)
   const [messageReactions, setMessageReactions] = useState<Record<string, string[]>>({})
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [filePreview, setFilePreview] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [showSearch, setShowSearch] = useState(false)
+  const [starredMessages, setStarredMessages] = useState<Set<string>>(new Set())
+  const [showGallery, setShowGallery] = useState(false)
+  const [selectedImageView, setSelectedImageView] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const emojiPickerRef = useRef<HTMLDivElement>(null)
@@ -48,6 +56,7 @@ export default function ChatRoomPage() {
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const reactionsRef = useRef<HTMLDivElement>(null)
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const fileInputRefDoc = useRef<HTMLInputElement>(null)
 
   // WebSocket para mensajes en tiempo real
   const { sendMessage: sendViaWebSocket, isConnected } = useWebSocket(
@@ -80,7 +89,18 @@ export default function ChatRoomPage() {
     try {
       const chats = await api.get<Chat[]>("/api/chat/chats")
       const current = chats.find((c) => c.chatId === chatId)
-      if (current) setChatInfo(current)
+      if (current) {
+        // Obtener foto del perfil del otro usuario
+        try {
+          const profile = await api.get<any>(`/api/profile/${current.otherUserId}`)
+          console.log("Foto de perfil:", profile)
+          const primaryPhoto = profile.photos?.find((p: any) => p.isPrimary || p.primary)
+          current.otherUserPhoto = primaryPhoto?.url
+        } catch {
+          // Si falla, continuar sin foto
+        }
+        setChatInfo(current)
+      }
     } catch {
       // silent
     }
@@ -128,13 +148,51 @@ export default function ChatRoomPage() {
       [messageId]: [...(prev[messageId] || []), emoji]
     }))
     setShowReactions(null)
-    
-    // TODO: Cuando tengas el endpoint en el backend, descomenta esto:
-    // try {
-    //   await api.post(`/api/chat/messages/${messageId}/react`, { emoji })
-    // } catch (error) {
-    //   console.error('Error al guardar reacción:', error)
-    // }
+  }
+
+  const handleCopyMessage = async (content: string, messageId: string) => {
+    try {
+      await navigator.clipboard.writeText(content)
+      setCopiedMessageId(messageId)
+      setTimeout(() => setCopiedMessageId(null), 2000)
+    } catch (error) {
+      console.error('Error al copiar:', error)
+    }
+  }
+
+  const toggleStarMessage = (messageId: string) => {
+    setStarredMessages(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(messageId)) {
+        newSet.delete(messageId)
+      } else {
+        newSet.add(messageId)
+      }
+      return newSet
+    })
+  }
+
+  const filteredMessages = searchQuery
+    ? messages.filter(msg => msg.content.toLowerCase().includes(searchQuery.toLowerCase()))
+    : messages
+
+  const mediaMessages = messages.filter(msg => {
+    const content = msg.content.startsWith('@reply:') ? msg.content.split('|')[1] : msg.content
+    return content?.startsWith('http') && (content.includes('cloudinary.com') || content.match(/\.(jpg|jpeg|png|gif|webp)$/i))
+  })
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setSelectedFile(file)
+      setFilePreview(file.name)
+    }
+  }
+
+  const handleRemoveFile = () => {
+    setSelectedFile(null)
+    setFilePreview(null)
+    if (fileInputRefDoc.current) fileInputRefDoc.current.value = ''
   }
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -263,7 +321,7 @@ export default function ChatRoomPage() {
   }
 
   const handleSend = async () => {
-    if (!newMessage.trim() && !selectedImage) return
+    if (!newMessage.trim() && !selectedImage && !selectedFile) return
     setIsSending(true)
     
     let messageContent = newMessage.trim()
@@ -274,7 +332,20 @@ export default function ChatRoomPage() {
     setReplyTo(null)
     
     try {
-      if (selectedImage) {
+      if (selectedFile) {
+        setIsUploading(true)
+        const fileUrl = await uploadToCloudinary(selectedFile)
+        setIsUploading(false)
+        
+        const content = `📎 ${selectedFile.name}|${fileUrl}`
+        const sentViaWS = sendViaWebSocket(chatId, content)
+        
+        if (!sentViaWS) {
+          await api.post("/api/chat/send", { chatId, content })
+        }
+        
+        handleRemoveFile()
+      } else if (selectedImage) {
         setIsUploading(true)
         const imageUrl = await uploadToCloudinary(selectedImage)
         setIsUploading(false)
@@ -314,7 +385,7 @@ export default function ChatRoomPage() {
       </div>
     )
   }
-
+     {console.log("aqui:",chatInfo)}
   return (
     <div className="flex h-[calc(100svh-4rem)] flex-col lg:h-svh bg-gradient-to-b from-background to-muted/20">
       {/* Chat header */}
@@ -328,7 +399,9 @@ export default function ChatRoomPage() {
           <ArrowLeft className="h-5 w-5" />
           <span className="sr-only">Volver</span>
         </Button>
+   
         <Avatar className="h-10 w-10 border-2 border-primary/30 ring-2 ring-primary/10">
+          <AvatarImage src={chatInfo?.otherUserPhoto} alt={chatInfo?.otherUsername} />
           <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-bold">
             {chatInfo?.otherUsername?.[0]?.toUpperCase() || "?"}
           </AvatarFallback>
@@ -347,7 +420,70 @@ export default function ChatRoomPage() {
             </p>
           )}
         </div>
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowSearch(!showSearch)}
+            className="text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-xl"
+          >
+            <Search className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowGallery(!showGallery)}
+            className="text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-xl"
+          >
+            <Images className="h-5 w-5" />
+          </Button>
+        </div>
       </div>
+
+      {showSearch && (
+        <div className="sticky top-[calc(4rem+57px)] z-20 border-b border-primary/20 bg-background/95 px-4 py-2">
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscar mensajes..."
+            className="bg-muted/50 border-primary/20"
+          />
+        </div>
+      )}
+
+      {showGallery && (
+        <div className="sticky top-[calc(4rem+57px)] z-20 border-b border-primary/20 bg-background/95 px-4 py-2">
+          <p className="text-xs font-semibold mb-1.5">Galería ({mediaMessages.length})</p>
+          <div className="grid grid-cols-6 gap-1.5 max-h-20 overflow-y-auto">
+            {mediaMessages.map((msg) => {
+              const content = msg.content.startsWith('@reply:') ? msg.content.split('|')[1] : msg.content
+              return (
+                <img
+                  key={msg.messageId}
+                  src={content}
+                  alt="Media"
+                  className="w-full h-12 object-cover rounded cursor-pointer hover:opacity-80"
+                  onClick={() => setSelectedImageView(content)}
+                />
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {selectedImageView && (
+        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center" onClick={() => setSelectedImageView(null)}>
+          <img src={selectedImageView} alt="Full" className="max-w-[90%] max-h-[90%] object-contain" />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-4 right-4 text-white hover:bg-white/20"
+            onClick={() => setSelectedImageView(null)}
+          >
+            <X className="h-6 w-6" />
+          </Button>
+        </div>
+      )}
 
       {/* Messages */}
       <div
@@ -355,7 +491,7 @@ export default function ChatRoomPage() {
         className="flex-1 overflow-y-auto px-4 py-4"
       >
         <div className="flex flex-col gap-3">
-          {messages.length === 0 ? (
+          {filteredMessages.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 py-20">
               <div className="relative">
                 <div className="absolute inset-0 blur-2xl bg-primary/20 rounded-full" />
@@ -364,7 +500,7 @@ export default function ChatRoomPage() {
               <p className="text-muted-foreground">¡Envía el primer mensaje!</p>
             </div>
           ) : (
-            messages.map((msg) => {
+            filteredMessages.map((msg) => {
               const isOwn = msg.senderId === user?.userId
               const isReply = msg.content.startsWith('@reply:')
               const replyMatch = isReply ? msg.content.match(/@reply:([^|]+)\|(.*)/) : null
@@ -373,6 +509,10 @@ export default function ChatRoomPage() {
               const repliedMsg = replyToId ? messages.find(m => m.messageId === replyToId) : null
               const isAudio = actualContent.startsWith('🎤 ')
               const audioUrl = isAudio ? actualContent.substring(3) : null
+              const isFile = actualContent.startsWith('📎 ')
+              const fileMatch = isFile ? actualContent.match(/📎 (.+)\|(.+)/) : null
+              const fileName = fileMatch?.[1]
+              const fileUrl = fileMatch?.[2]
               const reactions = messageReactions[msg.messageId] || []
               
               return (
@@ -399,8 +539,18 @@ export default function ChatRoomPage() {
                     )}
                     {isAudio && audioUrl ? (
                       <AudioMessage src={audioUrl} className="min-w-[200px]" />
+                    ) : isFile && fileName && fileUrl ? (
+                      <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 bg-black/10 rounded-lg hover:bg-black/20 transition-colors">
+                        <Paperclip className="h-4 w-4" />
+                        <span className="text-sm truncate max-w-[200px]">{fileName}</span>
+                      </a>
                     ) : actualContent.startsWith('http') && (actualContent.includes('cloudinary.com') || actualContent.match(/\.(jpg|jpeg|png|gif|webp)$/i)) ? (
-                      <img src={actualContent} alt="Imagen" className="rounded-lg w-[280px] h-[280px] object-cover" />
+                      <img 
+                        src={actualContent} 
+                        alt="Imagen" 
+                        className="rounded-lg w-[100px] h-[100px] object-cover cursor-pointer hover:opacity-90" 
+                        onClick={() => setSelectedImageView(actualContent)}
+                      />
                     ) : (
                       <p className="text-sm leading-relaxed">{actualContent}</p>
                     )}
@@ -426,6 +576,30 @@ export default function ChatRoomPage() {
                         })}
                       </p>
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            toggleStarMessage(msg.messageId)
+                          }}
+                          title="Destacar mensaje"
+                        >
+                          <Star className={cn("h-3 w-3", starredMessages.has(msg.messageId) && "fill-yellow-500 text-yellow-500")} />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleCopyMessage(actualContent, msg.messageId)
+                          }}
+                          title="Copiar mensaje"
+                        >
+                          {copiedMessageId === msg.messageId ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                        </Button>
                         <Button
                           size="icon"
                           variant="ghost"
@@ -532,6 +706,21 @@ export default function ChatRoomPage() {
               </Button>
             </div>
           )}
+          {filePreview && (
+            <div className="mb-2 flex items-center gap-2 bg-muted/50 border border-primary/20 rounded-lg px-3 py-2">
+              <Paperclip className="h-4 w-4" />
+              <span className="text-sm flex-1 truncate">{filePreview}</span>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-6 w-6"
+                onClick={handleRemoveFile}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          )}
           {isRecording && (
             <div className="mb-2 flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
               <div className="h-3 w-3 bg-red-500 rounded-full animate-pulse" />
@@ -584,6 +773,24 @@ export default function ChatRoomPage() {
               className="hidden"
               onChange={handleImageSelect}
             />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => fileInputRefDoc.current?.click()}
+              className="h-10 w-10 rounded-2xl text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              title="Compartir archivo"
+            >
+              <Paperclip className="h-5 w-5" />
+              <span className="sr-only">Archivo</span>
+            </Button>
+            <input
+              ref={fileInputRefDoc}
+              type="file"
+              accept="*/*"
+              className="hidden"
+              onChange={handleFileSelect}
+            />
             <Input
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
@@ -598,7 +805,7 @@ export default function ChatRoomPage() {
             />
             <Button
               onClick={handleSend}
-              disabled={isSending || isUploading || (!newMessage.trim() && !selectedImage)}
+              disabled={isSending || isUploading || (!newMessage.trim() && !selectedImage && !selectedFile)}
               size="icon"
               className="h-10 w-10 rounded-2xl bg-gradient-to-br from-primary to-secondary text-black hover:scale-110 transition-transform shadow-lg disabled:opacity-50 disabled:hover:scale-100"
             >
