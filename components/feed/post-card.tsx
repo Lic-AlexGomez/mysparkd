@@ -5,7 +5,7 @@ import Link from "next/link"
 import type { Post, ReactionType } from "@/lib/types"
 import { api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -265,6 +265,7 @@ export function PostCard({ post, onDelete, onUpdate, highlight }: PostCardProps)
             className="flex items-center gap-3"
           >
             <Avatar className="h-10 w-10 border-2 border-primary ring-2 ring-primary/20">
+              <AvatarImage src={post.userPhoto} alt={post.username} className="object-cover" />
               <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
                 {post.username?.[0]?.toUpperCase() || "?"}
               </AvatarFallback>

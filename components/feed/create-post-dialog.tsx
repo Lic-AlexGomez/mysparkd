@@ -95,8 +95,23 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
       })
  
       if (!res.ok) {
-        const error = await res.json().catch(() => ({}))
-        throw new Error(error.detail || error.message || 'Error al crear post')
+        const errorText = await res.text()
+        let errorMessage = 'Error al crear post'
+        
+        if (errorText.includes('contenido inapropiado') || errorText.includes('sexual') || errorText.includes('violence')) {
+          errorMessage = '⚠️ Contenido bloqueado: El texto o imagen contiene contenido inapropiado'
+        } else if (errorText.includes('48 horas')) {
+          errorMessage = '⏰ Solo puedes publicar 1 post cada 48 horas (usuarios free)'
+        } else if (errorText.includes('duración')) {
+          errorMessage = 'La duración máxima es de 48 horas'
+        } else {
+          try {
+            const error = JSON.parse(errorText)
+            errorMessage = error.detail || error.message || errorMessage
+          } catch {}
+        }
+        
+        throw new Error(errorMessage)
       }
       
       toast.success("Post creado!")
