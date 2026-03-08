@@ -41,6 +41,20 @@ export default function ProfilePage() {
   const [telefono, setTelefono] = useState(user?.telefono || "")
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [localPhotos, setLocalPhotos] = useState(user?.photos || [])
+  const [userInterests, setUserInterests] = useState<any[]>([])
+
+  useEffect(() => {
+    const fetchInterests = async () => {
+      try {
+        const interests = await api.get('/api/interests/me')
+        console.log('Fetched interests:', interests)
+        setUserInterests(interests)
+      } catch (error) {
+        console.error('Error fetching interests:', error)
+      }
+    }
+    fetchInterests()
+  }, [])
 
   useEffect(() => {
     setLocalPhotos(user?.photos || [])
@@ -551,7 +565,19 @@ export default function ProfilePage() {
       )}
 
       {/* Interests */}
-      {user.interests && user.interests.length > 0 && (() => {
+      {(() => {
+        console.log('User interests from state:', userInterests)
+        console.log('User interests length:', userInterests?.length)
+        
+        if (!userInterests || userInterests.length === 0) {
+          return (
+            <div className="mt-6 px-4">
+              <h2 className="mb-4 text-sm font-semibold text-foreground">Intereses</h2>
+              <p className="text-sm text-muted-foreground">No has seleccionado intereses aún</p>
+            </div>
+          )
+        }
+
         const categoryNames: Record<string, string> = {
           ENTRETENIMIENTO: "🎬 Entretenimiento",
           DEPORTE: "⚽ Deporte",
@@ -570,12 +596,14 @@ export default function ProfilePage() {
           AVENTURA: "🏔️ Aventura"
         }
 
-        const interestsByCategory = user.interests.reduce((acc, interest) => {
-          const category = typeof interest === 'string' ? 'OTROS' : (interest.category || 'OTROS')
+        const interestsByCategory = userInterests.reduce((acc, interest) => {
+          const category = interest.category || 'OTROS'
           if (!acc[category]) acc[category] = []
           acc[category].push(interest)
           return acc
-        }, {} as Record<string, typeof user.interests>)
+        }, {} as Record<string, typeof userInterests>)
+
+        console.log('Interests by category:', interestsByCategory)
 
         return (
           <div className="mt-6 px-4">
@@ -587,16 +615,12 @@ export default function ProfilePage() {
                     {categoryNames[category] || category}
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {interests.map((interest, index) => {
-                      const name = typeof interest === 'string' ? interest : interest.name
-                      const icon = typeof interest === 'string' ? '' : interest.icon
-                      return (
-                        <span key={index} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/30 text-xs text-foreground font-medium">
-                          {icon && <span>{icon}</span>}
-                          {name}
-                        </span>
-                      )
-                    })}
+                    {interests.map((interest, index) => (
+                      <span key={index} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/30 text-xs text-foreground font-medium">
+                        {interest.icon && <span>{interest.icon}</span>}
+                        {interest.name}
+                      </span>
+                    ))}
                   </div>
                 </div>
               ))}
@@ -631,6 +655,20 @@ export default function ProfilePage() {
           <div className="flex-1 text-left">
             <p className="text-sm font-semibold text-foreground">Mis Matches</p>
             <p className="text-xs text-muted-foreground">Ver conexiones</p>
+          </div>
+          <Shield className="h-4 w-4 text-muted-foreground" />
+        </button>
+
+        <button
+          onClick={() => router.push('/likes')}
+          className="w-full flex items-center gap-3 p-4 rounded-2xl bg-card border border-secondary/30 hover:bg-card/80 transition-colors"
+        >
+          <div className="h-10 w-10 rounded-full bg-secondary/10 border border-secondary/30 flex items-center justify-center">
+            <Heart className="h-5 w-5 text-secondary fill-secondary" />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="text-sm font-semibold text-foreground">Quién me dio Like</p>
+            <p className="text-xs text-muted-foreground">Ver personas interesadas</p>
           </div>
           <Shield className="h-4 w-4 text-muted-foreground" />
         </button>

@@ -377,34 +377,68 @@ export default function SettingsPage() {
             <div className="flex justify-center py-4">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {allInterests.map((interest) => {
-                const isSelected = myInterests.some(
-                  (i) => i.interestId === interest.interestId
-                )
-                return (
-                  <button
-                    key={interest.interestId}
-                    onClick={() => toggleInterest(interest.interestId)}
-                    className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-                      isSelected
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
-                    }`}
-                  >
-                    {isSelected && <Check className="h-3 w-3" />}
-                    {interest.name}
-                  </button>
-                )
-              })}
-              {allInterests.length === 0 && (
-                <p className="text-sm text-muted-foreground">
-                  No hay intereses disponibles
-                </p>
-              )}
-            </div>
-          )}
+          ) : (() => {
+            const categoryNames: Record<string, string> = {
+              ENTRETENIMIENTO: "🎬 Entretenimiento",
+              DEPORTE: "⚽ Deporte",
+              VIAJES: "✈️ Viajes",
+              ESTILO_DE_VIDA: "💎 Estilo de Vida",
+              CONOCIMIENTO: "📚 Conocimiento",
+              SOCIAL: "👥 Social",
+              ARTE: "🎨 Arte",
+              MUSICA: "🎵 Música",
+              GASTRONOMIA: "🍽️ Gastronomía",
+              NATURALEZA: "🌿 Naturaleza",
+              TECNOLOGIA: "💻 Tecnología",
+              NEGOCIOS: "💼 Negocios",
+              BIENESTAR: "🧘 Bienestar",
+              CULTURA: "🏛️ Cultura",
+              AVENTURA: "🏔️ Aventura"
+            }
+
+            const categories = [...new Set(allInterests.map((i) => i.category))]
+
+            return (
+              <div className="space-y-6">
+                {categories.map((category) => (
+                  <div key={category}>
+                    <p className="mb-3 text-sm font-bold text-foreground">
+                      {categoryNames[category] || category}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {allInterests
+                        .filter((i) => i.category === category)
+                        .map((interest) => {
+                          const isSelected = myInterests.some(
+                            (i) => i.interestId === interest.interestId
+                          )
+                          return (
+                            <button
+                              key={interest.interestId}
+                              onClick={() => toggleInterest(interest.interestId)}
+                              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-all ${
+                                isSelected
+                                  ? "bg-gradient-to-r from-primary to-secondary text-black shadow-lg scale-105"
+                                  : "bg-muted text-muted-foreground hover:bg-muted/80 hover:scale-105"
+                              }`}
+                            >
+                              {interest.icon && <span>{interest.icon}</span>}
+                              {interest.name}
+                              {isSelected && <Check className="h-3 w-3" />}
+                            </button>
+                          )
+                        })}
+                    </div>
+                  </div>
+                ))}
+                {allInterests.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    No hay intereses disponibles
+                  </p>
+                )}
+              </div>
+            )
+          })()}
         </CardContent>
       </Card>
 

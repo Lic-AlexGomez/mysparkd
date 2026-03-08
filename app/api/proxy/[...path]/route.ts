@@ -2,9 +2,10 @@ const BACKEND_URL = "https://sparkd1-0.onrender.com"
 
 async function handler(
   request: Request,
-  { params }: { params: Promise<{ path: string[] }> }
+  context: { params: Promise<{ path: string[] }> | { path: string[] } }
 ) {
-  const { path } = await params
+  const params = await Promise.resolve(context.params)
+  const { path } = params
   const endpoint = `/${path.join("/")}`
 
   const url = new URL(request.url)
