@@ -38,7 +38,27 @@ export default function MatchesPage() {
   const fetchMatches = useCallback(async () => {
     try {
       const data = await api.get<Match[]>("/api/matches/my/matches")
-      setMatches(data)
+      console.log('Matches data:', data)
+      
+      // Obtener fotos de cada match
+      const matchesWithPhotos = await Promise.all(
+        data.map(async (match) => {
+          try {
+            const profile = await api.get<any>(`/api/profile/${match.userId}`)
+            return {
+              ...match,
+              photoUrl: profile.photos?.[0]?.url || profile.photoUrl,
+              bio: profile.bio,
+              edad: profile.edad,
+              apellidos: profile.apellidos
+            }
+          } catch {
+            return match
+          }
+        })
+      )
+      
+      setMatches(matchesWithPhotos)
     } catch (error) {
       console.error('Error fetching matches:', error)
       setMatches([])

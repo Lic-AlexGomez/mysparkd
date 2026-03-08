@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { api } from "@/lib/api"
 import type { Chat } from "@/lib/types"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Loader2, MessageCircle } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
@@ -16,7 +16,22 @@ export default function ChatListPage() {
   const fetchChats = useCallback(async () => {
     try {
       const data = await api.get<Chat[]>("/api/chat/chats")
-      setChats(data)
+      
+      const chatsWithPhotos = await Promise.all(
+        data.map(async (chat) => {
+          try {
+            const profile = await api.get<any>(`/api/profile/${chat.otherUserId}`)
+            return {
+              ...chat,
+              otherUserPhoto: profile.photos?.[0]?.url || profile.photoUrl
+            }
+          } catch {
+            return chat
+          }
+        })
+      )
+      
+      setChats(chatsWithPhotos)
     } catch {
       // silent
     } finally {
@@ -67,6 +82,7 @@ export default function ChatListPage() {
               >
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/5 to-transparent rounded-full blur-2xl" />
                 <Avatar className="h-14 w-14 border-2 border-primary/30 ring-4 ring-primary/10 group-hover:scale-110 transition-transform relative z-10">
+                  <AvatarImage src={chat.otherUserPhoto} alt={chat.otherUsername} className="object-cover" />
                   <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-bold">
                     {chat.otherUsername?.[0]?.toUpperCase() || "?"}
                   </AvatarFallback>
