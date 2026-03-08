@@ -14,6 +14,7 @@ import {
   Search,
   BarChart3,
   Users,
+  ThumbsUp,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
@@ -22,6 +23,7 @@ const navItems = [
   { href: "/feed", label: "Feed", icon: Newspaper },
   { href: "/search", label: "Buscar", icon: Search },
   { href: "/swipes", label: "Swipes", icon: Zap },
+  { href: "/likes", label: "Likes", icon: ThumbsUp },
   { href: "/matches", label: "Matches", icon: Heart },
   { href: "/chat", label: "Chat", icon: MessageCircle },
   { href: "/groups", label: "Grupos", icon: Users },

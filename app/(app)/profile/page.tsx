@@ -551,21 +551,59 @@ export default function ProfilePage() {
       )}
 
       {/* Interests */}
-      {user.interests && user.interests.length > 0 && (
-        <div className="mt-6 px-4">
-          <h2 className="mb-3 text-sm font-semibold text-foreground">Intereses</h2>
-          <div className="flex flex-wrap gap-2">
-            {user.interests.map((interest, index) => {
-              const name = typeof interest === 'string' ? interest : interest.name
-              return (
-                <span key={index} className="px-3 py-1.5 rounded-full bg-muted/20 border border-primary/30 text-xs text-foreground">
-                  {name}
-                </span>
-              )
-            })}
+      {user.interests && user.interests.length > 0 && (() => {
+        const categoryNames: Record<string, string> = {
+          ENTRETENIMIENTO: "🎬 Entretenimiento",
+          DEPORTE: "⚽ Deporte",
+          VIAJES: "✈️ Viajes",
+          ESTILO_DE_VIDA: "💎 Estilo de Vida",
+          CONOCIMIENTO: "📚 Conocimiento",
+          SOCIAL: "👥 Social",
+          ARTE: "🎨 Arte",
+          MUSICA: "🎵 Música",
+          GASTRONOMIA: "🍽️ Gastronomía",
+          NATURALEZA: "🌿 Naturaleza",
+          TECNOLOGIA: "💻 Tecnología",
+          NEGOCIOS: "💼 Negocios",
+          BIENESTAR: "🧘 Bienestar",
+          CULTURA: "🏛️ Cultura",
+          AVENTURA: "🏔️ Aventura"
+        }
+
+        const interestsByCategory = user.interests.reduce((acc, interest) => {
+          const category = typeof interest === 'string' ? 'OTROS' : (interest.category || 'OTROS')
+          if (!acc[category]) acc[category] = []
+          acc[category].push(interest)
+          return acc
+        }, {} as Record<string, typeof user.interests>)
+
+        return (
+          <div className="mt-6 px-4">
+            <h2 className="mb-4 text-sm font-semibold text-foreground">Intereses</h2>
+            <div className="space-y-4">
+              {Object.entries(interestsByCategory).map(([category, interests]) => (
+                <div key={category}>
+                  <p className="mb-2 text-xs font-bold text-muted-foreground">
+                    {categoryNames[category] || category}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {interests.map((interest, index) => {
+                      const name = typeof interest === 'string' ? interest : interest.name
+                      const icon = typeof interest === 'string' ? '' : interest.icon
+                      return (
+                        <span key={index} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/30 text-xs text-foreground font-medium">
+                          {icon && <span>{icon}</span>}
+                          {name}
+                        </span>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* Menu Items */}
       <div className="mt-6 px-4 space-y-3">
