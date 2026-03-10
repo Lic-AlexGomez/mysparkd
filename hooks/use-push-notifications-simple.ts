@@ -22,15 +22,29 @@ export function usePushNotifications() {
     }
 
     try {
+      console.log('Solicitando permisos de notificación...')
       const result = await Notification.requestPermission()
+      console.log('Resultado de permisos:', result)
       setPermission(result)
       
       if (result === 'granted') {
-        await registerServiceWorker()
-        toast.success('Notificaciones activadas')
-        return true
+        try {
+          await registerServiceWorker()
+          toast.success('¡Notificaciones activadas!')
+          return true
+        } catch (swError) {
+          console.error('Error al registrar SW:', swError)
+          // Aún así consideramos exitoso si se otorgaron permisos
+          toast.success('Notificaciones activadas')
+          return true
+        }
+      } else if (result === 'denied') {
+        toast.error('Permisos denegados', {
+          description: 'Habilita las notificaciones en la configuración de tu navegador'
+        })
+        return false
       } else {
-        toast.error('Permisos de notificación denegados')
+        // 'default' - usuario cerró el popup sin decidir
         return false
       }
     } catch (error) {
