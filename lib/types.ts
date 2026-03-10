@@ -89,7 +89,8 @@ export interface UpdateProfileRequest {
 }
 
 // Reactions
-export type ReactionType = 'LOVE' | 'HAHA' | 'WOW' | 'SAD' | 'ANGRY'
+export type ReactionType = 'LIKE' | 'LOVE' | 'LAUGH' | 'WOW' | 'SAD' | 'FIRE'
+export type ReactionTargetType = 'POST' | 'COMMENT' | 'REPLY'
 
 export interface Reaction {
   type: ReactionType
@@ -99,6 +100,12 @@ export interface Reaction {
 
 export interface ReactionSummary {
   [key: string]: Reaction
+}
+
+export interface ReactionRequest {
+  targetId: string
+  targetType: ReactionTargetType
+  reactionType: ReactionType
 }
 
 // Polls
@@ -120,6 +127,8 @@ export interface Poll {
 }
 
 // Posts
+export type PostVisibility = 'PUBLIC' | 'FOLLOWERS' | 'PRIVATE'
+
 export interface Post {
   id: string
   body: string
@@ -130,11 +139,15 @@ export interface Post {
   permanent: boolean
   expiresAt: string | null
   locked: boolean
+  privat_e: boolean
+  visibility: PostVisibility
   canUnlock: boolean
   unlocked: boolean
   likeCount: number
   commentsCount: number
   repostCount?: number
+  shareCount?: number
+  viewCount?: number
   message: string | null
   reputation?: number
   verificationLevel?: number
@@ -150,6 +163,9 @@ export interface CreatePostRequest {
   file?: string
   permanent: boolean
   durationHours?: number
+  locked?: boolean
+  privat_e?: boolean
+  visibility?: PostVisibility
 }
 
 export interface UpdatePostRequest {
@@ -157,6 +173,9 @@ export interface UpdatePostRequest {
   file?: string
   permanent: boolean
   durationHours?: number
+  locked?: boolean
+  privat_e?: boolean
+  visibility?: PostVisibility
 }
 
 // Comments

@@ -66,7 +66,8 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
         body: body.trim(),
         permanent,
         locked,
-        ...(!permanent && { durationHours: Math.min(durationHours, 24) })
+        visibility: 'PUBLIC',
+        ...(!permanent && { durationHours: Math.min(durationHours, 48) })
       }
       
       // Agregar encuesta si existe
@@ -105,10 +106,7 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
         } else if (errorText.includes('duración')) {
           errorMessage = 'La duración máxima es de 48 horas'
         } else {
-          try {
-            const error = JSON.parse(errorText)
-            errorMessage = error.detail || error.message || errorMessage
-          } catch {}
+          errorMessage = errorText || errorMessage
         }
         
         throw new Error(errorMessage)
@@ -119,12 +117,13 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
       setFile(null)
       setFilePreview("")
       setPermanent(true)
+      setLocked(false)
       setPollData(null)
       setOpen(false)
       onCreated()
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error:', err)
-      toast.error(err instanceof Error ? err.message : "Error al crear post")
+      toast.error(err.message || "Error al crear post")
     } finally {
       setIsLoading(false)
     }

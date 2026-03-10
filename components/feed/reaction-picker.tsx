@@ -10,11 +10,12 @@ interface ReactionPickerProps {
 }
 
 const reactions: { type: ReactionType; emoji: string; label: string }[] = [
+  { type: 'LIKE', emoji: '👍', label: 'Me gusta' },
   { type: 'LOVE', emoji: '❤️', label: 'Me encanta' },
-  { type: 'HAHA', emoji: '😂', label: 'Jaja' },
+  { type: 'LAUGH', emoji: '😂', label: 'Jaja' },
   { type: 'WOW', emoji: '😮', label: 'Wow' },
   { type: 'SAD', emoji: '😢', label: 'Triste' },
-  { type: 'ANGRY', emoji: '😡', label: 'Enojado' },
+  { type: 'FIRE', emoji: '🔥', label: 'Fuego' },
 ]
 
 export function ReactionPicker({ onReact, children }: ReactionPickerProps) {

@@ -15,6 +15,10 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
+  Dialog,
+  DialogContent,
+} from "@/components/ui/dialog"
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -33,6 +37,7 @@ export default function UserProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [following, setFollowing] = useState(false)
+  const [viewPhotoUrl, setViewPhotoUrl] = useState<string | null>(null)
 
   useEffect(() => {
     if (user?.userId) {
@@ -115,7 +120,7 @@ export default function UserProfilePage() {
         <div className="h-32 bg-gradient-to-r from-secondary/40 via-primary/30 to-secondary/20" />
         <CardContent className="relative px-6 pb-6">
           <div className="-mt-16 mb-4">
-            <Avatar className="h-28 w-28 border-4 border-card shadow-lg">
+            <Avatar className="h-28 w-28 border-4 border-card shadow-lg cursor-pointer" onClick={() => primaryPhoto?.url && setViewPhotoUrl(primaryPhoto.url)}>
               <AvatarImage src={primaryPhoto?.url} alt={profile.nombres} />
               <AvatarFallback className="bg-primary/20 text-primary text-3xl">
                 {initials}
@@ -218,7 +223,8 @@ export default function UserProfilePage() {
             {profile.photos.map((photo) => (
               <div
                 key={photo.photoId}
-                className="aspect-square overflow-hidden rounded-lg"
+                className="aspect-square overflow-hidden rounded-lg cursor-pointer"
+                onClick={() => setViewPhotoUrl(photo.url)}
               >
                 <img
                   src={photo.url}
@@ -238,8 +244,9 @@ export default function UserProfilePage() {
           <div className="flex flex-wrap gap-2">
             {profile.interests.map((interest, index) => {
               const name = typeof interest === 'string' ? interest : interest.name
+              const id = typeof interest === 'string' ? interest : (interest.interestId || interest.id || index)
               return (
-                <span key={index} className="px-3 py-1.5 rounded-full bg-muted/20 border border-primary/30 text-xs text-foreground">
+                <span key={id} className="px-3 py-1.5 rounded-full bg-muted/20 border border-primary/30 text-xs text-foreground">
                   {name}
                 </span>
               )
@@ -260,6 +267,17 @@ export default function UserProfilePage() {
           </div>
         </div>
       )}
+
+      {/* Photo Viewer Modal */}
+      <Dialog open={!!viewPhotoUrl} onOpenChange={() => setViewPhotoUrl(null)}>
+        <DialogContent className="max-w-3xl p-0 bg-black border-0">
+          <img
+            src={viewPhotoUrl || ''}
+            alt="Vista completa"
+            className="w-full h-auto max-h-[90vh] object-contain"
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

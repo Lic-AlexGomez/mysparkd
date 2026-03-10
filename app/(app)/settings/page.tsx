@@ -32,6 +32,7 @@ import {
   Check,
   X,
   Bell,
+  Key,
 } from "lucide-react"
 import { usePushNotifications } from "@/hooks/use-push-notifications"
 
@@ -50,6 +51,13 @@ export default function SettingsPage() {
   const [objective, setObjective] = useState('both')
   const [prefLoading, setPrefLoading] = useState(true)
   const [savingPref, setSavingPref] = useState(false)
+
+  // Change Password
+  const [showChangePassword, setShowChangePassword] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmNewPassword, setConfirmNewPassword] = useState("")
+  const [changingPassword, setChangingPassword] = useState(false)
 
   // Interests
   const [allInterests, setAllInterests] = useState<Interest[]>([])
@@ -200,6 +208,37 @@ export default function SettingsPage() {
           await refreshProfile()
         }
       }
+    }
+  }
+
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmNewPassword) {
+      toast.error("Completa todos los campos")
+      return
+    }
+    if (newPassword.length < 6) {
+      toast.error("La nueva contraseña debe tener al menos 6 caracteres")
+      return
+    }
+    if (newPassword !== confirmNewPassword) {
+      toast.error("Las contraseñas no coinciden")
+      return
+    }
+    setChangingPassword(true)
+    try {
+      await api.post("/api/profile/change-password", {
+        currentPassword,
+        newPassword
+      })
+      toast.success("Contraseña actualizada")
+      setShowChangePassword(false)
+      setCurrentPassword("")
+      setNewPassword("")
+      setConfirmNewPassword("")
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al cambiar contraseña")
+    } finally {
+      setChangingPassword(false)
     }
   }
 
@@ -448,6 +487,77 @@ export default function SettingsPage() {
           <CardTitle className="text-foreground text-base">Cuenta</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
+          <Button
+            variant="outline"
+            onClick={() => setShowChangePassword(!showChangePassword)}
+            className="justify-start border-border text-foreground hover:bg-muted"
+          >
+            <Key className="mr-2 h-4 w-4" />
+            Cambiar contraseña
+          </Button>
+          
+          {showChangePassword && (
+            <div className="p-4 rounded-lg border border-border bg-muted/30 space-y-3">
+              <div className="flex flex-col gap-2">
+                <Label className="text-foreground text-sm">Contraseña actual</Label>
+                <Input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="bg-background border-border"
+                  disabled={changingPassword}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label className="text-foreground text-sm">Nueva contraseña</Label>
+                <Input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Mínimo 6 caracteres"
+                  className="bg-background border-border"
+                  disabled={changingPassword}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label className="text-foreground text-sm">Confirmar nueva contraseña</Label>
+                <Input
+                  type="password"
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  className="bg-background border-border"
+                  disabled={changingPassword}
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleChangePassword}
+                  disabled={changingPassword}
+                  className="flex-1 bg-primary text-primary-foreground"
+                >
+                  {changingPassword ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Actualizar"
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowChangePassword(false)
+                    setCurrentPassword("")
+                    setNewPassword("")
+                    setConfirmNewPassword("")
+                  }}
+                  disabled={changingPassword}
+                  className="border-border"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
+          
           <Button
             variant="outline"
             onClick={logout}

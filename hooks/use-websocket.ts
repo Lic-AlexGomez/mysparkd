@@ -18,7 +18,13 @@ export function useWebSocket(userId: string | undefined, onMessage: (message: Me
     if (!userId || clientRef.current?.active) return
 
     const token = localStorage.getItem('sparkd_token')
-    if (!token) return
+    if (!token) {
+      console.error('[WebSocket] No hay token disponible')
+      return
+    }
+
+    console.log('[WebSocket] Conectando con userId:', userId)
+    console.log('[WebSocket] Token:', token.substring(0, 20) + '...')
 
     const client = new Client({
       webSocketFactory: () => new SockJS(`${BACKEND_URL}/ws`),
@@ -29,18 +35,27 @@ export function useWebSocket(userId: string | undefined, onMessage: (message: Me
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
       onConnect: () => {
+        console.log('[WebSocket] Conectado exitosamente')
         setIsConnected(true)
         
         client.subscribe(`/user/queue/messages`, (message) => {
+          console.log('[WebSocket] Mensaje raw recibido:', message.body)
           const newMessage = JSON.parse(message.body) as Message
+          console.log('[WebSocket] Mensaje parseado:', newMessage)
           onMessageRef.current(newMessage)
         })
+        
+        console.log('[WebSocket] Suscrito a /user/queue/messages')
       },
       onDisconnect: () => {
+        console.log('[WebSocket] Desconectado')
         setIsConnected(false)
       },
       onStompError: (frame) => {
-        console.error('[WebSocket] Error:', frame)
+        console.error('[WebSocket] Error STOMP:', frame)
+      },
+      onWebSocketError: (event) => {
+        console.error('[WebSocket] Error WebSocket:', event)
       }
     })
 
@@ -57,6 +72,8 @@ export function useWebSocket(userId: string | undefined, onMessage: (message: Me
   }, [])
 
   const sendMessage = useCallback((chatId: string, content: string) => {
+    console.log('[WebSocket] Intentando enviar:', { chatId, content: content.substring(0, 50), isConnected, isActive: clientRef.current?.active })
+    
     if (clientRef.current?.active && isConnected) {
       try {
         clientRef.current.publish({
@@ -66,12 +83,14 @@ export function useWebSocket(userId: string | undefined, onMessage: (message: Me
             content: content 
           })
         })
+        console.log('[WebSocket] Mensaje enviado exitosamente')
         return true
       } catch (error) {
         console.error('[WebSocket] Error al enviar:', error)
         return false
       }
     }
+    console.log('[WebSocket] No conectado, retornando false')
     return false
   }, [isConnected])
 

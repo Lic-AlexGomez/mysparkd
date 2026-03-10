@@ -34,7 +34,7 @@ export default function FeedPage() {
   const highlightCommentId = searchParams.get('comment')
   const { posts, sortMode, loading, onRefresh, changeSortMode } = useFeed()
   const [localPosts, setLocalPosts] = useState(posts)
-  const [feedTab, setFeedTab] = useState<'foryou' | 'following'>('foryou')
+  const [feedTab, setFeedTab] = useState<'global' | 'local' | 'following'>('global')
 
   useEffect(() => {
     setLocalPosts(posts)
@@ -95,10 +95,14 @@ export default function FeedPage() {
         <div className="flex items-center justify-between px-4 py-2">
           {features.personalizedFeed ? (
           <Tabs value={feedTab} onValueChange={(v) => setFeedTab(v as any)} className="flex-1">
-            <TabsList className="w-full grid grid-cols-2 max-w-md">
-              <TabsTrigger value="foryou" className="flex items-center gap-2">
+            <TabsList className="w-full grid grid-cols-3 max-w-md">
+              <TabsTrigger value="global" className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4" />
-                Para ti
+                Global
+              </TabsTrigger>
+              <TabsTrigger value="local" className="flex items-center gap-2">
+                <Newspaper className="h-4 w-4" />
+                Local
               </TabsTrigger>
               <TabsTrigger value="following" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />

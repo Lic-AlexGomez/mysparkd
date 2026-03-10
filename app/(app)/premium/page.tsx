@@ -4,51 +4,44 @@ import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { api } from "@/lib/api"
 import type { UserSubscription } from "@/lib/types"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import {
-  Crown,
-  Check,
-  X,
-  Loader2,
-  Zap,
-  Eye,
-  MessageCircle,
-  Lock,
-} from "lucide-react"
+import { Crown, Check, Loader2, Zap, Eye, Lock, MessageCircle } from "lucide-react"
 import { toast } from "sonner"
-
-const features = {
-  free: [
-    { label: "Swipes limitados por dia", included: true },
-    { label: "Ver feed de posts", included: true },
-    { label: "Chat con matches", included: true },
-    { label: "Ver quien te dio like", included: false },
-    { label: "Desbloquear contenido premium", included: false },
-    { label: "Swipes ilimitados", included: false },
-    { label: "Boost de perfil", included: false },
-  ],
-  premium: [
-    { label: "Swipes ilimitados", included: true },
-    { label: "Ver feed de posts", included: true },
-    { label: "Chat con matches", included: true },
-    { label: "Ver quien te dio like", included: true },
-    { label: "Desbloquear contenido premium", included: true },
-    { label: "Boost de perfil semanal", included: true },
-    { label: "Sin anuncios", included: true },
-  ],
-}
-
 import { usePremiumStatus } from "@/hooks/use-premium-status"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 export default function PremiumPage() {
   const { user } = useAuth()
   const { isPremium } = usePremiumStatus()
   const [isLoading, setIsLoading] = useState(false)
   const [subscription, setSubscription] = useState<UserSubscription | null>(null)
+  const [selectedFeature, setSelectedFeature] = useState<string | null>(null)
 
-  console.log('Usuario completo:', user)
+  const featureDetails: Record<string, { title: string; description: string }> = {
+    swipes: {
+      title: "Swipes ilimitados",
+      description: "Desliza sin límites. Con Premium, puedes dar like a tantos perfiles como quieras sin restricciones diarias. Aumenta tus posibilidades de encontrar conexiones perfectas."
+    },
+    likes: {
+      title: "Ve quien te dio like",
+      description: "Descubre quién está interesado en ti antes de hacer match. Ahorra tiempo y conecta directamente con las personas que ya mostraron interés en tu perfil."
+    },
+    content: {
+      title: "Contenido premium",
+      description: "Accede a posts exclusivos bloqueados para usuarios gratuitos. Desbloquea contenido especial y disfruta de una experiencia completa sin restricciones."
+    },
+    priority: {
+      title: "Prioridad en chat",
+      description: "Tus mensajes aparecen primero. Los usuarios premium tienen prioridad en las conversaciones, aumentando las probabilidades de respuesta rápida."
+    }
+  }
 
   useEffect(() => {
     if (isPremium) {
@@ -59,7 +52,6 @@ export default function PremiumPage() {
   const fetchSubscription = async () => {
     try {
       const data = await api.get<UserSubscription>("/api/user-subscription/status")
-      console.log('Datos de suscripción:', data)
       setSubscription(data)
     } catch (error) {
       console.log('Error al obtener suscripción:', error)
@@ -76,188 +68,133 @@ export default function PremiumPage() {
         toast.error("No se pudo obtener el enlace de pago")
       }
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Error al procesar suscripcion"
-      )
+      toast.error(err instanceof Error ? err.message : "Error al procesar suscripcion")
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
+    <div className="max-w-4xl mx-auto px-4 py-12">
       {/* Header */}
-      <div className="mb-8 text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary">
-          <Crown className="h-8 w-8 text-white" />
-        </div>
-        <h1 className="text-2xl font-bold text-foreground">Sparkd Premium</h1>
-        <p className="mt-2 text-muted-foreground">
-          {isPremium ? "Ya eres miembro Premium" : "Desbloquea todo el potencial de Sparkd"}
-        </p>
+      <div className="text-center mb-12">
+        <Crown className="h-12 w-12 mx-auto mb-4 text-primary" />
+        <h1 className="text-3xl font-bold mb-2">Sparkd Premium</h1>
+        <p className="text-muted-foreground">Desbloquea todas las funciones</p>
       </div>
 
+      {/* Active Subscription */}
       {isPremium && subscription && (
-        <Card className="mb-8 border-primary bg-primary/5">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <Crown className="h-8 w-8 text-primary" />
-                <div>
-                  <h3 className="font-bold text-foreground">¡Eres Premium!</h3>
-                  <p className="text-sm text-muted-foreground">Disfruta de todas las funciones exclusivas</p>
-                </div>
+        <div className="mb-12 p-6 rounded-2xl border-2 border-green-500/20 bg-green-500/5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-full bg-green-500">
+                <Crown className="h-5 w-5 text-white" />
               </div>
-              <Badge className={`${
-                subscription.status === 'ACTIVE' ? 'bg-success' :
-                subscription.status === 'PAST_DUE' ? 'bg-destructive' :
-                'bg-muted'
-              } text-white border-0`}>
-                {subscription.status}
-              </Badge>
+              <div>
+                <h2 className="text-lg font-bold">Premium Activo</h2>
+                <p className="text-sm text-muted-foreground">$9.99/mes</p>
+              </div>
             </div>
+            <Badge className="bg-green-500 text-white">Activo</Badge>
+          </div>
+          
+          <div className="flex items-center justify-between">
             {subscription.currentPeriodEnd && (
-              <div className="text-sm text-muted-foreground">
-                Renovación: {new Date(subscription.currentPeriodEnd).toLocaleDateString('es', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}
-              </div>
+              <p className="text-sm text-muted-foreground">
+                Próxima renovación: <span className="font-medium text-foreground">{new Date(subscription.currentPeriodEnd).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+              </p>
             )}
-          </CardContent>
-        </Card>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => toast.error("Próximamente: Cancelar suscripción")}
+              className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
+            >
+              Cancelar
+            </Button>
+          </div>
+        </div>
       )}
 
-      {/* Feature highlights */}
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Features */}
+      <div className="grid sm:grid-cols-2 gap-4 mb-12">
         {[
-          { icon: Zap, label: "Swipes ilimitados", color: "text-accent" },
-          { icon: Eye, label: "Ve quien te gusta", color: "text-primary" },
-          {
-            icon: Lock,
-            label: "Contenido exclusivo",
-            color: "text-secondary",
-          },
-          {
-            icon: MessageCircle,
-            label: "Prioridad en chat",
-            color: "text-success",
-          },
+          { icon: Zap, text: "Swipes ilimitados", key: "swipes" },
+          { icon: Eye, text: "Ve quien te dio like", key: "likes" },
+          { icon: Lock, text: "Contenido premium", key: "content" },
+          { icon: MessageCircle, text: "Prioridad en chat", key: "priority" },
         ].map((item) => (
-          <div
-            key={item.label}
-            className="flex flex-col items-center gap-2 rounded-xl bg-card p-4 border border-border"
+          <button
+            key={item.key}
+            onClick={() => setSelectedFeature(item.key)}
+            className="flex items-center gap-3 p-4 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-all cursor-pointer text-left"
           >
-            <item.icon className={`h-6 w-6 ${item.color}`} />
-            <span className="text-sm font-medium text-foreground text-center">
-              {item.label}
-            </span>
-          </div>
+            <item.icon className="h-5 w-5 text-primary" />
+            <span className="font-medium">{item.text}</span>
+          </button>
         ))}
       </div>
 
-      {/* Pricing cards */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Free plan */}
-        <Card className="border-border bg-card">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between text-foreground">
-              <span>Gratis</span>
-              {!isPremium && (
-                <Badge variant="secondary" className="bg-muted text-muted-foreground border-0">
-                  Plan actual
-                </Badge>
-              )}
-            </CardTitle>
-            <p className="text-2xl font-bold text-foreground">
-              $0
-              <span className="text-sm font-normal text-muted-foreground">
-                /mes
-              </span>
-            </p>
-          </CardHeader>
-          <CardContent>
-            <ul className="flex flex-col gap-3">
-              {features.free.map((f) => (
-                <li key={f.label} className="flex items-center gap-2 text-sm">
-                  {f.included ? (
-                    <Check className="h-4 w-4 text-success shrink-0" />
-                  ) : (
-                    <X className="h-4 w-4 text-muted-foreground shrink-0" />
-                  )}
-                  <span
-                    className={
-                      f.included ? "text-foreground" : "text-muted-foreground"
-                    }
-                  >
-                    {f.label}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
+      {/* Feature Detail Modal */}
+      <Dialog open={!!selectedFeature} onOpenChange={() => setSelectedFeature(null)}>
+        <DialogContent className="sm:max-w-md">
+          {selectedFeature && featureDetails[selectedFeature] && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  {selectedFeature === 'swipes' && <Zap className="h-5 w-5 text-primary" />}
+                  {selectedFeature === 'likes' && <Eye className="h-5 w-5 text-primary" />}
+                  {selectedFeature === 'content' && <Lock className="h-5 w-5 text-primary" />}
+                  {selectedFeature === 'priority' && <MessageCircle className="h-5 w-5 text-primary" />}
+                  {featureDetails[selectedFeature].title}
+                </DialogTitle>
+                <DialogDescription className="text-base pt-2">
+                  {featureDetails[selectedFeature].description}
+                </DialogDescription>
+              </DialogHeader>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
-        {/* Premium plan */}
-        <Card className="relative border-2 border-primary bg-card overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary to-secondary" />
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between text-foreground">
-              <span className="flex items-center gap-2">
-                <Crown className="h-5 w-5 text-accent" />
-                Premium
-              </span>
-              {isPremium ? (
-                <Badge className="bg-success text-success-foreground border-0">
-                  Activo
-                </Badge>
-              ) : (
-                <Badge className="bg-primary text-primary-foreground border-0">
-                  Recomendado
-                </Badge>
-              )}
-            </CardTitle>
-            <p className="text-2xl font-bold text-foreground">
-              $9.99
-              <span className="text-sm font-normal text-muted-foreground">
-                /mes
-              </span>
-            </p>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <ul className="flex flex-col gap-3">
-              {features.premium.map((f) => (
-                <li key={f.label} className="flex items-center gap-2 text-sm">
-                  <Check className="h-4 w-4 text-success shrink-0" />
-                  <span className="text-foreground">{f.label}</span>
-                </li>
-              ))}
-            </ul>
-            <Button
-              onClick={handleSubscribe}
-              disabled={isLoading || isPremium}
-              className="w-full bg-gradient-to-r from-primary to-secondary text-white hover:opacity-90 disabled:opacity-50"
-            >
-              {isPremium ? (
-                <>
-                  <Crown className="mr-2 h-4 w-4" />
-                  Ya eres Premium
-                </>
-              ) : isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Procesando...
-                </>
-              ) : (
-                <>
-                  <Crown className="mr-2 h-4 w-4" />
-                  Suscribirme ahora
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
+      {/* Pricing */}
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Free */}
+        <div className="p-6 rounded-2xl border border-border">
+          <h3 className="text-xl font-bold mb-1">Gratis</h3>
+          <div className="text-3xl font-bold mb-6">$0<span className="text-lg text-muted-foreground">/mes</span></div>
+          <ul className="space-y-3 mb-6">
+            <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> Swipes limitados</li>
+            <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> Ver feed</li>
+            <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> Chat básico</li>
+          </ul>
+          {!isPremium && <Badge variant="outline">Plan actual</Badge>}
+        </div>
+
+        {/* Premium */}
+        <div className="p-6 rounded-2xl border-2 border-primary bg-primary/5 relative">
+          <Badge className="absolute -top-3 right-4 bg-primary text-white">Recomendado</Badge>
+          <h3 className="text-xl font-bold mb-1 flex items-center gap-2">
+            <Crown className="h-5 w-5 text-primary" />
+            Premium
+          </h3>
+          <div className="text-3xl font-bold mb-6">$9.99<span className="text-lg text-muted-foreground">/mes</span></div>
+          <ul className="space-y-3 mb-6">
+            <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> Swipes ilimitados</li>
+            <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> Ver quien te gusta</li>
+            <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> Contenido exclusivo</li>
+            <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> Boost de perfil</li>
+            <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> Sin anuncios</li>
+          </ul>
+          <Button
+            onClick={handleSubscribe}
+            disabled={isLoading || isPremium}
+            className="w-full bg-primary hover:bg-primary/90"
+          >
+            {isPremium ? "Ya eres Premium" : isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Activar Premium"}
+          </Button>
+        </div>
       </div>
     </div>
   )

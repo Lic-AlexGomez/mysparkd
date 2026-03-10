@@ -42,12 +42,12 @@ export default function ProfilePage() {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [localPhotos, setLocalPhotos] = useState(user?.photos || [])
   const [userInterests, setUserInterests] = useState<any[]>([])
+  const [viewPhotoUrl, setViewPhotoUrl] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchInterests = async () => {
       try {
         const interests = await api.get('/api/interests/me')
-        console.log('Fetched interests:', interests)
         setUserInterests(interests)
       } catch (error) {
         console.error('Error fetching interests:', error)
@@ -445,18 +445,20 @@ export default function ProfilePage() {
                 onDragStart={() => handleDragStart(index)}
                 onDragOver={handleDragOver}
                 onDrop={() => handleDrop(index)}
-                className={`aspect-square overflow-hidden rounded-lg border border-border relative group cursor-move ${
+                className={`aspect-square overflow-hidden rounded-lg border border-border relative group ${
                   draggedIndex === index ? 'opacity-50' : ''
                 }`}
               >
                 <img
                   src={photo.url}
                   alt="Foto de perfil"
-                  className="h-full w-full object-cover pointer-events-none"
+                  className="h-full w-full object-cover cursor-pointer"
                   loading="lazy"
+                  onClick={() => setViewPhotoUrl(photo.url)}
                 />
                 <button
-                  onClick={async () => {
+                  onClick={async (e) => {
+                    e.stopPropagation()
                     if (confirm('¿Eliminar esta foto?')) {
                       try {
                         await api.delete(`/api/photos/delete/${photo.photoId || photo.id}`)
@@ -467,7 +469,7 @@ export default function ProfilePage() {
                       }
                     }
                   }}
-                  className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs"
+                  className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs cursor-pointer"
                 >
                   Eliminar
                 </button>
@@ -706,6 +708,25 @@ export default function ProfilePage() {
           </p>
         )}
       </div>
+
+      {/* Photo Viewer Modal */}
+      <Dialog open={!!viewPhotoUrl} onOpenChange={() => setViewPhotoUrl(null)}>
+        <DialogContent className="max-w-3xl p-0 bg-black/95 border-0">
+          <div className="relative">
+            <img
+              src={viewPhotoUrl || ''}
+              alt="Vista completa"
+              className="w-full h-auto max-h-[90vh] object-contain"
+            />
+            <button
+              onClick={() => setViewPhotoUrl(null)}
+              className="absolute top-4 right-4 h-10 w-10 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white"
+            >
+              ✕
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

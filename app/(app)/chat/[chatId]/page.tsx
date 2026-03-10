@@ -62,24 +62,33 @@ export default function ChatRoomPage() {
   const { sendMessage: sendViaWebSocket, isConnected } = useWebSocket(
     user?.userId,
     useCallback((newMessage: Message) => {
+      console.log('[Chat] Mensaje recibido por WebSocket:', newMessage)
       if (newMessage.chatId === chatId) {
         setMessages(prev => {
           if (prev.some(m => m.messageId === newMessage.messageId)) {
+            console.log('[Chat] Mensaje duplicado, ignorando')
             return prev
           }
+          console.log('[Chat] Agregando mensaje a la lista')
           return [...prev, newMessage]
         })
+      } else {
+        console.log('[Chat] Mensaje de otro chat, ignorando')
       }
     }, [chatId])
   )
 
   const fetchMessages = useCallback(async () => {
+    console.log('[Chat] Obteniendo mensajes...')
     try {
       const data = await api.get<Message[]>(`/api/chat/${chatId}/messages`)
-      
-      setMessages(data)
-    } catch {
-      // silent
+      console.log('[Chat] Mensajes obtenidos:', data.length)
+      if (data.length > 0) {
+        console.log('[Chat] Último mensaje:', data[data.length - 1])
+      }
+      setMessages([...data])
+    } catch (error) {
+      console.error('[Chat] Error al obtener mensajes:', error)
     } finally {
       setIsLoading(false)
     }
@@ -93,7 +102,7 @@ export default function ChatRoomPage() {
         // Obtener foto del perfil del otro usuario
         try {
           const profile = await api.get<any>(`/api/profile/${current.otherUserId}`)
-          console.log("Foto de perfil:", profile)
+          
           const primaryPhoto = profile.photos?.find((p: any) => p.isPrimary || p.primary)
           current.otherUserPhoto = primaryPhoto?.url
         } catch {
@@ -113,6 +122,7 @@ export default function ChatRoomPage() {
 
   // Auto-scroll to bottom
   useEffect(() => {
+    console.log('[Chat] Mensajes en estado:', messages.length)
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
@@ -252,20 +262,14 @@ export default function ChatRoomPage() {
             
             setIsUploading(false)
             
-            const sentViaWS = sendViaWebSocket(chatId, `🎤 ${audioUrl}`)
-            if (!sentViaWS) {
-              await api.post("/api/chat/send", { chatId, content: `🎤 ${audioUrl}` })
-            }
-            await fetchMessages()
+            sendViaWebSocket(chatId, `🎤 ${audioUrl}`)
+            setTimeout(() => fetchMessages(), 800)
           } catch (error) {
             console.error('Error al subir audio:', error)
             // Fallback: enviar como base64
             setIsUploading(false)
-            const sentViaWS = sendViaWebSocket(chatId, `🎤 ${base64Audio}`)
-            if (!sentViaWS) {
-              await api.post("/api/chat/send", { chatId, content: `🎤 ${base64Audio}` })
-            }
-            await fetchMessages()
+            sendViaWebSocket(chatId, `🎤 ${base64Audio}`)
+            setTimeout(() => fetchMessages(), 800)
           }
         }
         reader.readAsDataURL(audioBlob)
@@ -322,6 +326,15 @@ export default function ChatRoomPage() {
 
   const handleSend = async () => {
     if (!newMessage.trim() && !selectedImage && !selectedFile) return
+    
+    console.log('[Chat] Iniciando envío...', { 
+      chatId, 
+      hasMessage: !!newMessage.trim(), 
+      hasImage: !!selectedImage, 
+      hasFile: !!selectedFile,
+      isConnected 
+    })
+    
     setIsSending(true)
     
     let messageContent = newMessage.trim()
@@ -338,11 +351,8 @@ export default function ChatRoomPage() {
         setIsUploading(false)
         
         const content = `📎 ${selectedFile.name}|${fileUrl}`
-        const sentViaWS = sendViaWebSocket(chatId, content)
-        
-        if (!sentViaWS) {
-          await api.post("/api/chat/send", { chatId, content })
-        }
+        sendViaWebSocket(chatId, content)
+        setTimeout(() => fetchMessages(), 800)
         
         handleRemoveFile()
       } else if (selectedImage) {
@@ -350,27 +360,17 @@ export default function ChatRoomPage() {
         const imageUrl = await uploadToCloudinary(selectedImage)
         setIsUploading(false)
         
-        const sentViaWS = sendViaWebSocket(chatId, imageUrl)
-        
-        if (!sentViaWS) {
-          await api.post("/api/chat/send", {
-            chatId,
-            content: imageUrl,
-          })
-        }
+        sendViaWebSocket(chatId, imageUrl)
+        setTimeout(() => fetchMessages(), 800)
         
         handleRemoveImage()
       } else {
-        const sentViaWS = sendViaWebSocket(chatId, messageContent)
-        
-        if (!sentViaWS) {
-          await api.post("/api/chat/send", {
-            chatId,
-            content: messageContent,
-          })
-        }
+        // Solo usar WebSocket
+        sendViaWebSocket(chatId, messageContent)
       }
-      await fetchMessages()
+      
+      // Refrescar mensajes después de 2 segundos para dar tiempo al servidor
+      setTimeout(() => fetchMessages(), 2000)
     } catch (error) {
       console.error('[Chat] Error al enviar:', error)
     }
@@ -385,7 +385,7 @@ export default function ChatRoomPage() {
       </div>
     )
   }
-     {console.log("aqui:",chatInfo)}
+   
   return (
     <div className="flex h-[calc(100svh-4rem)] flex-col lg:h-svh bg-gradient-to-b from-background to-muted/20">
       {/* Chat header */}
