@@ -15,14 +15,16 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import { Loader2, Plus, ImageIcon, X, BarChart3, Lock } from "lucide-react"
+import { Loader2, Plus, ImageIcon, X, BarChart3, Lock, Globe, Users as UsersIcon, LockKeyhole } from "lucide-react"
 import { uploadToCloudinary } from "@/lib/cloudinary"
 import { CreatePollDialog } from "./create-poll-dialog"
 import { useAuth } from "@/lib/auth-context"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
 
 import { usePremiumStatus } from "@/hooks/use-premium-status"
+import type { PostVisibility } from "@/lib/types"
 
 interface CreatePostDialogProps {
   onCreated: () => void
@@ -38,6 +40,7 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
   const [filePreview, setFilePreview] = useState("")
   const [permanent, setPermanent] = useState(true)
   const [locked, setLocked] = useState(false)
+  const [visibility, setVisibility] = useState<PostVisibility>('PUBLIC')
   const [durationHours, setDurationHours] = useState(24)
   const [isLoading, setIsLoading] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
@@ -66,7 +69,7 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
         body: body.trim(),
         permanent,
         locked,
-        visibility: 'PUBLIC',
+        visibility,
         ...(!permanent && { durationHours: Math.min(durationHours, 48) })
       }
       
@@ -135,6 +138,7 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
       setFilePreview("")
       setPermanent(true)
       setLocked(false)
+      setVisibility('PUBLIC')
       setPollData(null)
       setOpen(false)
       onCreated()
@@ -315,6 +319,36 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
             <Label className="text-foreground">Post permanente</Label>
             <Switch checked={permanent} onCheckedChange={setPermanent} />
           </div>
+          
+          <div className="flex flex-col gap-2">
+            <Label className="text-foreground">Visibilidad</Label>
+            <Select value={visibility} onValueChange={(v) => setVisibility(v as PostVisibility)}>
+              <SelectTrigger className="bg-muted border-border text-foreground">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-border">
+                <SelectItem value="PUBLIC">
+                  <div className="flex items-center gap-2">
+                    <Globe className="h-4 w-4" />
+                    <span>Público - Todos pueden ver</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="FOLLOWERS">
+                  <div className="flex items-center gap-2">
+                    <UsersIcon className="h-4 w-4" />
+                    <span>Seguidores - Solo tus seguidores</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="PRIVATE">
+                  <div className="flex items-center gap-2">
+                    <LockKeyhole className="h-4 w-4" />
+                    <span>Privado - Solo tú</span>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
           {isPremium && (
             <div className="flex items-center justify-between">
               <Label className="text-foreground flex items-center gap-2">

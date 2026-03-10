@@ -22,6 +22,7 @@ import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
 import { ReactionPicker, getReactionEmoji } from "./reaction-picker"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
+import { reactionService } from "@/lib/services/reaction"
 
 interface CommentsSheetProps {
   postId: string
@@ -157,9 +158,14 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate }: Comments
   }
 
   const handleReaction = async (targetId: string, type: ReactionType, isReply: boolean = false) => {
+    const targetType = isReply ? 'REPLY' : 'COMMENT'
+    
     try {
-      // TODO: Implementar endpoint de reacciones
-      // await api.post(`/api/reactions/toggle`, { targetId, type })
+      // Usar servicio de reacciones
+      await reactionService.toggleReaction(targetId, targetType, type)
+      
+      // Refrescar resumen de reacciones
+      const summary = await reactionService.getReactionSummary(targetId, targetType)
       
       if (isReply) {
         setExpandedReplies(prev => {
@@ -167,9 +173,12 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate }: Comments
           Object.keys(updated).forEach(parentId => {
             updated[parentId] = updated[parentId].map(reply => {
               if (reply.commentReplyId === targetId) {
-                const currentReaction = reply.userReaction
-                const newReaction = currentReaction === type ? null : type
-                return { ...reply, userReaction: newReaction }
+                const userReacted = Object.values(summary).find(r => r.userReacted)
+                return { 
+                  ...reply, 
+                  userReaction: userReacted ? type : null,
+                  reactions: summary
+                }
               }
               return reply
             })
@@ -179,15 +188,24 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate }: Comments
       } else {
         setComments(prev => prev.map(comment => {
           if (comment.commentsId === targetId) {
-            const currentReaction = comment.userReaction
-            const newReaction = currentReaction === type ? null : type
-            return { ...comment, userReaction: newReaction }
+            const userReacted = Object.values(summary).find(r => r.userReacted)
+            return { 
+              ...comment, 
+              userReaction: userReacted ? type : null,
+              reactions: summary
+            }
           }
           return comment
         }))
       }
-    } catch {
-      toast.error("Error al reaccionar")
+    } catch (error) {
+      toast.error("Error al reaccionar", {
+        description: 'Intenta nuevamente',
+        action: {
+          label: 'Reintentar',
+          onClick: () => handleReaction(targetId, type, isReply)
+        }
+      })
     }
   }
 

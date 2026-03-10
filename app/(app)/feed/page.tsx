@@ -3,12 +3,14 @@
 import { useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import { useFeed } from "@/hooks/use-feed"
+import { useLocalFeed } from "@/hooks/use-local-feed"
+import { locationService } from "@/lib/services/location"
 import { PostCard } from "@/components/feed/post-card"
 import { CreatePostDialog } from "@/components/feed/create-post-dialog"
 import { EngagementStats } from "@/components/feed/engagement-stats"
 import { StoriesBar } from "@/components/feed/stories-bar"
 import { SkeletonPost } from "@/components/ui/skeleton-post"
-import { Loader2, Newspaper, Sliders, Sparkles, Users, Search, X, Filter, Image as ImageIcon, Calendar, LayoutGrid, List } from "lucide-react"
+import { Loader2, Newspaper, Sliders, Sparkles, Users, Search, X, Filter, Image as ImageIcon, Calendar, LayoutGrid, List, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
@@ -20,6 +22,7 @@ import {
 import { useAuth } from "@/lib/auth-context"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
 import { Input } from "@/components/ui/input"
+import { toast } from "sonner"
 
 const sortOptions = [
   { value: 'chronological' as const, label: 'Cronológico', icon: '🕐' },
@@ -35,16 +38,87 @@ export default function FeedPage() {
   const highlightPostId = searchParams.get('post')
   const highlightCommentId = searchParams.get('comment')
   const { posts, sortMode, loading, onRefresh, changeSortMode } = useFeed()
-  const [localPosts, setLocalPosts] = useState(posts)
+  const { posts: localPosts, loading: localLoading, locationEnabled } = useLocalFeed(50) // 50km radius
+  const [displayLocalPosts, setDisplayLocalPosts] = useState(posts)
   const [feedTab, setFeedTab] = useState<'global' | 'local' | 'following'>('global')
   const [searchQuery, setSearchQuery] = useState("")
   const [showSearch, setShowSearch] = useState(false)
   const [filterType, setFilterType] = useState<'all' | 'withImage' | 'withoutImage'>('all')
   const [viewMode, setViewMode] = useState<'card' | 'compact'>('card')
+  const [locationError, setLocationError] = useState(false)
+  const [isRequestingLocation, setIsRequestingLocation] = useState(false)
 
   useEffect(() => {
-    setLocalPosts(posts)
+    setDisplayLocalPosts(posts)
   }, [posts])
+
+  // Solicitar ubicación cuando se cambia al tab local
+  useEffect(() => {
+    if (feedTab === 'local' && user?.userId && !locationEnabled) {
+      requestLocation()
+    }
+  }, [feedTab, user?.userId, locationEnabled])
+
+  const requestLocation = async () => {
+    if (isRequestingLocation) return
+    
+    setIsRequestingLocation(true)
+    setLocationError(false)
+    
+    try {
+      if (!navigator.geolocation) {
+        toast.error('Tu navegador no soporta geolocalización')
+        setLocationError(true)
+        setIsRequestingLocation(false)
+        return
+      }
+
+      // Verificar si estamos en un contexto seguro (HTTPS o localhost)
+      if (!window.isSecureContext) {
+        toast.error('Geolocalización requiere HTTPS', {
+          description: 'Accede a través de localhost o usa HTTPS',
+          duration: 8000
+        })
+        setLocationError(true)
+        setIsRequestingLocation(false)
+        return
+      }
+
+      const result = await locationService.requestAndUpdateLocation(user!.userId)
+      
+      if (result) {
+        toast.success('¡Ubicación activada!')
+        setLocationError(false)
+        window.location.reload()
+      } else {
+        setLocationError(true)
+      }
+    } catch (error: any) {
+      console.error('Error requesting location:', error)
+      
+      // Mostrar mensaje de error específico
+      if (error.message?.includes('HTTPS') || error.message?.includes('secure')) {
+        toast.error('Geolocalización requiere HTTPS', {
+          description: 'Accede a través de http://localhost:3000',
+          duration: 8000
+        })
+      } else if (error.message?.includes('denegado') || error.message?.includes('denied')) {
+        toast.error('Permiso denegado', {
+          description: 'Habilita los permisos de ubicación en tu navegador',
+          duration: 5000
+        })
+      } else {
+        toast.error('Error al obtener ubicación', {
+          description: error.message || 'Intenta nuevamente',
+          duration: 5000
+        })
+      }
+      
+      setLocationError(true)
+    } finally {
+      setIsRequestingLocation(false)
+    }
+  }
 
   // Scroll to top on mount
   useEffect(() => {
@@ -71,29 +145,25 @@ export default function FeedPage() {
   }, [highlightPostId, highlightCommentId, posts])
 
   const handleDelete = (postId: string) => {
-    setLocalPosts((prev) => prev.filter((p) => p.id !== postId))
+    setDisplayLocalPosts((prev) => prev.filter((p) => p.id !== postId))
   }
 
   // Filtrar posts según búsqueda y filtros
-  const displayPosts = localPosts.length > 0 ? localPosts : posts
+  let basePosts = posts
+  
+  // Seleccionar posts según la pestaña
+  if (feedTab === 'local') {
+    basePosts = localPosts
+  } else if (feedTab === 'following') {
+    // Mostrar solo posts de usuarios que sigues
+    // TODO: Implementar lógica de seguimiento cuando el backend esté listo
+    basePosts = posts.filter(post => post.userId === user?.userId)
+  }
+  
+  const displayPosts = displayLocalPosts.length > 0 && feedTab === 'global' ? displayLocalPosts : basePosts
   
   // Filtrar por pestaña
   let filteredPosts = displayPosts
-  
-  if (feedTab === 'following') {
-    // Mostrar solo posts de usuarios que sigues
-    // TODO: Implementar lógica de seguimiento cuando el backend esté listo
-    // Por ahora, mostrar posts del usuario actual como ejemplo
-    filteredPosts = displayPosts.filter(post => post.userId === user?.userId)
-  } else if (feedTab === 'local') {
-    // Mostrar posts de usuarios cercanos
-    // TODO: Implementar geolocalización cuando el backend esté listo
-    // Por ahora, mostrar todos los posts
-    filteredPosts = displayPosts
-  } else {
-    // Global: mostrar todos los posts
-    filteredPosts = displayPosts
-  }
   
   // Búsqueda
   if (searchQuery) {
@@ -120,6 +190,8 @@ export default function FeedPage() {
     )
   }
 
+  const isLoadingFeed = (feedTab === 'local' && localLoading) || (feedTab === 'global' && loading)
+
   return (
     <div className="mx-auto max-w-2xl">
       {/* Stats */}
@@ -127,6 +199,46 @@ export default function FeedPage() {
 
       {/* Stories */}
       <StoriesBar />
+
+      {/* Banner de ubicación para feed local */}
+      {feedTab === 'local' && locationError && (
+        <div className="mx-4 mt-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+          <div className="flex items-center gap-3">
+            <MapPin className="h-5 w-5 text-yellow-500 flex-shrink-0" />
+            <div className="flex-1">
+              {!window.isSecureContext ? (
+                <>
+                  <p className="text-sm font-medium text-foreground">Geolocalización requiere HTTPS</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Accede a través de <code className="bg-muted px-1 py-0.5 rounded">http://localhost:3000</code> para usar esta función
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-medium text-foreground">Activa tu ubicación para ver posts cercanos</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Haz click en "Permitir" cuando tu navegador lo solicite
+                  </p>
+                </>
+              )}
+            </div>
+            {window.isSecureContext && (
+              <Button 
+                size="sm" 
+                className="bg-yellow-500 text-black hover:bg-yellow-600"
+                onClick={requestLocation}
+                disabled={isRequestingLocation}
+              >
+                {isRequestingLocation ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  'Activar'
+                )}
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Header with Tabs */}
       <div className="sticky top-16 z-20 border-b border-border bg-background/95 backdrop-blur-md">
@@ -242,7 +354,13 @@ export default function FeedPage() {
       </div>
 
       {/* Posts */}
-      {filteredPosts.length === 0 ? (
+      {isLoadingFeed ? (
+        <div className="p-4">
+          {[1, 2, 3].map((i) => (
+            <SkeletonPost key={i} />
+          ))}
+        </div>
+      ) : filteredPosts.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 py-20">
           <Newspaper className="h-12 w-12 text-muted-foreground" />
           <p className="text-muted-foreground">

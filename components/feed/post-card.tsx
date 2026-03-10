@@ -31,6 +31,7 @@ import { Badge } from "@/components/ui/badge"
 import { reputationService } from "@/lib/services/reputation"
 import { bookmarkService } from "@/lib/services/bookmark"
 import { reportService } from "@/lib/services/report"
+import { reactionService } from "@/lib/services/reaction"
 import { toast } from "sonner"
 import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
@@ -120,17 +121,29 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
     }
 
     try {
-      // TODO: Implementar endpoint de reacciones en backend
-      // await api.post(`/api/reactions/toggle`, { targetId: post.id, type })
+      // Usar servicio de reacciones
+      await reactionService.toggleReaction(post.id, 'POST', type)
+      
+      // Refrescar resumen de reacciones
+      const summary = await reactionService.getReactionSummary(post.id, 'POST')
+      setReactionCounts(summary)
+      
+      // Notificar al dueño del post
       if (prevReaction !== type && post.userId !== user?.userId) {
         const { createNotification } = await import('@/lib/utils/notifications')
         await createNotification(post.userId, 'reaction', `${user?.nombres || 'Alguien'} reaccionó a tu post`, user?.userId)
       }
-    } catch {
+    } catch (error) {
       // Revert on error
       setUserReaction(prevReaction)
       setReactionCounts(prevCounts)
-      toast.error("Error al reaccionar")
+      toast.error("Error al reaccionar", {
+        description: 'Intenta nuevamente',
+        action: {
+          label: 'Reintentar',
+          onClick: () => handleReaction(type)
+        }
+      })
     }
   }
 

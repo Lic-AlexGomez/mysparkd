@@ -15,10 +15,17 @@ export const locationService = {
   },
 
   async getCurrentLocation(): Promise<LocationData | null> {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
-        resolve(null)
+        reject(new Error('Geolocalización no soportada'))
         return
+      }
+
+      // Opciones para forzar el popup de permisos
+      const options = {
+        enableHighAccuracy: true, // Forzar solicitud de permisos
+        timeout: 15000, // 15 segundos
+        maximumAge: 0 // No usar caché, siempre solicitar nueva ubicación
       }
 
       navigator.geolocation.getCurrentPosition(
@@ -28,20 +35,45 @@ export const locationService = {
             longitude: position.coords.longitude
           })
         },
-        () => resolve(null)
+        (error) => {
+          console.error('Geolocation error:', error)
+          let errorMessage = 'Error al obtener ubicación'
+          
+          switch(error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage = 'Permiso de ubicación denegado. Por favor, permite el acceso a tu ubicación en la configuración del navegador.'
+              break
+            case error.POSITION_UNAVAILABLE:
+              errorMessage = 'Ubicación no disponible. Verifica que el GPS esté activado.'
+              break
+            case error.TIMEOUT:
+              errorMessage = 'Tiempo de espera agotado. Intenta nuevamente.'
+              break
+          }
+          
+          reject(new Error(errorMessage))
+        },
+        options
       )
     })
   },
 
   async requestAndUpdateLocation(userId: string): Promise<boolean> {
-    const location = await this.getCurrentLocation()
-    if (!location) return false
-
     try {
+      // Verificar si estamos en un contexto seguro
+      if (!window.isSecureContext) {
+        console.error('Geolocation requires HTTPS or localhost')
+        throw new Error('La geolocalización requiere HTTPS. Por favor, accede a través de localhost o usa HTTPS.')
+      }
+      
+      const location = await this.getCurrentLocation()
+      if (!location) return false
+
       await this.updateLocation(userId, location)
       return true
-    } catch {
-      return false
+    } catch (error) {
+      console.error('Error in requestAndUpdateLocation:', error)
+      throw error // Propagar el error para que se muestre en la UI
     }
   }
 }
