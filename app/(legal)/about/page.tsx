@@ -7,6 +7,21 @@ import { Button } from "@/components/ui/button"
 export default function AboutPage() {
   return (
     <div className="relative min-h-svh bg-black overflow-hidden">
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes lightningFall {
+          0% {
+            transform: translateY(-100vh) rotate(-15deg);
+            opacity: 0;
+          }
+          60% {
+            opacity: 1;
+          }
+          100% {
+            transform: translateY(0) rotate(0deg);
+            opacity: 1;
+          }
+        }
+      `}} />
       {/* Background effects - Xenon style */}
       <div className="pointer-events-none absolute -top-40 -left-40 h-96 w-96 rounded-full opacity-40 blur-3xl animate-pulse"
            style={{ background: "radial-gradient(circle, #8B5CF6, transparent)" }} />
@@ -42,7 +57,7 @@ export default function AboutPage() {
           </Link>
           
           <div className="flex flex-col items-center justify-center mb-4">
-            <div className="relative group mb-4">
+            <div className="relative group mb-4" style={{ animation: 'lightningFall 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards' }}>
               <div className="absolute inset-0 blur-2xl bg-primary opacity-75 group-hover:opacity-100 transition-opacity rounded-full animate-pulse" />
               <div className="relative flex h-16 w-16 items-center justify-center rounded-xl bg-black border-2 border-primary shadow-[0_0_30px_rgba(139,92,246,0.6)]">
                 <Zap className="h-10 w-10 text-primary drop-shadow-[0_0_15px_rgba(139,92,246,0.8)]" />
@@ -146,8 +161,8 @@ export default function AboutPage() {
                 <div className="flex items-center gap-4 mb-3">
                   <div className="relative">
                     <div className="absolute inset-0 bg-primary/50 rounded-full blur-xl group-hover:blur-2xl transition-all" />
-                    <div className="relative h-16 w-16 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white font-bold text-xl shadow-[0_0_20px_rgba(139,92,246,0.6)]">
-                      AG
+                    <div className="relative h-16 w-16 rounded-full overflow-hidden border-2 border-primary shadow-[0_0_20px_rgba(139,92,246,0.6)]">
+                      <img src="/alex-profile.jpeg" alt="Alex M. Gomez Salazar" className="h-full w-full object-cover" />
                     </div>
                   </div>
                   <div>
@@ -164,13 +179,13 @@ export default function AboutPage() {
                 <div className="flex items-center gap-4 mb-3">
                   <div className="relative">
                     <div className="absolute inset-0 bg-secondary/50 rounded-full blur-xl group-hover:blur-2xl transition-all" />
-                    <div className="relative h-16 w-16 rounded-full bg-gradient-to-br from-secondary to-secondary/80 flex items-center justify-center text-white font-bold text-xl shadow-[0_0_20px_rgba(236,72,153,0.6)]">
-                      JJ
+                    <div className="relative h-16 w-16 rounded-full overflow-hidden border-2 border-secondary shadow-[0_0_20px_rgba(236,72,153,0.6)]">
+                      <img src="/johan-profile.png" alt="Johan M. Jones" className="h-full w-full object-cover" />
                     </div>
                   </div>
                   <div>
                     <p className="font-bold text-lg text-white">Johan M. Jones</p>
-                    <p className="text-sm text-secondary font-medium drop-shadow-[0_0_8px_rgba(236,72,153,0.8)]">Co-fundador & CTO</p>
+                    <p className="text-sm text-secondary font-medium drop-shadow-[0_0_8px_rgba(236,72,153,0.8)]">Co-fundador & CEO</p>
                   </div>
                 </div>
                 <p className="text-sm text-gray-400">

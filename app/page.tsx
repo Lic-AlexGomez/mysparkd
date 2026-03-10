@@ -152,7 +152,7 @@ export default function HomePage() {
             Únete a miles de personas conectando ahora
           </p>
           
-          <div className="mt-3 md:mt-4 text-xs text-gray-600 max-w-2xl mx-auto px-4">
+          <div className="mt-3 md:mt-4 text-xs text-gray-600 max-w-md mx-auto px-4">
             <p className="mb-2">
               Al registrarte, confirmas que tienes al menos 18 años y aceptas nuestros{" "}
               <Link href="/terms" className="text-primary hover:underline">Términos de Servicio</Link> y{" "}

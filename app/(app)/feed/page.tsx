@@ -116,10 +116,10 @@ export default function FeedPage() {
 
       {/* Header with Tabs */}
       <div className="sticky top-16 z-20 border-b border-border bg-background/95 backdrop-blur-md">
-        <div className="flex items-center justify-between px-4 py-2">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 px-4 py-2">
           {features.personalizedFeed ? (
-          <Tabs value={feedTab} onValueChange={(v) => setFeedTab(v as any)} className="flex-1">
-            <TabsList className="w-full grid grid-cols-3 max-w-md">
+          <Tabs value={feedTab} onValueChange={(v) => setFeedTab(v as any)} className="flex-1 md:max-w-md">
+            <TabsList className="w-full grid grid-cols-3">
               <TabsTrigger value="global" className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4" />
                 Global
@@ -141,7 +141,7 @@ export default function FeedPage() {
             </h2>
           )}
           
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-shrink-0 justify-end md:justify-start">
             <Button 
               variant="ghost" 
               size="sm" 
