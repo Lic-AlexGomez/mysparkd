@@ -29,6 +29,12 @@ export function useLocalFeed(radiusKm: number = 50) {
       await locationService.updateLocation(location)
       const data = await locationService.getLocalFeed(radiusKm)
       
+      console.log('=== FEED LOCAL ===');
+      console.log('Datos recibidos del backend:', data);
+      console.log('Tipo de datos:', typeof data);
+      console.log('Es array?:', Array.isArray(data));
+      console.log('Cantidad de posts:', Array.isArray(data) ? data.length : 'N/A');
+      
       // Validar que data sea un array
       if (!Array.isArray(data)) {
         console.error('Feed local no es un array:', data)
@@ -63,6 +69,9 @@ export function useLocalFeed(radiusKm: number = 50) {
         poll: post.poll || null,
         distance: post.distance || null
       }))
+      
+      console.log('Posts normalizados:', normalizedPosts);
+      console.log('Primer post (ejemplo):', normalizedPosts[0]);
       
       setPosts(normalizedPosts)
       setLocationEnabled(true)

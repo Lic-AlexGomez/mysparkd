@@ -45,7 +45,14 @@ export default function FeedPage() {
   const [showSearch, setShowSearch] = useState(false)
   const [filterType, setFilterType] = useState<'all' | 'withImage' | 'withoutImage'>('all')
   const [viewMode, setViewMode] = useState<'card' | 'compact'>('card')
-  const [locationError, setLocationError] = useState(false)
+  const [locationError, setLocationError] = useState(() => {
+    // Verificar si ya se permitió la ubicación antes
+    if (typeof window !== 'undefined') {
+      const locationPermitted = localStorage.getItem('location-permitted')
+      return locationPermitted !== 'true'
+    }
+    return false
+  })
   const [isRequestingLocation, setIsRequestingLocation] = useState(false)
 
   useEffect(() => {
@@ -54,9 +61,16 @@ export default function FeedPage() {
 
   // Solicitar ubicación cuando se cambia al tab local
   useEffect(() => {
-    if (feedTab === 'local' && user?.userId && !locationEnabled) {
-      // Verificar si el endpoint existe antes de solicitar
-      checkLocationEndpoint()
+    if (feedTab === 'local' && user?.userId) {
+      // Verificar si ya se permitió la ubicación
+      const locationPermitted = localStorage.getItem('location-permitted')
+      if (locationPermitted === 'true' && !locationEnabled) {
+        // Ya se permitió antes, no mostrar banner
+        setLocationError(false)
+      } else if (locationPermitted !== 'true') {
+        // No se ha permitido, mostrar banner
+        checkLocationEndpoint()
+      }
     }
   }, [feedTab, user?.userId, locationEnabled])
 
@@ -93,6 +107,8 @@ export default function FeedPage() {
       const result = await locationService.requestAndUpdateLocation()
       
       if (result) {
+        // Guardar que se permitió la ubicación
+        localStorage.setItem('location-permitted', 'true')
         toast.success('¡Ubicación activada!')
         setLocationError(false)
         window.location.reload()
