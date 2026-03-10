@@ -65,23 +65,23 @@ export function canUseNewFeatures(userEmail?: string | null, username?: string |
 
 /**
  * Obtiene los feature flags para el usuario actual
+ * TODAS LAS FUNCIONALIDADES ACTIVADAS PARA TODOS LOS USUARIOS
  */
 export function getFeatureFlags(userEmail?: string | null, username?: string | null): FeatureFlags {
-  const isTestUser = canUseNewFeatures(userEmail, username);
-  
+  // Activar todas las features para todos los usuarios
   return {
-    multipleReactions: isTestUser,
-    shareWithQR: isTestUser,
-    polls: isTestUser,
-    personalizedFeed: isTestUser,
-    profileEdit: isTestUser,
-    groupPosts: isTestUser,
-    groupRoles: isTestUser,
-    hashtagsAndMentions: isTestUser,
-    advancedSearch: isTestUser,
-    searchPage: isTestUser,
-    storiesPage: isTestUser,
-    analyticsPage: isTestUser,
-    groupsPage: isTestUser,
+    multipleReactions: true,      // ✅ Reacciones múltiples activadas
+    shareWithQR: true,            // ✅ Compartir con QR activado
+    polls: true,                  // ✅ Encuestas activadas
+    personalizedFeed: true,       // ✅ Feed personalizado activado
+    profileEdit: true,            // ✅ Edición de perfil activada
+    groupPosts: true,             // ✅ Posts en grupos activados
+    groupRoles: true,             // ✅ Roles en grupos activados
+    hashtagsAndMentions: true,    // ✅ Hashtags y menciones activados
+    advancedSearch: true,         // ✅ Búsqueda avanzada activada
+    searchPage: true,             // ✅ Página de búsqueda activada
+    storiesPage: true,            // ✅ Página de stories activada
+    analyticsPage: true,          // ✅ Página de analytics activada
+    groupsPage: true,             // ✅ Página de grupos activada
   };
 }
