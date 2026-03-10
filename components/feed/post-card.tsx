@@ -61,13 +61,33 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
   const features = useFeatureFlags()
   
   // Debug: Ver qué reacción tiene el post
-  console.log('PostCard - Post ID:', post.id);
-  console.log('PostCard - userReaction:', post.userReaction);
-  console.log('PostCard - reactions:', post.reactions);
+  console.log('=== PostCard Render ===')
+  console.log('Post ID:', post.id);
+  console.log('post.userReaction:', post.userReaction);
+  console.log('typeof post.userReaction:', typeof post.userReaction);
+  console.log('post.reactions:', post.reactions);
+  
+  // Buscar la reacción del usuario en el objeto reactions
+  const findUserReaction = (): ReactionType | null => {
+    if (post.userReaction) return post.userReaction;
+    
+    // Si no hay userReaction, buscar en reactions donde userReacted sea true
+    const userReactionEntry = Object.entries(post.reactions || {}).find(
+      ([_, reaction]) => reaction.userReacted
+    );
+    
+    const found = userReactionEntry ? (userReactionEntry[0] as ReactionType) : null;
+    console.log('findUserReaction result:', found);
+    return found;
+  };
+  
+  const initialUserReaction = findUserReaction();
+  console.log('initialUserReaction:', initialUserReaction);
+  console.log('=======================')
   
   const [likeCount, setLikeCount] = useState(post.likeCount)
   const [liked, setLiked] = useState(post.liked || false)
-  const [userReaction, setUserReaction] = useState<ReactionType | null>(post.userReaction || null)
+  const [userReaction, setUserReaction] = useState<ReactionType | null>(initialUserReaction)
   const [reactionCounts, setReactionCounts] = useState(post.reactions || {})
   const [repostCount, setRepostCount] = useState(post.repostCount || 0)
   const [reposted, setReposted] = useState(false)
@@ -94,6 +114,11 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
     const prevReaction = userReaction
     const prevCounts = { ...reactionCounts }
     
+    console.log('=== handleReaction ===')
+    console.log('Tipo de reacción:', type)
+    console.log('Reacción anterior:', prevReaction)
+    console.log('Contadores anteriores:', prevCounts)
+    
     // Optimistic update
     if (prevReaction === type) {
       // Remove reaction
@@ -101,7 +126,7 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
       setReactionCounts(prev => {
         const updated = { ...prev }
         if (updated[type]) {
-          updated[type] = { ...updated[type], count: updated[type].count - 1 }
+          updated[type] = { ...updated[type], count: updated[type].count - 1, userReacted: false }
           if (updated[type].count === 0) delete updated[type]
         }
         return updated
@@ -113,7 +138,7 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
         const updated = { ...prev }
         // Remove old reaction
         if (prevReaction && updated[prevReaction]) {
-          updated[prevReaction] = { ...updated[prevReaction], count: updated[prevReaction].count - 1 }
+          updated[prevReaction] = { ...updated[prevReaction], count: updated[prevReaction].count - 1, userReacted: false }
           if (updated[prevReaction].count === 0) delete updated[prevReaction]
         }
         // Add new reaction
@@ -128,11 +153,34 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
 
     try {
       // Usar servicio de reacciones
-      await reactionService.toggleReaction(post.id, 'POST', type)
+      const result = await reactionService.toggleReaction(post.id, 'POST', type)
+      console.log('Resultado del backend:', result)
       
-      // Refrescar resumen de reacciones
-      const summary = await reactionService.getReactionSummary(post.id, 'POST')
-      setReactionCounts(summary)
+      // Refrescar estado de reacciones desde el backend
+      const status = await reactionService.getReactionStatus(post.id, 'POST')
+      console.log('Estado de reacciones del backend:', status)
+      
+      // Actualizar con los datos reales del backend
+      if (status && typeof status === 'object') {
+        // Si el backend devuelve myReaction y reactions
+        if ('myReaction' in status && 'reactions' in status) {
+          setUserReaction(status.myReaction || null)
+          
+          // Convertir array de reacciones a objeto
+          const reactionsObj: Record<string, { type: string; count: number; userReacted: boolean }> = {}
+          if (Array.isArray(status.reactions)) {
+            status.reactions.forEach((r: any) => {
+              reactionsObj[r.reaction] = {
+                type: r.reaction,
+                count: r.count,
+                userReacted: status.myReaction === r.reaction
+              }
+            })
+          }
+          setReactionCounts(reactionsObj)
+          console.log('Reacciones actualizadas:', reactionsObj)
+        }
+      }
       
       // Notificar al dueño del post
       if (prevReaction !== type && post.userId !== user?.userId) {
@@ -140,6 +188,7 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
         await createNotification(post.userId, 'reaction', `${user?.nombres || 'Alguien'} reaccionó a tu post`, user?.userId)
       }
     } catch (error) {
+      console.error('Error al reaccionar:', error)
       // Revert on error
       setUserReaction(prevReaction)
       setReactionCounts(prevCounts)
@@ -473,33 +522,47 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
         {/* Actions */}
         <div className="mt-3 flex items-center gap-4">
           {features.multipleReactions ? (
-            <ReactionPicker onReact={handleReaction}>
-              <button
-                className="flex items-center gap-1.5 text-sm transition-colors group relative"
-                title="Reaccionar (Múltiples reacciones habilitadas)"
-              >
-                {userReaction ? (
-                  <span className="text-xl group-hover:scale-125 transition-transform">
-                    {getReactionEmoji(userReaction)}
-                  </span>
-                ) : (
-                  <Heart
-                    className="h-5 w-5 text-muted-foreground group-hover:text-secondary group-hover:scale-110 transition-all"
-                  />
-                )}
-                {Object.values(reactionCounts).reduce((sum, r) => sum + r.count, 0) > 0 && (
-                  <span
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setShowReactionsModal(true)
-                    }}
-                    className="text-muted-foreground hover:underline cursor-pointer"
-                  >
-                    {Object.values(reactionCounts).reduce((sum, r) => sum + r.count, 0)}
-                  </span>
-                )}
-              </button>
-            </ReactionPicker>
+            <div className="flex items-center gap-1.5">
+              <ReactionPicker onReact={handleReaction}>
+                <button
+                  className="flex items-center gap-1.5 text-sm transition-colors group relative"
+                  title="Reaccionar (Múltiples reacciones habilitadas)"
+                >
+                  {/* Mostrar todas las reacciones del post */}
+                  {Object.keys(reactionCounts).length > 0 ? (
+                    <div className="flex items-center gap-0.5">
+                      {Object.entries(reactionCounts)
+                        .sort(([, a], [, b]) => b.count - a.count) // Ordenar por cantidad
+                        .slice(0, 3) // Mostrar máximo 3 emojis
+                        .map(([type, data]) => (
+                          <span 
+                            key={type}
+                            className={`text-base transition-transform ${
+                              data.userReacted ? 'scale-110 drop-shadow-[0_0_4px_rgba(0,229,255,0.5)]' : ''
+                            }`}
+                            title={data.userReacted ? 'Tu reacción' : ''}
+                          >
+                            {getReactionEmoji(type as ReactionType)}
+                          </span>
+                        ))}
+                    </div>
+                  ) : (
+                    <Heart
+                      className="h-5 w-5 text-muted-foreground group-hover:text-secondary group-hover:scale-110 transition-all"
+                    />
+                  )}
+                </button>
+              </ReactionPicker>
+              {/* Contador total de reacciones */}
+              {Object.values(reactionCounts).reduce((sum, r) => sum + r.count, 0) > 0 && (
+                <span
+                  onClick={() => setShowReactionsModal(true)}
+                  className="text-sm text-muted-foreground hover:underline cursor-pointer"
+                >
+                  {Object.values(reactionCounts).reduce((sum, r) => sum + r.count, 0)}
+                </span>
+              )}
+            </div>
           ) : (
             <Tooltip content={liked ? "Quitar like" : "Dar like"}>
             <button

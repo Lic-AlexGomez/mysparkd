@@ -22,8 +22,10 @@ export function useFeed() {
       
       // Normalizar posts con reacciones
       const normalizedPosts = data.map((post) => {
-        console.log('Post original del backend:', post)
-        console.log('myReaction del backend:', post.myReaction)
+        console.log('=== POST ORIGINAL ====')
+        console.log('Post ID:', post.id)
+        console.log('myReaction:', post.myReaction)
+        console.log('reactions array:', post.reactions)
         
         // Convertir array de reacciones a objeto
         const reactionsObj: Record<string, { type: string; count: number; userReacted: boolean }> = {}
@@ -58,18 +60,24 @@ export function useFeed() {
           canUnlock: post.canUnlock || false,
           unlocked: post.unlocked || false,
           permanent: post.permanent !== false,
-          expiresAt: post.expiresAt || null
+          expiresAt: post.expiresAt || null,
+          reputation: post.reputation,
+          verificationLevel: post.verificationLevel,
+          repostCount: post.repostCount || 0
         }
         
-        console.log('Post normalizado - userReaction:', normalized.userReaction)
-        console.log('Post normalizado - reactions:', normalized.reactions)
+        console.log('=== POST NORMALIZADO ===')
+        console.log('userReaction:', normalized.userReaction)
+        console.log('reactions:', normalized.reactions)
+        console.log('========================')
         
         return normalized
       })
       
       const filtered = contentValidation.filterBlockedUsers('current-user', normalizedPosts)
       setPosts(feedService.sortPosts(filtered, sortMode))
-    } catch {
+    } catch (error) {
+      console.error('[Feed Global] Error:', error)
       setPosts([])
     } finally {
       setLoading(false)
