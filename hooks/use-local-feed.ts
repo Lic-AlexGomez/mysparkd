@@ -25,8 +25,9 @@ export function useLocalFeed(radiusKm: number = 50) {
         return
       }
 
-      await locationService.updateLocation(user.userId, location)
-      const data = await locationService.getLocalFeed(user.userId, radiusKm)
+      // El backend obtiene el userId del JWT
+      await locationService.updateLocation(location)
+      const data = await locationService.getLocalFeed(radiusKm)
       setPosts(data)
       setLocationEnabled(true)
     } catch (err) {

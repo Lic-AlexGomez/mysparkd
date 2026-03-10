@@ -55,9 +55,15 @@ export default function FeedPage() {
   // Solicitar ubicación cuando se cambia al tab local
   useEffect(() => {
     if (feedTab === 'local' && user?.userId && !locationEnabled) {
-      requestLocation()
+      // Verificar si el endpoint existe antes de solicitar
+      checkLocationEndpoint()
     }
   }, [feedTab, user?.userId, locationEnabled])
+
+  const checkLocationEndpoint = async () => {
+    // Por ahora, mostrar que la funcionalidad no está disponible
+    setLocationError(true)
+  }
 
   const requestLocation = async () => {
     if (isRequestingLocation) return
@@ -84,7 +90,7 @@ export default function FeedPage() {
         return
       }
 
-      const result = await locationService.requestAndUpdateLocation(user!.userId)
+      const result = await locationService.requestAndUpdateLocation()
       
       if (result) {
         toast.success('¡Ubicación activada!')
@@ -96,8 +102,13 @@ export default function FeedPage() {
     } catch (error: any) {
       console.error('Error requesting location:', error)
       
-      // Mostrar mensaje de error específico
-      if (error.message?.includes('HTTPS') || error.message?.includes('secure')) {
+      // Verificar si es error 404 (endpoint no existe)
+      if (error.message?.includes('404') || error.message?.includes('Not Found')) {
+        toast.error('Funcionalidad no disponible', {
+          description: 'El feed local estará disponible próximamente',
+          duration: 5000
+        })
+      } else if (error.message?.includes('HTTPS') || error.message?.includes('secure')) {
         toast.error('Geolocalización requiere HTTPS', {
           description: 'Accede a través de http://localhost:3000',
           duration: 8000
@@ -108,8 +119,8 @@ export default function FeedPage() {
           duration: 5000
         })
       } else {
-        toast.error('Error al obtener ubicación', {
-          description: error.message || 'Intenta nuevamente',
+        toast.error('Funcionalidad no disponible', {
+          description: 'El feed local estará disponible próximamente',
           duration: 5000
         })
       }
@@ -217,24 +228,27 @@ export default function FeedPage() {
                 <>
                   <p className="text-sm font-medium text-foreground">Activa tu ubicación para ver posts cercanos</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Haz click en "Permitir" cuando tu navegador lo solicite
+                    Haz click en "Activar" y permite el acceso cuando tu navegador lo solicite
                   </p>
                 </>
               )}
             </div>
             {window.isSecureContext && (
-              <Button 
-                size="sm" 
-                className="bg-yellow-500 text-black hover:bg-yellow-600"
-                onClick={requestLocation}
+              <button
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  requestLocation()
+                }}
                 disabled={isRequestingLocation}
+                className="px-4 py-2 bg-yellow-500 text-black rounded-md hover:bg-yellow-600 disabled:opacity-50 font-medium text-sm flex-shrink-0"
               >
                 {isRequestingLocation ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   'Activar'
                 )}
-              </Button>
+              </button>
             )}
           </div>
         </div>

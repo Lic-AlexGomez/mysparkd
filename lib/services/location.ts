@@ -6,12 +6,14 @@ export interface LocationData {
 }
 
 export const locationService = {
-  async updateLocation(userId: string, location: LocationData) {
-    return api.post(`/api/feed/location/${userId}`, location)
+  async updateLocation(location: LocationData) {
+    // El backend obtiene el userId del JWT, no lo necesitamos en la URL
+    return api.post('/api/feed/location', location)
   },
 
-  async getLocalFeed(userId: string, radiusKm: number = 50) {
-    return api.get(`/api/feed/local/${userId}?radiusKm=${radiusKm}`)
+  async getLocalFeed(radiusKm: number = 50) {
+    // El backend obtiene el userId del JWT
+    return api.get(`/api/feed/local?radiusKm=${radiusKm}`)
   },
 
   async getCurrentLocation(): Promise<LocationData | null> {
@@ -58,7 +60,7 @@ export const locationService = {
     })
   },
 
-  async requestAndUpdateLocation(userId: string): Promise<boolean> {
+  async requestAndUpdateLocation(): Promise<boolean> {
     try {
       // Verificar si estamos en un contexto seguro
       if (!window.isSecureContext) {
@@ -69,7 +71,7 @@ export const locationService = {
       const location = await this.getCurrentLocation()
       if (!location) return false
 
-      await this.updateLocation(userId, location)
+      await this.updateLocation(location)
       return true
     } catch (error) {
       console.error('Error in requestAndUpdateLocation:', error)
