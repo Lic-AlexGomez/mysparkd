@@ -28,9 +28,18 @@ export function useLocalFeed(radiusKm: number = 50) {
       // El backend obtiene el userId del JWT
       await locationService.updateLocation(location)
       const data = await locationService.getLocalFeed(radiusKm)
-      setPosts(data)
+      
+      // Normalizar las fechas de los posts
+      const normalizedPosts = data.map((post: any) => ({
+        ...post,
+        createdAt: post.createdAt || new Date().toISOString(),
+        expiresAt: post.expiresAt || null
+      }))
+      
+      setPosts(normalizedPosts)
       setLocationEnabled(true)
     } catch (err) {
+      console.error('Error fetching local feed:', err)
       setError(err instanceof Error ? err.message : 'Error al cargar feed local')
       setLocationEnabled(false)
     } finally {

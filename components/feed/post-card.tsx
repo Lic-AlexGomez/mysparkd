@@ -256,10 +256,23 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
     setShowShareModal(true)
   }
 
-  const timeAgo = formatDistanceToNow(new Date(post.createdAt), {
-    addSuffix: true,
-    locale: es,
-  })
+  // Validar y formatear fecha de forma segura
+  const getTimeAgo = () => {
+    try {
+      if (!post.createdAt) return 'Hace un momento'
+      const date = new Date(post.createdAt)
+      if (isNaN(date.getTime())) return 'Hace un momento'
+      return formatDistanceToNow(date, {
+        addSuffix: true,
+        locale: es,
+      })
+    } catch (error) {
+      console.error('Error formatting date:', error)
+      return 'Hace un momento'
+    }
+  }
+
+  const timeAgo = getTimeAgo()
 
   return (
     <>
