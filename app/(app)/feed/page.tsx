@@ -164,17 +164,22 @@ export default function FeedPage() {
   
   // Seleccionar posts según la pestaña
   if (feedTab === 'local') {
-    basePosts = localPosts
+    basePosts = Array.isArray(localPosts) ? localPosts : []
   } else if (feedTab === 'following') {
     // Mostrar solo posts de usuarios que sigues
     // TODO: Implementar lógica de seguimiento cuando el backend esté listo
-    basePosts = posts.filter(post => post.userId === user?.userId)
+    basePosts = Array.isArray(posts) ? posts.filter(post => post.userId === user?.userId) : []
+  } else {
+    basePosts = Array.isArray(posts) ? posts : []
   }
   
   const displayPosts = displayLocalPosts.length > 0 && feedTab === 'global' ? displayLocalPosts : basePosts
   
+  // Asegurar que displayPosts sea siempre un array
+  const safePosts = Array.isArray(displayPosts) ? displayPosts : []
+  
   // Filtrar por pestaña
-  let filteredPosts = displayPosts
+  let filteredPosts = safePosts
   
   // Búsqueda
   if (searchQuery) {

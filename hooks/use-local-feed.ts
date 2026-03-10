@@ -29,11 +29,39 @@ export function useLocalFeed(radiusKm: number = 50) {
       await locationService.updateLocation(location)
       const data = await locationService.getLocalFeed(radiusKm)
       
-      // Normalizar las fechas de los posts
+      // Validar que data sea un array
+      if (!Array.isArray(data)) {
+        console.error('Feed local no es un array:', data)
+        setPosts([])
+        setLocationEnabled(true)
+        return
+      }
+      
+      // Normalizar las fechas y campos de los posts
       const normalizedPosts = data.map((post: any) => ({
-        ...post,
+        id: post.id || '',
+        body: post.body || '',
+        userId: post.userId || '',
+        username: post.username || 'Usuario',
+        userPhoto: post.userPhoto || '',
         createdAt: post.createdAt || new Date().toISOString(),
-        expiresAt: post.expiresAt || null
+        expiresAt: post.expiresAt || null,
+        permanent: post.permanent ?? true,
+        locked: post.locked ?? false,
+        visibility: post.visibility || 'PUBLIC',
+        file: post.file || null,
+        likeCount: post.likeCount || 0,
+        commentsCount: post.commentsCount || 0,
+        repostCount: post.repostCount || 0,
+        viewCount: post.viewCount || 0,
+        shareCount: post.shareCount || 0,
+        liked: post.liked || false,
+        reactions: post.reactions || {},
+        userReaction: post.userReaction || null,
+        reputation: post.reputation || 0,
+        verificationLevel: post.verificationLevel || 0,
+        poll: post.poll || null,
+        distance: post.distance || null
       }))
       
       setPosts(normalizedPosts)
@@ -42,6 +70,7 @@ export function useLocalFeed(radiusKm: number = 50) {
       console.error('Error fetching local feed:', err)
       setError(err instanceof Error ? err.message : 'Error al cargar feed local')
       setLocationEnabled(false)
+      setPosts([]) // Asegurar que posts sea un array vacío en caso de error
     } finally {
       setLoading(false)
     }
