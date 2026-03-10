@@ -77,9 +77,23 @@ export default function FeedPage() {
   // Filtrar posts según búsqueda y filtros
   const displayPosts = localPosts.length > 0 ? localPosts : posts
   
-  let filteredPosts = feedTab === 'following' 
-    ? displayPosts
-    : displayPosts
+  // Filtrar por pestaña
+  let filteredPosts = displayPosts
+  
+  if (feedTab === 'following') {
+    // Mostrar solo posts de usuarios que sigues
+    // TODO: Implementar lógica de seguimiento cuando el backend esté listo
+    // Por ahora, mostrar posts del usuario actual como ejemplo
+    filteredPosts = displayPosts.filter(post => post.userId === user?.userId)
+  } else if (feedTab === 'local') {
+    // Mostrar posts de usuarios cercanos
+    // TODO: Implementar geolocalización cuando el backend esté listo
+    // Por ahora, mostrar todos los posts
+    filteredPosts = displayPosts
+  } else {
+    // Global: mostrar todos los posts
+    filteredPosts = displayPosts
+  }
   
   // Búsqueda
   if (searchQuery) {

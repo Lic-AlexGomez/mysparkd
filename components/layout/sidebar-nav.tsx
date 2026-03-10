@@ -55,7 +55,7 @@ export function SidebarNav() {
             <Zap className="h-7 w-7 text-black" />
           </div>
         </div>
-        <span className="hidden xl:block text-2xl font-black bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent">Sparkd</span>
+        <span className="hidden py-12  xl:block text-2xl font-black bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent">Sparkd</span>
       </div>
 
       {/* Nav items */}

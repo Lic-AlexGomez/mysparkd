@@ -167,7 +167,7 @@ export default function AboutPage() {
                   </div>
                   <div>
                     <p className="font-bold text-lg text-white">Alex M. Gomez Salazar</p>
-                    <p className="text-sm text-primary font-medium drop-shadow-[0_0_8px_rgba(139,92,246,0.8)]">Co-fundador & CEO</p>
+                    <p className="text-sm text-primary font-medium drop-shadow-[0_0_8px_rgba(139,92,246,0.8)]">Fundador & CEO</p>
                   </div>
                 </div>
                 <p className="text-sm text-gray-400">
@@ -185,7 +185,7 @@ export default function AboutPage() {
                   </div>
                   <div>
                     <p className="font-bold text-lg text-white">Johan M. Jones</p>
-                    <p className="text-sm text-secondary font-medium drop-shadow-[0_0_8px_rgba(236,72,153,0.8)]">Co-fundador & CEO</p>
+                    <p className="text-sm text-secondary font-medium drop-shadow-[0_0_8px_rgba(236,72,153,0.8)]">Fundador & CEO</p>
                   </div>
                 </div>
                 <p className="text-sm text-gray-400">

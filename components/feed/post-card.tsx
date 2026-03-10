@@ -80,8 +80,8 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
   const [editedBody, setEditedBody] = useState(post.body)
   const [isSaving, setIsSaving] = useState(false)
   const isOwn = user?.userId === post.userId
-  const reputation = post.reputation || 75
-  const reputationColor = reputationService.getReputationColor(reputation)
+  const reputation = post.reputation
+  const reputationColor = reputation ? reputationService.getReputationColor(reputation) : undefined
 
   const handleReaction = async (type: ReactionType) => {
     const prevReaction = userReaction
@@ -259,7 +259,7 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
         }`}
       >
         {/* Locked overlay */}
-        {post.locked && !post.unlocked && (
+        {post.locked && !post.unlocked && !isOwn && (
           <div 
             onClick={() => setShowUnlockModal(true)}
             className="mb-3 flex items-center justify-between rounded-lg bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/30 px-4 py-3 cursor-pointer hover:from-primary/20 hover:to-secondary/20 transition-all"
@@ -298,17 +298,19 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
                     <Check className="h-2.5 w-2.5" />
                   </Badge>
                 )}
-                <Tooltip content={`Reputación: ${reputation}/100`}>
-                  <div className="flex items-center gap-1">
-                    <ReputationStars reputation={reputation} size="sm" />
-                    <Badge 
-                      className="px-1.5 py-0 text-[10px] font-bold text-black border-0" 
-                      style={{ backgroundColor: reputationColor }}
-                    >
-                      {reputation}
-                    </Badge>
-                  </div>
-                </Tooltip>
+                {reputation && (
+                  <Tooltip content={`Reputación: ${reputation}/100`}>
+                    <div className="flex items-center gap-1">
+                      <ReputationStars reputation={reputation} size="sm" />
+                      <Badge 
+                        className="px-1.5 py-0 text-[10px] font-bold text-black border-0" 
+                        style={{ backgroundColor: reputationColor }}
+                      >
+                        {reputation}
+                      </Badge>
+                    </div>
+                  </Tooltip>
+                )}
               </div>
               <p className="text-xs text-muted-foreground">{timeAgo}</p>
             </div>
@@ -410,7 +412,9 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
               </div>
             </div>
           ) : (
-            <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+            <p className={`text-sm text-foreground leading-relaxed whitespace-pre-wrap ${
+              post.locked && !post.unlocked && !isOwn ? 'blur-sm select-none' : ''
+            }`}>
               {features.hashtagsAndMentions ? parseTextWithLinks(post.body) : post.body}
             </p>
           )}
@@ -418,7 +422,9 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
 
         {/* Image */}
         {post.file && !compact && (
-          <div className="mt-3 overflow-hidden rounded-xl">
+          <div className={`mt-3 overflow-hidden rounded-xl ${
+            post.locked && !post.unlocked && !isOwn ? 'blur-md select-none' : ''
+          }`}>
             <OptimizedImage
               src={post.file}
               alt="Post media"
@@ -436,33 +442,32 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
         <div className="mt-3 flex items-center gap-4">
           {features.multipleReactions ? (
             <ReactionPicker onReact={handleReaction}>
-            <Tooltip content="Reaccionar">
-            <button
-              className="flex items-center gap-1.5 text-sm transition-colors group"
-            >
-              {userReaction ? (
-                <span className="text-xl group-hover:scale-125 transition-transform">
-                  {getReactionEmoji(userReaction)}
-                </span>
-              ) : (
-                <Heart
-                  className="h-5 w-5 text-muted-foreground group-hover:text-secondary group-hover:scale-110 transition-all"
-                />
-              )}
-              {Object.values(reactionCounts).reduce((sum, r) => sum + r.count, 0) > 0 && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setShowReactionsModal(true)
-                  }}
-                  className="text-muted-foreground hover:underline"
-                >
-                  {Object.values(reactionCounts).reduce((sum, r) => sum + r.count, 0)}
-                </button>
-              )}
-            </button>
-            </Tooltip>
-          </ReactionPicker>
+              <button
+                className="flex items-center gap-1.5 text-sm transition-colors group relative"
+                title="Reaccionar (Múltiples reacciones habilitadas)"
+              >
+                {userReaction ? (
+                  <span className="text-xl group-hover:scale-125 transition-transform">
+                    {getReactionEmoji(userReaction)}
+                  </span>
+                ) : (
+                  <Heart
+                    className="h-5 w-5 text-muted-foreground group-hover:text-secondary group-hover:scale-110 transition-all"
+                  />
+                )}
+                {Object.values(reactionCounts).reduce((sum, r) => sum + r.count, 0) > 0 && (
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setShowReactionsModal(true)
+                    }}
+                    className="text-muted-foreground hover:underline cursor-pointer"
+                  >
+                    {Object.values(reactionCounts).reduce((sum, r) => sum + r.count, 0)}
+                  </span>
+                )}
+              </button>
+            </ReactionPicker>
           ) : (
             <Tooltip content={liked ? "Quitar like" : "Dar like"}>
             <button

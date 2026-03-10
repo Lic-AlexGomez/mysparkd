@@ -44,10 +44,8 @@ export default function SwipesPage() {
       
       setProfiles(profiles)
     } catch (error: any) {
-      console.error('Error fetching profiles:', error)
-      if (error.message?.includes('403') || error.message?.includes('Forbidden')) {
-        console.log('Acceso denegado. Verifica que tu perfil esté completo y tengas preferencias configuradas.')
-      }
+      // Silenciar errores 403 (sin permisos) y otros errores del servidor
+      // El usuario verá "No hay más perfiles" en lugar de un error
       setProfiles([])
     } finally {
       setIsLoading(false)

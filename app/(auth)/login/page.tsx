@@ -134,7 +134,7 @@ export default function LoginPage() {
           <Button
             type="submit"
             disabled={isLoading}
-            className="mt-2 bg-primary text-primary-foreground hover:bg-primary/90"
+            className="mt-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(139,92,246,0.5)] active:scale-95"
           >
             {isLoading ? (
               <>

@@ -99,14 +99,31 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
         const errorText = await res.text()
         let errorMessage = 'Error al crear post'
         
-        if (errorText.includes('contenido inapropiado') || errorText.includes('sexual') || errorText.includes('violence')) {
-          errorMessage = '⚠️ Contenido bloqueado: El texto o imagen contiene contenido inapropiado'
-        } else if (errorText.includes('48 horas')) {
-          errorMessage = '⏰ Solo puedes publicar 1 post cada 48 horas (usuarios free)'
-        } else if (errorText.includes('duración')) {
-          errorMessage = 'La duración máxima es de 48 horas'
-        } else {
-          errorMessage = errorText || errorMessage
+        try {
+          const errorData = JSON.parse(errorText)
+          if (errorData.message) {
+            if (errorData.message.includes('Connection reset') || errorData.message.includes('recvAddress')) {
+              errorMessage = '⚠️ Error de conexión con el servidor. Por favor, intenta de nuevo.'
+            } else if (errorData.message.includes('contenido inapropiado') || errorData.message.includes('sexual') || errorData.message.includes('violence')) {
+              errorMessage = '⚠️ Contenido bloqueado: El texto o imagen contiene contenido inapropiado'
+            } else if (errorData.message.includes('48 horas')) {
+              errorMessage = '⏰ Solo puedes publicar 1 post cada 48 horas (usuarios free)'
+            } else if (errorData.message.includes('duración')) {
+              errorMessage = 'La duración máxima es de 48 horas'
+            } else {
+              errorMessage = errorData.message
+            }
+          }
+        } catch {
+          if (errorText.includes('contenido inapropiado') || errorText.includes('sexual') || errorText.includes('violence')) {
+            errorMessage = '⚠️ Contenido bloqueado: El texto o imagen contiene contenido inapropiado'
+          } else if (errorText.includes('48 horas')) {
+            errorMessage = '⏰ Solo puedes publicar 1 post cada 48 horas (usuarios free)'
+          } else if (errorText.includes('duración')) {
+            errorMessage = 'La duración máxima es de 48 horas'
+          } else if (errorText) {
+            errorMessage = errorText
+          }
         }
         
         throw new Error(errorMessage)
