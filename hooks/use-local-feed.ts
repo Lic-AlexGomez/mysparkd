@@ -44,34 +44,64 @@ export function useLocalFeed(radiusKm: number = 50) {
       }
       
       // Normalizar las fechas y campos de los posts
-      const normalizedPosts = data.map((post: any) => ({
-        id: post.id || '',
-        body: post.body || '',
-        userId: post.userId || '',
-        username: post.username || 'Usuario',
-        userPhoto: post.userPhoto || '',
-        createdAt: post.createdAt || new Date().toISOString(),
-        expiresAt: post.expiresAt || null,
-        permanent: post.permanent ?? true,
-        locked: post.locked ?? false,
-        visibility: post.visibility || 'PUBLIC',
-        file: post.file || null,
-        likeCount: post.likeCount || 0,
-        commentsCount: post.commentsCount || 0,
-        repostCount: post.repostCount || 0,
-        viewCount: post.viewCount || 0,
-        shareCount: post.shareCount || 0,
-        liked: post.liked || false,
-        reactions: post.reactions || {},
-        userReaction: post.userReaction || null,
-        reputation: post.reputation || 0,
-        verificationLevel: post.verificationLevel || 0,
-        poll: post.poll || null,
-        distance: post.distance || null
-      }))
+      const normalizedPosts = data.map((item: any) => {
+        console.log('Post original del backend:', item);
+        
+        // El backend puede devolver un objeto con estructura diferente
+        const post = item.post || item; // Algunos endpoints envuelven el post
+        
+        // Convertir el array de reacciones a objeto con formato esperado
+        const reactionsObj: any = {}
+        if (post.reactions && Array.isArray(post.reactions)) {
+          post.reactions.forEach((r: any) => {
+            reactionsObj[r.reaction] = {
+              type: r.reaction,
+              count: r.count,
+              userReacted: post.myReaction === r.reaction
+            }
+          })
+        }
+        
+        console.log('myReaction del backend:', post.myReaction);
+        console.log('reactionsObj convertido:', reactionsObj);
+        
+        const normalizedPost = {
+          id: post.id || '',
+          body: post.body || '',
+          userId: post.userId || '',
+          username: post.username || 'Usuario',
+          userPhoto: post.userPhoto || post.photoUrl || '',
+          createdAt: post.createdAt || new Date().toISOString(),
+          expiresAt: post.expiresAt || null,
+          permanent: post.permanent ?? true,
+          locked: post.locked ?? false,
+          unlocked: post.unlocked ?? false,
+          canUnlock: post.canUnlock ?? false,
+          visibility: post.visibility || 'PUBLIC',
+          file: post.file || null,
+          likeCount: post.likeCount || 0,
+          commentsCount: post.commentsCount || 0,
+          repostCount: post.repostCount || 0,
+          viewCount: post.viewCount || 0,
+          shareCount: post.shareCount || 0,
+          liked: post.likedByCurrentUser || false,
+          reactions: reactionsObj,
+          userReaction: post.myReaction || null,  // IMPORTANTE: myReaction del backend
+          totalReactions: post.totalReactions || 0,
+          reputation: post.reputation || 0,
+          verificationLevel: post.verificationLevel || 0,
+          poll: post.poll || null,
+          distance: item.distance || post.distance || null
+        };
+        
+        console.log('Post normalizado - userReaction:', normalizedPost.userReaction);
+        console.log('Post normalizado completo:', normalizedPost);
+        
+        return normalizedPost;
+      });
       
       console.log('Posts normalizados:', normalizedPosts);
-      console.log('Primer post (ejemplo):', normalizedPosts[0]);
+      console.log('Primer post normalizado (ejemplo):', normalizedPosts[0]);
       
       setPosts(normalizedPosts)
       setLocationEnabled(true)

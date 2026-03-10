@@ -17,22 +17,57 @@ export function useFeed() {
   const loadPosts = useCallback(async () => {
     try {
       setLoading(true)
-      const data = await api.get<Post[]>('/api/posts/feed')
-      console.log('[Feed] Posts obtenidos del servidor:', data)
+      const data = await api.get<any[]>('/api/posts/feed')
+      console.log('[Feed Global] Posts obtenidos del servidor:', data)
       
-      // Fetch like status for each post
-      const postsWithLikes = await Promise.all(
-        data.map(async (post) => {
-          try {
-            const likeStatus = await api.get<{ likedByMe: boolean }>(`/api/likes/status/${post.id}`)
-            return { ...post, liked: likeStatus.likedByMe }
-          } catch {
-            return { ...post, liked: false }
-          }
-        })
-      )
+      // Normalizar posts con reacciones
+      const normalizedPosts = data.map((post) => {
+        console.log('Post original del backend:', post)
+        console.log('myReaction del backend:', post.myReaction)
+        
+        // Convertir array de reacciones a objeto
+        const reactionsObj: Record<string, { type: string; count: number; userReacted: boolean }> = {}
+        if (Array.isArray(post.reactions)) {
+          post.reactions.forEach((r: any) => {
+            reactionsObj[r.reaction] = {
+              type: r.reaction,
+              count: r.count,
+              userReacted: post.myReaction === r.reaction
+            }
+          })
+        }
+        
+        const normalized = {
+          id: post.id || '',
+          body: post.body || '',
+          userId: post.userId || '',
+          username: post.username || 'Usuario',
+          userPhoto: post.userPhoto || '',
+          createdAt: post.createdAt || new Date().toISOString(),
+          file: post.file || null,
+          visibility: post.visibility || 'PUBLIC',
+          likeCount: post.likeCount || 0,
+          commentsCount: post.commentsCount || 0,
+          viewCount: post.viewCount || 0,
+          shareCount: post.shareCount || 0,
+          liked: post.likedByCurrentUser || false,
+          userReaction: post.myReaction || null,
+          reactions: reactionsObj,
+          totalReactions: post.totalReactions || 0,
+          locked: post.locked || false,
+          canUnlock: post.canUnlock || false,
+          unlocked: post.unlocked || false,
+          permanent: post.permanent !== false,
+          expiresAt: post.expiresAt || null
+        }
+        
+        console.log('Post normalizado - userReaction:', normalized.userReaction)
+        console.log('Post normalizado - reactions:', normalized.reactions)
+        
+        return normalized
+      })
       
-      const filtered = contentValidation.filterBlockedUsers('current-user', postsWithLikes)
+      const filtered = contentValidation.filterBlockedUsers('current-user', normalizedPosts)
       setPosts(feedService.sortPosts(filtered, sortMode))
     } catch {
       setPosts([])

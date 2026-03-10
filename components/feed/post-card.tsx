@@ -59,6 +59,12 @@ interface PostCardProps {
 export function PostCard({ post, onDelete, onUpdate, highlight, compact = false }: PostCardProps) {
   const { user } = useAuth()
   const features = useFeatureFlags()
+  
+  // Debug: Ver qué reacción tiene el post
+  console.log('PostCard - Post ID:', post.id);
+  console.log('PostCard - userReaction:', post.userReaction);
+  console.log('PostCard - reactions:', post.reactions);
+  
   const [likeCount, setLikeCount] = useState(post.likeCount)
   const [liked, setLiked] = useState(post.liked || false)
   const [userReaction, setUserReaction] = useState<ReactionType | null>(post.userReaction || null)
