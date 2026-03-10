@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Toaster } from 'sonner'
 import { AuthProvider } from '@/lib/auth-context'
+import { NotificationBanner } from '@/components/notification-banner'
 import './globals.css'
 
 const _geist = Geist({ subsets: ["latin"] });
@@ -162,6 +163,7 @@ export default function RootLayout({
       <body className="font-sans antialiased">
         <AuthProvider>
           {children}
+          <NotificationBanner />
           <Toaster
             theme="dark"
             position="top-center"

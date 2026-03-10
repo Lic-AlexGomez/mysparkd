@@ -1,52 +1,43 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import Image from "next/image"
-import { Skeleton } from "@/components/ui/skeleton"
+import { useState } from 'react'
 
 interface OptimizedImageProps {
   src: string
   alt: string
   className?: string
-  aspectRatio?: "square" | "video" | "portrait"
+  onClick?: () => void
 }
 
-export function OptimizedImage({ src, alt, className = "", aspectRatio = "square" }: OptimizedImageProps) {
+export function OptimizedImage({ src, alt, className = '', onClick }: OptimizedImageProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(false)
-
-  const aspectClasses = {
-    square: "aspect-square",
-    video: "aspect-video",
-    portrait: "aspect-[3/4]"
-  }
-
-  if (error) {
-    return (
-      <div className={`${aspectClasses[aspectRatio]} ${className} bg-muted flex items-center justify-center`}>
-        <span className="text-muted-foreground text-sm">Error al cargar</span>
-      </div>
-    )
-  }
-
+  
   return (
-    <div className={`relative ${aspectClasses[aspectRatio]} ${className} overflow-hidden`}>
+    <div className={`relative ${className}`}>
       {isLoading && (
-        <Skeleton className="absolute inset-0" />
+        <div className="absolute inset-0 bg-muted animate-pulse rounded-lg" />
       )}
-      <img
-        src={src}
-        alt={alt}
-        loading="lazy"
-        onLoad={() => setIsLoading(false)}
-        onError={() => {
-          setIsLoading(false)
-          setError(true)
-        }}
-        className={`w-full h-full object-cover transition-opacity duration-300 ${
-          isLoading ? "opacity-0" : "opacity-100"
-        }`}
-      />
+      {error ? (
+        <div className="absolute inset-0 bg-muted flex items-center justify-center rounded-lg">
+          <p className="text-sm text-muted-foreground">Error al cargar imagen</p>
+        </div>
+      ) : (
+        <img
+          src={src}
+          alt={alt}
+          className={`w-full object-cover transition-opacity duration-300 ${
+            isLoading ? 'opacity-0' : 'opacity-100'
+          }`}
+          loading="lazy"
+          onLoad={() => setIsLoading(false)}
+          onError={() => {
+            setIsLoading(false)
+            setError(true)
+          }}
+          onClick={onClick}
+        />
+      )}
     </div>
   )
 }

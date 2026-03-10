@@ -197,7 +197,6 @@ export default function ProfilePage() {
                   <AvatarImage
                     src={primaryPhoto?.url}
                     alt={user.nombres}
-                    className="object-cover"
                   />
                   <AvatarFallback className="bg-primary/20 text-primary text-3xl">
                     {initials}

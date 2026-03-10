@@ -25,6 +25,7 @@ import {
   Share2,
   Bookmark,
   Flag,
+  Check,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { reputationService } from "@/lib/services/reputation"
@@ -42,15 +43,19 @@ import { UnlockPostModal } from "./unlock-post-modal"
 import { parseTextWithLinks } from "@/lib/utils/text-parser"
 import { PollComponent } from "./poll-component"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
+import { Tooltip } from "@/components/ui/tooltip"
+import { ReputationStars } from "@/components/ui/reputation-stars"
+import { OptimizedImage } from "@/components/ui/optimized-image"
 
 interface PostCardProps {
   post: Post
   onDelete?: (postId: string) => void
   onUpdate?: () => void
   highlight?: boolean
+  compact?: boolean
 }
 
-export function PostCard({ post, onDelete, onUpdate, highlight }: PostCardProps) {
+export function PostCard({ post, onDelete, onUpdate, highlight, compact = false }: PostCardProps) {
   const { user } = useAuth()
   const features = useFeatureFlags()
   const [likeCount, setLikeCount] = useState(post.likeCount)
@@ -145,12 +150,21 @@ export function PostCard({ post, onDelete, onUpdate, highlight }: PostCardProps)
   }
 
   const handleDelete = async () => {
+    if (!confirm('¿Estás seguro de que quieres eliminar este post? Esta acción no se puede deshacer.')) {
+      return
+    }
     try {
       await api.delete(`/api/posts/delete/${post.id}`)
       toast.success("Post eliminado")
       onDelete?.(post.id)
     } catch {
-      toast.error("Error al eliminar post")
+      toast.error("Error al eliminar post", {
+        description: 'Intenta nuevamente o recarga la página',
+        action: {
+          label: 'Recargar',
+          onClick: () => window.location.reload()
+        }
+      })
     }
   }
 
@@ -238,7 +252,9 @@ export function PostCard({ post, onDelete, onUpdate, highlight }: PostCardProps)
     <>
       <article 
         id={`post-${post.id}`}
-        className={`border border-border bg-card p-4 rounded-2xl mb-3 hover:border-primary/30 transition-colors ${
+        className={`border border-border bg-card rounded-2xl mb-3 hover:border-primary/30 transition-all duration-300 hover-lift animate-slide-in ${
+          compact ? 'p-3' : 'p-4'
+        } ${
           highlight ? 'ring-2 ring-primary shadow-lg shadow-primary/20' : ''
         }`}
       >
@@ -264,7 +280,9 @@ export function PostCard({ post, onDelete, onUpdate, highlight }: PostCardProps)
             href={`/profile/${post.userId}`}
             className="flex items-center gap-3"
           >
-            <Avatar className="h-10 w-10 border-2 border-primary ring-2 ring-primary/20">
+            <Avatar className={`border-2 border-primary/50 ring-2 ring-primary/20 ring-offset-2 ring-offset-background ${
+              compact ? 'h-8 w-8' : 'h-10 w-10'
+            }`}>
               <AvatarImage src={post.userPhoto} alt={post.username} className="object-cover" />
               <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
                 {post.username?.[0]?.toUpperCase() || "?"}
@@ -275,12 +293,22 @@ export function PostCard({ post, onDelete, onUpdate, highlight }: PostCardProps)
                 <p className="text-sm font-semibold text-foreground">
                   {post.username}
                 </p>
-                <Badge 
-                  className="px-1.5 py-0 text-[10px] font-bold text-black border-0" 
-                  style={{ backgroundColor: reputationColor }}
-                >
-                  {reputation}
-                </Badge>
+                {post.verificationLevel && post.verificationLevel > 0 && (
+                  <Badge variant="default" className="px-1.5 py-0 text-[10px] bg-blue-500 text-white border-0">
+                    <Check className="h-2.5 w-2.5" />
+                  </Badge>
+                )}
+                <Tooltip content={`Reputación: ${reputation}/100`}>
+                  <div className="flex items-center gap-1">
+                    <ReputationStars reputation={reputation} size="sm" />
+                    <Badge 
+                      className="px-1.5 py-0 text-[10px] font-bold text-black border-0" 
+                      style={{ backgroundColor: reputationColor }}
+                    >
+                      {reputation}
+                    </Badge>
+                  </div>
+                </Tooltip>
               </div>
               <p className="text-xs text-muted-foreground">{timeAgo}</p>
             </div>
@@ -389,13 +417,12 @@ export function PostCard({ post, onDelete, onUpdate, highlight }: PostCardProps)
         </div>
 
         {/* Image */}
-        {post.file && (
+        {post.file && !compact && (
           <div className="mt-3 overflow-hidden rounded-xl">
-            <img
+            <OptimizedImage
               src={post.file}
               alt="Post media"
-              className="w-full object-cover max-h-96"
-              loading="lazy"
+              className="max-h-96"
             />
           </div>
         )}
@@ -409,6 +436,7 @@ export function PostCard({ post, onDelete, onUpdate, highlight }: PostCardProps)
         <div className="mt-3 flex items-center gap-4">
           {features.multipleReactions ? (
             <ReactionPicker onReact={handleReaction}>
+            <Tooltip content="Reaccionar">
             <button
               className="flex items-center gap-1.5 text-sm transition-colors group"
             >
@@ -433,8 +461,10 @@ export function PostCard({ post, onDelete, onUpdate, highlight }: PostCardProps)
                 </button>
               )}
             </button>
+            </Tooltip>
           </ReactionPicker>
           ) : (
+            <Tooltip content={liked ? "Quitar like" : "Dar like"}>
             <button
               onClick={toggleLike}
               className="flex items-center gap-1.5 text-sm transition-colors group"
@@ -450,7 +480,9 @@ export function PostCard({ post, onDelete, onUpdate, highlight }: PostCardProps)
                 {likeCount}
               </span>
             </button>
+            </Tooltip>
           )}
+          <Tooltip content="Comentar">
           <button
             onClick={() => setShowComments(true)}
             className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -458,6 +490,8 @@ export function PostCard({ post, onDelete, onUpdate, highlight }: PostCardProps)
             <MessageCircle className="h-5 w-5 hover:text-primary hover:scale-110 transition-all" />
             <span>{post.commentsCount}</span>
           </button>
+          </Tooltip>
+          <Tooltip content={reposted ? "Ya reposteaste" : "Repostear"}>
           <button
             onClick={() => setShowRepostModal(true)}
             className="flex items-center gap-1.5 text-sm transition-all"
@@ -473,10 +507,13 @@ export function PostCard({ post, onDelete, onUpdate, highlight }: PostCardProps)
               {repostCount}
             </span>
           </button>
+          </Tooltip>
           {features.shareWithQR && (
+            <Tooltip content="Compartir">
             <button onClick={handleShare} className="ml-auto text-muted-foreground hover:text-foreground transition-colors">
               <Share2 className="h-5 w-5" />
             </button>
+            </Tooltip>
           )}
         </div>
       </article>
