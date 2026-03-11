@@ -73,6 +73,11 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
         ...(!permanent && { durationHours: Math.min(durationHours, 48) })
       }
       
+      console.log('=== Creando post ===')
+      console.log('postData:', postData)
+      console.log('visibility:', visibility)
+      console.log('typeof visibility:', typeof visibility)
+      
       // Agregar encuesta si existe
       if (pollData) {
         postData.poll = {
@@ -88,6 +93,8 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
         formData.append('file', file)
       }
       
+      console.log('FormData post:', formData.get('post'))
+      
       const token = localStorage.getItem('sparkd_token')
      
       const res = await fetch('/api/proxy/api/posts/new', {
@@ -98,13 +105,28 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
         body: formData
       })
  
+      console.log('Response status:', res.status)
+      console.log('Response ok:', res.ok)
+      
       if (!res.ok) {
         const errorText = await res.text()
+        console.log('Error response:', errorText)
         let errorMessage = 'Error al crear post'
         
         try {
           const errorData = JSON.parse(errorText)
-          if (errorData.message) {
+          if (errorData.detail) {
+            // El backend devuelve el mensaje en el campo "detail"
+            if (errorData.detail.includes('48 horas')) {
+              errorMessage = '⏰ Solo puedes publicar 1 post cada 48 horas (usuarios free)'
+            } else if (errorData.detail.includes('contenido inapropiado') || errorData.detail.includes('sexual') || errorData.detail.includes('violence')) {
+              errorMessage = '⚠️ Contenido bloqueado: El texto o imagen contiene contenido inapropiado'
+            } else if (errorData.detail.includes('duración')) {
+              errorMessage = 'La duración máxima es de 48 horas'
+            } else {
+              errorMessage = errorData.detail
+            }
+          } else if (errorData.message) {
             if (errorData.message.includes('Connection reset') || errorData.message.includes('recvAddress')) {
               errorMessage = '⚠️ Error de conexión con el servidor. Por favor, intenta de nuevo.'
             } else if (errorData.message.includes('contenido inapropiado') || errorData.message.includes('sexual') || errorData.message.includes('violence')) {

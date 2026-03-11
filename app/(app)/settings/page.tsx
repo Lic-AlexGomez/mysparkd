@@ -8,6 +8,7 @@ import type { UserPreferences, Interest, Sex } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
@@ -49,6 +50,7 @@ export default function SettingsPage() {
   const [isPrivate, setIsPrivate] = useState(false)
   const [connectionMode, setConnectionMode] = useState(true)
   const [objective, setObjective] = useState('both')
+  const [localFeedRadius, setLocalFeedRadius] = useState(50) // Radio en km para feed local
   const [prefLoading, setPrefLoading] = useState(true)
   const [savingPref, setSavingPref] = useState(false)
 
@@ -137,6 +139,7 @@ export default function SettingsPage() {
         setIsPrivate(settings.isPrivate ?? false)
         setConnectionMode(settings.connectionMode ?? true)
         setObjective(settings.objective ?? 'both')
+        setLocalFeedRadius(settings.localFeedRadius ?? 50)
       }
     }
   }, [fetchPreferences, fetchInterests, user])
@@ -156,7 +159,8 @@ export default function SettingsPage() {
         localStorage.setItem(`sparkd_settings_${user.userId}`, JSON.stringify({
           isPrivate,
           connectionMode,
-          objective
+          objective,
+          localFeedRadius
         }))
       }
       
@@ -328,6 +332,24 @@ export default function SettingsPage() {
                   {objective === exp.id && <Check className="h-4 w-4 text-primary" />}
                 </button>
               ))}
+            </div>
+          </div>
+          <div className="p-4 rounded-lg border border-primary/30 bg-card">
+            <Label className="text-foreground font-medium mb-3 block">Radio de Feed Local</Label>
+            <p className="text-xs text-muted-foreground mb-4">
+              Distancia máxima para ver posts cercanos: {localFeedRadius} km
+            </p>
+            <Slider
+              value={[localFeedRadius]}
+              onValueChange={(value) => setLocalFeedRadius(value[0])}
+              min={5}
+              max={200}
+              step={5}
+              className="mb-2"
+            />
+            <div className="flex justify-between text-xs text-muted-foreground mt-2">
+              <span>5 km</span>
+              <span>200 km</span>
             </div>
           </div>
         </CardContent>

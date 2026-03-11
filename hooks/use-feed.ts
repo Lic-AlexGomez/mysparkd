@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '@/lib/api'
 import { feedService } from '@/lib/services/feed'
+import { profileService } from '@/lib/services/profile'
 import { contentValidation } from '@/lib/services/content-validation'
 import type { Post } from '@/lib/types'
 
@@ -20,10 +21,30 @@ export function useFeed() {
       const data = await api.get<any[]>('/api/posts/feed')
       console.log('[Feed Global] Posts obtenidos del servidor:', data)
       
-      // Normalizar posts con reacciones
+      // Obtener fotos de usuarios únicos
+      const uniqueUserIds = [...new Set(data.map(post => post.userId))]
+      const userPhotosMap = new Map<string, string>()
+      
+      await Promise.all(
+        uniqueUserIds.map(async (userId) => {
+          const photo = await profileService.getProfilePhoto(userId)
+          if (photo) {
+            userPhotosMap.set(userId, photo)
+          }
+        })
+      )
+      
+      console.log('Fotos de usuarios obtenidas:', userPhotosMap)
+      
+      // Normalizar posts con reacciones y fotos
       const normalizedPosts = data.map((post) => {
         console.log('=== POST ORIGINAL ====')
         console.log('Post ID:', post.id)
+        console.log('username:', post.username)
+        console.log('userId:', post.userId)
+        console.log('userPhoto del backend:', post.userPhoto)
+        console.log('photoUrl del backend:', post.photoUrl)
+        console.log('Foto obtenida del perfil:', userPhotosMap.get(post.userId))
         console.log('myReaction:', post.myReaction)
         console.log('reactions array:', post.reactions)
         
@@ -44,7 +65,7 @@ export function useFeed() {
           body: post.body || '',
           userId: post.userId || '',
           username: post.username || 'Usuario',
-          userPhoto: post.userPhoto || '',
+          userPhoto: userPhotosMap.get(post.userId) || post.userPhoto || post.photoUrl || '',
           createdAt: post.createdAt || new Date().toISOString(),
           file: post.file || null,
           visibility: post.visibility || 'PUBLIC',
@@ -67,6 +88,7 @@ export function useFeed() {
         }
         
         console.log('=== POST NORMALIZADO ===')
+        console.log('userPhoto normalizado:', normalized.userPhoto)
         console.log('userReaction:', normalized.userReaction)
         console.log('reactions:', normalized.reactions)
         console.log('========================')

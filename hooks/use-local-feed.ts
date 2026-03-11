@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { locationService } from '@/lib/services/location'
+import { profileService } from '@/lib/services/profile'
 import type { Post } from '@/lib/types'
 
 export function useLocalFeed(radiusKm: number = 50) {
@@ -43,6 +44,24 @@ export function useLocalFeed(radiusKm: number = 50) {
         return
       }
       
+      // Obtener fotos de usuarios únicos
+      const uniqueUserIds = [...new Set(data.map((item: any) => {
+        const post = item.post || item
+        return post.userId
+      }))]
+      const userPhotosMap = new Map<string, string>()
+      
+      await Promise.all(
+        uniqueUserIds.map(async (userId) => {
+          const photo = await profileService.getProfilePhoto(userId)
+          if (photo) {
+            userPhotosMap.set(userId, photo)
+          }
+        })
+      )
+      
+      console.log('Fotos de usuarios obtenidas (feed local):', userPhotosMap)
+      
       // Normalizar las fechas y campos de los posts
       const normalizedPosts = data.map((item: any) => {
         console.log('Post original del backend:', item);
@@ -70,7 +89,7 @@ export function useLocalFeed(radiusKm: number = 50) {
           body: post.body || '',
           userId: post.userId || '',
           username: post.username || 'Usuario',
-          userPhoto: post.userPhoto || post.photoUrl || '',
+          userPhoto: userPhotosMap.get(post.userId) || post.userPhoto || post.photoUrl || '',
           createdAt: post.createdAt || new Date().toISOString(),
           expiresAt: post.expiresAt || null,
           permanent: post.permanent ?? true,

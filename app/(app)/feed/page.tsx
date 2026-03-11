@@ -37,8 +37,22 @@ export default function FeedPage() {
   const searchParams = useSearchParams()
   const highlightPostId = searchParams.get('post')
   const highlightCommentId = searchParams.get('comment')
+  
+  // Leer el radio del feed local desde localStorage
+  const [localFeedRadius, setLocalFeedRadius] = useState(50)
+  
+  useEffect(() => {
+    if (user?.userId) {
+      const saved = localStorage.getItem(`sparkd_settings_${user.userId}`)
+      if (saved) {
+        const settings = JSON.parse(saved)
+        setLocalFeedRadius(settings.localFeedRadius ?? 50)
+      }
+    }
+  }, [user?.userId])
+  
   const { posts, sortMode, loading, onRefresh, changeSortMode } = useFeed()
-  const { posts: localPosts, loading: localLoading, locationEnabled } = useLocalFeed(50) // 50km radius
+  const { posts: localPosts, loading: localLoading, locationEnabled, refresh: refreshLocalFeed } = useLocalFeed(localFeedRadius)
   const [displayLocalPosts, setDisplayLocalPosts] = useState(posts)
   const [feedTab, setFeedTab] = useState<'global' | 'local' | 'following'>('global')
   const [searchQuery, setSearchQuery] = useState("")
@@ -426,7 +440,7 @@ export default function FeedPage() {
               key={post.id}
               post={post}
               onDelete={handleDelete}
-              onUpdate={onRefresh}
+              onUpdate={feedTab === 'local' ? refreshLocalFeed : onRefresh}
               highlight={post.id === highlightPostId}
               compact={viewMode === 'compact'}
             />
