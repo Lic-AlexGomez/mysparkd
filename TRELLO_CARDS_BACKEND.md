@@ -7,6 +7,7 @@ Basado en el análisis completo del frontend, estas son las funcionalidades que 
 ## 🔴 COLUMNA: CRÍTICO - PRIORIDAD ALTA
 
 ### 1. 📍 Feed Local por Geolocalización
+
 **Descripción:**
 Implementar endpoints para feed basado en ubicación del usuario.
 
