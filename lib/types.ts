@@ -55,6 +55,8 @@ export interface UserProfile {
   sex: Sex
   bio?: string
   location?: string
+  latitude?: number
+  longitude?: number
   website?: string
   coverPhoto?: string
   profileCompleted: boolean

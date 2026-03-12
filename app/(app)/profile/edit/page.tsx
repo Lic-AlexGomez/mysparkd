@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card } from "@/components/ui/card"
+import { LocationInput } from "@/components/ui/location-input"
 import { ArrowLeft, Loader2, Save } from "lucide-react"
 import { toast } from "sonner"
 import { getFeatureFlags } from "@/lib/utils/feature-flags"
@@ -15,23 +16,32 @@ import { useFeatureFlags } from "@/hooks/use-feature-flags"
 
 export default function EditProfilePage() {
   const router = useRouter()
-  const { user } = useAuth()
+  const { user, isLoading: authLoading } = useAuth()
   const features = useFeatureFlags()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     username: "",
     bio: "",
     location: "",
-    website: ""
+    website: "",
+    latitude: undefined as number | undefined,
+    longitude: undefined as number | undefined
   })
 
   useEffect(() => {
     if (user) {
+      console.log('Usuario cargado:', user)
+      console.log('Username:', user.username)
+      console.log('Bio:', user.bio)
+      console.log('Location:', user.location)
+      console.log('Website:', user.website)
       setFormData({
         username: user.username || "",
         bio: user.bio || "",
         location: user.location || "",
-        website: user.website || ""
+        website: user.website || "",
+        latitude: user.latitude,
+        longitude: user.longitude
       })
     }
   }, [user])
@@ -48,6 +58,15 @@ export default function EditProfilePage() {
     return null
   }
 
+  // Mostrar loading mientras se cargan los datos del usuario
+  if (authLoading || !user) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -58,7 +77,22 @@ export default function EditProfilePage() {
 
     setLoading(true)
     try {
-      // TODO: await api.put('/api/profile/update', formData)
+      // Preparar datos para enviar
+      const updateData: any = {
+        username: formData.username,
+        bio: formData.bio,
+        location: formData.location,
+        website: formData.website
+      }
+      
+      // Si hay coordenadas, enviarlas también
+      if (formData.latitude && formData.longitude) {
+        updateData.latitude = formData.latitude
+        updateData.longitude = formData.longitude
+      }
+      
+      // TODO: await api.put('/api/profile/update', updateData)
+      console.log('Datos a enviar:', updateData)
       toast.success("Perfil actualizado (pendiente backend)")
       router.push(`/profile/${user?.userId}`)
     } catch {
@@ -106,13 +140,19 @@ export default function EditProfilePage() {
 
           <div className="space-y-2">
             <Label htmlFor="location">Ubicación</Label>
-            <Input
-              id="location"
+            <LocationInput
               value={formData.location}
-              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-              placeholder="Ciudad, País"
-              maxLength={100}
+              onChange={(value, coordinates) => {
+                setFormData({ 
+                  ...formData, 
+                  location: value,
+                  latitude: coordinates?.latitude,
+                  longitude: coordinates?.longitude
+                })
+              }}
+              placeholder="Busca tu ciudad o dirección..."
             />
+            <p className="text-xs text-muted-foreground">Escribe al menos 3 caracteres para buscar</p>
           </div>
 
           <div className="space-y-2">
