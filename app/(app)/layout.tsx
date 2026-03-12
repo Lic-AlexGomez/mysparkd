@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth-context"
 import { useRouter, usePathname } from "next/navigation"
 import { useEffect } from "react"
 import { AppShell } from "@/components/layout/app-shell"
+import { NotificationBanner } from "@/components/ui/notification-banner"
 import { Zap } from "lucide-react"
 
 export default function AppLayout({
@@ -43,5 +44,10 @@ export default function AppLayout({
     return <div className="min-h-svh bg-background">{children}</div>
   }
 
-  return <AppShell>{children}</AppShell>
+  return (
+    <>
+      <AppShell>{children}</AppShell>
+      <NotificationBanner />
+    </>
+  )
 }
