@@ -13,6 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
 import {
   Heart,
   MessageCircle,
@@ -105,6 +106,7 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
   const [showReactionsModal, setShowReactionsModal] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
   const [showUnlockModal, setShowUnlockModal] = useState(false)
+  const [showImageModal, setShowImageModal] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [editedBody, setEditedBody] = useState(post.body)
   const [isSaving, setIsSaving] = useState(false)
@@ -538,11 +540,16 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
                 </div>
               </>
             ) : (
-              <OptimizedImage
-                src={post.file}
-                alt="Post media"
-                className="max-h-96"
-              />
+              <div 
+                onClick={() => setShowImageModal(true)}
+                className="cursor-pointer hover:opacity-95 transition-opacity"
+              >
+                <OptimizedImage
+                  src={post.file}
+                  alt="Post media"
+                  className="max-h-96"
+                />
+              </div>
             )}
           </div>
         )}
@@ -653,7 +660,7 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
                   .map(([type, data], index) => (
                     <span 
                       key={type}
-                      className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-card border-2 border-card shadow-sm text-sm"
+                      className="inline-flex items-center justify-center w-6 h-6 rounded-full  text-sm"
                       style={{ zIndex: 3 - index }}
                     >
                       {getReactionEmoji(type as ReactionType)}
@@ -694,6 +701,30 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
         onClose={() => setShowUnlockModal(false)}
         onUnlocked={onUpdate || (() => {})}
       />
+      
+      {/* Image Modal */}
+      {post.file && (
+        <Dialog open={showImageModal} onOpenChange={setShowImageModal}>
+          <DialogContent className="max-w-7xl w-[95vw] h-[95vh] p-0 bg-black/95 border-0">
+            <div className="relative w-full h-full flex items-center justify-center">
+              <button
+                onClick={() => setShowImageModal(false)}
+                className="absolute top-4 right-4 z-50 rounded-full bg-black/50 p-2 text-white hover:bg-black/70 transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
+                  <path d="M18 6 6 18"/>
+                  <path d="m6 6 12 12"/>
+                </svg>
+              </button>
+              <img
+                src={post.file}
+                alt="Post media"
+                className="max-w-full max-h-full object-contain"
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   )
 }

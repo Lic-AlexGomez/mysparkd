@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
-import { Bell, Zap, LogOut, Settings, User, Crown, Search, Flame, BarChart3, Users } from "lucide-react"
+import { Bell, Zap, LogOut, Settings, User, Crown, Search, Flame, BarChart3, Users, Bookmark } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
 import {
@@ -269,10 +269,15 @@ export function TopNavbar() {
                 <User className="h-4 w-4" /> Mi Perfil
               </Link>
             </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/saved" className="flex items-center gap-2 cursor-pointer">
+                <Bookmark className="h-4 w-4" /> Guardados
+              </Link>
+            </DropdownMenuItem>
             {features.analyticsPage && (
               <DropdownMenuItem asChild>
                 <Link href="/analytics" className="flex items-center gap-2 cursor-pointer">
-                  <BarChart3 className="h-4 w-4" /> Analytics
+                  <BarChart3 className="h-4 w-4" /> Analíticas
                 </Link>
               </DropdownMenuItem>
             )}

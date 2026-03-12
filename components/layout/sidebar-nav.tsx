@@ -8,11 +8,8 @@ import {
   Heart,
   MessageCircle,
   User,
-  Settings,
   Crown,
-  Bookmark,
   Search,
-  BarChart3,
   Users,
   ThumbsUp,
 } from "lucide-react"
@@ -27,10 +24,7 @@ const navItems = [
   { href: "/matches", label: "Matches", icon: Heart },
   { href: "/chat", label: "Chat", icon: MessageCircle },
   { href: "/groups", label: "Grupos", icon: Users },
-  { href: "/saved", label: "Guardados", icon: Bookmark },
   { href: "/profile", label: "Mi Perfil", icon: User },
-  { href: "/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/settings", label: "Configuracion", icon: Settings },
   { href: "/premium", label: "Premium", icon: Crown },
 ]
 
@@ -41,7 +35,6 @@ export function SidebarNav() {
   const filteredNavItems = navItems.filter(item => {
     if (item.href === '/search' && !features.searchPage) return false
     if (item.href === '/groups' && !features.groupsPage) return false
-    if (item.href === '/analytics' && !features.analyticsPage) return false
     return true
   })
 
