@@ -71,6 +71,8 @@ export default function HomePage() {
                   style={{ backgroundSize: '200% auto', animation: 'gradient 3s linear infinite' }}>
               SPARKD
             </span>
+            {/* SEO H1 oculto */}
+            <span className="sr-only">- Red Social y App de Citas para Conocer Gente Nueva</span>
           </h1>
           
           <p className="text-lg md:text-xl lg:text-2xl text-gray-300 mb-3 md:mb-4 font-light tracking-wide">
@@ -89,7 +91,7 @@ export default function HomePage() {
                 <div className="mb-3 md:mb-4 inline-block p-2 md:p-3 rounded-full bg-primary/20 border border-primary/30">
                   <Heart className="h-6 w-6 md:h-8 md:w-8 text-primary" />
                 </div>
-                <h3 className="font-bold text-base md:text-lg mb-1 md:mb-2 text-white">Match Perfecto</h3>
+                <h2 className="font-bold text-base md:text-lg mb-1 md:mb-2 text-white">Match Perfecto</h2>
                 <p className="text-xs md:text-sm text-gray-400">Algoritmo inteligente de compatibilidad</p>
               </div>
             </div>
@@ -100,7 +102,7 @@ export default function HomePage() {
                 <div className="mb-3 md:mb-4 inline-block p-2 md:p-3 rounded-full bg-secondary/20 border border-secondary/30">
                   <MessageCircle className="h-6 w-6 md:h-8 md:w-8 text-secondary" />
                 </div>
-                <h3 className="font-bold text-base md:text-lg mb-1 md:mb-2 text-white">Chat Instantáneo</h3>
+                <h2 className="font-bold text-base md:text-lg mb-1 md:mb-2 text-white">Chat Instantáneo</h2>
                 <p className="text-xs md:text-sm text-gray-400">Conversaciones en tiempo real</p>
               </div>
             </div>
@@ -111,10 +113,38 @@ export default function HomePage() {
                 <div className="mb-3 md:mb-4 inline-block p-2 md:p-3 rounded-full bg-primary/20 border border-primary/30">
                   <Users className="h-6 w-6 md:h-8 md:w-8 text-primary" />
                 </div>
-                <h3 className="font-bold text-base md:text-lg mb-1 md:mb-2 text-white">Red Social</h3>
+                <h2 className="font-bold text-base md:text-lg mb-1 md:mb-2 text-white">Red Social</h2>
                 <p className="text-xs md:text-sm text-gray-400">Comparte tu vida auténtica</p>
               </div>
             </div>
+          </div>
+
+          {/* SEO Content - Oculto visualmente pero visible para buscadores */}
+          <div className="sr-only">
+            <h2>La Mejor App de Citas y Red Social</h2>
+            <p>
+              Sparkd es la plataforma definitiva para conocer gente nueva y encontrar conexiones auténticas. Nuestra app combina lo mejor de las redes sociales con un sistema avanzado de matching que te ayuda a encontrar personas compatibles con tus intereses y valores.
+            </p>
+            <p>
+              Con Sparkd puedes hacer match con personas cercanas, chatear en tiempo real, compartir momentos de tu vida y construir relaciones significativas. Ya sea que busques amor, amistad o simplemente expandir tu círculo social, Sparkd es el lugar perfecto para ti.
+            </p>
+            
+            <h3>¿Por Qué Elegir Sparkd?</h3>
+            <ul>
+              <li>Algoritmo inteligente que encuentra personas compatibles contigo</li>
+              <li>Chat en tiempo real para conversaciones fluidas y naturales</li>
+              <li>Comparte fotos, videos y momentos con tu comunidad</li>
+              <li>Privacidad y seguridad garantizadas en cada interacción</li>
+              <li>Encuentra personas cerca de ti con intereses similares</li>
+            </ul>
+            
+            <h3>Cómo Funciona Sparkd</h3>
+            <p>
+              Crear tu perfil en Sparkd es rápido y sencillo. Solo necesitas registrarte, completar tu perfil con tus intereses y preferencias, y comenzar a explorar. Nuestro sistema te mostrará perfiles de personas compatibles que puedes dar like o pasar. Cuando hay match mutuo, ¡pueden comenzar a chatear!
+            </p>
+            <p>
+              Además del sistema de matching, Sparkd funciona como una red social donde puedes publicar contenido, reaccionar a posts de otros usuarios, comentar y construir una comunidad auténtica. Es la combinación perfecta entre dating app y red social.
+            </p>
           </div>
 
           {/* CTA Buttons */}

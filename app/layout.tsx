@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     default: 'Sparkd - Red Social y Dating App para Conocer Gente Nueva',
     template: '%s | Sparkd'
   },
-  description: 'Sparkd es la mejor red social y app de citas para conocer gente nueva, hacer match, chatear y compartir momentos. Encuentra personas con tus mismos intereses y haz conexiones reales.',
+  description: 'Conoce gente nueva con Sparkd, la app de citas y red social. Haz match, chatea y encuentra personas con tus intereses.',
   keywords: ['red social', 'dating app', 'app de citas', 'conocer gente', 'hacer match', 'chat', 'citas online', 'ligar', 'amor', 'amistad', 'sparkd', 'tinder', 'bumble', 'badoo'],
   authors: [{ name: 'Alex Manuel Gomez Salazar', url: 'https://sparkd.app' }],
   creator: 'Alex Manuel Gomez Salazar',
@@ -23,14 +23,14 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL('https://sparkd.app'),
+  metadataBase: new URL('https://www.mysparkd.com'),
   alternates: {
     canonical: '/',
   },
   openGraph: {
     title: 'Sparkd - Red Social y Dating App para Conocer Gente Nueva',
     description: 'Conoce gente nueva, haz match y chatea. La mejor app de citas y red social para encontrar el amor o hacer amigos.',
-    url: 'https://sparkd.app',
+    url: 'https://www.mysparkd.com',
     siteName: 'Sparkd',
     locale: 'es_ES',
     type: 'website',
