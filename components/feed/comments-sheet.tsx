@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Heart, Send, ChevronDown, ChevronUp, Trash2 } from "lucide-react"
+import { Heart, Send, ChevronDown, ChevronUp, Trash2, MessageCircle } from "lucide-react"
 import { toast } from "sonner"
 import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
@@ -272,70 +272,88 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate }: Comments
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border-border max-w-lg max-h-[80vh] flex flex-col p-0">
-        <DialogHeader className="px-4 pt-4 pb-2 border-b border-border">
-          <DialogTitle className="text-foreground">Comentarios</DialogTitle>
+      <DialogContent className="bg-card border-border max-w-2xl max-h-[85vh] flex flex-col p-0">
+        {/* Header mejorado */}
+        <DialogHeader className="px-6 pt-5 pb-4 border-b border-border/50">
+          <div className="flex items-center justify-between">
+            <div>
+              <DialogTitle className="text-xl font-bold text-foreground">Comentarios</DialogTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                {comments.length} {comments.length === 1 ? 'comentario' : 'comentarios'}
+              </p>
+            </div>
+          </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 px-4">
-          <div className="py-2 flex flex-col gap-4">
+        {/* Contenido con scroll */}
+        <ScrollArea className="flex-1 px-6">
+          <div className="py-4 px-2 flex flex-col gap-6">
             {loadingComments ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">
-                Cargando comentarios...
-              </p>
+              <div className="py-12 flex flex-col items-center justify-center gap-3">
+                <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                <p className="text-sm text-muted-foreground">Cargando comentarios...</p>
+              </div>
             ) : comments.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">
-                Sin comentarios aun
-              </p>
+              <div className="py-12 flex flex-col items-center justify-center gap-3">
+                <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                  <MessageCircle className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-medium text-foreground">Sin comentarios aún</p>
+                  <p className="text-xs text-muted-foreground mt-1">Sé el primero en comentar</p>
+                </div>
+              </div>
             ) : (
               comments.map((comment) => (
-                <div key={comment.commentsId} className="flex flex-col gap-2">
-                  {/* Comment */}
-                  <div className="flex gap-3">
-                    <Avatar className="h-8 w-8 shrink-0">
-                      <AvatarFallback className="bg-primary/20 text-primary text-xs">
+                <div key={comment.commentsId} className="flex flex-col gap-3">
+                  {/* Comment mejorado */}
+                  <div className="flex gap-3 group">
+                    <Avatar className="h-10 w-10 shrink-0 ring-2 ring-border">
+                      <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20 text-primary text-sm font-semibold">
                         {comment.username?.[0]?.toUpperCase() || "?"}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <Link
-                          href={`/profile/${comment.userId}`}
-                          className="text-sm font-semibold text-foreground hover:underline"
-                        >
-                          {comment.username}
-                        </Link>
-                        <span className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(comment.createdAt), {
-                            addSuffix: true,
-                            locale: es,
-                          })}
-                        </span>
+                      <div className="bg-muted/50 rounded-2xl px-4 py-3 hover:bg-muted/70 transition-colors">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Link
+                            href={`/profile/${comment.userId}`}
+                            className="text-sm font-bold text-foreground hover:underline"
+                          >
+                            {comment.username}
+                          </Link>
+                          <span className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(comment.createdAt), {
+                              addSuffix: true,
+                              locale: es,
+                            })}
+                          </span>
+                        </div>
+                        <p className="text-sm text-foreground leading-relaxed">
+                          {comment.text}
+                        </p>
                       </div>
-                      <p className="text-sm text-foreground mt-0.5">
-                        {comment.text}
-                      </p>
-                      <div className="mt-1 flex items-center gap-3">
+                      <div className="mt-2 flex items-center gap-4 px-2">
                         {features.multipleReactions ? (
                         <ReactionPicker onReact={(type) => handleReaction(comment.commentsId, type)}>
-                          <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-secondary group">
+                          <button className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-primary group/btn transition-colors">
                             {comment.userReaction ? (
-                              <span className="text-sm group-hover:scale-125 transition-transform">
+                              <span className="text-base group-hover/btn:scale-125 transition-transform">
                                 {getReactionEmoji(comment.userReaction)}
                               </span>
                             ) : (
-                              <Heart className="h-3.5 w-3.5 group-hover:scale-110 transition-transform" />
+                              <Heart className="h-4 w-4 group-hover/btn:scale-110 transition-transform" />
                             )}
-                            {comment.likeCount}
+                            {comment.likeCount > 0 && <span>{comment.likeCount}</span>}
                           </button>
                         </ReactionPicker>
                         ) : (
                           <button
                             onClick={() => toggleLike(comment.commentsId)}
-                            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-secondary"
+                            className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-secondary transition-colors"
                           >
-                            <Heart className={`h-3.5 w-3.5 ${comment.liked ? 'fill-secondary text-secondary' : ''}`} />
-                            {comment.likeCount}
+                            <Heart className={`h-4 w-4 ${comment.liked ? 'fill-secondary text-secondary' : ''}`} />
+                            {comment.likeCount > 0 && <span>{comment.likeCount}</span>}
                           </button>
                         )}
                         <button
@@ -346,55 +364,59 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate }: Comments
                                 : comment.commentsId
                             )
                           }
-                          className="text-xs text-muted-foreground hover:text-foreground"
+                          className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
                         >
                           Responder
                         </button>
                         {user?.userId === comment.userId && (
                           <button
                             onClick={() => deleteComment(comment.commentsId)}
-                            className="text-xs text-muted-foreground hover:text-destructive"
+                            className="text-xs font-medium text-muted-foreground hover:text-destructive transition-colors ml-auto"
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Trash2 className="h-4 w-4" />
                           </button>
                         )}
                       </div>
 
-                      {/* Reply input */}
+                      {/* Reply input mejorado */}
                       {replyingTo === comment.commentsId && (
-                        <div className="mt-2 flex gap-2">
+                        <div className="mt-3 ml-2 flex gap-2">
                           <Input
                             value={replyText}
                             onChange={(e) => setReplyText(e.target.value)}
                             placeholder="Escribe una respuesta..."
-                            className="h-8 text-sm bg-muted border-border text-foreground placeholder:text-muted-foreground"
+                            className="h-10 text-sm bg-background border-border text-foreground placeholder:text-muted-foreground rounded-full"
                             onKeyDown={(e) => {
-                              if (e.key === "Enter")
+                              if (e.key === "Enter" && !e.shiftKey) {
+                                e.preventDefault()
                                 handleSubmitReply(comment.commentsId)
+                              }
                             }}
+                            autoFocus
                           />
                           <Button
-                            size="sm"
+                            size="icon"
                             onClick={() => handleSubmitReply(comment.commentsId)}
-                            disabled={isLoading}
-                            className="h-8 bg-primary text-primary-foreground"
+                            disabled={isLoading || !replyText.trim()}
+                            className="h-10 w-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shrink-0"
                           >
-                            <Send className="h-3.5 w-3.5" />
+                            <Send className="h-4 w-4" />
                           </Button>
                         </div>
                       )}
 
-                      {/* View replies toggle */}
+                      {/* View replies toggle mejorado */}
                       {comment.commentReplies > 0 && (
                         <button
                           onClick={() => toggleReplies(comment.commentsId)}
-                          className="mt-2 flex items-center gap-1 text-xs text-primary hover:underline"
+                          className="mt-2 ml-2 flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
                         >
                           {showReplies[comment.commentsId] ? (
-                            <ChevronUp className="h-3 w-3" />
+                            <ChevronUp className="h-3.5 w-3.5" />
                           ) : (
-                            <ChevronDown className="h-3 w-3" />
+                            <ChevronDown className="h-3.5 w-3.5" />
                           )}
+                          {showReplies[comment.commentsId] ? 'Ocultar' : 'Ver'}{" "}
                           {comment.commentReplies}{" "}
                           {comment.commentReplies === 1
                             ? "respuesta"
@@ -402,65 +424,67 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate }: Comments
                         </button>
                       )}
 
-                      {/* Replies */}
+                      {/* Replies mejoradas */}
                       {showReplies[comment.commentsId] &&
                         expandedReplies[comment.commentsId]?.map((reply) => (
                           <div
                             key={reply.commentReplyId}
-                            className="mt-2 ml-4 flex gap-2 border-l-2 border-border pl-3"
+                            className="mt-3 ml-6 flex gap-3 group/reply"
                           >
-                            <Avatar className="h-6 w-6 shrink-0">
-                              <AvatarFallback className="bg-secondary/20 text-secondary text-[10px]">
+                            <Avatar className="h-8 w-8 shrink-0 ring-2 ring-border">
+                              <AvatarFallback className="bg-gradient-to-br from-secondary/20 to-primary/20 text-secondary text-xs font-semibold">
                                 {reply.username?.[0]?.toUpperCase() || "?"}
                               </AvatarFallback>
                             </Avatar>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <Link
-                                  href={`/profile/${reply.userId}`}
-                                  className="text-xs font-semibold text-foreground hover:underline"
-                                >
-                                  {reply.username}
-                                </Link>
-                                <span className="text-[10px] text-muted-foreground">
-                                  {formatDistanceToNow(
-                                    new Date(reply.createdAt),
-                                    { addSuffix: true, locale: es }
-                                  )}
-                                </span>
+                            <div className="flex-1 min-w-0">
+                              <div className="bg-muted/30 rounded-2xl px-3 py-2.5 hover:bg-muted/50 transition-colors">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Link
+                                    href={`/profile/${reply.userId}`}
+                                    className="text-xs font-bold text-foreground hover:underline"
+                                  >
+                                    {reply.username}
+                                  </Link>
+                                  <span className="text-[10px] text-muted-foreground">
+                                    {formatDistanceToNow(
+                                      new Date(reply.createdAt),
+                                      { addSuffix: true, locale: es }
+                                    )}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-foreground leading-relaxed">
+                                  {reply.body}
+                                </p>
                               </div>
-                              <p className="text-xs text-foreground mt-0.5">
-                                {reply.body}
-                              </p>
-                              <div className="mt-0.5 flex items-center gap-2">
+                              <div className="mt-1.5 flex items-center gap-3 px-2">
                                 {features.multipleReactions ? (
                                 <ReactionPicker onReact={(type) => handleReaction(reply.commentReplyId, type, true)}>
-                                  <button className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-secondary group">
+                                  <button className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground hover:text-primary group/btn transition-colors">
                                     {reply.userReaction ? (
-                                      <span className="text-xs group-hover:scale-125 transition-transform">
+                                      <span className="text-sm group-hover/btn:scale-125 transition-transform">
                                         {getReactionEmoji(reply.userReaction)}
                                       </span>
                                     ) : (
-                                      <Heart className="h-3 w-3 group-hover:scale-110 transition-transform" />
+                                      <Heart className="h-3.5 w-3.5 group-hover/btn:scale-110 transition-transform" />
                                     )}
-                                    {reply.likeCount}
+                                    {reply.likeCount > 0 && <span>{reply.likeCount}</span>}
                                   </button>
                                 </ReactionPicker>
                                 ) : (
                                   <button
                                     onClick={() => toggleLike(reply.commentReplyId)}
-                                    className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-secondary"
+                                    className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground hover:text-secondary transition-colors"
                                   >
-                                    <Heart className={`h-3 w-3 ${reply.liked ? 'fill-secondary text-secondary' : ''}`} />
-                                    {reply.likeCount}
+                                    <Heart className={`h-3.5 w-3.5 ${reply.liked ? 'fill-secondary text-secondary' : ''}`} />
+                                    {reply.likeCount > 0 && <span>{reply.likeCount}</span>}
                                   </button>
                                 )}
                                 {user?.userId === reply.userId && (
                                   <button
                                     onClick={() => deleteComment(reply.commentReplyId)}
-                                    className="text-[10px] text-muted-foreground hover:text-destructive"
+                                    className="text-[10px] font-medium text-muted-foreground hover:text-destructive transition-colors ml-auto"
                                   >
-                                    <Trash2 className="h-3 w-3" />
+                                    <Trash2 className="h-3.5 w-3.5" />
                                   </button>
                                 )}
                               </div>
@@ -475,25 +499,33 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate }: Comments
           </div>
         </ScrollArea>
 
-        {/* Comment input */}
-        <div className="border-t border-border px-4 py-3">
-          <div className="flex gap-2">
+        {/* Comment input mejorado */}
+        <div className="border-t border-border/50 px-6 py-4 bg-muted/30">
+          <div className="flex gap-3 items-center">
+            <Avatar className="h-10 w-10 shrink-0 ring-2 ring-border">
+              <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20 text-primary text-sm font-semibold">
+                {user?.nombres?.[0]?.toUpperCase() || "?"}
+              </AvatarFallback>
+            </Avatar>
             <Input
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               placeholder="Escribe un comentario..."
-              className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
+              className="flex-1 bg-background border-border text-foreground placeholder:text-muted-foreground rounded-full h-11"
               onKeyDown={(e) => {
-                if (e.key === "Enter") handleSubmitComment()
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault()
+                  handleSubmitComment()
+                }
               }}
             />
             <Button
               onClick={handleSubmitComment}
               disabled={isLoading || !newComment.trim()}
               size="icon"
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
+              className="h-11 w-11 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shrink-0 disabled:opacity-50"
             >
-              <Send className="h-4 w-4" />
+              <Send className="h-5 w-5" />
               <span className="sr-only">Enviar comentario</span>
             </Button>
           </div>

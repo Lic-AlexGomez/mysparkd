@@ -553,100 +553,114 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
         )}
 
         {/* Actions */}
-        <div className="mt-3 flex items-center gap-4">
-          {features.multipleReactions ? (
-            <div className="flex items-center gap-1.5">
-              <ReactionPicker onReact={handleReaction}>
-                <button
-                  className="flex items-center gap-1.5 text-sm transition-colors group relative"
-                  title="Reaccionar (Múltiples reacciones habilitadas)"
-                >
-                  {/* Mostrar todas las reacciones del post */}
-                  {Object.keys(reactionCounts).length > 0 ? (
-                    <div className="flex items-center gap-0.5">
-                      {Object.entries(reactionCounts)
-                        .sort(([, a], [, b]) => b.count - a.count) // Ordenar por cantidad
-                        .slice(0, 3) // Mostrar máximo 3 emojis
-                        .map(([type, data]) => (
-                          <span 
-                            key={type}
-                            className={`text-base transition-transform ${
-                              data.userReacted ? 'scale-110 drop-shadow-[0_0_4px_rgba(0,229,255,0.5)]' : ''
-                            }`}
-                            title={data.userReacted ? 'Tu reacción' : ''}
-                          >
-                            {getReactionEmoji(type as ReactionType)}
-                          </span>
-                        ))}
-                    </div>
-                  ) : (
+        <div className="mt-3 flex items-center justify-between">
+          {/* Izquierda: Botones de acción */}
+          <div className="flex items-center gap-4">
+            {features.multipleReactions ? (
+              <div className="flex items-center gap-1.5">
+                <ReactionPicker onReact={handleReaction}>
+                  <button
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    title="Reaccionar"
+                  >
                     <Heart
-                      className="h-5 w-5 text-muted-foreground group-hover:text-secondary group-hover:scale-110 transition-all"
+                      className={`h-5 w-5 transition-all hover:scale-110 ${
+                        userReaction
+                          ? "fill-primary text-primary"
+                          : "group-hover:text-primary"
+                      }`}
                     />
-                  )}
-                </button>
-              </ReactionPicker>
-              {/* Contador total de reacciones */}
-              {Object.values(reactionCounts).reduce((sum, r) => sum + r.count, 0) > 0 && (
-                <span
-                  onClick={() => setShowReactionsModal(true)}
-                  className="text-sm text-muted-foreground hover:underline cursor-pointer"
+                  </button>
+                </ReactionPicker>
+                {Object.keys(reactionCounts).length > 0 && (
+                  <span className="text-sm text-muted-foreground">
+                    {Object.values(reactionCounts).reduce((sum, r) => sum + r.count, 0)}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={toggleLike}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  title={liked ? "Quitar like" : "Dar like"}
                 >
-                  {Object.values(reactionCounts).reduce((sum, r) => sum + r.count, 0)}
+                  <Heart
+                    className={`h-5 w-5 transition-all hover:scale-110 ${
+                      liked
+                        ? "fill-primary text-primary"
+                        : ""
+                    }`}
+                  />
+                </button>
+                <span className="text-sm text-muted-foreground">
+                  {likeCount}
+                </span>
+              </div>
+            )}
+            
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setShowComments(true)}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                title="Comentar"
+              >
+                <MessageCircle className="h-5 w-5 hover:scale-110 transition-all" />
+              </button>
+              {post.commentsCount > 0 && (
+                <span className="text-sm text-muted-foreground">
+                  {post.commentsCount}
                 </span>
               )}
             </div>
-          ) : (
-            <Tooltip content={liked ? "Quitar like" : "Dar like"}>
+            
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setShowRepostModal(true)}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                title="Compartir"
+              >
+                <Repeat2 className="h-5 w-5 hover:scale-110 transition-all" />
+              </button>
+              {repostCount > 0 && (
+                <span className="text-sm text-muted-foreground">
+                  {repostCount}
+                </span>
+              )}
+            </div>
+            
+            {features.shareWithQR && (
+              <button
+                onClick={handleShare}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                title="Enviar"
+              >
+                <Share2 className="h-5 w-5 hover:scale-110 transition-all" />
+              </button>
+            )}
+          </div>
+
+          {/* Derecha: Reacciones solapadas */}
+          {features.multipleReactions && Object.keys(reactionCounts).length > 0 && (
             <button
-              onClick={toggleLike}
-              className="flex items-center gap-1.5 text-sm transition-colors group"
+              onClick={() => setShowReactionsModal(true)}
+              className="flex items-center hover:opacity-80 transition-opacity cursor-pointer"
             >
-              <Heart
-                className={`h-5 w-5 transition-all ${
-                  liked
-                    ? "fill-secondary text-secondary"
-                    : "text-muted-foreground group-hover:text-secondary group-hover:scale-110"
-                }`}
-              />
-              <span className={liked ? "text-secondary" : "text-muted-foreground"}>
-                {likeCount}
-              </span>
+              <div className="flex items-center -space-x-1.5">
+                {Object.entries(reactionCounts)
+                  .sort(([, a], [, b]) => b.count - a.count)
+                  .slice(0, 3)
+                  .map(([type, data], index) => (
+                    <span 
+                      key={type}
+                      className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-card border-2 border-card shadow-sm text-sm"
+                      style={{ zIndex: 3 - index }}
+                    >
+                      {getReactionEmoji(type as ReactionType)}
+                    </span>
+                  ))}
+              </div>
             </button>
-            </Tooltip>
-          )}
-          <Tooltip content="Comentar">
-          <button
-            onClick={() => setShowComments(true)}
-            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <MessageCircle className="h-5 w-5 hover:text-primary hover:scale-110 transition-all" />
-            <span>{post.commentsCount}</span>
-          </button>
-          </Tooltip>
-          <Tooltip content={reposted ? "Ya reposteaste" : "Repostear"}>
-          <button
-            onClick={() => setShowRepostModal(true)}
-            className="flex items-center gap-1.5 text-sm transition-all"
-          >
-            <Repeat2
-              className={`h-5 w-5 transition-all ${
-                reposted
-                  ? "text-primary drop-shadow-[0_0_8px_rgba(0,229,255,0.5)]"
-                  : "text-muted-foreground hover:text-primary hover:scale-110"
-              }`}
-            />
-            <span className={reposted ? "text-primary" : "text-muted-foreground"}>
-              {repostCount}
-            </span>
-          </button>
-          </Tooltip>
-          {features.shareWithQR && (
-            <Tooltip content="Compartir">
-            <button onClick={handleShare} className="ml-auto text-muted-foreground hover:text-foreground transition-colors">
-              <Share2 className="h-5 w-5" />
-            </button>
-            </Tooltip>
           )}
         </div>
       </article>
