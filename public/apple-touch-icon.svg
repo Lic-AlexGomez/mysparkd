@@ -1,0 +1,36 @@
+<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <filter id="boltGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Fondo oscuro -->
+  <rect width="180" height="180" fill="#0a1a1f"/>
+  
+  <!-- Círculo negro con borde cyan -->
+  <circle cx="90" cy="90" r="70" fill="#000000"/>
+  <circle cx="90" cy="90" r="70" fill="none" stroke="#00E5FF" stroke-width="3" filter="url(#glow)"/>
+  
+  <!-- Rayo cyan con efecto neón -->
+  <g filter="url(#boltGlow)">
+    <path d="M101 49L63 90H84L70 131L108 90H87L101 49Z" 
+          fill="none" 
+          stroke="#00E5FF" 
+          stroke-width="6" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"/>
+  </g>
+</svg>

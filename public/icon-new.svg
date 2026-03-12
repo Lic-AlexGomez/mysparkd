@@ -1,0 +1,38 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Glow effect para el borde -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <!-- Glow para el rayo -->
+    <filter id="boltGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Fondo oscuro -->
+  <rect width="512" height="512" fill="#0a1a1f"/>
+  
+  <!-- Círculo negro con borde cyan brillante -->
+  <circle cx="256" cy="256" r="200" fill="#000000"/>
+  <circle cx="256" cy="256" r="200" fill="none" stroke="#00E5FF" stroke-width="8" filter="url(#glow)"/>
+  
+  <!-- Rayo cyan con efecto neón -->
+  <g filter="url(#boltGlow)">
+    <path d="M288 140L180 256H240L200 372L308 256H248L288 140Z" 
+          fill="none" 
+          stroke="#00E5FF" 
+          stroke-width="16" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"/>
+  </g>
+</svg>
