@@ -169,13 +169,27 @@ export default function HomePage() {
           </div>
           
           <div className="mt-6 md:mt-8">
-            <Link 
-              href="/about" 
-              className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-primary transition-colors"
-            >
-              <Info className="h-4 w-4" />
-              Conoce más sobre Sparkd
-            </Link>
+            <div className="flex flex-wrap justify-center gap-4 mb-4">
+              <Link 
+                href="/about" 
+                className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-primary transition-colors"
+              >
+                <Info className="h-4 w-4" />
+                Acerca de Sparkd
+              </Link>
+              <Link 
+                href="/terms" 
+                className="text-sm text-gray-400 hover:text-primary transition-colors"
+              >
+                Términos de Servicio
+              </Link>
+              <Link 
+                href="/privacy" 
+                className="text-sm text-gray-400 hover:text-primary transition-colors"
+              >
+                Privacidad
+              </Link>
+            </div>
           </div>
           
           <p className="mt-6 md:mt-8 text-xs text-gray-500 uppercase tracking-wider">
