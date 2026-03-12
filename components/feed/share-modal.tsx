@@ -6,13 +6,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { 
-  Copy, 
   Facebook, 
   Twitter, 
   Linkedin, 
   MessageCircle,
-  QrCode,
-  Check
+  QrCode
 } from "lucide-react"
 import QRCode from "qrcode"
 
@@ -25,23 +23,11 @@ interface ShareModalProps {
 }
 
 export function ShareModal({ open, onOpenChange, postId, postContent, username }: ShareModalProps) {
-  const [copied, setCopied] = useState(false)
   const [showQR, setShowQR] = useState(false)
   const [qrDataUrl, setQrDataUrl] = useState("")
 
   const postUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/post/${postId}`
   const shareText = `${postContent.substring(0, 100)}${postContent.length > 100 ? '...' : ''}`
-
-  const handleCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(postUrl)
-      setCopied(true)
-      toast.success("Enlace copiado")
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      toast.error("Error al copiar")
-    }
-  }
 
   const handleShareFacebook = () => {
     window.open(
@@ -100,27 +86,6 @@ export function ShareModal({ open, onOpenChange, postId, postContent, username }
 
         {!showQR ? (
           <div className="space-y-4">
-            {/* Copy Link */}
-            <div className="flex gap-2">
-              <Input
-                value={postUrl}
-                readOnly
-                className="bg-muted border-border text-foreground"
-              />
-              <Button
-                onClick={handleCopyLink}
-                variant="outline"
-                size="icon"
-                className="shrink-0"
-              >
-                {copied ? (
-                  <Check className="h-4 w-4 text-green-500" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-
             {/* Social Media Buttons */}
             <div className="grid grid-cols-2 gap-3">
               <Button

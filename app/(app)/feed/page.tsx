@@ -296,7 +296,7 @@ export default function FeedPage() {
           <Tabs value={feedTab} onValueChange={(v) => setFeedTab(v as any)} className="flex-1 md:max-w-md">
             <TabsList className="w-full grid grid-cols-3">
               <TabsTrigger value="global" className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4" />
+                <Sparkles className="h-4 w-4 animate-sparkle" />
                 Global
               </TabsTrigger>
               <TabsTrigger value="local" className="flex items-center gap-2">

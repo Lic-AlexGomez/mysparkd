@@ -171,7 +171,7 @@ export default function HomePage() {
           </div>
           
           {/* Social Share */}
-          <div className="mt-6 md:mt-8 flex justify-center">
+{/*           <div className="mt-6 mb-3 md:mt-8 flex justify-center">
             <SocialShare 
               url="https://www.mysparkd.com"
               title="Sparkd - Red Social y Dating App"
@@ -181,18 +181,18 @@ export default function HomePage() {
               variant="outline"
               showLabel
             />
-          </div>
+          </div> */}
           
-          <div className="mt-6 md:mt-8">
-            <div className="flex flex-wrap justify-center gap-4 mb-4">
+          <div className="mt-6 md:mt-8 ">
+            <div className="flex flex-wrap justify-center">
               <Link 
                 href="/about" 
-                className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-primary transition-colors"
+                className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-primary transition-colors mb-2"
               >
                 <Info className="h-4 w-4" />
                 Acerca de Sparkd
               </Link>
-              <Link 
+        {/*       <Link 
                 href="/terms" 
                 className="text-sm text-gray-400 hover:text-primary transition-colors"
               >
@@ -203,11 +203,11 @@ export default function HomePage() {
                 className="text-sm text-gray-400 hover:text-primary transition-colors"
               >
                 Privacidad
-              </Link>
+              </Link> */}
             </div>
           </div>
           
-          <p className="mt-6 md:mt-8 text-xs text-gray-500 uppercase tracking-wider">
+          <p className="mt-1 md:mt-6 text-xs text-gray-500 uppercase tracking-wider">
             Únete a miles de personas conectando ahora
           </p>
           

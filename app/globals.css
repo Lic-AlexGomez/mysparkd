@@ -248,6 +248,29 @@
   }
 }
 
+@keyframes sparkle {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  25% {
+    transform: scale(1.2) rotate(90deg);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(0.9) rotate(180deg);
+    opacity: 1;
+  }
+  75% {
+    transform: scale(1.1) rotate(270deg);
+    opacity: 0.9;
+  }
+}
+
+.animate-sparkle {
+  animation: sparkle 2s ease-in-out infinite;
+}
+
 .animated-border {
   position: relative;
   background: linear-gradient(90deg, #00e5ff, #d946ef, #8b5cf6, #00e5ff);
