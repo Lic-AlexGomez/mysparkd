@@ -76,14 +76,12 @@ export default function LoginPage() {
   return (
     <Card className="border-primary/20 bg-background/95 backdrop-blur-xl shadow-2xl shadow-primary/10 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 pointer-events-none" />
-      <CardContent className="pt-8 pb-6 relative">
-        <div className="mb-6 flex flex-col items-center text-center">
-          <h2 className="text-2xl font-bold text-foreground mb-2">Bienvenido de nuevo</h2>
-{/*           <p className="text-sm text-muted-foreground">Inicia sesión para continuar</p>
- */}   
-      </div>
+      <CardContent className="pt-6 pb-4 relative">
+        <div className="mb-4 flex flex-col items-center text-center">
+          <h2 className="text-xl font-bold text-foreground">Bienvenido de nuevo</h2>
+        </div>
         
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <Label htmlFor="username" className="text-foreground font-medium">
               Usuario
@@ -141,7 +139,7 @@ export default function LoginPage() {
           <Button
             type="submit"
             disabled={isLoading}
-            className="mt-2 h-11 bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:opacity-90 transition-all hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(139,92,246,0.4)] active:scale-95 font-semibold"
+            className="mt-1 h-11 bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:opacity-90 transition-all hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(139,92,246,0.4)] active:scale-95 font-semibold"
           >
             {isLoading ? (
               <>
@@ -154,12 +152,12 @@ export default function LoginPage() {
           </Button>
         </form>
         
-        <div className="relative my-6">
+        <div className="relative my-4">
           <div className="absolute inset-0 flex items-center">
             <span className="w-full border-t border-border" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background/95 px-3 text-muted-foreground font-medium">O continúa con</span>
+            <span className="bg-background/95 px-3 text-muted-foreground font-medium my-1">O continúa con</span>
           </div>
         </div>
         
@@ -168,7 +166,7 @@ export default function LoginPage() {
           onError={(error) => toast.error(error.message)}
         />
         
-        <div className="mt-6 text-center">
+        <div className="mt-4 text-center">
           <p className="text-sm text-muted-foreground">
             ¿No tienes cuenta?{" "}
             <Link href="/register" className="text-primary hover:text-primary/80 font-semibold hover:underline transition-colors">

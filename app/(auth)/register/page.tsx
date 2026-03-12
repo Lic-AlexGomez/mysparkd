@@ -85,11 +85,15 @@ export default function RegisterPage() {
   const passwordStrength = password.length === 0 ? 0 : password.length < 6 ? 1 : password.length < 10 ? 2 : 3
 
   return (
-    <Card className="border-border bg-card">
-      <CardContent className="pt-6">
+    <Card className="border-primary/20 bg-background/95 backdrop-blur-xl shadow-2xl shadow-primary/10 overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 pointer-events-none" />
+      <CardContent className="pt-6 pb-4 relative">
+        <div className="mb-4 flex flex-col items-center text-center">
+          <h2 className="text-xl font-bold text-foreground">Crear cuenta</h2>
+        </div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="username" className="text-foreground">
+            <Label htmlFor="username" className="text-foreground font-medium">
               Usuario
             </Label>
             <Input
@@ -98,13 +102,13 @@ export default function RegisterPage() {
               placeholder="Elige un nombre de usuario"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
+              className="bg-muted/50 border-border text-foreground placeholder:text-muted-foreground h-11 transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
               disabled={isLoading}
               autoComplete="username"
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="email" className="text-foreground">
+            <Label htmlFor="email" className="text-foreground font-medium">
               Email
             </Label>
             <Input
@@ -113,13 +117,13 @@ export default function RegisterPage() {
               placeholder="tu@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
+              className="bg-muted/50 border-border text-foreground placeholder:text-muted-foreground h-11 transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
               disabled={isLoading}
               autoComplete="email"
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="password" className="text-foreground">
+            <Label htmlFor="password" className="text-foreground font-medium">
               Contrasena
             </Label>
             <div className="relative">
@@ -129,14 +133,14 @@ export default function RegisterPage() {
                 placeholder="Minimo 6 caracteres"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="bg-muted border-border text-foreground placeholder:text-muted-foreground pr-10"
+                className="bg-muted/50 border-border text-foreground placeholder:text-muted-foreground h-11 pr-10 transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
                 disabled={isLoading}
                 autoComplete="new-password"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 <span className="sr-only">{showPassword ? "Ocultar" : "Mostrar"} contrasena</span>
@@ -164,7 +168,7 @@ export default function RegisterPage() {
           <Button
             type="submit"
             disabled={isLoading}
-            className="mt-2 bg-primary text-primary-foreground hover:bg-primary/90"
+            className="mt-1 h-11 bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:opacity-90 transition-all hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(139,92,246,0.4)] active:scale-95 font-semibold"
           >
             {isLoading ? (
               <>
@@ -176,12 +180,12 @@ export default function RegisterPage() {
             )}
           </Button>
         </form>
-        <div className="relative my-6">
+        <div className="relative my-4">
           <div className="absolute inset-0 flex items-center">
             <span className="w-full border-t border-border" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-card px-2 text-muted-foreground">O continua con</span>
+            <span className="bg-background/95 px-3 text-muted-foreground font-medium my-1">O continúa con</span>
           </div>
         </div>
         <GoogleSignInButton 
@@ -189,12 +193,14 @@ export default function RegisterPage() {
           onError={(error) => toast.error(error.message)}
           text="Registrarse con Google"
         />
-        <p className="mt-6 text-center text-sm text-muted-foreground">
-          Ya tienes cuenta?{" "}
-          <Link href="/login" className="text-primary hover:underline">
-            Iniciar sesion
-          </Link>
-        </p>
+        <div className="mt-4 text-center">
+          <p className="text-sm text-muted-foreground">
+            ¿Ya tienes cuenta?{" "}
+            <Link href="/login" className="text-primary hover:text-primary/80 font-semibold hover:underline transition-colors">
+              Iniciar sesión
+            </Link>
+          </p>
+        </div>
       </CardContent>
     </Card>
   )
