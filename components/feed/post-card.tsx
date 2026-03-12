@@ -44,6 +44,7 @@ import { UnlockPostModal } from "./unlock-post-modal"
 import { parseTextWithLinks } from "@/lib/utils/text-parser"
 import { PollComponent } from "./poll-component"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
+import { usePremiumStatus } from "@/hooks/use-premium-status"
 import { Tooltip } from "@/components/ui/tooltip"
 import { ReputationStars } from "@/components/ui/reputation-stars"
 import { OptimizedImage } from "@/components/ui/optimized-image"
@@ -59,6 +60,7 @@ interface PostCardProps {
 export function PostCard({ post, onDelete, onUpdate, highlight, compact = false }: PostCardProps) {
   const { user } = useAuth()
   const features = useFeatureFlags()
+  const { isPremium } = usePremiumStatus()
   
   // Debug: Ver qué reacción tiene el post
   console.log('=== PostCard Render ===')
@@ -109,6 +111,7 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
   const isOwn = user?.userId === post.userId
   const reputation = post.reputation
   const reputationColor = reputation ? reputationService.getReputationColor(reputation) : undefined
+  const shouldShowLocked = post.locked && !post.unlocked && !isOwn && !isPremium
 
   const handleReaction = async (type: ReactionType) => {
     const prevReaction = userReaction
@@ -340,7 +343,7 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
         }`}
       >
         {/* Locked overlay */}
-        {post.locked && !post.unlocked && !isOwn && (
+     {/*    {shouldShowLocked && (
           <div 
             onClick={() => setShowUnlockModal(true)}
             className="mb-3 flex items-center justify-between rounded-lg bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/30 px-4 py-3 cursor-pointer hover:from-primary/20 hover:to-secondary/20 transition-all"
@@ -353,7 +356,7 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
               Desbloquear
             </Button>
           </div>
-        )}
+        )} */}
 
         {/* Header */}
         <div className="flex items-start justify-between">
@@ -493,24 +496,54 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
               </div>
             </div>
           ) : (
-            <p className={`text-sm text-foreground leading-relaxed whitespace-pre-wrap ${
-              post.locked && !post.unlocked && !isOwn ? 'blur-sm select-none' : ''
-            }`}>
-              {features.hashtagsAndMentions ? parseTextWithLinks(post.body) : post.body}
-            </p>
+            <div className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+              {shouldShowLocked ? (
+                <p className="text-muted-foreground italic select-none">
+                  Este contenido está bloqueado. Desbloquea para ver el contenido completo.
+                </p>
+              ) : (
+                features.hashtagsAndMentions ? parseTextWithLinks(post.body) : post.body
+              )}
+            </div>
           )}
         </div>
 
         {/* Image */}
         {post.file && !compact && (
-          <div className={`mt-3 overflow-hidden rounded-xl ${
-            post.locked && !post.unlocked && !isOwn ? 'blur-md select-none' : ''
-          }`}>
-            <OptimizedImage
-              src={post.file}
-              alt="Post media"
-              className="max-h-96"
-            />
+          <div className="mt-3 overflow-hidden rounded-xl relative">
+            {shouldShowLocked ? (
+              <>
+                {/* Imagen con blur de fondo */}
+                <div className="relative h-96 bg-muted">
+                  <OptimizedImage
+                    src={post.file}
+                    alt="Post media"
+                    className="max-h-96 blur-2xl opacity-30 pointer-events-none select-none"
+                  />
+                  {/* Overlay con mensaje de bloqueo */}
+                  <div className="absolute inset-0 flex items-center justify-center p-4">
+                    <div 
+                      onClick={() => setShowUnlockModal(true)}
+                      className="flex items-center justify-between rounded-lg bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/30 px-4 py-3 cursor-pointer hover:from-primary/20 hover:to-secondary/20 transition-all backdrop-blur-sm w-full max-w-md"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Lock className="h-5 w-5 text-primary" />
+                        <span className="font-medium text-foreground">Contenido Premium Bloqueado</span>
+                      </div>
+                      <Button size="sm" variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground">
+                        Desbloquear
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <OptimizedImage
+                src={post.file}
+                alt="Post media"
+                className="max-h-96"
+              />
+            )}
           </div>
         )}
 

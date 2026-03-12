@@ -6,6 +6,8 @@ import Link from "next/link"
 import { useEffect } from "react"
 import { Zap, Heart, MessageCircle, Users, Sparkles, ArrowRight, Shield, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { SocialShare } from "@/components/ui/social-share"
+import { SocialFooter } from "@/components/ui/social-footer"
 
 export default function HomePage() {
   const { isAuthenticated, isLoading } = useAuth()
@@ -168,6 +170,19 @@ export default function HomePage() {
             </Button>
           </div>
           
+          {/* Social Share */}
+          <div className="mt-6 md:mt-8 flex justify-center">
+            <SocialShare 
+              url="https://www.mysparkd.com"
+              title="Sparkd - Red Social y Dating App"
+              description="Conoce gente nueva, haz match y chatea. Únete a Sparkd!"
+              hashtags={["Sparkd", "Dating", "RedSocial", "Match"]}
+              size="lg"
+              variant="outline"
+              showLabel
+            />
+          </div>
+          
           <div className="mt-6 md:mt-8">
             <div className="flex flex-wrap justify-center gap-4 mb-4">
               <Link 
@@ -205,6 +220,12 @@ export default function HomePage() {
             <p className="text-gray-700">
               🔒 Tu privacidad es nuestra prioridad. Tus datos están protegidos y nunca serán compartidos sin tu consentimiento.
             </p>
+          </div>
+          
+          {/* Social Media Links */}
+          <div className="mt-8 md:mt-12">
+            <p className="text-sm text-gray-500 mb-4 text-center">Síguenos en redes sociales</p>
+            <SocialFooter />
           </div>
         </div>
 
