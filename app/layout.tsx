@@ -64,16 +64,11 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: '/icon.svg?v=3',
+        url: '/icon.svg?v=4',
         type: 'image/svg+xml',
       },
-      {
-        url: '/icon-light-32x32.png?v=3',
-        sizes: '32x32',
-        type: 'image/png',
-      },
     ],
-    apple: '/icon-light-32x32.png?v=3',
+    apple: '/icon.svg?v=4',
   },
 }
 
@@ -93,9 +88,8 @@ export default function RootLayout({
   return (
     <html lang="es" className="dark">
       <head>
-        <link rel="icon" type="image/svg+xml" href="/icon.svg?v=3" />
-        <link rel="icon" type="image/png" sizes="32x32" href="/icon-light-32x32.png?v=3" />
-        <link rel="apple-touch-icon" href="/icon-light-32x32.png?v=3" />
+        <link rel="icon" type="image/svg+xml" href="/icon.svg?v=4" />
+        <link rel="apple-touch-icon" href="/icon.svg?v=4" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="preconnect" href="https://sparkd1-0.onrender.com" />
         <meta name="application-name" content="Sparkd" />
