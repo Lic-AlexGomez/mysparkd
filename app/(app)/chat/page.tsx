@@ -24,7 +24,7 @@ export default function ChatListPage() {
             const profile = await api.get<any>(`/api/profile/${chat.otherUserId}`)
             return {
               ...chat,
-              otherUserPhoto: profile.photos?.[0]?.url || profile.photoUrl
+              otherUserPhoto: profile.profilePictureUrl || profile.photos?.[0]?.url || profile.photoUrl
             }
           } catch {
             return chat
