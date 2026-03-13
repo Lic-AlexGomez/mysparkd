@@ -3,13 +3,15 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
+import { api } from "@/lib/api"
+import type { UserProfile } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card } from "@/components/ui/card"
 import { LocationInput } from "@/components/ui/location-input"
-import { ArrowLeft, Loader2, Save } from "lucide-react"
+import { ArrowLeft, Loader2, Save, Camera } from "lucide-react"
 import { toast } from "sonner"
 import { getFeatureFlags } from "@/lib/utils/feature-flags"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
@@ -19,11 +21,13 @@ export default function EditProfilePage() {
   const { user, isLoading: authLoading } = useAuth()
   const features = useFeatureFlags()
   const [loading, setLoading] = useState(false)
+  const [uploadingCover, setUploadingCover] = useState(false)
   const [formData, setFormData] = useState({
     username: "",
     bio: "",
     location: "",
     website: "",
+    coverPictureUrl: "",
     latitude: undefined as number | undefined,
     longitude: undefined as number | undefined
   })
@@ -40,6 +44,7 @@ export default function EditProfilePage() {
         bio: user.bio || "",
         location: user.location || "",
         website: user.website || "",
+        coverPictureUrl: user.coverPictureUrl || "",
         latitude: user.latitude,
         longitude: user.longitude
       })
@@ -102,6 +107,41 @@ export default function EditProfilePage() {
     }
   }
 
+  const handleCoverPhotoUpload = async (file: File) => {
+    setUploadingCover(true)
+    console.log('=== Iniciando subida de portada ===')
+    console.log('Archivo:', file.name, file.type, file.size)
+    
+    try {
+      // Crear FormData para enviar el archivo
+      const formDataUpload = new FormData()
+      formDataUpload.append('file', file)
+
+      console.log('Enviando petición a través del proxy...')
+
+      // Usar el cliente API que maneja el proxy y autenticación
+      const data = await api.post<{ url: string; message: string }>(
+        '/api/photos/cover-picture',
+        formDataUpload
+      )
+
+      console.log('Respuesta del servidor:', data)
+      
+      setFormData({ ...formData, coverPictureUrl: data.url })
+      toast.success("Foto de portada actualizada")
+      
+      // Recargar el perfil del usuario para obtener los datos actualizados
+      const updatedProfile = await api.get<UserProfile>('/api/profile/me')
+      console.log('Perfil actualizado:', updatedProfile)
+    } catch (error) {
+      console.error('Error completo:', error)
+      toast.error(error instanceof Error ? error.message : "Error al subir foto")
+    } finally {
+      setUploadingCover(false)
+      console.log('=== Fin subida de portada ===')
+    }
+  }
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
       <div className="mb-6 flex items-center gap-4">
@@ -113,6 +153,49 @@ export default function EditProfilePage() {
 
       <Card className="p-6 bg-card border-border">
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Cover Photo */}
+          <div className="space-y-2">
+            <Label>Foto de portada</Label>
+            <div className="relative">
+              <div 
+                className="h-48 rounded-lg bg-gradient-to-r from-secondary/40 via-primary/30 to-secondary/20 relative overflow-hidden"
+                style={{
+                  backgroundImage: formData.coverPictureUrl ? `url(${formData.coverPictureUrl})` : undefined,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center'
+                }}
+              >
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                  <label className="cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) handleCoverPhotoUpload(file)
+                      }}
+                      disabled={uploadingCover}
+                    />
+                    <div className="flex flex-col items-center gap-2 text-white">
+                      {uploadingCover ? (
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                      ) : (
+                        <>
+                          <Camera className="h-8 w-8" />
+                          <span className="text-sm font-medium">
+                            {formData.coverPictureUrl ? 'Cambiar portada' : 'Subir portada'}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">Recomendado: 1500x500px</p>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="username">Username</Label>
             <Input

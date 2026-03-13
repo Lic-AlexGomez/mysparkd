@@ -59,10 +59,10 @@ export default function ProfilePage() {
   useEffect(() => {
     setLocalPhotos(user?.photos || [])
   }, [user?.photos])
-
+console.log('Usuario:', user)
   useEffect(() => {
-    setCoverPhoto(user?.coverPhoto || null)
-  }, [user?.coverPhoto])
+    setCoverPhoto(user?.coverPictureUrl || null)
+  }, [user?.coverPictureUrl])
 
   const handleSaveProfile = async () => {
     if (!user?.dateOfBirth) {
@@ -173,9 +173,17 @@ export default function ProfilePage() {
               const toastId = toast.loading('Subiendo portada...')
               
               try {
-                const imageUrl = await uploadToCloudinary(file)
-                await api.put('/api/profile', { coverPhoto: imageUrl })
-                setCoverPhoto(imageUrl)
+                // Crear FormData para enviar el archivo
+                const formDataUpload = new FormData()
+                formDataUpload.append('file', file)
+
+                // Usar el endpoint correcto del backend
+                const data = await api.post<{ url: string; message: string }>(
+                  '/api/photos/cover-picture',
+                  formDataUpload
+                )
+
+                setCoverPhoto(data.url)
                 await refreshProfile()
                 toast.dismiss(toastId)
                 toast.success('Portada actualizada')

@@ -207,7 +207,7 @@ export default function HomePage() {
             </div>
           </div>
           
-          <p className="mt-1 md:mt-6 text-xs text-gray-500 uppercase tracking-wider">
+          <p className="mt-2 md:mt-6 text-xs text-gray-500 uppercase tracking-wider">
             Únete a miles de personas conectando ahora
           </p>
           

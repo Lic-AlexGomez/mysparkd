@@ -59,6 +59,7 @@ export interface UserProfile {
   longitude?: number
   website?: string
   coverPhoto?: string
+  coverPictureUrl?: string
   profileCompleted: boolean
   premium: boolean
   stripeCustomerId?: string
@@ -286,6 +287,7 @@ export interface Chat {
   otherUserPhoto?: string
   lastMessage: string | null
   lastMessageAt: string | null
+  unread?: number
 }
 
 export interface Message {
@@ -295,11 +297,14 @@ export interface Message {
   receiverId: string
   content: string
   sentAt: string
+  mediaUrl?: string
+  read?: boolean
 }
 
 export interface SendMessageRequest {
   chatId: string
   content: string
+  mediaUrl?: string
 }
 
 // Interests

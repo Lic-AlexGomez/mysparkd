@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { api } from "@/lib/api"
+import { chatService } from "@/lib/services/chat"
 import type { Chat } from "@/lib/types"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Loader2, MessageCircle } from "lucide-react"
@@ -15,7 +16,7 @@ export default function ChatListPage() {
 
   const fetchChats = useCallback(async () => {
     try {
-      const data = await api.get<Chat[]>("/api/chat/chats")
+      const data = await chatService.getMyChats()
       
       const chatsWithPhotos = await Promise.all(
         data.map(async (chat) => {

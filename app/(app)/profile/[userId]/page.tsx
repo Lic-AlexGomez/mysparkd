@@ -48,6 +48,10 @@ export default function UserProfilePage() {
   const fetchProfile = useCallback(async () => {
     try {
       const data = await api.get<UserProfile>(`/api/profile/${userId}`)
+      console.log('=== Perfil cargado ===')
+      console.log('coverPictureUrl:', data.coverPictureUrl)
+      console.log('coverPhoto:', data.coverPhoto)
+      console.log('Perfil completo:', data)
       setProfile(data)
     } catch {
       // silent
@@ -117,7 +121,20 @@ export default function UserProfilePage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
       <Card className="overflow-hidden border-border bg-card">
-        <div className="h-32 bg-gradient-to-r from-secondary/40 via-primary/30 to-secondary/20" />
+        {/* Cover Photo */}
+        <div 
+          className="h-48 bg-gradient-to-r from-secondary/40 via-primary/30 to-secondary/20 relative group cursor-pointer"
+          style={{
+            backgroundImage: profile.coverPictureUrl ? `url(${profile.coverPictureUrl})` : undefined,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
+          onClick={() => profile.coverPictureUrl && setViewPhotoUrl(profile.coverPictureUrl)}
+        >
+          {profile.coverPictureUrl && (
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+          )}
+        </div>
         <CardContent className="relative px-6 pb-6">
           <div className="-mt-16 mb-4">
             <Avatar className="h-28 w-28 border-4 border-card shadow-lg cursor-pointer" onClick={() => primaryPhoto?.url && setViewPhotoUrl(primaryPhoto.url)}>
