@@ -120,7 +120,9 @@ console.log('Usuario:', user)
     }
   }
 
-  const primaryPhoto = user?.photos?.find((p) => p.isPrimary || p.primary)
+  const primaryPhoto = user?.profilePictureUrl 
+    ? { url: user.profilePictureUrl } 
+    : user?.photos?.find((p) => p.isPrimary || p.primary)
   const initials = user
     ? `${user.nombres?.[0] || ""}${user.apellidos?.[0] || ""}`.toUpperCase()
     : "?"
@@ -229,40 +231,25 @@ console.log('Usuario:', user)
                   const toastId = toast.loading('Subiendo foto...')
                   
                   try {
-                    const imageUrl = await uploadToCloudinary(file)
-                    console.log('Imagen subida a Cloudinary:', imageUrl)
-                    
-                    try {
-                      await api.post('/api/photos/add', {
-                        url: imageUrl,
-                        position: 0,
-                        primary: true
-                      })
-                      await refreshProfile()
-                      toast.dismiss(toastId)
-                      toast.success('Foto actualizada')
-                    } catch (apiError) {
-                      console.error('Error del backend:', apiError)
-                      // Actualizar localmente como fallback
-                      if (user) {
-                        const updatedUser = {
-                          ...user,
-                          photos: [
-                            { photoId: Date.now().toString(), url: imageUrl, isPrimary: true },
-                            ...(user.photos?.filter(p => !p.isPrimary && !p.primary) || [])
-                          ]
-                        }
-                        localStorage.setItem('sparkd_user', JSON.stringify(updatedUser))
-                        await refreshProfile()
-                        toast.dismiss(toastId)
-                        toast.success('Foto actualizada (guardada localmente)')
-                      }
-                    }
+                    // Crear FormData para enviar el archivo
+                    const formDataUpload = new FormData()
+                    formDataUpload.append('file', file)
+
+                    // Usar el endpoint correcto del backend
+                    const data = await api.post<{ url: string; message: string }>(
+                      '/api/photos/profile-picture',
+                      formDataUpload
+                    )
+
+                    await refreshProfile()
+                    toast.dismiss(toastId)
+                    toast.success('Foto de perfil actualizada')
                   } catch (error) {
                     toast.dismiss(toastId)
                     toast.error('Error al subir foto')
                     console.error(error)
                   }
+                  e.target.value = ''
                 }}
               />
               <div className="absolute top-0 right-0 h-7 w-7 rounded-full bg-gradient-to-br from-secondary to-primary flex items-center justify-center text-xs font-bold text-white shadow-lg border-2 border-card">

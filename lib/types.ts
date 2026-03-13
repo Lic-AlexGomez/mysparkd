@@ -60,6 +60,7 @@ export interface UserProfile {
   website?: string
   coverPhoto?: string
   coverPictureUrl?: string
+  profilePictureUrl?: string
   profileCompleted: boolean
   premium: boolean
   stripeCustomerId?: string
