@@ -140,6 +140,7 @@ export interface Post {
   createdAt: string
   userId: string
   username: string
+  userPhoto?: string
   permanent: boolean
   expiresAt: string | null
   locked: boolean
@@ -160,6 +161,15 @@ export interface Post {
   reactions?: ReactionSummary
   userReaction?: ReactionType | null
   poll?: Poll
+  media?: {
+    mediaUrl: string
+    mediaPublicId?: string
+    width?: number
+    height?: number
+    duration?: number
+    fileSize?: number
+    format?: string
+  }
 }
 
 export interface CreatePostRequest {
@@ -292,13 +302,23 @@ export interface Chat {
 }
 
 export interface Message {
-  messageId: string
+  messageId?: string
+  id?: string
   chatId: string
   senderId: string
   receiverId: string
   content: string
   sentAt: string
-  mediaUrl?: string
+  mediaType?: string
+  media?: {
+    mediaUrl: string
+    mediaPublicId?: string
+    width?: number
+    height?: number
+    duration?: number
+    fileSize?: number
+    format?: string
+  }
   read?: boolean
 }
 

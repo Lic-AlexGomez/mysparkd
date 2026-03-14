@@ -64,11 +64,11 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
   const { isPremium } = usePremiumStatus()
   
   // Debug: Ver qué reacción tiene el post
-  console.log('=== PostCard Render ===')
+/*   console.log('=== PostCard Render ===')
   console.log('Post ID:', post.id);
   console.log('post.userReaction:', post.userReaction);
   console.log('typeof post.userReaction:', typeof post.userReaction);
-  console.log('post.reactions:', post.reactions);
+  console.log('post.reactions:', post.reactions); */
   
   // Buscar la reacción del usuario en el objeto reactions
   const findUserReaction = (): ReactionType | null => {
@@ -80,13 +80,13 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
     );
     
     const found = userReactionEntry ? (userReactionEntry[0] as ReactionType) : null;
-    console.log('findUserReaction result:', found);
+/*     console.log('findUserReaction result:', found); */
     return found;
   };
   
   const initialUserReaction = findUserReaction();
-  console.log('initialUserReaction:', initialUserReaction);
-  console.log('=======================')
+/*   console.log('initialUserReaction:', initialUserReaction);
+  console.log('=======================') */
   
   const [likeCount, setLikeCount] = useState(post.likeCount)
   const [liked, setLiked] = useState(post.liked || false)
@@ -119,10 +119,10 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
     const prevReaction = userReaction
     const prevCounts = { ...reactionCounts }
     
-    console.log('=== handleReaction ===')
+  /*   console.log('=== handleReaction ===')
     console.log('Tipo de reacción:', type)
     console.log('Reacción anterior:', prevReaction)
-    console.log('Contadores anteriores:', prevCounts)
+    console.log('Contadores anteriores:', prevCounts) */
     
     // Optimistic update
     if (prevReaction === type) {
@@ -159,11 +159,11 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
     try {
       // Usar servicio de reacciones
       const result = await reactionService.toggleReaction(post.id, 'POST', type)
-      console.log('Resultado del backend:', result)
+  /*     console.log('Resultado del backend:', result) */
       
       // Refrescar estado de reacciones desde el backend
       const status = await reactionService.getReactionStatus(post.id, 'POST')
-      console.log('Estado de reacciones del backend:', status)
+   /*    console.log('Estado de reacciones del backend:', status) */
       
       // Actualizar con los datos reales del backend
       if (status && typeof status === 'object') {
@@ -183,8 +183,8 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
             })
           }
           setReactionCounts(reactionsObj)
-          console.log('Reacciones actualizadas:', reactionsObj)
-        }
+/*           console.log('Reacciones actualizadas:', reactionsObj)
+ */        }
       }
       
       // Notificar al dueño del post

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 import { api } from "@/lib/api"
+import { chatService } from "@/lib/services/chat"
 import { useAuth } from "@/lib/auth-context"
 import { useWebSocket } from "@/hooks/use-websocket"
 import type { Message, Chat } from "@/lib/types"
@@ -18,6 +19,7 @@ const EmojiPicker = dynamic(() => import("emoji-picker-react"), { ssr: false })
 import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
 import { cn } from "@/lib/utils"
+import { toast } from "sonner"
 
 export default function ChatRoomPage() {
   const params = useParams()
@@ -65,7 +67,8 @@ export default function ChatRoomPage() {
       console.log('[Chat] Mensaje recibido por WebSocket:', newMessage)
       if (newMessage.chatId === chatId) {
         setMessages(prev => {
-          if (prev.some(m => m.messageId === newMessage.messageId)) {
+          const newId = newMessage.messageId || newMessage.id
+          if (newId && prev.some(m => (m.messageId || m.id) === newId)) {
             console.log('[Chat] Mensaje duplicado, ignorando')
             return prev
           }
@@ -99,12 +102,9 @@ export default function ChatRoomPage() {
       const chats = await api.get<Chat[]>("/api/chat/chats")
       const current = chats.find((c) => c.chatId === chatId)
       if (current) {
-        // Obtener foto del perfil del otro usuario
         try {
           const profile = await api.get<any>(`/api/profile/${current.otherUserId}`)
-          
-          const primaryPhoto = profile.photos?.find((p: any) => p.isPrimary || p.primary)
-          current.otherUserPhoto = primaryPhoto?.url
+          current.otherUserPhoto = profile.profilePictureUrl || profile.photos?.find((p: any) => p.isPrimary || p.primary)?.url
         } catch {
           // Si falla, continuar sin foto
         }
@@ -118,6 +118,8 @@ export default function ChatRoomPage() {
   useEffect(() => {
     fetchMessages()
     fetchChatInfo()
+    // Marcar chat como leído al abrirlo
+    chatService.markChatAsRead(chatId).catch(() => {})
   }, [fetchMessages, fetchChatInfo])
 
   // Auto-scroll to bottom
@@ -251,25 +253,16 @@ export default function ChatRoomPage() {
         // Convertir a MP3 usando Cloudinary o enviar como base64 temporalmente
         const reader = new FileReader()
         reader.onloadend = async () => {
-          const base64Audio = reader.result as string
-          
           try {
             setIsUploading(true)
-            
-            // Intentar subir a Cloudinary
             const audioFile = new File([audioBlob], `audio-${Date.now()}.webm`, { type: 'audio/webm' })
-            const audioUrl = await uploadToCloudinary(audioFile)
-            
+            const { mediaUrl } = await uploadToBackend(audioFile)
             setIsUploading(false)
-            
-            sendViaWebSocket(chatId, `🎤 ${audioUrl}`)
+            sendViaWebSocket(chatId, `🎤 ${mediaUrl}`)
             setTimeout(() => fetchMessages(), 800)
           } catch (error) {
             console.error('Error al subir audio:', error)
-            // Fallback: enviar como base64
             setIsUploading(false)
-            sendViaWebSocket(chatId, `🎤 ${base64Audio}`)
-            setTimeout(() => fetchMessages(), 800)
           }
         }
         reader.readAsDataURL(audioBlob)
@@ -296,32 +289,23 @@ export default function ChatRoomPage() {
     }
   }
 
-  const uploadToCloudinary = async (file: File): Promise<string> => {
+  const uploadToBackend = async (file: File): Promise<{ mediaUrl: string; mediaPublicId: string }> => {
     const formData = new FormData()
-    const isAudio = file.type.startsWith('audio')
-    
     formData.append('file', file)
-    formData.append('upload_preset', isAudio ? 'chat_audio' : 'ml_default')
     
-    const resourceType = isAudio ? 'video' : 'image'
+    // Determinar el tipo de media
+    let type = 'IMAGE'
+    if (file.type.startsWith('video/')) type = 'VIDEO'
+    else if (file.type.startsWith('audio/')) type = 'AUDIO'
+    else if (!file.type.startsWith('image/')) type = 'FILE'
     
-    const response = await fetch(
-      `https://api.cloudinary.com/v1_1/dvk3yygql/${resourceType}/upload`,
-      {
-        method: 'POST',
-        body: formData,
-      }
-    )
-    
-    if (!response.ok) {
-      const error = await response.text()
-      console.error('Error de Cloudinary:', error)
-      throw new Error('Error al subir archivo')
+    // Cloudinary no soporta archivos de texto/documentos
+    if (type === 'FILE') {
+      throw new Error('Solo se permiten imágenes, videos y audios')
     }
     
-    const data = await response.json()
-    console.log('Audio subido:', data.secure_url, 'Duración:', data.duration)
-    return data.secure_url
+    formData.append('type', type)
+    return api.post<{ mediaUrl: string; mediaPublicId: string }>('/api/chat/upload/media', formData)
   }
 
   const handleSend = async () => {
@@ -347,22 +331,25 @@ export default function ChatRoomPage() {
     try {
       if (selectedFile) {
         setIsUploading(true)
-        const fileUrl = await uploadToCloudinary(selectedFile)
+        const { mediaUrl } = await uploadToBackend(selectedFile)
         setIsUploading(false)
-        
-        const content = `📎 ${selectedFile.name}|${fileUrl}`
-        sendViaWebSocket(chatId, content)
+        // Enviar via REST para persistir con media
+        const formData = new FormData()
+        formData.append('message', JSON.stringify({ chatId, content: selectedFile.name, mediaType: 'FILE' }))
+        formData.append('file', selectedFile)
+        await api.post('/api/chat/send', formData)
         setTimeout(() => fetchMessages(), 800)
-        
         handleRemoveFile()
       } else if (selectedImage) {
         setIsUploading(true)
-        const imageUrl = await uploadToCloudinary(selectedImage)
+        const { mediaUrl } = await uploadToBackend(selectedImage)
         setIsUploading(false)
-        
-        sendViaWebSocket(chatId, imageUrl)
+        // Enviar via REST para persistir con media
+        const formData = new FormData()
+        formData.append('message', JSON.stringify({ chatId, content: '', mediaType: 'IMAGE' }))
+        formData.append('file', selectedImage)
+        await api.post('/api/chat/send', formData)
         setTimeout(() => fetchMessages(), 800)
-        
         handleRemoveImage()
       } else {
         // Solo usar WebSocket
@@ -373,6 +360,9 @@ export default function ChatRoomPage() {
       setTimeout(() => fetchMessages(), 2000)
     } catch (error) {
       console.error('[Chat] Error al enviar:', error)
+      if (error instanceof Error) {
+        toast.error(error.message)
+      }
     }
     
     setIsSending(false)
@@ -459,7 +449,7 @@ export default function ChatRoomPage() {
               const content = msg.content.startsWith('@reply:') ? msg.content.split('|')[1] : msg.content
               return (
                 <img
-                  key={msg.messageId}
+                  key={msg.messageId || msg.id || ''}
                   src={content}
                   alt="Media"
                   className="w-full h-12 object-cover rounded cursor-pointer hover:opacity-80"
@@ -501,23 +491,24 @@ export default function ChatRoomPage() {
             </div>
           ) : (
             filteredMessages.map((msg) => {
+              const msgId = msg.messageId || msg.id || ''
               const isOwn = msg.senderId === user?.userId
               const isReply = msg.content.startsWith('@reply:')
               const replyMatch = isReply ? msg.content.match(/@reply:([^|]+)\|(.*)/) : null
               const replyToId = replyMatch?.[1]
               const actualContent = replyMatch?.[2] || msg.content
-              const repliedMsg = replyToId ? messages.find(m => m.messageId === replyToId) : null
+              const repliedMsg = replyToId ? messages.find(m => (m.messageId || m.id) === replyToId) : null
               const isAudio = actualContent.startsWith('🎤 ')
               const audioUrl = isAudio ? actualContent.substring(3) : null
               const isFile = actualContent.startsWith('📎 ')
               const fileMatch = isFile ? actualContent.match(/📎 (.+)\|(.+)/) : null
               const fileName = fileMatch?.[1]
               const fileUrl = fileMatch?.[2]
-              const reactions = messageReactions[msg.messageId] || []
+              const reactions = messageReactions[msgId] || []
               
               return (
                 <div
-                  key={msg.messageId}
+                  key={msgId}
                   className={cn(
                     "flex",
                     isOwn ? "justify-end" : "justify-start"
@@ -539,6 +530,20 @@ export default function ChatRoomPage() {
                     )}
                     {isAudio && audioUrl ? (
                       <AudioMessage src={audioUrl} className="min-w-[200px]" />
+                    ) : msg.media?.mediaUrl && msg.mediaType === 'IMAGE' ? (
+                      <img 
+                        src={msg.media.mediaUrl} 
+                        alt="Imagen" 
+                        className="rounded-lg max-w-[200px] max-h-[200px] object-cover cursor-pointer hover:opacity-90" 
+                        onClick={() => setSelectedImageView(msg.media!.mediaUrl)}
+                      />
+                    ) : msg.media?.mediaUrl && msg.mediaType === 'FILE' ? (
+                      <a href={msg.media.mediaUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 bg-black/10 rounded-lg hover:bg-black/20 transition-colors">
+                        <Paperclip className="h-4 w-4" />
+                        <span className="text-sm truncate max-w-[200px]">{msg.media.format || 'Archivo'}</span>
+                      </a>
+                    ) : msg.media?.mediaUrl && msg.mediaType === 'AUDIO' ? (
+                      <AudioMessage src={msg.media.mediaUrl} className="min-w-[200px]" />
                     ) : isFile && fileName && fileUrl ? (
                       <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 bg-black/10 rounded-lg hover:bg-black/20 transition-colors">
                         <Paperclip className="h-4 w-4" />
@@ -582,11 +587,11 @@ export default function ChatRoomPage() {
                           className="h-6 w-6"
                           onClick={(e) => {
                             e.stopPropagation()
-                            toggleStarMessage(msg.messageId)
+                            toggleStarMessage(msgId)
                           }}
                           title="Destacar mensaje"
                         >
-                          <Star className={cn("h-3 w-3", starredMessages.has(msg.messageId) && "fill-yellow-500 text-yellow-500")} />
+                          <Star className={cn("h-3 w-3", starredMessages.has(msgId) && "fill-yellow-500 text-yellow-500")} />
                         </Button>
                         <Button
                           size="icon"
@@ -594,11 +599,11 @@ export default function ChatRoomPage() {
                           className="h-6 w-6"
                           onClick={(e) => {
                             e.stopPropagation()
-                            handleCopyMessage(actualContent, msg.messageId)
+                            handleCopyMessage(actualContent, msgId)
                           }}
                           title="Copiar mensaje"
                         >
-                          {copiedMessageId === msg.messageId ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                          {copiedMessageId === msgId ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
                         </Button>
                         <Button
                           size="icon"
@@ -617,14 +622,14 @@ export default function ChatRoomPage() {
                           className="h-6 w-6 reactions-button"
                           onClick={(e) => {
                             e.stopPropagation()
-                            setShowReactions(showReactions === msg.messageId ? null : msg.messageId)
+                            setShowReactions(showReactions === msgId ? null : msgId)
                           }}
                         >
                           <Smile className="h-3 w-3" />
                         </Button>
                       </div>
                     </div>
-                    {showReactions === msg.messageId && (
+                    {showReactions === msgId && (
                       <div 
                         className="reactions-menu absolute -top-10 right-0 bg-background border border-primary/20 rounded-full px-2 py-1 shadow-lg flex gap-1 z-50"
                       >
@@ -634,7 +639,7 @@ export default function ChatRoomPage() {
                             className="hover:scale-125 transition-transform text-lg p-1 cursor-pointer"
                             onClick={(e) => {
                               e.stopPropagation()
-                              handleReaction(msg.messageId, emoji)
+                              handleReaction(msgId, emoji)
                             }}
                           >
                             {emoji}

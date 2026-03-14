@@ -37,8 +37,9 @@ export function useFeed() {
       console.log('Fotos de usuarios obtenidas:', userPhotosMap)
       
       // Normalizar posts con reacciones y fotos
-      const normalizedPosts = data.map((post) => {
-        console.log('=== POST ORIGINAL ====')
+    
+  const normalizedPosts = data.map((post) => {
+ /*        console.log('=== POST ORIGINAL ====')
         console.log('Post ID:', post.id)
         console.log('username:', post.username)
         console.log('userId:', post.userId)
@@ -46,7 +47,10 @@ export function useFeed() {
         console.log('photoUrl del backend:', post.photoUrl)
         console.log('Foto obtenida del perfil:', userPhotosMap.get(post.userId))
         console.log('myReaction:', post.myReaction)
-        console.log('reactions array:', post.reactions)
+        console.log('reactions array:', post.reactions) 
+        
+        
+        */
         
         // Convertir array de reacciones a objeto
         const reactionsObj: Record<string, { type: string; count: number; userReacted: boolean }> = {}
@@ -87,12 +91,12 @@ export function useFeed() {
           repostCount: post.repostCount || 0
         }
         
-        console.log('=== POST NORMALIZADO ===')
+   /*      console.log('=== POST NORMALIZADO ===')
         console.log('userPhoto normalizado:', normalized.userPhoto)
         console.log('userReaction:', normalized.userReaction)
         console.log('reactions:', normalized.reactions)
         console.log('========================')
-        
+         */
         return normalized
       })
       

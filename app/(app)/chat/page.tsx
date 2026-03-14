@@ -96,20 +96,31 @@ export default function ChatListPage() {
                         e.stopPropagation()
                         window.location.href = `/profile/${chat.otherUserId}`
                       }}
-                      className="font-bold text-foreground hover:text-primary hover:underline cursor-pointer"
+                      className={`font-bold cursor-pointer hover:text-primary hover:underline ${
+                        chat.unread ? 'text-foreground' : 'text-foreground'
+                      }`}
                     >
                       {chat.otherUsername}
                     </span>
-                    {chat.lastMessageAt && (
-                      <span className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(chat.lastMessageAt + 'Z'), {
-                          addSuffix: true,
-                          locale: es,
-                        })}
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {chat.lastMessageAt && (
+                        <span className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(chat.lastMessageAt + 'Z'), {
+                            addSuffix: true,
+                            locale: es,
+                          })}
+                        </span>
+                      )}
+                      {!!chat.unread && chat.unread > 0 && (
+                        <span className="flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full bg-primary text-black text-xs font-bold">
+                          {chat.unread > 99 ? '99+' : chat.unread}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-sm text-muted-foreground truncate">
+                  <p className={`text-sm truncate ${
+                    chat.unread && chat.unread > 0 ? 'text-foreground font-medium' : 'text-muted-foreground'
+                  }`}>
                     {chat.lastMessage || "Sin mensajes aún"}
                   </p>
                 </div>
