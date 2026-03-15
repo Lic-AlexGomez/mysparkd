@@ -209,13 +209,15 @@ export default function ChatRoomPage() {
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file && file.type.startsWith('image/')) {
+    if (file && (file.type.startsWith('image/') || file.type.startsWith('video/'))) {
       setSelectedImage(file)
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string)
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader()
+        reader.onloadend = () => setImagePreview(reader.result as string)
+        reader.readAsDataURL(file)
+      } else {
+        setImagePreview('video')
       }
-      reader.readAsDataURL(file)
     }
   }
 
@@ -537,6 +539,12 @@ export default function ChatRoomPage() {
                         className="rounded-lg max-w-[200px] max-h-[200px] object-cover cursor-pointer hover:opacity-90" 
                         onClick={() => setSelectedImageView(msg.media!.mediaUrl)}
                       />
+                    ) : msg.media?.mediaUrl && msg.mediaType === 'VIDEO' ? (
+                      <video
+                        src={msg.media.mediaUrl}
+                        controls
+                        className="rounded-lg max-w-[250px] max-h-[200px]"
+                      />
                     ) : msg.media?.mediaUrl && msg.mediaType === 'FILE' ? (
                       <a href={msg.media.mediaUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 bg-black/10 rounded-lg hover:bg-black/20 transition-colors">
                         <Paperclip className="h-4 w-4" />
@@ -698,7 +706,13 @@ export default function ChatRoomPage() {
                   <Loader2 className="h-6 w-6 animate-spin text-white" />
                 </div>
               )}
-              <img src={imagePreview} alt="Preview" className="h-20 rounded-lg" />
+              {imagePreview === 'video' ? (
+                <div className="h-20 w-32 rounded-lg bg-muted flex items-center justify-center gap-2 text-muted-foreground">
+                  <span className="text-xs">{selectedImage?.name}</span>
+                </div>
+              ) : (
+                <img src={imagePreview} alt="Preview" className="h-20 rounded-lg" />
+              )}
               <Button
                 type="button"
                 size="icon"
@@ -779,7 +793,7 @@ export default function ChatRoomPage() {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*,image/gif"
+              accept="image/*,image/gif,video/*"
               className="hidden"
               onChange={handleImageSelect}
             />
