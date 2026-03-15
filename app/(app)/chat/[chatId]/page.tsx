@@ -325,7 +325,8 @@ export default function ChatRoomPage() {
     
     let messageContent = newMessage.trim()
     if (replyTo) {
-      messageContent = `@reply:${replyTo.messageId}|${messageContent}`
+      const replyId = replyTo.messageId || replyTo.id
+      messageContent = `@reply:${replyId}|${messageContent}`
     }
     setNewMessage("")
     setReplyTo(null)
