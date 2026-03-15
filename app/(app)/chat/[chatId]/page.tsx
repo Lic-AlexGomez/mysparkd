@@ -526,9 +526,15 @@ export default function ChatRoomPage() {
                     )}
                   >
                     {repliedMsg && (
-                      <div className="mb-2 p-2 bg-black/10 rounded-lg text-xs border-l-2 border-primary">
-                        <p className="font-semibold">{repliedMsg.senderId === user?.userId ? 'Tú' : chatInfo?.otherUsername}</p>
-                        <p className="truncate opacity-70">{repliedMsg.content.substring(0, 50)}</p>
+                      <div className={`mb-2 p-2 rounded-lg text-xs border-l-2 border-primary/70 ${
+                        isOwn ? 'bg-black/20' : 'bg-primary/10'
+                      }`}>
+                        <p className="font-semibold text-primary/90 mb-0.5">
+                          {repliedMsg.senderId === user?.userId ? 'Tú' : chatInfo?.otherUsername}
+                        </p>
+                        <p className="truncate opacity-80">
+                          {repliedMsg.media?.mediaUrl ? '📎 Archivo multimedia' : repliedMsg.content.substring(0, 60)}
+                        </p>
                       </div>
                     )}
                     {isAudio && audioUrl ? (
@@ -589,53 +595,37 @@ export default function ChatRoomPage() {
                           locale: es,
                         })}
                       </p>
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-6 w-6"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            toggleStarMessage(msgId)
-                          }}
-                          title="Destacar mensaje"
+                      <div className={`opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5 ${
+                        isOwn ? 'flex-row-reverse' : 'flex-row'
+                      }`}>
+                        <button
+                          className="h-6 w-6 rounded-full flex items-center justify-center hover:bg-black/20 transition-colors"
+                          onClick={(e) => { e.stopPropagation(); toggleStarMessage(msgId) }}
+                          title="Destacar"
                         >
                           <Star className={cn("h-3 w-3", starredMessages.has(msgId) && "fill-yellow-500 text-yellow-500")} />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-6 w-6"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleCopyMessage(actualContent, msgId)
-                          }}
-                          title="Copiar mensaje"
+                        </button>
+                        <button
+                          className="h-6 w-6 rounded-full flex items-center justify-center hover:bg-black/20 transition-colors"
+                          onClick={(e) => { e.stopPropagation(); handleCopyMessage(actualContent, msgId) }}
+                          title="Copiar"
                         >
                           {copiedMessageId === msgId ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-6 w-6"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setReplyTo(msg)
-                          }}
+                        </button>
+                        <button
+                          className="h-6 w-6 rounded-full flex items-center justify-center hover:bg-black/20 transition-colors"
+                          onClick={(e) => { e.stopPropagation(); setReplyTo(msg) }}
+                          title="Responder"
                         >
                           <Reply className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-6 w-6 reactions-button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setShowReactions(showReactions === msgId ? null : msgId)
-                          }}
+                        </button>
+                        <button
+                          className="h-6 w-6 rounded-full flex items-center justify-center hover:bg-black/20 transition-colors reactions-button"
+                          onClick={(e) => { e.stopPropagation(); setShowReactions(showReactions === msgId ? null : msgId) }}
+                          title="Reaccionar"
                         >
                           <Smile className="h-3 w-3" />
-                        </Button>
+                        </button>
                       </div>
                     </div>
                     {showReactions === msgId && (
