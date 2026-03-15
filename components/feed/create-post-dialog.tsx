@@ -47,13 +47,31 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
   const [showPollDialog, setShowPollDialog] = useState(false)
   const [pollData, setPollData] = useState<{ question: string; options: string[]; duration: number } | null>(null)
 
+  const renderFilePreview = () => {
+    if (!filePreview) return null
+    return (
+      <div className="relative">
+        {file?.type.startsWith('video/') ? (
+          <video src={filePreview} className="w-full h-48 object-cover rounded-lg" controls />
+        ) : (
+          <img src={filePreview} alt="Preview" className="w-full h-48 object-cover rounded-lg" />
+        )}
+        <button
+          onClick={() => { setFile(null); setFilePreview("") }}
+          className="absolute top-2 right-2 h-6 w-6 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70"
+        >
+          <X className="h-4 w-4 text-white" />
+        </button>
+      </div>
+    )
+  }
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
     if (!selectedFile) return
-
     setFile(selectedFile)
     setFilePreview(URL.createObjectURL(selectedFile))
-    toast.success('Imagen seleccionada')
+    toast.success(selectedFile.type.startsWith('video/') ? 'Video seleccionado' : 'Imagen seleccionada')
   }
 
   const handleSubmit = async () => {
@@ -215,30 +233,11 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
               <div className="flex flex-col gap-2">
                 <Label className="text-foreground flex items-center gap-2">
                   <ImageIcon className="h-4 w-4" />
-                  Imagen (opcional)
+                  Imagen o Video (opcional)
                 </Label>
-                {filePreview && (
-                  <div className="relative">
-                    <img src={filePreview} alt="Preview" className="w-full h-48 object-cover rounded-lg" />
-                    <button
-                      onClick={() => {
-                        setFile(null)
-                        setFilePreview("")
-                      }}
-                      className="absolute top-2 right-2 h-6 w-6 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70"
-                    >
-                      <X className="h-4 w-4 text-white" />
-                    </button>
-                  </div>
-                )}
+                {renderFilePreview()}
                 <div className="flex gap-2">
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    disabled={isUploading}
-                    className="bg-muted border-border text-foreground"
-                  />
+                  <Input type="file" accept="image/*,video/*,.mp4,.webm,.mov,.avi,.mkv" onChange={handleImageUpload} disabled={isUploading} className="bg-muted border-border text-foreground" />
                   {isUploading && <Loader2 className="h-5 w-5 animate-spin" />}
                 </div>
               </div>
@@ -307,30 +306,11 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
               <div className="flex flex-col gap-2">
                 <Label className="text-foreground flex items-center gap-2">
                   <ImageIcon className="h-4 w-4" />
-                  Imagen (opcional)
+                  Imagen o Video (opcional)
                 </Label>
-                {filePreview && (
-                  <div className="relative">
-                    <img src={filePreview} alt="Preview" className="w-full h-48 object-cover rounded-lg" />
-                    <button
-                      onClick={() => {
-                        setFile(null)
-                        setFilePreview("")
-                      }}
-                      className="absolute top-2 right-2 h-6 w-6 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70"
-                    >
-                      <X className="h-4 w-4 text-white" />
-                    </button>
-                  </div>
-                )}
+                {renderFilePreview()}
                 <div className="flex gap-2">
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    disabled={isUploading}
-                    className="bg-muted border-border text-foreground"
-                  />
+                  <Input type="file" accept="image/*,video/*,.mp4,.webm,.mov,.avi,.mkv" onChange={handleImageUpload} disabled={isUploading} className="bg-muted border-border text-foreground" />
                   {isUploading && <Loader2 className="h-5 w-5 animate-spin" />}
                 </div>
               </div>

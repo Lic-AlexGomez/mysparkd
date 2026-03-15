@@ -295,15 +295,12 @@ export default function ChatRoomPage() {
     const formData = new FormData()
     formData.append('file', file)
     
-    // Determinar el tipo de media
     let type = 'IMAGE'
     if (file.type.startsWith('video/')) type = 'VIDEO'
     else if (file.type.startsWith('audio/')) type = 'AUDIO'
-    else if (!file.type.startsWith('image/')) type = 'FILE'
-    
-    // Cloudinary no soporta archivos de texto/documentos
-    if (type === 'FILE') {
-      throw new Error('Solo se permiten imágenes, videos y audios')
+    else if (file.type === 'application/pdf') type = 'FILE'
+    else if (!file.type.startsWith('image/')) {
+      throw new Error('Solo se permiten imágenes, videos, audios y PDFs')
     }
     
     formData.append('type', type)
@@ -334,6 +331,7 @@ export default function ChatRoomPage() {
     try {
       if (selectedFile) {
         setIsUploading(true)
+        console.log('[Chat] Subiendo archivo:', selectedFile.name, selectedFile.type)
         const { mediaUrl } = await uploadToBackend(selectedFile)
         setIsUploading(false)
         // Enviar via REST para persistir con media
@@ -554,8 +552,11 @@ export default function ChatRoomPage() {
                       />
                     ) : msg.media?.mediaUrl && msg.mediaType === 'FILE' ? (
                       <a href={msg.media.mediaUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 bg-black/10 rounded-lg hover:bg-black/20 transition-colors">
-                        <Paperclip className="h-4 w-4" />
-                        <span className="text-sm truncate max-w-[200px]">{msg.media.format || 'Archivo'}</span>
+                        <span className="text-lg">📄</span>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium">PDF</span>
+                          <span className="text-xs opacity-70">{msg.media.format?.toUpperCase() || 'Documento'}</span>
+                        </div>
                       </a>
                     ) : msg.media?.mediaUrl && msg.mediaType === 'AUDIO' ? (
                       <AudioMessage src={msg.media.mediaUrl} className="min-w-[200px]" />
@@ -802,7 +803,7 @@ export default function ChatRoomPage() {
             <input
               ref={fileInputRefDoc}
               type="file"
-              accept="*/*"
+              accept="image/*,video/*,audio/*,application/pdf"
               className="hidden"
               onChange={handleFileSelect}
             />

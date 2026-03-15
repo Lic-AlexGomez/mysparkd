@@ -510,19 +510,17 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
           )}
         </div>
 
-        {/* Image */}
+        {/* Image/Video */}
         {post.file && !compact && (
           <div className="mt-3 overflow-hidden rounded-xl relative">
             {shouldShowLocked ? (
               <>
-                {/* Imagen con blur de fondo */}
                 <div className="relative h-96 bg-muted">
                   <OptimizedImage
                     src={post.file}
                     alt="Post media"
                     className="max-h-96 blur-2xl opacity-30 pointer-events-none select-none"
                   />
-                  {/* Overlay con mensaje de bloqueo */}
                   <div className="absolute inset-0 flex items-center justify-center p-4">
                     <div 
                       onClick={() => setShowUnlockModal(true)}
@@ -539,6 +537,12 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
                   </div>
                 </div>
               </>
+            ) : post.file.match(/\.(mp4|webm|ogg|mov|avi|mkv)$/i) || post.media?.mediaType === 'VIDEO' || (post.file.includes('cloudinary.com') && post.file.includes('/video/')) ? (
+              <video
+                src={post.file}
+                controls
+                className="w-full max-h-96 rounded-xl"
+              />
             ) : (
               <div 
                 onClick={() => setShowImageModal(true)}
@@ -703,7 +707,7 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
       />
       
       {/* Image Modal */}
-      {post.file && (
+      {post.file && !post.file.match(/\.(mp4|webm|ogg|mov)$/i) && (
         <Dialog open={showImageModal} onOpenChange={setShowImageModal}>
           <DialogContent className="max-w-7xl w-[95vw] h-[95vh] p-0 bg-black/95 border-0">
             <div className="relative w-full h-full flex items-center justify-center">
