@@ -11,7 +11,7 @@ import type { Message, Chat } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ArrowLeft, Send, Loader2, MessageCircle, Smile, Image as ImageIcon, X, Mic, Reply, MoreVertical, Copy, Paperclip, Check, Search, Star, Images } from "lucide-react"
+import { ArrowLeft, Send, Loader2, MessageCircle, Smile, Image as ImageIcon, X, Mic, Reply, MoreVertical, Copy, Paperclip, Check, Search, Star, Images, Sparkles } from "lucide-react"
 import dynamic from "next/dynamic"
 import { AudioMessage } from "@/components/audio-message"
 
@@ -48,6 +48,10 @@ export default function ChatRoomPage() {
   const [showSearch, setShowSearch] = useState(false)
   const [starredMessages, setStarredMessages] = useState<Set<string>>(new Set())
   const [showGallery, setShowGallery] = useState(false)
+  const [showAI, setShowAI] = useState(false)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([])
+  const [aiType, setAiType] = useState<'suggestions' | 'icebreaker' | 'date'>('suggestions')
   const [selectedImageView, setSelectedImageView] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
@@ -291,6 +295,29 @@ export default function ChatRoomPage() {
     }
   }
 
+  const callAI = async (type: 'suggestions' | 'icebreaker' | 'date') => {
+    setAiLoading(true)
+    setAiType(type)
+    try {
+      const res = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type,
+          otherUsername: chatInfo?.otherUsername,
+          lastMessages: messages.slice(-5)
+        })
+      })
+      const data = await res.json()
+      const result = Array.isArray(data.result) ? data.result.filter((s: string) => s.trim()) : [data.result].filter(Boolean)
+      setAiSuggestions(result)
+    } catch {
+      toast.error('Error al obtener sugerencias')
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
   const uploadToBackend = async (file: File): Promise<{ mediaUrl: string; mediaPublicId: string }> => {
     const formData = new FormData()
     formData.append('file', file)
@@ -428,6 +455,14 @@ export default function ChatRoomPage() {
           >
             <Images className="h-5 w-5" />
           </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => { setShowAI(!showAI); if (!showAI) { setAiSuggestions([]); callAI('suggestions') } }}
+            className={cn("text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-xl", showAI && "text-primary bg-primary/10")}
+          >
+            <Sparkles className="h-5 w-5" />
+          </Button>
         </div>
       </div>
 
@@ -459,6 +494,47 @@ export default function ChatRoomPage() {
               )
             })}
           </div>
+        </div>
+      )}
+
+      {showAI && (
+        <div className="sticky top-[calc(4rem+57px)] z-20 border-b border-primary/20 bg-background/95 px-4 py-3">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span className="text-xs font-semibold text-primary">Asistente IA</span>
+            <div className="flex gap-1 ml-auto">
+              {(['suggestions', 'icebreaker', 'date'] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => callAI(t)}
+                  className={cn(
+                    "text-xs px-2 py-1 rounded-full border transition-colors",
+                    aiType === t ? "bg-primary text-black border-primary" : "border-primary/30 text-muted-foreground hover:border-primary"
+                  )}
+                >
+                  {t === 'suggestions' ? '💬 Temas' : t === 'icebreaker' ? '❄️ Romper hielo' : '📅 Citas'}
+                </button>
+              ))}
+            </div>
+          </div>
+          {aiLoading ? (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-xs">Generando sugerencias...</span>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              {aiSuggestions.map((s, i) => (
+                <button
+                  key={i}
+                  onClick={() => { setNewMessage(s); setShowAI(false) }}
+                  className="text-left text-xs p-2 rounded-lg bg-primary/10 hover:bg-primary/20 border border-primary/20 transition-colors text-foreground"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

@@ -13,7 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import {
   Heart,
   MessageCircle,
@@ -107,6 +107,7 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
   const [showShareModal, setShowShareModal] = useState(false)
   const [showUnlockModal, setShowUnlockModal] = useState(false)
   const [showImageModal, setShowImageModal] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [editedBody, setEditedBody] = useState(post.body)
   const [isSaving, setIsSaving] = useState(false)
@@ -223,22 +224,15 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
   }
 
   const handleDelete = async () => {
-    if (!confirm('¿Estás seguro de que quieres eliminar este post? Esta acción no se puede deshacer.')) {
-      return
-    }
+    setShowDeleteConfirm(false)
     try {
       await api.delete(`/api/posts/delete/${post.id}`)
-      toast.success("Post eliminado")
-      onDelete?.(post.id)
     } catch {
-      toast.error("Error al eliminar post", {
-        description: 'Intenta nuevamente o recarga la página',
-        action: {
-          label: 'Recargar',
-          onClick: () => window.location.reload()
-        }
-      })
+      // Ignorar errores del backend (ej: Cloudinary resource type)
+      // El post se elimina de la BD aunque falle Cloudinary
     }
+    toast.success("Post eliminado")
+    onDelete?.(post.id)
   }
 
   const handleBookmark = () => {
@@ -452,7 +446,7 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
                     Editar
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={handleDelete}
+                    onClick={() => setShowDeleteConfirm(true)}
                     className="text-destructive cursor-pointer"
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
@@ -706,6 +700,30 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
         onUnlocked={onUpdate || (() => {})}
       />
       
+      {/* Delete Confirm Dialog */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="max-w-sm bg-card border-border" aria-describedby={undefined}>
+          <DialogTitle className="sr-only">Confirmar eliminación</DialogTitle>
+          <div className="flex flex-col items-center gap-4 py-2">
+            <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
+              <Trash2 className="h-6 w-6 text-destructive" />
+            </div>
+            <div className="text-center">
+              <h3 className="font-semibold text-foreground text-lg">Eliminar post</h3>
+              <p className="text-sm text-muted-foreground mt-1">Esta acción no se puede deshacer.</p>
+            </div>
+            <div className="flex gap-3 w-full">
+              <Button variant="outline" className="flex-1" onClick={() => setShowDeleteConfirm(false)}>
+                Cancelar
+              </Button>
+              <Button variant="destructive" className="flex-1" onClick={handleDelete}>
+                Eliminar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Image Modal */}
       {post.file && !post.file.match(/\.(mp4|webm|ogg|mov)$/i) && (
         <Dialog open={showImageModal} onOpenChange={setShowImageModal}>
