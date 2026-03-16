@@ -11,9 +11,10 @@ import type { Message, Chat } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ArrowLeft, Send, Loader2, MessageCircle, Smile, Image as ImageIcon, X, Mic, Reply, MoreVertical, Copy, Paperclip, Check, Search, Star, Images, Sparkles } from "lucide-react"
+import { ArrowLeft, Send, Loader2, MessageCircle, Smile, Image as ImageIcon, X, Mic, Reply, MoreVertical, Copy, Paperclip, Check, Search, Star, Images, Sparkles, Gamepad2 } from "lucide-react"
 import dynamic from "next/dynamic"
 import { AudioMessage } from "@/components/audio-message"
+import { GamePanel } from "@/components/chat/game-panel"
 
 const EmojiPicker = dynamic(() => import("emoji-picker-react"), { ssr: false })
 import { formatDistanceToNow } from "date-fns"
@@ -48,6 +49,7 @@ export default function ChatRoomPage() {
   const [showSearch, setShowSearch] = useState(false)
   const [starredMessages, setStarredMessages] = useState<Set<string>>(new Set())
   const [showGallery, setShowGallery] = useState(false)
+  const [showGame, setShowGame] = useState(false)
   const [showAI, setShowAI] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([])
@@ -405,7 +407,7 @@ export default function ChatRoomPage() {
   }
    
   return (
-    <div className="flex h-[calc(100svh-4rem)] flex-col lg:h-svh bg-gradient-to-b from-background to-muted/20">
+    <div className="flex flex-col bg-gradient-to-b from-background to-muted/20"  style={{ height: 'calc(100svh - 1rem)' }}>
       {/* Chat header */}
       <div className="sticky top-16 z-30 flex items-center gap-3 border-b border-primary/20 bg-background/95 backdrop-blur-xl px-4 py-3 shadow-lg shadow-primary/5">
         <Button
@@ -462,6 +464,9 @@ export default function ChatRoomPage() {
             className={cn("text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-xl", showAI && "text-primary bg-primary/10")}
           >
             <Sparkles className="h-5 w-5" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => setShowGame(!showGame)} className={cn("text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-xl", showGame && "text-primary bg-primary/10")}>
+            <Gamepad2 className="h-5 w-5" />
           </Button>
         </div>
       </div>
@@ -538,13 +543,24 @@ export default function ChatRoomPage() {
         </div>
       )}
 
+      {showGame && (
+        <div className="sticky top-[calc(4rem+57px)] z-20 mt-2  border-primary/20 bg-background/95 px-4 py-3">
+          <GamePanel
+            onClose={() => setShowGame(false)}
+            onSendMessage={(msg) => sendViaWebSocket(chatId, msg)}
+            myUsername={user?.username || user?.nombres || 'Tú'}
+            otherUsername={chatInfo?.otherUsername || 'tu match'}
+          />
+        </div>
+      )}
+
       {selectedImageView && (
-        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center" onClick={() => setSelectedImageView(null)}>
-          <img src={selectedImageView} alt="Full" className="max-w-[90%] max-h-[90%] object-contain" />
+        <div className="fixed  inset-0 z-50 bg-black/90 flex items-center justify-center" onClick={() => setSelectedImageView(null)}>
+          <img src={selectedImageView} alt="Full" className="p-2 max-w-[90%] max-h-[90%] object-contain" />
           <Button
             variant="ghost"
             size="icon"
-            className="absolute top-4 right-4 text-white hover:bg-white/20"
+            className="absolute top-4 right-4 p-2 text-white hover:bg-white/20"
             onClick={() => setSelectedImageView(null)}
           >
             <X className="h-6 w-6" />
