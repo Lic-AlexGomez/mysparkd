@@ -18,6 +18,7 @@ export function StoriesBar() {
   const stories = [
     { id: "1", username: "Tu historia", photo: user?.profilePictureUrl || user?.photos?.find(p => p.isPrimary || p.primary)?.url, isOwn: true },
   ]
+  //BIEN, luego se pueden agregar las historias de amigos aquí
 
   return (
     <div className="bg-card border-b border-border py-4">
