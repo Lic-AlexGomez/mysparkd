@@ -21,5 +21,5 @@
   }
 
   # Espera 5 minutos
-  Start-Sleep -Seconds 300
+  Start-Sleep -Seconds 60
 }
