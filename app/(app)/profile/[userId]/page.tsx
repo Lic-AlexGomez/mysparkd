@@ -218,6 +218,7 @@ export default function UserProfilePage() {
             >
               <Heart className={`h-4 w-4 ${liked ? "fill-secondary text-secondary" : "text-foreground"}`} />
             </button>
+            aqui
             {/* Message button */}
             <button
               onClick={handleMessage}
@@ -238,7 +239,7 @@ export default function UserProfilePage() {
               {following ? <><UserCheck className="h-4 w-4" /> Siguiendo</> : <><UserPlus className="h-4 w-4" /> Seguir</>}
             </button>
           </div>
-          
+
         </div>
 
         {/* Nombre + edad + reputación */}
