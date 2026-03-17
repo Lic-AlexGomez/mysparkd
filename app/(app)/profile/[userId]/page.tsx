@@ -238,6 +238,7 @@ export default function UserProfilePage() {
               {following ? <><UserCheck className="h-4 w-4" /> Siguiendo</> : <><UserPlus className="h-4 w-4" /> Seguir</>}
             </button>
           </div>
+          
         </div>
 
         {/* Nombre + edad + reputación */}
