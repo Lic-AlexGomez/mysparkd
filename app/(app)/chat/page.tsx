@@ -53,7 +53,7 @@ export default function ChatListPage() {
   }
 
   return (
-    <div className="flex justify-center min-h-screen bg-gradient-to-b from-background to-muted/20">
+    <div className="flex justify-center bg-gradient-to-b from-background to-muted/20">
       <div className="w-full max-w-[680px]">
         <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-xl border-b border-primary/20 shadow-lg shadow-primary/5">
           <div className="px-6 py-4">

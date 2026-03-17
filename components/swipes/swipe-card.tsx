@@ -138,7 +138,7 @@ export function SwipeCard({ user, onSwipe, isTop, compatibility }: SwipeCardProp
             <div className="flex items-center justify-between">
               <div>
                 <Link
-                  href={`/profile/${user.userId}`}
+                  href={`/profile/${user.userId}${compatibility ? `?compatibility=${compatibility}` : ''}`}
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => e.stopPropagation()}
                   className="text-3xl font-black text-white tracking-tight hover:underline"

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
 import { followService } from "@/lib/services/follow"
@@ -9,28 +9,37 @@ import { notificationService } from "@/lib/services/notification"
 import { blockService } from "@/lib/services/block"
 import { reportService } from "@/lib/services/report"
 import { reputationService } from "@/lib/services/reputation"
-import type { UserProfile } from "@/lib/types"
+import type { UserProfile, Chat, SwipeResponse } from "@/lib/types"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Loader2, MoreHorizontal, MessageCircle, UserPlus, UserCheck, ArrowLeft } from "lucide-react"
+import { Loader2, MoreHorizontal, MessageCircle, UserPlus, UserCheck, ArrowLeft, Heart, Crown, Sparkles } from "lucide-react"
 import { PostCard } from "@/components/feed/post-card"
 import { toast } from "sonner"
-import { useFeatureFlags } from "@/hooks/use-feature-flags"
-import { Chat } from "@/lib/types"
+
+function getAge(dateOfBirth?: string): number | null {
+  if (!dateOfBirth) return null
+  const diff = Date.now() - new Date(dateOfBirth).getTime()
+  return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25))
+}
 
 export default function UserProfilePage() {
   const { user } = useAuth()
-  const features = useFeatureFlags()
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const userId = params.userId as string
+  const compatibilityFromUrl = searchParams.get("compatibility")
+
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [following, setFollowing] = useState(false)
   const [viewPhotoUrl, setViewPhotoUrl] = useState<string | null>(null)
   const [isMessaging, setIsMessaging] = useState(false)
+  const [isLiking, setIsLiking] = useState(false)
+  const [liked, setLiked] = useState(false)
+  const [interests, setInterests] = useState<any[]>([])
 
   useEffect(() => {
     if (user?.userId) setFollowing(followService.isFollowing(user.userId, userId))
@@ -38,8 +47,15 @@ export default function UserProfilePage() {
 
   const fetchProfile = useCallback(async () => {
     try {
-      const data = await api.get<UserProfile>(`/api/profile/${userId}`)
-      setProfile(data)
+      const [data, interestsData] = await Promise.allSettled([
+        api.get<UserProfile>(`/api/profile/${userId}`),
+        api.get<any[]>(`/api/interests/me`),
+      ])
+      if (data.status === "fulfilled") {
+        console.log('Perfil:', data.value)
+        setProfile(data.value)
+      }
+      // intereses del perfil visitado no hay endpoint, usamos los del perfil si vienen
     } catch {} finally {
       setIsLoading(false)
     }
@@ -73,6 +89,27 @@ export default function UserProfilePage() {
     }
   }
 
+  const handleLike = async () => {
+    if (liked || isLiking) return
+    setIsLiking(true)
+    try {
+      const response = await api.post<SwipeResponse>("/api/swipes/perform/swipe", {
+        targetUserId: userId,
+        type: "LIKE",
+      })
+      setLiked(true)
+      if (response.match) {
+        toast.success(`¡Es un match con ${profile?.nombres}! 🎉`, { duration: 4000 })
+      } else {
+        toast.success("¡Like enviado!")
+      }
+    } catch {
+      toast.error("Error al enviar like")
+    } finally {
+      setIsLiking(false)
+    }
+  }
+
   if (isLoading) return (
     <div className="flex h-[60vh] items-center justify-center">
       <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -93,12 +130,14 @@ export default function UserProfilePage() {
   const reputationColor = reputationService.getReputationColor(reputation)
   const followersCount = followService.getFollowersCount(userId)
   const followingCount = followService.getFollowingCount(userId)
+  const age = getAge(profile.dateOfBirth)
+  const compatibility = compatibilityFromUrl ? parseInt(compatibilityFromUrl) : null
+  const profileInterests = profile.interests && profile.interests.length > 0 ? profile.interests : []
 
   return (
-    <div className="mx-auto max-w-2xl">
-      {/* Cover + Avatar */}
+    <div className="mx-auto max-w-2xl pb-10">
+      {/* Cover */}
       <div className="relative">
-        {/* Cover */}
         <div
           className="h-48 w-full bg-gradient-to-br from-primary/40 via-secondary/30 to-primary/20 cursor-pointer"
           style={profile.coverPictureUrl ? {
@@ -108,16 +147,12 @@ export default function UserProfilePage() {
           } : {}}
           onClick={() => profile.coverPictureUrl && setViewPhotoUrl(profile.coverPictureUrl)}
         />
-
-        {/* Back button */}
         <button
           onClick={() => router.back()}
           className="absolute top-4 left-4 h-9 w-9 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 transition-colors"
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-
-        {/* Options */}
         <div className="absolute top-4 right-4">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -133,71 +168,65 @@ export default function UserProfilePage() {
                   reportService.createReport(user.userId, userId, "user", reason)
                   toast.success("Reporte enviado")
                 }
-              }} className="cursor-pointer">
-                Reportar
-              </DropdownMenuItem>
+              }} className="cursor-pointer">Reportar</DropdownMenuItem>
               <DropdownMenuItem onClick={() => {
                 if (!user?.userId) return
                 blockService.blockUser(user.userId, userId)
                 toast.success("Usuario bloqueado")
-              }} className="cursor-pointer text-destructive">
-                Bloquear
-              </DropdownMenuItem>
+              }} className="cursor-pointer text-destructive">Bloquear</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        </div>
-
-        {/* Avatar */}
-        <div className="absolute -bottom-14 left-4">
-          <div className="p-1 rounded-full bg-background">
-            <Avatar
-              className="h-28 w-28 border-4 border-background shadow-xl cursor-pointer"
-              onClick={() => primaryPhoto?.url && setViewPhotoUrl(primaryPhoto.url)}
-            >
-              <AvatarImage src={primaryPhoto?.url} alt={profile.nombres} className="object-cover" />
-              <AvatarFallback className="bg-primary/20 text-primary text-3xl">{initials}</AvatarFallback>
-            </Avatar>
-          </div>
         </div>
       </div>
 
       {/* Info */}
-      <div className="pt-16 px-4 pb-4">
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl font-bold text-foreground">{profile.nombres} {profile.apellidos}</h1>
-              <span
-                className="px-2 py-0.5 rounded-full text-xs font-bold text-black"
-                style={{ backgroundColor: reputationColor }}
-              >
-                ★ {reputation}
-              </span>
-            </div>
-            {profile.username && <p className="text-sm text-muted-foreground mt-0.5">@{profile.username}</p>}
-            {profile.bio && <p className="text-sm text-foreground mt-2 leading-relaxed">{profile.bio}</p>}
-            {profile.location && <p className="text-xs text-muted-foreground mt-1">📍 {profile.location}</p>}
-            <div className="flex items-center gap-2 mt-2 flex-wrap">
-              <Badge variant="secondary" className="bg-primary/10 text-primary border-0 text-xs">
-                {profile.sex === "MALE" ? "Hombre" : "Mujer"}
-              </Badge>
-              {profile.profileCompleted && (
-                <Badge variant="secondary" className="bg-green-500/10 text-green-500 border-0 text-xs">
-                  Verificado
-                </Badge>
-              )}
-            </div>
+      <div className="px-4 pb-4 mt-2">
+        {/* Avatar + botones */}
+        <div className="flex items-end justify-between mt-[-40px] mb-4 px-1">
+          <div className="relative">
+            <Avatar
+              className="h-24 w-24 border-4 border-background shadow-xl cursor-pointer"
+              onClick={() => primaryPhoto?.url && setViewPhotoUrl(primaryPhoto.url)}
+            >
+              <AvatarImage src={primaryPhoto?.url} alt={profile.nombres} className="object-cover" />
+              <AvatarFallback className="bg-primary/20 text-primary text-2xl">{initials}</AvatarFallback>
+            </Avatar>
+            {profile.premium && (
+              <div className="absolute -top-1 -right-1 h-6 w-6 rounded-full bg-yellow-500 flex items-center justify-center shadow-lg">
+                <Crown className="h-3.5 w-3.5 text-black" />
+              </div>
+            )}
+            <span
+              className="absolute -top-1 -right-3 px-2 py-0.5 rounded-full text-xs font-bold text-black shadow-lg"
+              style={{ backgroundColor: reputationColor }}
+            >
+              ★ {reputation}
+            </span>
           </div>
 
-          {/* Action buttons */}
-          <div className="flex gap-2 flex-shrink-0">
+          <div className="flex gap-2 mb-1">
+            {/* Like button */}
+            <button
+              onClick={handleLike}
+              disabled={isLiking || liked}
+              className={`h-9 w-9 rounded-full border flex items-center justify-center transition-all ${
+                liked
+                  ? "bg-secondary/20 border-secondary text-secondary"
+                  : "border-border hover:bg-secondary/10 hover:border-secondary"
+              }`}
+              title="Dar like"
+            >
+              <Heart className={`h-4 w-4 ${liked ? "fill-secondary text-secondary" : "text-foreground"}`} />
+            </button>
+            {/* Message button */}
             <button
               onClick={handleMessage}
               disabled={isMessaging}
               className="h-9 w-9 rounded-full border border-border flex items-center justify-center hover:bg-muted transition-colors"
             >
-              <MessageCircle className="h-4 w-4 text-foreground" />
+              {isMessaging ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4 text-foreground" />}
             </button>
+            {/* Follow button */}
             <button
               onClick={handleFollow}
               className={`flex items-center gap-1.5 px-4 h-9 rounded-full text-sm font-semibold transition-all ${
@@ -209,6 +238,52 @@ export default function UserProfilePage() {
               {following ? <><UserCheck className="h-4 w-4" /> Siguiendo</> : <><UserPlus className="h-4 w-4" /> Seguir</>}
             </button>
           </div>
+        </div>
+
+        {/* Nombre + edad + reputación */}
+        <div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-xl font-bold text-foreground">
+              {profile.nombres} {profile.apellidos}
+              {age && <span className="ml-2 bold font-light text-muted-foreground">{age}</span>}
+            </h1>
+            {profile.premium && (
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-500/20 text-yellow-500 border border-yellow-500/30">
+                <Crown className="h-3 w-3" /> Premium
+              </span>
+            )}
+          </div>
+
+          {profile.username && <p className="text-sm text-muted-foreground mt-0.5">@{profile.username}</p>}
+          {profile.bio && <p className="text-sm text-foreground mt-2 leading-relaxed">{profile.bio}</p>}
+          {profile.location && <p className="text-xs text-muted-foreground mt-1">📍 {profile.location}</p>}
+
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
+            <Badge variant="secondary" className="bg-primary/10 text-primary border-0 text-xs">
+              {profile.sex === "MALE" ? "Hombre" : "Mujer"}
+            </Badge>
+            {profile.profileCompleted && (
+              <Badge variant="secondary" className="bg-green-500/10 text-green-500 border-0 text-xs">✓ Verificado</Badge>
+            )}
+          </div>
+
+          {/* Compatibilidad */}
+          {compatibility && compatibility > 0 && (
+            <div className="mt-3 p-3 rounded-xl bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-semibold text-foreground flex items-center gap-1">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" /> Compatibilidad
+                </span>
+                <span className="text-sm font-black text-primary">{compatibility}%</span>
+              </div>
+              <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-primary to-secondary transition-all duration-700"
+                  style={{ width: `${compatibility}%` }}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Stats */}
@@ -227,9 +302,27 @@ export default function UserProfilePage() {
         </div>
       </div>
 
-      {/* Photos */}
-      {profile.photos && profile.photos.length > 0 && (
+      {/* Intereses */}
+      {profileInterests.length > 0 && (
         <div className="px-4 mt-2">
+          <h2 className="text-sm font-semibold text-foreground mb-3">Intereses</h2>
+          <div className="flex flex-wrap gap-2">
+            {profileInterests.map((interest, index) => {
+              const name = typeof interest === "string" ? interest : interest.name
+              const icon = typeof interest === "object" ? interest.icon : null
+              return (
+                <span key={index} className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-xs text-foreground">
+                  {icon && <span>{icon}</span>}{name}
+                </span>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Fotos */}
+      {profile.photos && profile.photos.length > 0 && (
+        <div className="px-4 mt-6">
           <h2 className="text-sm font-semibold text-foreground mb-3">Fotos</h2>
           <div className="grid grid-cols-3 gap-1.5">
             {profile.photos.map((photo) => (
@@ -241,23 +334,6 @@ export default function UserProfilePage() {
                 <img src={photo.url} alt="Foto" className="h-full w-full object-cover hover:scale-105 transition-transform" loading="lazy" />
               </div>
             ))}
-          </div>
-        </div>
-      )}
-
-      {/* Interests */}
-      {profile.interests && profile.interests.length > 0 && (
-        <div className="px-4 mt-6">
-          <h2 className="text-sm font-semibold text-foreground mb-3">Intereses</h2>
-          <div className="flex flex-wrap gap-2">
-            {profile.interests.map((interest, index) => {
-              const name = typeof interest === "string" ? interest : interest.name
-              return (
-                <span key={index} className="px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-xs text-foreground">
-                  {name}
-                </span>
-              )
-            })}
           </div>
         </div>
       )}
