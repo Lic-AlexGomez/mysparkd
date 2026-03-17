@@ -13,8 +13,8 @@ export const profileService = {
   async getProfilePhoto(userId: string): Promise<string | null> {
     try {
       const profile = await api.get<any>(`/api/profile/${userId}`)
-      return profile?.photoUrl || profile?.profilePhoto || null
-    } catch (error) {
+      return profile?.profilePictureUrl || profile?.photos?.[0]?.url || null
+    } catch {
       return null
     }
   }

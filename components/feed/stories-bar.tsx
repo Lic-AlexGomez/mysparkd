@@ -16,7 +16,7 @@ export function StoriesBar() {
   }
 
   const stories = [
-    { id: "1", username: "Tu historia", photo: user?.photos?.find(p => p.isPrimary)?.url, isOwn: true },
+    { id: "1", username: "Tu historia", photo: user?.profilePictureUrl || user?.photos?.find(p => p.isPrimary || p.primary)?.url, isOwn: true },
   ]
 
   return (
