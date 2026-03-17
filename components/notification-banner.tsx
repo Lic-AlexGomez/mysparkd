@@ -4,21 +4,23 @@ import { useState, useEffect } from 'react'
 import { Bell, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { usePushNotifications } from '@/hooks/use-push-notifications-simple'
+import { useAuth } from '@/lib/auth-context'
 
 export function NotificationBanner() {
+  const { isAuthenticated } = useAuth()
   const [show, setShow] = useState(false)
   const [isRequesting, setIsRequesting] = useState(false)
   const { permission, isSupported, requestPermission } = usePushNotifications()
 
   useEffect(() => {
-    // Mostrar banner si las notificaciones están soportadas y no se han solicitado
+    if (!isAuthenticated) return
     if (isSupported && permission === 'default') {
       const dismissed = localStorage.getItem('notification-banner-dismissed')
       if (!dismissed) {
-        setTimeout(() => setShow(true), 3000) // Mostrar después de 3 segundos
+        setTimeout(() => setShow(true), 3000)
       }
     }
-  }, [isSupported, permission])
+  }, [isAuthenticated, isSupported, permission])
 
   const handleDismiss = () => {
     console.log('Cerrando banner')

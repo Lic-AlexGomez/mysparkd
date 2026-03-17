@@ -2,39 +2,34 @@
 
 import { useState, useEffect } from "react"
 import { Bell, X } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { usePushNotifications } from "@/hooks/use-push-notifications"
 import { useAuth } from "@/lib/auth-context"
 
 export function NotificationBanner() {
   const { user } = useAuth()
-  const { permission, requestPermission, isSupported } = usePushNotifications()
+  const { requestPermission, isSupported } = usePushNotifications()
   const [isVisible, setIsVisible] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
 
   useEffect(() => {
-    // Mostrar el banner solo si:
-    // 1. El usuario está autenticado
-    // 2. Las notificaciones están soportadas
-    // 3. El permiso no ha sido otorgado ni denegado
-    // 4. No se ha cerrado el banner antes (guardado en localStorage)
-    if (user && isSupported && permission === "default") {
-      const dismissed = localStorage.getItem(`notification-banner-dismissed-${user.userId}`)
-      if (!dismissed) {
-        // Mostrar después de 2 segundos del login
-        setTimeout(() => {
-          setIsVisible(true)
-          setTimeout(() => setIsAnimating(true), 50)
-        }, 2000)
+    if (user && isSupported) {
+      const currentPermission = Notification.permission
+      if (currentPermission === "default") {
+        const dismissed = localStorage.getItem(`notification-banner-dismissed-${user.userId}`)
+        if (!dismissed) {
+          setTimeout(() => {
+            setIsVisible(true)
+            setTimeout(() => setIsAnimating(true), 50)
+          }, 2000)
+        }
       }
     }
-  }, [user, isSupported, permission])
+  }, [user, isSupported])
 
-  const handleAllow = async () => {
-    const granted = await requestPermission()
-    if (granted) {
-      handleClose()
-    }
+  const handleAllow = () => {
+    requestPermission().then((granted) => {
+      if (granted) handleClose()
+    })
   }
 
   const handleClose = () => {
@@ -51,13 +46,13 @@ export function NotificationBanner() {
 
   return (
     <div
-      className={`fixed top-4 right-4 z-50 w-96 max-w-[calc(100vw-2rem)] transition-all duration-300 ${
+      className={`fixed top-20 right-4 z-[9999] w-96 max-w-[calc(100vw-2rem)] transition-all duration-300 ${
         isAnimating ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
       }`}
     >
       <div className="bg-gradient-to-br from-primary/10 via-background to-secondary/10 backdrop-blur-xl border border-primary/30 rounded-2xl shadow-2xl shadow-primary/20 p-5 relative overflow-hidden">
         {/* Efecto de brillo */}
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent animate-pulse" />
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent animate-pulse pointer-events-none" />
         
         {/* Contenido */}
         <div className="relative z-10">
@@ -75,21 +70,20 @@ export function NotificationBanner() {
               </p>
               
               <div className="flex gap-2">
-                <Button
+                <button
+                  type="button"
                   onClick={handleAllow}
-                  size="sm"
-                  className="bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:opacity-90 transition-all hover:scale-105 shadow-lg shadow-primary/30"
+                  className="px-3 py-1.5 text-sm font-medium rounded-md bg-gradient-to-r from-primary to-secondary text-black cursor-pointer"
                 >
                   Activar
-                </Button>
-                <Button
+                </button>
+                <button
+                  type="button"
                   onClick={handleClose}
-                  size="sm"
-                  variant="ghost"
-                  className="text-muted-foreground hover:text-foreground"
+                  className="px-3 py-1.5 text-sm font-medium rounded-md text-muted-foreground hover:text-foreground cursor-pointer"
                 >
                   Ahora no
-                </Button>
+                </button>
               </div>
             </div>
             
