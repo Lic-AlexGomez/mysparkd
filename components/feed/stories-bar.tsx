@@ -21,7 +21,7 @@ export function StoriesBar() {
   //BIEN, luego se pueden agregar las historias de amigos aquí
 
   return (
-    <div className="bg-card border-b border-border py-4">
+    <div className=" border-b border-border py-4">
       <div className="flex gap-4 overflow-x-auto px-4 scrollbar-hide">
         {stories.map((story) => (
           <button

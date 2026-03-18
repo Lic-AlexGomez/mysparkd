@@ -21,10 +21,7 @@ export function usePushNotifications() {
     }
 
     if (Notification.permission === "denied") {
-      toast.error(
-        "Las notificaciones están bloqueadas. Por favor, habilítalas en la configuración de tu navegador.",
-        { duration: 5000 }
-      )
+      toast.error("Las notificaciones están bloqueadas. Habilítalas en la configuración de tu navegador.", { duration: 5000 })
       return false
     }
 
@@ -33,30 +30,29 @@ export function usePushNotifications() {
       return true
     }
 
-    return new Promise<boolean>((resolve) => {
-      Notification.requestPermission().then(async (result) => {
-        setPermission(result)
-        if (result === "granted") {
-          const mockToken = `fcm_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-          setToken(mockToken)
-          try {
-            await api.post("/api/device-tokens", { token: mockToken })
-          } catch {
-            // ignorar
-          }
-          toast.success("Notificaciones activadas")
-          resolve(true)
-        } else if (result === "denied") {
-          toast.error("Has rechazado las notificaciones.", { duration: 5000 })
-          resolve(false)
-        } else {
-          resolve(false)
+    try {
+      const result = await Notification.requestPermission()
+      setPermission(result)
+
+      if (result === "granted") {
+        const mockToken = `fcm_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        setToken(mockToken)
+        try {
+          await api.post("/api/device-tokens", { token: mockToken })
+        } catch {
+          // ignorar
         }
-      }).catch(() => {
-        toast.error("Error al solicitar permisos")
-        resolve(false)
-      })
-    })
+        toast.success("¡Notificaciones activadas!")
+        return true
+      } else if (result === "denied") {
+        toast.error("Has rechazado las notificaciones.", { duration: 5000 })
+        return false
+      }
+      return false
+    } catch {
+      toast.error("Error al solicitar permisos")
+      return false
+    }
   }
 
   const sendTestNotification = () => {
