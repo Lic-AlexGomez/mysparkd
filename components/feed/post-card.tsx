@@ -296,12 +296,28 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
     toast.success('Repost guardado localmente (pendiente implementación en backend)')
   }
 
+  const [pollState, setPollState] = useState<typeof post.poll>(post.poll ?? null)
+
   const handlePollVote = async (optionId: string) => {
+    if (!pollState || pollState.userVoted) return
+
+    // Optimistic update
+    const prevPoll = pollState
+    const newTotalVotes = pollState.totalVotes + 1
+    setPollState({
+      ...pollState,
+      userVoted: optionId,
+      totalVotes: newTotalVotes,
+      options: pollState.options.map(o => {
+        const newVotes = o.id === optionId ? o.votes + 1 : o.votes
+        return { ...o, votes: newVotes, percentage: Math.round((newVotes / newTotalVotes) * 100) }
+      })
+    })
+
     try {
-      // TODO: Implementar endpoint de votación
-      // await api.post(`/api/polls/vote`, { pollId: post.poll?.id, optionId })
-      toast.success('Voto registrado (pendiente backend)')
+      await api.post(`/api/polls/vote/${optionId}`)
     } catch {
+      setPollState(prevPoll)
       toast.error('Error al votar')
     }
   }
@@ -553,8 +569,8 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
         )}
 
         {/* Poll */}
-        {features.polls && post.poll && (
-          <PollComponent poll={post.poll} onVote={handlePollVote} />
+        {features.polls && pollState && (
+          <PollComponent poll={pollState} onVote={handlePollVote} />
         )}
 
         {/* Actions */}

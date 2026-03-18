@@ -81,6 +81,23 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
     }
     setIsLoading(true)
     try {
+      // Si hay encuesta, crearla primero via /api/polls
+      if (pollData) {
+        const expiresAt = new Date(Date.now() + pollData.duration * 60 * 60 * 1000).toISOString()
+        await api.post('/api/polls', {
+          body: body.trim(),
+          question: pollData.question,
+          options: pollData.options,
+          expiresAt,
+        })
+        toast.success("Encuesta creada!")
+        setBody("")
+        setPollData(null)
+        setOpen(false)
+        onCreated()
+        return
+      }
+
       const formData = new FormData()
       
       const postData: any = {
@@ -95,15 +112,6 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
       console.log('postData:', postData)
       console.log('visibility:', visibility)
       console.log('typeof visibility:', typeof visibility)
-      
-      // Agregar encuesta si existe
-      if (pollData) {
-        postData.poll = {
-          question: pollData.question,
-          options: pollData.options.map((text, index) => ({ id: `opt-${index}`, text })),
-          durationHours: pollData.duration
-        }
-      }
       
       formData.append('post', JSON.stringify(postData))
       
