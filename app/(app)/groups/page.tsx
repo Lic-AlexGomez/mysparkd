@@ -78,7 +78,7 @@ export default function GroupsPage() {
           <DialogTrigger asChild>
             <Button className="bg-primary text-primary-foreground">
               <Plus className="h-4 w-4 mr-2" />
-              Crear Grupo
+              Crear Grupo.
             </Button>
           </DialogTrigger>
           <DialogContent className="bg-card border-border">
