@@ -218,7 +218,7 @@ export default function UserProfilePage() {
             >
               <Heart className={`h-4 w-4 ${liked ? "fill-secondary text-secondary" : "text-foreground"}`} />
             </button>
-            aqui d
+            aqui 
             {/* Message button */}
             <button
               onClick={handleMessage}
