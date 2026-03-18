@@ -26,7 +26,7 @@ export default function GroupsPage() {
 
   useEffect(() => {
     if (!features.groupsPage) {
-      toast.error("Esta funcionalidad no está disponible aún")
+      toast.error("Esta funcionalidad no está disponible aún.")
       router.push('/feed')
     }
   }, [features.groupsPage, router])
