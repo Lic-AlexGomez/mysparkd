@@ -103,7 +103,7 @@ export function TopNavbar() {
     }
   }
 
-  const primaryPhoto = user?.photos?.find((p) => p.isPrimary || p.primary)
+  const avatarUrl = user?.profilePictureUrl || user?.photos?.find((p) => p.isPrimary || p.primary)?.url
   const initials = user
     ? `${user.nombres?.[0] || ""}${user.apellidos?.[0] || ""}`.toUpperCase()
     : "?"
@@ -242,7 +242,7 @@ export function TopNavbar() {
             >
               <Avatar className="h-9 w-9 border-2 border-primary ring-2 ring-primary/20">
                 <AvatarImage
-                  src={primaryPhoto?.url}
+                  src={avatarUrl}
                   alt={user?.nombres || "Avatar"}
                 />
                 <AvatarFallback className="bg-primary/20 text-primary text-xs">
