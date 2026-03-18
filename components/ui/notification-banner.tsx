@@ -26,10 +26,13 @@ export function NotificationBanner() {
     }
   }, [user, isSupported])
 
-  const handleAllow = () => {
-    requestPermission().then((granted) => {
+  const handleAllow = async () => {
+    try {
+      const granted = await requestPermission()
       if (granted) handleClose()
-    })
+    } catch {
+      // requestPermission ya muestra el toast de error
+    }
   }
 
   const handleClose = () => {
