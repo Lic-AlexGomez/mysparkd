@@ -77,8 +77,10 @@ export function PollComponent({ poll, onVote }: PollComponentProps) {
       </div>
 
       <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-        <span>{poll.totalVotes} votos</span>
-        <span>{isExpired ? 'Finalizada' : `Finaliza ${timeLeft}`}</span>
+        <span>{poll.totalVotes} {poll.totalVotes === 1 ? 'voto' : 'votos'}</span>
+        <span>
+          {isExpired ? 'Finalizada' : hasVoted ? 'Ya votaste · no se puede cambiar' : `Finaliza ${timeLeft}`}
+        </span>
       </div>
     </div>
   )
