@@ -64,12 +64,33 @@ export function useFeed() {
           })
         }
         
+        // Mapear poll del backend al tipo Poll del frontend
+        let poll = null
+        if (post.poll) {
+          const p = post.poll
+          const totalVotes = p.options?.reduce((sum: number, o: any) => sum + (o.voteCount || 0), 0) || 0
+          poll = {
+            id: p.pollId || '',
+            question: p.question || '',
+            options: (p.options || []).map((o: any) => ({
+              id: o.id || '',
+              text: o.text || '',
+              votes: o.voteCount || 0,
+              percentage: o.percentage || 0,
+            })),
+            totalVotes,
+            expiresAt: p.expiresAt || new Date().toISOString(),
+            userVoted: p.myVoteOptionId || null,
+            allowMultiple: false,
+          }
+        }
+
         const normalized = {
           id: post.id || '',
           body: post.body || '',
           userId: post.userId || '',
           username: post.username || 'Usuario',
-          userPhoto: userPhotosMap.get(post.userId) || post.userPhoto || post.photoUrl || '',
+          userPhoto: userPhotosMap.get(post.userId) || post.userPhoto || post.photoUrl || post.profilePictureUrl || '',
           createdAt: post.createdAt || new Date().toISOString(),
           file: post.file || null,
           visibility: post.visibility || 'PUBLIC',
@@ -88,7 +109,8 @@ export function useFeed() {
           expiresAt: post.expiresAt || null,
           reputation: post.reputation,
           verificationLevel: post.verificationLevel,
-          repostCount: post.repostCount || 0
+          repostCount: post.repostCount || 0,
+          poll,
         }
         
    /*      console.log('=== POST NORMALIZADO ===')
