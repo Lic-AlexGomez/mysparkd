@@ -11,7 +11,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <SidebarNav />
       <TopNavbar />
       <div className="lg:ml-20 xl:ml-72">
-        <main className="min-h-svh pb-20 lg:pb-6">
+        <main className="min-h-svh pb-20 lg:pb-6 [&:has(.chat-room)]:pb-0 [&:has(.chat-room)]:min-h-0">
           {children}
         </main>
       </div>

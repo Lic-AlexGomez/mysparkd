@@ -143,14 +143,19 @@ export default function ChatRoomPage() {
   // Scroll al fondo al cargar mensajes (instantáneo)
   useEffect(() => {
     if (!isLoading && messages.length > 0) {
-      scrollToBottom('instant' as ScrollBehavior)
+      // Doble requestAnimationFrame para esperar que el DOM termine de renderizar
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          scrollToBottom('instant' as ScrollBehavior)
+        })
+      })
     }
   }, [isLoading])
 
   // Scroll al fondo cuando llegan nuevos mensajes (suave)
   useEffect(() => {
     if (messages.length > 0) {
-      scrollToBottom()
+      requestAnimationFrame(() => scrollToBottom())
     }
   }, [messages.length])
 
@@ -462,7 +467,7 @@ export default function ChatRoomPage() {
   }
    
   return (
-    <div className="flex flex-col" style={{ height: 'calc(100svh - 4rem)' }}>
+    <div className="chat-room flex flex-col" style={{ height: 'calc(100svh - 4rem)' }}>
       {/* Chat header */}
       <div className="sticky top-16 z-30 flex items-center gap-3 border-b border-primary/20 bg-background/95 backdrop-blur-xl px-4 py-3 shadow-lg shadow-primary/5">
         <Button
