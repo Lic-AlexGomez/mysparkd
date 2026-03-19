@@ -462,7 +462,7 @@ export default function ChatRoomPage() {
   }
    
   return (
-    <div className="flex flex-col bg-gradient-to-b from-background to-muted/20"  style={{ height: 'calc(100svh - 1rem)' }}>
+    <div className="flex flex-col" style={{ height: 'calc(100svh - 4rem)' }}>
       {/* Chat header */}
       <div className="sticky top-16 z-30 flex items-center gap-3 border-b border-primary/20 bg-background/95 backdrop-blur-xl px-4 py-3 shadow-lg shadow-primary/5">
         <Button
