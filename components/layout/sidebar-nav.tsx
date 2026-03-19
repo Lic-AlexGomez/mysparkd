@@ -12,12 +12,14 @@ import {
   Search,
   Users,
   ThumbsUp,
+  LayoutDashboard,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
 import { useUnreadChats } from "@/hooks/use-unread-chats"
 
 const navItems = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/feed", label: "Feed", icon: Newspaper },
   { href: "/search", label: "Buscar", icon: Search },
   { href: "/swipes", label: "Swipes", icon: Zap },
