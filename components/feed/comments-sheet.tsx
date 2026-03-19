@@ -159,53 +159,46 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate }: Comments
 
   const handleReaction = async (targetId: string, type: ReactionType, isReply: boolean = false) => {
     const targetType = isReply ? 'REPLY' : 'COMMENT'
-    
+
+    // Optimistic update
+    const applyOptimistic = (prev: any, id: string, field: string) =>
+      prev.map((item: any) => {
+        if (item[field] === id) {
+          const alreadyReacted = item.userReaction === type
+          const delta = alreadyReacted ? -1 : (item.userReaction ? 0 : 1)
+          return { ...item, userReaction: alreadyReacted ? null : type, likeCount: (item.likeCount || 0) + delta }
+        }
+        return item
+      })
+
+    if (isReply) {
+      setExpandedReplies(prev => {
+        const updated = { ...prev }
+        Object.keys(updated).forEach(parentId => {
+          updated[parentId] = applyOptimistic(updated[parentId], targetId, 'commentReplyId')
+        })
+        return updated
+      })
+    } else {
+      setComments(prev => applyOptimistic(prev, targetId, 'commentsId'))
+    }
+
     try {
-      // Usar servicio de reacciones
       await reactionService.toggleReaction(targetId, targetType, type)
-      
-      // Refrescar resumen de reacciones
-      const summary = await reactionService.getReactionSummary(targetId, targetType)
-      
+    } catch {
+      // Revertir optimistic update
       if (isReply) {
         setExpandedReplies(prev => {
           const updated = { ...prev }
           Object.keys(updated).forEach(parentId => {
-            updated[parentId] = updated[parentId].map(reply => {
-              if (reply.commentReplyId === targetId) {
-                const userReacted = Object.values(summary).find(r => r.userReacted)
-                return { 
-                  ...reply, 
-                  userReaction: userReacted ? type : null,
-                  reactions: summary
-                }
-              }
-              return reply
-            })
+            updated[parentId] = applyOptimistic(updated[parentId], targetId, 'commentReplyId')
           })
           return updated
         })
       } else {
-        setComments(prev => prev.map(comment => {
-          if (comment.commentsId === targetId) {
-            const userReacted = Object.values(summary).find(r => r.userReacted)
-            return { 
-              ...comment, 
-              userReaction: userReacted ? type : null,
-              reactions: summary
-            }
-          }
-          return comment
-        }))
+        setComments(prev => applyOptimistic(prev, targetId, 'commentsId'))
       }
-    } catch (error) {
-      toast.error("Error al reaccionar", {
-        description: 'Intenta nuevamente',
-        action: {
-          label: 'Reintentar',
-          onClick: () => handleReaction(targetId, type, isReply)
-        }
-      })
+      toast.error('Error al reaccionar')
     }
   }
 
