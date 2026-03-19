@@ -132,11 +132,26 @@ export default function ChatRoomPage() {
     chatService.markChatAsRead(chatId).catch(() => {})
   }, [fetchMessages, fetchChatInfo])
 
-  // Auto-scroll to bottom
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
+    const el = scrollAreaRef.current
+    if (el) {
+      el.scrollTop = el.scrollHeight
+    }
+  }, [])
+
+  // Scroll al fondo al cargar mensajes (instantáneo)
   useEffect(() => {
-    console.log('[Chat] Mensajes en estado:', messages.length)
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
+    if (!isLoading && messages.length > 0) {
+      scrollToBottom('instant' as ScrollBehavior)
+    }
+  }, [isLoading])
+
+  // Scroll al fondo cuando llegan nuevos mensajes (suave)
+  useEffect(() => {
+    if (messages.length > 0) {
+      scrollToBottom()
+    }
+  }, [messages.length])
 
   // Cerrar emoji picker y reacciones al hacer clic fuera
   useEffect(() => {
