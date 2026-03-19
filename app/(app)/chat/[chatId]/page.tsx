@@ -651,7 +651,7 @@ export default function ChatRoomPage() {
                       <video
                         src={msg.media.mediaUrl}
                         controls
-                        className="rounded-lg w-full max-h-[300px]"
+                        className="rounded-lg w-full min-w-[260px] max-h-[300px]"
                       />
                     ) : msg.media?.mediaUrl && msg.mediaType === 'FILE' ? (
                       <a href={msg.media.mediaUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 bg-black/10 rounded-lg hover:bg-black/20 transition-colors">
