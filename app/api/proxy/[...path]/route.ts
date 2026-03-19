@@ -1,14 +1,5 @@
 const BACKEND_URL = "https://sparkd1-0.onrender.com"
 
-export const config = {
-  api: {
-    bodyParser: false,
-    responseLimit: '100mb',
-  },
-}
-
-export const maxDuration = 60
-
 async function handler(
   request: Request,
   context: { params: Promise<{ path: string[] }> | { path: string[] } }
@@ -60,6 +51,8 @@ async function handler(
       body: body || undefined,
     })
 
+    // console.log(`[proxy] Response ${response.status}`, response.statusText)
+
     const responseHeaders = new Headers()
     const respContentType = response.headers.get("content-type")
     if (respContentType) {
@@ -67,16 +60,13 @@ async function handler(
     }
 
     if (response.status === 204) {
-      return new Response(null, { status: 204, headers: responseHeaders })
+      return new Response(null, {
+        status: 204,
+        headers: responseHeaders,
+      })
     }
 
     const responseBody = await response.arrayBuffer()
-
-    // Log errores del backend en producción
-    if (response.status >= 400) {
-      const errorText = new TextDecoder().decode(responseBody)
-      console.error(`[proxy] Backend error ${response.status} on ${endpoint}:`, errorText)
-    }
 
     return new Response(responseBody, {
       status: response.status,
