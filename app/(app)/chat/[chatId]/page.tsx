@@ -372,14 +372,13 @@ export default function ChatRoomPage() {
     try {
       if (selectedFile) {
         setIsUploading(true)
-        console.log('[Chat] Subiendo archivo:', selectedFile.name, selectedFile.type)
-        const { mediaUrl } = await uploadToBackend(selectedFile)
-        setIsUploading(false)
-        // Enviar via REST para persistir con media
         const formData = new FormData()
-        formData.append('message', JSON.stringify({ chatId, content: selectedFile.name, mediaType: 'FILE' }))
+        let mediaType = 'FILE'
+        if (selectedFile.type.startsWith('audio/')) mediaType = 'AUDIO'
+        formData.append('message', JSON.stringify({ chatId, content: selectedFile.name, mediaType }))
         formData.append('file', selectedFile)
         await api.post('/api/chat/send', formData)
+        setIsUploading(false)
         setTimeout(() => fetchMessages(), 800)
         handleRemoveFile()
       } else if (selectedImage) {
