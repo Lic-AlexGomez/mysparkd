@@ -11,7 +11,7 @@ import type { Message, Chat } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ArrowLeft, Send, Loader2, MessageCircle, Smile, Image as ImageIcon, X, Mic, Reply, MoreVertical, Copy, Paperclip, Check, Search, Star, Images, Sparkles, Gamepad2 } from "lucide-react"
+import { ArrowLeft, Send, Loader2, MessageCircle, Smile, Image as ImageIcon, X, Mic, Reply, MoreVertical, Copy, Paperclip, Check, Search, Star, Images, Sparkles, Gamepad2, Pencil } from "lucide-react"
 import dynamic from "next/dynamic"
 import { AudioMessage } from "@/components/audio-message"
 import { GamePanel } from "@/components/chat/game-panel"
@@ -633,6 +633,10 @@ export default function ChatRoomPage() {
               const fileName = fileMatch?.[1]
               const fileUrl = fileMatch?.[2]
               const reactions = messageReactions[msgId] || []
+              const isEditing = editingMessageId === msgId
+              const displayContent = editedMessages[msgId] || actualContent
+              const wasEdited = !!editedMessages[msgId]
+              const canEdit = isOwn && !msg.media?.mediaUrl && canEditMessage(msg.sentAt)
               
               return (
                 <div
@@ -700,7 +704,30 @@ export default function ChatRoomPage() {
                         onClick={() => setSelectedImageView(actualContent)}
                       />
                     ) : (
-                      <p className="text-sm leading-relaxed">{actualContent}</p>
+                      isEditing ? (
+                        <div className="flex flex-col gap-2 min-w-[200px]">
+                          <textarea
+                            value={editingContent}
+                            onChange={(e) => setEditingContent(e.target.value)}
+                            className="w-full text-sm bg-black/20 rounded-lg p-2 text-black resize-none outline-none border border-white/30 focus:border-white/60"
+                            rows={2}
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSaveEdit(msgId) }
+                              if (e.key === 'Escape') handleCancelEdit()
+                            }}
+                          />
+                          <div className="flex gap-1 justify-end">
+                            <button onClick={handleCancelEdit} className="text-xs px-2 py-1 rounded bg-black/20 hover:bg-black/30">Cancelar</button>
+                            <button onClick={() => handleSaveEdit(msgId)} className="text-xs px-2 py-1 rounded bg-white/30 hover:bg-white/40 font-medium">Guardar</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-sm leading-relaxed">{displayContent}</p>
+                          {wasEdited && <span className="text-[10px] opacity-50">editado</span>}
+                        </>
+                      )
                     )}
                     {reactions.length > 0 && (
                       <div className="flex gap-1 mt-2 flex-wrap">
@@ -733,6 +760,15 @@ export default function ChatRoomPage() {
                         >
                           <Star className={cn("h-3 w-3", starredMessages.has(msgId) && "fill-yellow-500 text-yellow-500")} />
                         </button>
+                        {canEdit && (
+                          <button
+                            className="h-6 w-6 rounded-full flex items-center justify-center hover:bg-black/20 transition-colors"
+                            onClick={(e) => { e.stopPropagation(); handleStartEdit(msg) }}
+                            title="Editar"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </button>
+                        )}
                         <button
                           className="h-6 w-6 rounded-full flex items-center justify-center hover:bg-black/20 transition-colors"
                           onClick={(e) => { e.stopPropagation(); handleCopyMessage(actualContent, msgId) }}
