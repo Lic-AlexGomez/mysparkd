@@ -44,6 +44,7 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
   const [durationHours, setDurationHours] = useState(24)
   const [isLoading, setIsLoading] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
   const [showPollDialog, setShowPollDialog] = useState(false)
   const [pollData, setPollData] = useState<{ question: string; options: string[]; duration: number } | null>(null)
 
@@ -114,21 +115,24 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
       console.log('typeof visibility:', typeof visibility)
       
       formData.append('post', JSON.stringify(postData))
-      
+
       if (file) {
         formData.append('file', file)
       }
-      
-      console.log('FormData post:', formData.get('post'))
-      
+
       const token = localStorage.getItem('sparkd_token')
-     
-      const res = await fetch('/api/proxy/api/posts/new', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
+      setUploadProgress(0)
+
+      const res = await new Promise<Response>((resolve, reject) => {
+        const xhr = new XMLHttpRequest()
+        xhr.open('POST', '/api/proxy/api/posts/new')
+        if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) setUploadProgress(Math.round((e.loaded / e.total) * 100))
+        }
+        xhr.onload = () => resolve(new Response(xhr.responseText, { status: xhr.status }))
+        xhr.onerror = () => reject(new Error('Error de red'))
+        xhr.send(formData)
       })
  
       console.log('Response status:', res.status)
