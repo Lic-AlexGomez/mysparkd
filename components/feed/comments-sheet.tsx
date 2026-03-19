@@ -52,20 +52,20 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate }: Comments
       setComments(data.map(c => ({ ...c, liked: false })))
       setLoadingComments(false)
       
-      // Fetch like status en background
+      // Fetch reaction status en background
       Promise.all(
         data.map(async (comment) => {
           try {
-            const likeStatus = await api.get<{ likedByMe: boolean }>(`/api/likes/status/${comment.commentsId}`)
-            return { id: comment.commentsId, liked: likeStatus.likedByMe }
+            const status = await api.get<any>(`/api/likes/status/${comment.commentsId}`)
+            return { id: comment.commentsId, liked: status.reacted, userReaction: status.myReaction, likeCount: status.totalReactions }
           } catch {
-            return { id: comment.commentsId, liked: false }
+            return { id: comment.commentsId, liked: false, userReaction: null, likeCount: 0 }
           }
         })
-      ).then(likeStatuses => {
+      ).then(statuses => {
         setComments(prev => prev.map(comment => {
-          const status = likeStatuses.find(s => s.id === comment.commentsId)
-          return status ? { ...comment, liked: status.liked } : comment
+          const s = statuses.find(s => s.id === comment.commentsId)
+          return s ? { ...comment, liked: s.liked, userReaction: s.userReaction, likeCount: s.likeCount } : comment
         }))
       })
     } catch (error) {
@@ -125,22 +125,22 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate }: Comments
       setExpandedReplies((prev) => ({ ...prev, [parentId]: data.map(r => ({ ...r, liked: false })) }))
       setShowReplies((prev) => ({ ...prev, [parentId]: true }))
       
-      // Fetch like status en background
+      // Fetch reaction status en background
       Promise.all(
         data.map(async (reply) => {
           try {
-            const likeStatus = await api.get<{ likedByMe: boolean }>(`/api/likes/status/${reply.commentReplyId}`)
-            return { id: reply.commentReplyId, liked: likeStatus.likedByMe }
+            const status = await api.get<any>(`/api/likes/status/${reply.commentReplyId}`)
+            return { id: reply.commentReplyId, liked: status.reacted, userReaction: status.myReaction, likeCount: status.totalReactions }
           } catch {
-            return { id: reply.commentReplyId, liked: false }
+            return { id: reply.commentReplyId, liked: false, userReaction: null, likeCount: 0 }
           }
         })
-      ).then(likeStatuses => {
+      ).then(statuses => {
         setExpandedReplies((prev) => ({
           ...prev,
           [parentId]: prev[parentId]?.map(reply => {
-            const status = likeStatuses.find(s => s.id === reply.commentReplyId)
-            return status ? { ...reply, liked: status.liked } : reply
+            const s = statuses.find(s => s.id === reply.commentReplyId)
+            return s ? { ...reply, liked: s.liked, userReaction: s.userReaction, likeCount: s.likeCount } : reply
           }) || []
         }))
       })
