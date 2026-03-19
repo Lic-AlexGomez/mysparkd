@@ -227,13 +227,13 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
       <DialogTrigger asChild>
         <Button
           size="icon"
-          className="fixed bottom-24 right-6 z-30 h-16 w-16 rounded-2xl bg-gradient-to-br from-primary via-secondary to-primary text-black shadow-2xl shadow-primary/40 hover:scale-110 hover:rotate-90 transition-all duration-300 lg:bottom-8 lg:right-8 border-2 border-white/20"
+          className="fixed bottom-24 right-6 z-30 h-16 w-16 rounded-2xl bg-gradient-to-br from-primary via-secondary to-primary text-black shadow-2xl shadow-primary/40 hover:scale-110 hover:rotate-90 transition-all duration-300 md:bottom-8 md:right-8 border-2 border-white/20"
         >
           <Plus className="h-7 w-7" />
           <span className="sr-only">Crear post</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-card border-border max-w-md">
+      <DialogContent className="bg-card border-border max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-foreground">Nuevo post</DialogTitle>
         </DialogHeader>
