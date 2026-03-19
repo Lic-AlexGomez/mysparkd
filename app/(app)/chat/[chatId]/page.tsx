@@ -133,29 +133,30 @@ export default function ChatRoomPage() {
     chatService.markChatAsRead(chatId).catch(() => {})
   }, [fetchMessages, fetchChatInfo])
 
-  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
+  const scrollToBottom = useCallback((instant = false) => {
     const el = scrollAreaRef.current
-    if (el) {
+    if (!el) return
+    if (instant) {
       el.scrollTop = el.scrollHeight
+    } else {
+      el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
     }
   }, [])
 
-  // Scroll al fondo al cargar mensajes (instantáneo)
+  // Scroll al fondo al cargar mensajes
   useEffect(() => {
     if (!isLoading && messages.length > 0) {
-      // Doble requestAnimationFrame para esperar que el DOM termine de renderizar
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          scrollToBottom('instant' as ScrollBehavior)
-        })
-      })
+      requestAnimationFrame(() => scrollToBottom(true))
+      setTimeout(() => scrollToBottom(true), 100)
+      setTimeout(() => scrollToBottom(true), 300)
     }
   }, [isLoading])
 
-  // Scroll al fondo cuando llegan nuevos mensajes (suave)
+  // Scroll al fondo cuando llegan nuevos mensajes
   useEffect(() => {
     if (messages.length > 0) {
-      requestAnimationFrame(() => scrollToBottom())
+      requestAnimationFrame(() => scrollToBottom(false))
+      setTimeout(() => scrollToBottom(false), 100)
     }
   }, [messages.length])
 
