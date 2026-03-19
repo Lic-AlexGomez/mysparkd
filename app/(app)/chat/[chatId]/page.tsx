@@ -11,7 +11,7 @@ import type { Message, Chat } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ArrowLeft, Send, Loader2, MessageCircle, Smile, Image as ImageIcon, X, Mic, Reply, MoreVertical, Copy, Paperclip, Check, Search, Star, Images, Sparkles, Gamepad2, Pencil } from "lucide-react"
+import { ArrowLeft, Send, Loader2, MessageCircle, Smile, Image as ImageIcon, X, Mic, Reply, MoreVertical, Copy, Paperclip, Check, Search, Star, Images, Sparkles, Gamepad2, Pencil, Trash2 } from "lucide-react"
 import dynamic from "next/dynamic"
 import { AudioMessage } from "@/components/audio-message"
 import { GamePanel } from "@/components/chat/game-panel"
@@ -787,6 +787,15 @@ export default function ChatRoomPage() {
                             title="Editar"
                           >
                             <Pencil className="h-3 w-3" />
+                          </button>
+                        )}
+                        {isOwn && (
+                          <button
+                            className="h-6 w-6 rounded-full flex items-center justify-center hover:bg-red-500/30 transition-colors"
+                            onClick={(e) => { e.stopPropagation(); handleDeleteMessage(msgId) }}
+                            title="Eliminar"
+                          >
+                            <Trash2 className="h-3 w-3" />
                           </button>
                         )}
                         <button
