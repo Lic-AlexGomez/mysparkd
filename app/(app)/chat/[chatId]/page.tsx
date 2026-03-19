@@ -324,17 +324,28 @@ export default function ChatRoomPage() {
   const uploadToBackend = async (file: File): Promise<{ mediaUrl: string; mediaPublicId: string }> => {
     const formData = new FormData()
     formData.append('file', file)
-    
-    let type = 'IMAGE'
-    if (file.type.startsWith('video/')) type = 'VIDEO'
-    else if (file.type.startsWith('audio/')) type = 'AUDIO'
-    else if (file.type === 'application/pdf') type = 'FILE'
-    else if (!file.type.startsWith('image/')) {
-      throw new Error('Solo se permiten imágenes, videos, audios y PDFs')
-    }
-    
-    formData.append('type', type)
-    return api.post<{ mediaUrl: string; mediaPublicId: string }>('/api/chat/upload/media', formData)
+    const token = typeof window !== 'undefined' ? localStorage.getItem('sparkd_token') : null
+    setUploadProgress(0)
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+      xhr.open('POST', '/api/proxy/api/chat/upload/media')
+      if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) setUploadProgress(Math.round((e.loaded / e.total) * 100))
+      }
+      xhr.onload = () => {
+        setUploadProgress(100)
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(JSON.parse(xhr.responseText))
+        } else {
+          let msg = 'Error al subir archivo'
+          try { msg = JSON.parse(xhr.responseText)?.message || msg } catch {}
+          reject(new Error(`${msg} (${xhr.status})`))
+        }
+      }
+      xhr.onerror = () => reject(new Error('Error de red al subir archivo'))
+      xhr.send(formData)
+    })
   }
 
   const handleSend = async () => {
@@ -787,8 +798,11 @@ export default function ChatRoomPage() {
           {imagePreview && (
             <div className="mb-2 relative inline-block">
               {isUploading && (
-                <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
-                  <Loader2 className="h-6 w-6 animate-spin text-white" />
+                <div className="absolute inset-0 bg-black/60 rounded-lg flex flex-col items-center justify-center gap-1">
+                  <span className="text-white text-xs font-bold">{uploadProgress}%</span>
+                  <div className="w-3/4 h-1.5 bg-white/30 rounded-full overflow-hidden">
+                    <div className="h-full bg-white rounded-full transition-all duration-200" style={{ width: `${uploadProgress}%` }} />
+                  </div>
                 </div>
               )}
               {imagePreview === 'video' ? (
@@ -811,18 +825,22 @@ export default function ChatRoomPage() {
             </div>
           )}
           {filePreview && (
-            <div className="mb-2 flex items-center gap-2 bg-muted/50 border border-primary/20 rounded-lg px-3 py-2">
-              <Paperclip className="h-4 w-4" />
-              <span className="text-sm flex-1 truncate">{filePreview}</span>
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                className="h-6 w-6"
-                onClick={handleRemoveFile}
-              >
-                <X className="h-3 w-3" />
-              </Button>
+            <div className="mb-2 flex flex-col gap-1 bg-muted/50 border border-primary/20 rounded-lg px-3 py-2">
+              <div className="flex items-center gap-2">
+                <Paperclip className="h-4 w-4" />
+                <span className="text-sm flex-1 truncate">{filePreview}</span>
+                <Button type="button" size="icon" variant="ghost" className="h-6 w-6" onClick={handleRemoveFile}>
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+              {isUploading && (
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div className="h-full bg-primary rounded-full transition-all duration-200" style={{ width: `${uploadProgress}%` }} />
+                  </div>
+                  <span className="text-xs text-muted-foreground">{uploadProgress}%</span>
+                </div>
+              )}
             </div>
           )}
           {isRecording && (
