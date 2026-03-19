@@ -57,12 +57,23 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
         ) : (
           <img src={filePreview} alt="Preview" className="w-full h-48 object-cover rounded-lg" />
         )}
-        <button
-          onClick={() => { setFile(null); setFilePreview("") }}
-          className="absolute top-2 right-2 h-6 w-6 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70"
-        >
-          <X className="h-4 w-4 text-white" />
-        </button>
+        {isUploading && (
+          <div className="absolute inset-0 bg-black/60 rounded-lg flex flex-col items-center justify-center gap-2">
+            <span className="text-white text-sm font-bold">{uploadProgress}%</span>
+            <div className="w-2/3 h-2 bg-white/30 rounded-full overflow-hidden">
+              <div className="h-full bg-white rounded-full transition-all duration-200" style={{ width: `${uploadProgress}%` }} />
+            </div>
+            <span className="text-white/70 text-xs">Subiendo...</span>
+          </div>
+        )}
+        {!isUploading && (
+          <button
+            onClick={() => { setFile(null); setFilePreview("") }}
+            className="absolute top-2 right-2 h-6 w-6 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70"
+          >
+            <X className="h-4 w-4 text-white" />
+          </button>
+        )}
       </div>
     )
   }
