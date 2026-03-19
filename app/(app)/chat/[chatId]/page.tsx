@@ -770,9 +770,15 @@ export default function ChatRoomPage() {
                           locale: es,
                         })}
                       </p>
-                      <div className={`opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5 ${
-                        isOwn ? 'flex-row-reverse' : 'flex-row'
-                      }`}>
+                      <div className="flex items-center gap-1">
+                        {isOwn && (
+                          <span className={cn(
+                            "text-[10px] font-medium",
+                            msg.read ? "text-blue-400" : "text-black/40"
+                          )}>
+                            {msg.read ? "Visto" : "✓"}
+                          </span>
+                        )}
                         <button
                           className="h-6 w-6 rounded-full flex items-center justify-center hover:bg-black/20 transition-colors"
                           onClick={(e) => { e.stopPropagation(); toggleStarMessage(msgId) }}

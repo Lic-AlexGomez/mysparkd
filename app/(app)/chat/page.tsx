@@ -31,8 +31,15 @@ export default function ChatListPage() {
           }
         })
       )
-      
-      setChats(chatsWithPhotos)
+
+      // Ordenar por último mensaje más reciente
+      const sorted = chatsWithPhotos.sort((a, b) => {
+        if (!a.lastMessageAt) return 1
+        if (!b.lastMessageAt) return -1
+        return new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+      })
+
+      setChats(sorted)
     } catch {
       // silent
     } finally {
