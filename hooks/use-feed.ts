@@ -19,7 +19,6 @@ export function useFeed() {
     try {
       setLoading(true)
       const data = await api.get<any[]>('/api/posts/feed')
-      console.log('[Feed Global] Posts obtenidos del servidor:', data)
       
       // Obtener fotos de usuarios únicos
       const uniqueUserIds = [...new Set(data.map(post => post.userId))]
