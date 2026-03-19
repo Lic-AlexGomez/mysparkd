@@ -94,47 +94,46 @@ export default function FeedPage() {
 
   const requestLocation = async () => {
     if (isRequestingLocation) return
-    
     setIsRequestingLocation(true)
-    setLocationError(false)
-    
+
     try {
       if (!navigator.geolocation) {
         toast.error('Tu navegador no soporta geolocalización')
         setLocationError(true)
-        setIsRequestingLocation(false)
         return
       }
 
-      // Verificar si estamos en un contexto seguro (HTTPS o localhost)
       if (!window.isSecureContext) {
         toast.error('Geolocalización requiere HTTPS', {
           description: 'Accede a través de localhost o usa HTTPS',
           duration: 8000
         })
         setLocationError(true)
-        setIsRequestingLocation(false)
         return
       }
 
-      const result = await locationService.requestAndUpdateLocation()
-      
-      if (result) {
-        // Guardar que se permitió la ubicación
-        localStorage.setItem('location-permitted', 'true')
-        toast.success('¡Ubicación activada!')
-        setLocationError(false)
-        window.location.reload()
-      } else {
+      const location = await locationService.getCurrentLocation()
+      if (!location) {
         setLocationError(true)
+        return
       }
+
+      // Enviar ubicación al backend (ignorar errores del backend, la ubicación ya se obtuvo)
+      try {
+        await locationService.updateLocation(location)
+      } catch {
+        // El backend puede fallar pero la ubicación local ya funciona
+      }
+
+      localStorage.setItem('location-permitted', 'true')
+      localStorage.setItem('sparkd_location', JSON.stringify(location))
+      toast.success('¡Ubicación activada!')
+      setLocationError(false)
+      window.location.reload()
     } catch (error: any) {
-      console.error('Error requesting location:', error)
-      
-      // Verificar si es error 404 (endpoint no existe)
-      if (error.message?.includes('404') || error.message?.includes('Not Found')) {
-        toast.error('Funcionalidad no disponible', {
-          description: 'El feed local estará disponible próximamente',
+      if (error.message?.includes('denegado') || error.message?.includes('denied') || error.message?.includes('PERMISSION_DENIED')) {
+        toast.error('Permiso denegado', {
+          description: 'Habilita los permisos de ubicación en tu navegador',
           duration: 5000
         })
       } else if (error.message?.includes('HTTPS') || error.message?.includes('secure')) {
@@ -142,18 +141,12 @@ export default function FeedPage() {
           description: 'Accede a través de http://localhost:3000',
           duration: 8000
         })
-      } else if (error.message?.includes('denegado') || error.message?.includes('denied')) {
-        toast.error('Permiso denegado', {
-          description: 'Habilita los permisos de ubicación en tu navegador',
-          duration: 5000
-        })
       } else {
-        toast.error('Funcionalidad no disponible', {
-          description: 'El feed local estará disponible próximamente',
+        toast.error('No se pudo obtener la ubicación', {
+          description: error.message || 'Intenta nuevamente',
           duration: 5000
         })
       }
-      
       setLocationError(true)
     } finally {
       setIsRequestingLocation(false)
