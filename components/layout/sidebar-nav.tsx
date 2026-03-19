@@ -15,6 +15,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
+import { useUnreadChats } from "@/hooks/use-unread-chats"
 
 const navItems = [
   { href: "/feed", label: "Feed", icon: Newspaper },
@@ -31,6 +32,7 @@ const navItems = [
 export function SidebarNav() {
   const pathname = usePathname()
   const features = useFeatureFlags()
+  const unreadChats = useUnreadChats()
 
   const filteredNavItems = navItems.filter(item => {
     if (item.href === '/search' && !features.searchPage) return false
@@ -71,7 +73,14 @@ export function SidebarNav() {
                   {isActive && (
                     <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary to-secondary blur-xl opacity-30" />
                   )}
-                  <item.icon className="h-6 w-6 xl:h-5 xl:w-5 relative z-10" />
+                  <div className="relative z-10">
+                    <item.icon className="h-6 w-6 xl:h-5 xl:w-5" />
+                    {item.href === '/chat' && unreadChats > 0 && (
+                      <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-secondary text-[9px] font-bold text-secondary-foreground px-0.5">
+                        {unreadChats > 99 ? '99+' : unreadChats}
+                      </span>
+                    )}
+                  </div>
                   <span className="hidden xl:block relative z-10">{item.label}</span>
                 </Link>
               </li>

@@ -10,6 +10,7 @@ import {
   User,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useUnreadChats } from "@/hooks/use-unread-chats"
 
 const navItems = [
   { href: "/feed", label: "Feed", icon: Newspaper },
@@ -21,6 +22,7 @@ const navItems = [
 
 export function BottomNav() {
   const pathname = usePathname()
+  const unreadChats = useUnreadChats()
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur-md lg:hidden">
@@ -28,6 +30,7 @@ export function BottomNav() {
         {navItems.map((item) => {
           const isActive =
             pathname === item.href || pathname.startsWith(item.href + "/")
+          const showBadge = item.href === '/chat' && unreadChats > 0
           return (
             <Link
               key={item.href}
@@ -39,9 +42,14 @@ export function BottomNav() {
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <item.icon
-                className={cn("h-5 w-5", isActive && "fill-primary/20")}
-              />
+              <div className="relative">
+                <item.icon className={cn("h-5 w-5", isActive && "fill-primary/20")} />
+                {showBadge && (
+                  <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-secondary text-[9px] font-bold text-secondary-foreground px-0.5">
+                    {unreadChats > 99 ? '99+' : unreadChats}
+                  </span>
+                )}
+              </div>
               <span>{item.label}</span>
             </Link>
           )
