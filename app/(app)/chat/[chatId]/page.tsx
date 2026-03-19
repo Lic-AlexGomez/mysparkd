@@ -44,6 +44,9 @@ export default function ChatRoomPage() {
   const [showReactions, setShowReactions] = useState<string | null>(null)
   const [messageReactions, setMessageReactions] = useState<Record<string, string[]>>({})
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
+  const [editingContent, setEditingContent] = useState("")
+  const [editedMessages, setEditedMessages] = useState<Record<string, string>>({})
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [filePreview, setFilePreview] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
@@ -189,6 +192,27 @@ export default function ChatRoomPage() {
       }
       return newSet
     })
+  }
+
+  const canEditMessage = (sentAt: string) => {
+    return (Date.now() - new Date(sentAt + 'Z').getTime()) < 15 * 60 * 1000
+  }
+
+  const handleStartEdit = (msg: Message) => {
+    const msgId = msg.messageId || msg.id || ''
+    setEditingMessageId(msgId)
+    setEditingContent(editedMessages[msgId] || msg.content)
+  }
+
+  const handleSaveEdit = (msgId: string) => {
+    if (!editingContent.trim()) return
+    setEditedMessages(prev => ({ ...prev, [msgId]: editingContent.trim() }))
+    setEditingMessageId(null)
+  }
+
+  const handleCancelEdit = () => {
+    setEditingMessageId(null)
+    setEditingContent("")
   }
 
   const filteredMessages = searchQuery
