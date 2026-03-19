@@ -325,15 +325,6 @@ export default function ChatRoomPage() {
     const formData = new FormData()
     formData.append('file', file)
 
-    let type = 'IMAGE'
-    if (file.type.startsWith('video/')) type = 'VIDEO'
-    else if (file.type.startsWith('audio/')) type = 'AUDIO'
-    else if (file.type === 'application/pdf') type = 'FILE'
-    else if (!file.type.startsWith('image/')) {
-      throw new Error('Solo se permiten imágenes, videos, audios y PDFs')
-    }
-    formData.append('type', type)
-
     const token = typeof window !== 'undefined' ? localStorage.getItem('sparkd_token') : null
     setUploadProgress(0)
 
@@ -349,7 +340,9 @@ export default function ChatRoomPage() {
         if (xhr.status >= 200 && xhr.status < 300) {
           resolve(JSON.parse(xhr.responseText))
         } else {
-          reject(new Error('Error al subir archivo'))
+          let msg = 'Error al subir archivo'
+          try { msg = JSON.parse(xhr.responseText)?.message || msg } catch {}
+          reject(new Error(`${msg} (${xhr.status})`))
         }
       }
       xhr.onerror = () => reject(new Error('Error de red al subir archivo'))
