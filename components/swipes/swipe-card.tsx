@@ -61,7 +61,7 @@ export function SwipeCard({ user, onSwipe, isTop, compatibility }: SwipeCardProp
       exit={{ x: 600, opacity: 0, transition: { duration: 0.2 } }}
       transition={{ type: "spring", stiffness: 400, damping: 35 }}
     >
-      <div className="relative h-full w-full overflow-hidden rounded-3xl shadow-2xl">
+      <div className="relative h-full w-full overflow-hidden rounded-3xl shadow-2xl bg-card">
         {/* Photo */}
         {primaryPhoto ? (
           <img
