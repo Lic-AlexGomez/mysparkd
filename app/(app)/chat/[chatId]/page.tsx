@@ -47,6 +47,7 @@ export default function ChatRoomPage() {
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
   const [editingContent, setEditingContent] = useState("")
   const [editedMessages, setEditedMessages] = useState<Record<string, string>>({})
+  const [deletedMessages, setDeletedMessages] = useState<Set<string>>(new Set())
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [filePreview, setFilePreview] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
@@ -230,9 +231,13 @@ export default function ChatRoomPage() {
     setEditingContent("")
   }
 
+  const handleDeleteMessage = (msgId: string) => {
+    setDeletedMessages(prev => new Set(prev).add(msgId))
+  }
+
   const filteredMessages = searchQuery
-    ? messages.filter(msg => msg.content.toLowerCase().includes(searchQuery.toLowerCase()))
-    : messages
+    ? messages.filter(msg => !deletedMessages.has(msg.messageId || msg.id || '') && msg.content.toLowerCase().includes(searchQuery.toLowerCase()))
+    : messages.filter(msg => !deletedMessages.has(msg.messageId || msg.id || ''))
 
   const mediaMessages = messages.filter(msg => {
     const content = msg.content.startsWith('@reply:') ? msg.content.split('|')[1] : msg.content
