@@ -89,7 +89,6 @@ export default function FeedPage() {
   }, [feedTab, user?.userId, locationEnabled])
 
   const checkLocationEndpoint = async () => {
-    // Por ahora, mostrar que la funcionalidad no está disponible
     setLocationError(true)
   }
 
