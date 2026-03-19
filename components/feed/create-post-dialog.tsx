@@ -44,7 +44,6 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
   const [durationHours, setDurationHours] = useState(24)
   const [isLoading, setIsLoading] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState(0)
   const [showPollDialog, setShowPollDialog] = useState(false)
   const [pollData, setPollData] = useState<{ question: string; options: string[]; duration: number } | null>(null)
 
@@ -57,23 +56,12 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
         ) : (
           <img src={filePreview} alt="Preview" className="w-full h-48 object-cover rounded-lg" />
         )}
-        {isUploading && (
-          <div className="absolute inset-0 bg-black/60 rounded-lg flex flex-col items-center justify-center gap-2">
-            <span className="text-white text-sm font-bold">{uploadProgress}%</span>
-            <div className="w-2/3 h-2 bg-white/30 rounded-full overflow-hidden">
-              <div className="h-full bg-white rounded-full transition-all duration-200" style={{ width: `${uploadProgress}%` }} />
-            </div>
-            <span className="text-white/70 text-xs">Subiendo...</span>
-          </div>
-        )}
-        {!isUploading && (
-          <button
-            onClick={() => { setFile(null); setFilePreview("") }}
-            className="absolute top-2 right-2 h-6 w-6 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70"
-          >
-            <X className="h-4 w-4 text-white" />
-          </button>
-        )}
+        <button
+          onClick={() => { setFile(null); setFilePreview("") }}
+          className="absolute top-2 right-2 h-6 w-6 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70"
+        >
+          <X className="h-4 w-4 text-white" />
+        </button>
       </div>
     )
   }
@@ -126,24 +114,21 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
       console.log('typeof visibility:', typeof visibility)
       
       formData.append('post', JSON.stringify(postData))
-
+      
       if (file) {
         formData.append('file', file)
       }
-
+      
+      console.log('FormData post:', formData.get('post'))
+      
       const token = localStorage.getItem('sparkd_token')
-      setUploadProgress(0)
-
-      const res = await new Promise<Response>((resolve, reject) => {
-        const xhr = new XMLHttpRequest()
-        xhr.open('POST', '/api/proxy/api/posts/new')
-        if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
-        xhr.upload.onprogress = (e) => {
-          if (e.lengthComputable) setUploadProgress(Math.round((e.loaded / e.total) * 100))
-        }
-        xhr.onload = () => resolve(new Response(xhr.responseText, { status: xhr.status }))
-        xhr.onerror = () => reject(new Error('Error de red'))
-        xhr.send(formData)
+     
+      const res = await fetch('/api/proxy/api/posts/new', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
       })
  
       console.log('Response status:', res.status)
