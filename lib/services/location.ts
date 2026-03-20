@@ -38,21 +38,19 @@ export const locationService = {
           })
         },
         (error) => {
-          console.error('Geolocation error:', error)
+          // Silenciar en consola — es esperado cuando el usuario deniega el permiso
           let errorMessage = 'Error al obtener ubicación'
-          
           switch(error.code) {
             case error.PERMISSION_DENIED:
-              errorMessage = 'Permiso de ubicación denegado. Por favor, permite el acceso a tu ubicación en la configuración del navegador.'
+              errorMessage = 'Permiso de ubicación denegado.'
               break
             case error.POSITION_UNAVAILABLE:
-              errorMessage = 'Ubicación no disponible. Verifica que el GPS esté activado.'
+              errorMessage = 'Ubicación no disponible.'
               break
             case error.TIMEOUT:
-              errorMessage = 'Tiempo de espera agotado. Intenta nuevamente.'
+              errorMessage = 'Tiempo de espera agotado.'
               break
           }
-          
           reject(new Error(errorMessage))
         },
         options
@@ -62,20 +60,12 @@ export const locationService = {
 
   async requestAndUpdateLocation(): Promise<boolean> {
     try {
-      // Verificar si estamos en un contexto seguro
-      if (!window.isSecureContext) {
-        console.error('Geolocation requires HTTPS or localhost')
-        throw new Error('La geolocalización requiere HTTPS. Por favor, accede a través de localhost o usa HTTPS.')
-      }
-      
       const location = await this.getCurrentLocation()
       if (!location) return false
-
       await this.updateLocation(location)
       return true
-    } catch (error) {
-      console.error('Error in requestAndUpdateLocation:', error)
-      throw error // Propagar el error para que se muestre en la UI
+    } catch {
+      return false
     }
   }
 }
