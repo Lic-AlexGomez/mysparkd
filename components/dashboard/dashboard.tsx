@@ -8,20 +8,31 @@ import { AdminRevenue } from "./sections/admin-revenue"
 import { AdminEngagement } from "./sections/admin-engagement"
 import { AdminModeration } from "./sections/admin-moderation"
 import { AdminSystem } from "./sections/admin-system"
+import { AdminGeo } from "./sections/admin-geo"
+import { AdminNotifications } from "./sections/admin-notifications"
+import { AdminABTesting } from "./sections/admin-abtesting"
+import { AdminBenchmarks } from "./sections/admin-benchmarks"
+import { AdminAuditLog } from "./sections/admin-auditlog"
 import {
   LayoutDashboard, Users, FileText, DollarSign,
-  Activity, Shield, Server, Zap, Menu, X
+  Activity, Shield, Server, Zap, Menu, X,
+  MapPin, Bell, FlaskConical, BarChart3, ScrollText
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const SECTIONS = [
-  { id: "overview",    label: "Overview",     icon: LayoutDashboard },
-  { id: "users",       label: "Usuarios",     icon: Users },
-  { id: "content",     label: "Contenido",    icon: FileText },
-  { id: "revenue",     label: "Ingresos",     icon: DollarSign },
-  { id: "engagement",  label: "Engagement",   icon: Activity },
-  { id: "moderation",  label: "Moderación",   icon: Shield },
-  { id: "system",      label: "Sistema",      icon: Server },
+  { id: "overview",       label: "Overview",        icon: LayoutDashboard },
+  { id: "users",          label: "Usuarios",         icon: Users },
+  { id: "content",        label: "Contenido",        icon: FileText },
+  { id: "revenue",        label: "Ingresos",         icon: DollarSign },
+  { id: "engagement",     label: "Engagement",       icon: Activity },
+  { id: "moderation",     label: "Moderación",       icon: Shield },
+  { id: "geo",            label: "Geografía",        icon: MapPin },
+  { id: "notifications",  label: "Notificaciones",   icon: Bell },
+  { id: "abtesting",      label: "A/B Testing",      icon: FlaskConical },
+  { id: "benchmarks",     label: "Benchmarks",       icon: BarChart3 },
+  { id: "auditlog",       label: "Auditoría",        icon: ScrollText },
+  { id: "system",         label: "Sistema",          icon: Server },
 ]
 
 export function Dashboard() {
@@ -109,13 +120,18 @@ export function Dashboard() {
 
         {/* Content */}
         <main className="flex-1 overflow-y-auto p-4 lg:p-6">
-          {active === "overview"   && <AdminOverview />}
-          {active === "users"      && <AdminUsers />}
-          {active === "content"    && <AdminContent />}
-          {active === "revenue"    && <AdminRevenue />}
-          {active === "engagement" && <AdminEngagement />}
-          {active === "moderation" && <AdminModeration />}
-          {active === "system"     && <AdminSystem />}
+          {active === "overview"       && <AdminOverview />}
+          {active === "users"          && <AdminUsers />}
+          {active === "content"        && <AdminContent />}
+          {active === "revenue"        && <AdminRevenue />}
+          {active === "engagement"     && <AdminEngagement />}
+          {active === "moderation"     && <AdminModeration />}
+          {active === "geo"            && <AdminGeo />}
+          {active === "notifications"  && <AdminNotifications />}
+          {active === "abtesting"      && <AdminABTesting />}
+          {active === "benchmarks"     && <AdminBenchmarks />}
+          {active === "auditlog"       && <AdminAuditLog />}
+          {active === "system"         && <AdminSystem />}
         </main>
       </div>
     </div>
