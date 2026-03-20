@@ -31,18 +31,44 @@ export function PollComponent({ poll: initialPoll, onVote }: PollComponentProps)
     : null
 
   const { sendPollVote, subscribeToPoll, isConnected } = useWebSocket(user?.userId, {
-    onPollState: (updatedPoll: Poll) => {
-      if (updatedPoll.id === poll.id) {
-        setPoll(updatedPoll)
-        if (updatedPoll.userVoted) setSelectedOption(updatedPoll.userVoted)
+    onPollState: (raw: any) => {
+      if (!raw) return
+      const normalized = normalizePollResponse(raw)
+      if (normalized.id === poll.id) {
+        setPoll(normalized)
+        if (normalized.userVoted) setSelectedOption(normalized.userVoted)
       }
     },
   })
 
+  // Normalizar PollResponse del backend al tipo Poll del frontend
+  function normalizePollResponse(p: any): Poll {
+    const totalVotes = p.options?.reduce((sum: number, o: any) => sum + (o.voteCount ?? o.votes ?? 0), 0) || 0
+    return {
+      id: p.pollId || p.id || '',
+      question: p.question || '',
+      options: (p.options || []).map((o: any) => {
+        const votes = o.voteCount ?? o.votes ?? 0
+        const pct = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0
+        return {
+          id: o.id || '',
+          text: o.text || '',
+          votes,
+          percentage: isNaN(pct) ? 0 : pct,
+        }
+      }),
+      totalVotes,
+      expiresAt: p.expiresAt || '',
+      userVoted: p.myVoteOptionId || p.userVoted || null,
+      allowMultiple: false,
+    }
+  }
+
   useEffect(() => {
     if (!isConnected) return
-    unsubscribeRef.current = subscribeToPoll(poll.id, (updatedPoll: Poll) => {
-      setPoll(updatedPoll)
+    unsubscribeRef.current = subscribeToPoll(poll.id, (raw: any) => {
+      const normalized = normalizePollResponse(raw)
+      setPoll(normalized)
     })
     return () => { unsubscribeRef.current?.() }
   }, [isConnected, poll.id, subscribeToPoll])
