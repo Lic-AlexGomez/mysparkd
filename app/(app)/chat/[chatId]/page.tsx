@@ -37,7 +37,8 @@ export default function ChatRoomPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
-  const [isTyping, setIsTyping] = useState(false)
+  const [isTyping, setIsTyping] = useState(false) // typing del OTRO usuario
+  const [isSelfTyping, setIsSelfTyping] = useState(false) // para enviar al backend
   const [isRecording, setIsRecording] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
   const [replyTo, setReplyTo] = useState<Message | null>(null)
@@ -71,25 +72,39 @@ export default function ChatRoomPage() {
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const fileInputRefDoc = useRef<HTMLInputElement>(null)
 
-  // WebSocket para mensajes en tiempo real
-  const { sendMessage: sendViaWebSocket, isConnected } = useWebSocket(
+  const typingTimeoutOtherRef = useRef<NodeJS.Timeout | null>(null)
+  const selfTypingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  const { sendMessage: sendViaWebSocket, sendTyping, sendSeen, isConnected } = useWebSocket(
     user?.userId,
-    useCallback((newMessage: Message) => {
-      console.log('[Chat] Mensaje recibido por WebSocket:', newMessage)
-      if (newMessage.chatId === chatId) {
-        setMessages(prev => {
-          const newId = newMessage.messageId || newMessage.id
-          if (newId && prev.some(m => (m.messageId || m.id) === newId)) {
-            console.log('[Chat] Mensaje duplicado, ignorando')
-            return prev
-          }
-          console.log('[Chat] Agregando mensaje a la lista')
-          return [...prev, newMessage]
-        })
-      } else {
-        console.log('[Chat] Mensaje de otro chat, ignorando')
-      }
-    }, [chatId])
+    useCallback({
+      onMessage: (newMessage: Message) => {
+        if (newMessage.chatId === chatId) {
+          setMessages(prev => {
+            const newId = newMessage.messageId || newMessage.id
+            if (newId && prev.some(m => (m.messageId || m.id) === newId)) return prev
+            return [...prev, newMessage]
+          })
+          // Marcar como leído automáticamente si estamos en este chat
+          sendSeen(chatId)
+        }
+      },
+      onTyping: (event) => {
+        if (event.chatId === chatId) {
+          setIsTyping(true)
+          if (typingTimeoutOtherRef.current) clearTimeout(typingTimeoutOtherRef.current)
+          typingTimeoutOtherRef.current = setTimeout(() => setIsTyping(false), 3000)
+        }
+      },
+      onRead: (event) => {
+        if (event.chatId === chatId) {
+          // Marcar todos los mensajes propios como leídos
+          setMessages(prev => prev.map(m =>
+            m.senderId === user?.userId ? { ...m, read: true } : m
+          ))
+        }
+      },
+    } as any, [chatId, user?.userId])
   )
 
   const fetchMessages = useCallback(async () => {
@@ -175,16 +190,17 @@ export default function ChatRoomPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [showReactions])
 
-  // Indicador de escribiendo
+  // Enviar typing al backend cuando el usuario escribe
   useEffect(() => {
-    if (newMessage.length > 0) {
-      setIsTyping(true)
-      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
-      typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 1000)
-    } else {
-      setIsTyping(false)
+    if (newMessage.length > 0 && isConnected) {
+      if (!isSelfTyping) {
+        setIsSelfTyping(true)
+        sendTyping(chatId)
+      }
+      if (selfTypingTimeoutRef.current) clearTimeout(selfTypingTimeoutRef.current)
+      selfTypingTimeoutRef.current = setTimeout(() => setIsSelfTyping(false), 2000)
     }
-  }, [newMessage])
+  }, [newMessage, isConnected, chatId, sendTyping, isSelfTyping])
 
   const handleReaction = async (messageId: string, emoji: string) => {
     setMessageReactions(prev => ({
