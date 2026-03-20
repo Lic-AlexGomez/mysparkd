@@ -19,7 +19,7 @@ import { useFeatureFlags } from "@/hooks/use-feature-flags"
 import { useUnreadChats } from "@/hooks/use-unread-chats"
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, flag: "dashboard" as const },
   { href: "/feed", label: "Feed", icon: Newspaper },
   { href: "/search", label: "Buscar", icon: Search },
   { href: "/swipes", label: "Swipes", icon: Zap },
@@ -39,6 +39,7 @@ export function SidebarNav() {
   const filteredNavItems = navItems.filter(item => {
     if (item.href === '/search' && !features.searchPage) return false
     if (item.href === '/groups' && !features.groupsPage) return false
+    if ('flag' in item && item.flag === 'dashboard' && !features.dashboard) return false
     return true
   })
 
