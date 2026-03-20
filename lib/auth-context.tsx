@@ -71,6 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (data: LoginRequest) => {
     const response = await api.post<LoginResponse>("/auth/login", data)
     localStorage.setItem("sparkd_token", response.token)
+    localStorage.setItem("sparkd_username", data.username)
     setToken(response.token)
     await fetchProfile()
   }
@@ -89,6 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     localStorage.removeItem("sparkd_token")
     localStorage.removeItem("sparkd_user_id")
+    localStorage.removeItem("sparkd_username")
     setToken(null)
     setUser(null)
     window.location.href = "/login"

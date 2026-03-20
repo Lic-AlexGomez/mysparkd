@@ -3,5 +3,8 @@ import { getFeatureFlags } from '@/lib/utils/feature-flags';
 
 export function useFeatureFlags() {
   const { user } = useAuth();
-  return getFeatureFlags(null, user?.username);
+  const username = typeof window !== 'undefined'
+    ? localStorage.getItem('sparkd_username') ?? user?.username
+    : user?.username;
+  return getFeatureFlags(null, username);
 }
