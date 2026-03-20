@@ -91,6 +91,10 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
       toast.error("El contenido debe tener al menos 10 caracteres")
       return
     }
+    if (pollData && !pollData.question.trim()) {
+      toast.error("La encuesta necesita una pregunta")
+      return
+    }
     setIsLoading(true)
     try {
       // Si hay encuesta, crearla primero via /api/polls
@@ -411,7 +415,7 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
           )}
           <Button
             onClick={handleSubmit}
-            disabled={isLoading || !body.trim() || body.trim().length < 10}
+            disabled={isLoading || !body.trim() || body.trim().length < 10 || (!!pollData === false && false)}
             className="bg-primary text-primary-foreground hover:bg-primary/90"
           >
             {isLoading ? (
