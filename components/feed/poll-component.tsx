@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react"
 import { Poll } from "@/lib/types"
-import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Check } from "lucide-react"
 import { toast } from "sonner"
@@ -22,12 +21,17 @@ export function PollComponent({ poll: initialPoll, onVote }: PollComponentProps)
   const [selectedOption, setSelectedOption] = useState<string | null>(initialPoll.userVoted || null)
   const unsubscribeRef = useRef<(() => void) | null>(null)
 
-  const isExpired = new Date(poll.expiresAt) < new Date()
+  const expiresDate = poll.expiresAt ? new Date(poll.expiresAt) : null
+  const isExpired = expiresDate instanceof Date && !isNaN(expiresDate.getTime())
+    ? expiresDate < new Date()
+    : false
   const hasVoted = !!selectedOption
+  const timeLeft = expiresDate instanceof Date && !isNaN(expiresDate.getTime()) && !isExpired
+    ? formatDistanceToNow(expiresDate, { addSuffix: true, locale: es })
+    : null
 
   const { sendPollVote, subscribeToPoll, isConnected } = useWebSocket(user?.userId, {
     onPollState: (updatedPoll: Poll) => {
-      // El backend confirma el voto con el estado real desde Redis
       if (updatedPoll.id === poll.id) {
         setPoll(updatedPoll)
         if (updatedPoll.userVoted) setSelectedOption(updatedPoll.userVoted)
@@ -35,31 +39,22 @@ export function PollComponent({ poll: initialPoll, onVote }: PollComponentProps)
     },
   })
 
-  // Suscribirse al topic del poll para recibir updates en tiempo real
   useEffect(() => {
     if (!isConnected) return
-
     unsubscribeRef.current = subscribeToPoll(poll.id, (updatedPoll: Poll) => {
       setPoll(updatedPoll)
     })
-
-    return () => {
-      unsubscribeRef.current?.()
-    }
+    return () => { unsubscribeRef.current?.() }
   }, [isConnected, poll.id, subscribeToPoll])
 
-  // Sincronizar si el poll cambia desde el padre
   useEffect(() => {
     setPoll(initialPoll)
     setSelectedOption(initialPoll.userVoted || null)
   }, [initialPoll.id])
 
   const handleVote = (optionId: string) => {
-    if (isExpired) return
-    // El backend permite cambiar voto, solo bloqueamos si es la misma opción
-    if (selectedOption === optionId) return
+    if (isExpired || selectedOption === optionId) return
 
-    // Optimistic update
     setSelectedOption(optionId)
     setPoll(prev => {
       const total = prev.totalVotes + 1
@@ -75,7 +70,6 @@ export function PollComponent({ poll: initialPoll, onVote }: PollComponentProps)
 
     const sent = sendPollVote(optionId)
     if (!sent) {
-      // Fallback: revertir optimistic si no se pudo enviar
       setSelectedOption(null)
       setPoll(initialPoll)
       toast.error("No conectado, intenta de nuevo")
@@ -85,11 +79,6 @@ export function PollComponent({ poll: initialPoll, onVote }: PollComponentProps)
     onVote?.(optionId)
     toast.success("Voto registrado")
   }
-
-  const timeLeft = formatDistanceToNow(new Date(poll.expiresAt), {
-    addSuffix: true,
-    locale: es,
-  })
 
   return (
     <div className="mt-3 p-4 bg-muted/50 rounded-xl border border-border">
@@ -135,7 +124,9 @@ export function PollComponent({ poll: initialPoll, onVote }: PollComponentProps)
             ? 'Finalizada'
             : hasVoted
             ? 'Toca otra opción para cambiar tu voto'
-            : `Finaliza ${timeLeft}`}
+            : timeLeft
+            ? `Finaliza ${timeLeft}`
+            : ''}
         </span>
       </div>
     </div>
