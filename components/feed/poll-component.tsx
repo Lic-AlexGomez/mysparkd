@@ -104,7 +104,7 @@ export function PollComponent({ poll: initialPoll, onVote }: PollComponentProps)
             <button
               key={option.id}
               onClick={() => handleVote(option.id)}
-              disabled={hasVoted || isExpired}
+              disabled={isExpired}
               className={`w-full text-left p-3 rounded-lg border transition-all ${
                 showResults ? 'cursor-default' : 'hover:border-primary hover:bg-muted cursor-pointer'
               } ${
@@ -134,7 +134,7 @@ export function PollComponent({ poll: initialPoll, onVote }: PollComponentProps)
           {isExpired
             ? 'Finalizada'
             : hasVoted
-            ? 'Puedes cambiar tu voto'
+            ? 'Toca otra opción para cambiar tu voto'
             : `Finaliza ${timeLeft}`}
         </span>
       </div>
