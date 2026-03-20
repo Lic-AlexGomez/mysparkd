@@ -415,7 +415,7 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
           )}
           <Button
             onClick={handleSubmit}
-            disabled={isLoading || !body.trim() || body.trim().length < 10 || (!!pollData === false && false)}
+            disabled={isLoading || !body.trim() || body.trim().length < 10}
             className="bg-primary text-primary-foreground hover:bg-primary/90"
           >
             {isLoading ? (
