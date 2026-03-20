@@ -13,13 +13,15 @@ import {
   Users,
   ThumbsUp,
   LayoutDashboard,
+  ShieldCheck,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
 import { useUnreadChats } from "@/hooks/use-unread-chats"
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, flag: "dashboard" as const },
+  { href: "/dashboard", label: "Dashboard",    icon: LayoutDashboard, flag: "dashboard"    as const },
+  { href: "/manager",   label: "Manager Panel", icon: ShieldCheck,     flag: "managerPanel" as const },
   { href: "/feed", label: "Feed", icon: Newspaper },
   { href: "/search", label: "Buscar", icon: Search },
   { href: "/swipes", label: "Swipes", icon: Zap },
@@ -39,7 +41,8 @@ export function SidebarNav() {
   const filteredNavItems = navItems.filter(item => {
     if (item.href === '/search' && !features.searchPage) return false
     if (item.href === '/groups' && !features.groupsPage) return false
-    if ('flag' in item && item.flag === 'dashboard' && !features.dashboard) return false
+    if ('flag' in item && item.flag === 'dashboard'    && !features.dashboard)    return false
+    if ('flag' in item && item.flag === 'managerPanel' && !features.managerPanel) return false
     return true
   })
 
