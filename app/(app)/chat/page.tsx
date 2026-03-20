@@ -1,9 +1,11 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import Link from "next/link"
 import { api } from "@/lib/api"
 import { chatService } from "@/lib/services/chat"
+import { useAuth } from "@/lib/auth-context"
+import { useWebSocket } from "@/hooks/use-websocket"
 import type { Chat } from "@/lib/types"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Loader2, MessageCircle } from "lucide-react"
@@ -11,8 +13,10 @@ import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
 
 export default function ChatListPage() {
+  const { user } = useAuth()
   const [chats, setChats] = useState<Chat[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const fetchChatsRef = useRef<() => void>(() => {})
 
   const fetchChats = useCallback(async () => {
     try {
@@ -46,6 +50,18 @@ export default function ChatListPage() {
       setIsLoading(false)
     }
   }, [])
+
+    fetchChatsRef.current = fetchChats
+  }, [fetchChats])
+
+  // Escuchar chat-updated via WebSocket para refrescar la lista
+  const wsCallbacksRef = useRef({
+    onChatUpdated: (_chatId: string) => {
+      fetchChatsRef.current()
+    },
+  })
+
+  useWebSocket(user?.userId, wsCallbacksRef.current)
 
   useEffect(() => {
     fetchChats()
