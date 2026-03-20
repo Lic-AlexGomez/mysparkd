@@ -115,15 +115,19 @@ export default function ChatRoomPage() {
     wsCallbacksRef.current
   )
 
-  const fetchMessages = useCallback(async () => {
-    console.log('[Chat] Obteniendo mensajes...')
+  const fetchMessages = useCallback(async (merge = false) => {
     try {
       const data = await api.get<Message[]>(`/api/chat/${chatId}/messages`)
-      console.log('[Chat] Mensajes obtenidos:', data.length)
-      if (data.length > 0) {
-        console.log('[Chat] Último mensaje:', data[data.length - 1])
-      }
-      setMessages([...data])
+      setMessages(prev => {
+        if (!merge) return [...data]
+        // Merge: combinar los del backend con los optimistas que aún no tienen ID del servidor
+        const serverIds = new Set(data.map((m: Message) => m.messageId || m.id).filter(Boolean))
+        const optimistic = prev.filter(m => {
+          const id = m.messageId || m.id
+          return !id || !serverIds.has(id)
+        })
+        return [...data, ...optimistic]
+      })
     } catch (error) {
       console.error('[Chat] Error al obtener mensajes:', error)
     } finally {
@@ -343,7 +347,7 @@ export default function ChatRoomPage() {
             const { mediaUrl } = await uploadToBackend(audioFile)
             setIsUploading(false)
             sendViaWebSocket(chatId, `🎤 ${mediaUrl}`)
-            setTimeout(() => fetchMessages(), 800)
+            setTimeout(() => fetchMessages(true), 800)
           } catch (error) {
             console.error('Error al subir audio:', error)
             setIsUploading(false)
@@ -454,7 +458,7 @@ export default function ChatRoomPage() {
         formData.append('file', selectedFile)
         await api.post('/api/chat/send', formData)
         setIsUploading(false)
-        setTimeout(() => fetchMessages(), 800)
+        setTimeout(() => fetchMessages(true), 800)
         handleRemoveFile()
       } else if (selectedImage) {
         setIsUploading(true)
@@ -465,15 +469,16 @@ export default function ChatRoomPage() {
         formData.append('message', JSON.stringify({ chatId, content: '', mediaType: 'IMAGE' }))
         formData.append('file', selectedImage)
         await api.post('/api/chat/send', formData)
-        setTimeout(() => fetchMessages(), 800)
+        setTimeout(() => fetchMessages(true), 800)
         handleRemoveImage()
       } else {
         // Solo usar WebSocket
         sendViaWebSocket(chatId, messageContent)
       }
-      
-      // Refrescar mensajes después de 2 segundos para dar tiempo al servidor
-      setTimeout(() => fetchMessages(), 2000)
+
+      // Refrescar con merge para no borrar mensajes optimistas
+      setTimeout(() => fetchMessages(true), 1500)
+      setTimeout(() => fetchMessages(false), 4000)
     } catch (error) {
       console.error('[Chat] Error al enviar:', error)
       if (error instanceof Error) {
