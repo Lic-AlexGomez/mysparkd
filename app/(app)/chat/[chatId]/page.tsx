@@ -115,18 +115,18 @@ export default function ChatRoomPage() {
     wsCallbacksRef.current
   )
 
-  const fetchMessages = useCallback(async (merge = false) => {
+  const fetchMessages = useCallback(async () => {
     try {
       const data = await api.get<Message[]>(`/api/chat/${chatId}/messages`)
       setMessages(prev => {
-        if (!merge) return [...data]
-        // Quitar optimistas cuyo contenido ya aparece en la respuesta del servidor
+        // Preservar optimistas que el servidor aún no tiene
+        const serverIds = new Set(data.map((m: Message) => m.id || m.messageId).filter(Boolean))
         const serverContents = new Set(data.map((m: Message) => m.content))
-        const stillPending = prev.filter(m =>
+        const pendingOptimistic = prev.filter(m =>
           (m.messageId || m.id || '').startsWith('optimistic-') &&
           !serverContents.has(m.content)
         )
-        return [...data, ...stillPending]
+        return [...data, ...pendingOptimistic]
       })
     } catch (error) {
       console.error('[Chat] Error al obtener mensajes:', error)
@@ -347,7 +347,7 @@ export default function ChatRoomPage() {
             const { mediaUrl } = await uploadToBackend(audioFile)
             setIsUploading(false)
             sendViaWebSocket(chatId, `🎤 ${mediaUrl}`)
-            setTimeout(() => fetchMessages(true), 800)
+            fetchMessages()
           } catch (error) {
             console.error('Error al subir audio:', error)
             setIsUploading(false)
@@ -475,27 +475,22 @@ export default function ChatRoomPage() {
         formData.append('file', selectedFile)
         await api.post('/api/chat/send', formData)
         setIsUploading(false)
-        setTimeout(() => fetchMessages(true), 800)
         handleRemoveFile()
+        fetchMessages()
       } else if (selectedImage) {
         setIsUploading(true)
         const { mediaUrl } = await uploadToBackend(selectedImage)
         setIsUploading(false)
-        // Enviar via REST para persistir con media
         const formData = new FormData()
         formData.append('message', JSON.stringify({ chatId, content: '', mediaType: 'IMAGE' }))
         formData.append('file', selectedImage)
         await api.post('/api/chat/send', formData)
-        setTimeout(() => fetchMessages(true), 800)
         handleRemoveImage()
+        fetchMessages()
       } else {
-        // Solo usar WebSocket
+        // Texto: solo WebSocket, el optimista ya está en pantalla
         sendViaWebSocket(chatId, messageContent)
       }
-
-      // Refrescar con merge para no borrar mensajes optimistas
-      setTimeout(() => fetchMessages(true), 1500)
-      setTimeout(() => fetchMessages(false), 4000)
     } catch (error) {
       console.error('[Chat] Error al enviar:', error)
       if (error instanceof Error) {
