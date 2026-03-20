@@ -87,7 +87,18 @@ export default function ChatRoomPage() {
       if (newMessage.chatId !== chatIdRef.current) return
       setMessages(prev => {
         const newId = newMessage.messageId || newMessage.id
+        // Evitar duplicados por ID
         if (newId && prev.some(m => (m.messageId || m.id) === newId)) return prev
+        // Reemplazar optimista si el contenido coincide
+        const optimisticIdx = prev.findIndex(m =>
+          (m.messageId || m.id || '').startsWith('optimistic-') &&
+          m.content === newMessage.content
+        )
+        if (optimisticIdx !== -1) {
+          const next = [...prev]
+          next[optimisticIdx] = newMessage
+          return next
+        }
         return [...prev, newMessage]
       })
     },
