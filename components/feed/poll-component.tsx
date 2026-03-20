@@ -25,7 +25,15 @@ export function PollComponent({ poll: initialPoll, onVote }: PollComponentProps)
   const isExpired = new Date(poll.expiresAt) < new Date()
   const hasVoted = !!selectedOption
 
-  const { sendPollVote, subscribeToPoll, isConnected } = useWebSocket(user?.userId, {})
+  const { sendPollVote, subscribeToPoll, isConnected } = useWebSocket(user?.userId, {
+    onPollState: (updatedPoll: Poll) => {
+      // El backend confirma el voto con el estado real desde Redis
+      if (updatedPoll.id === poll.id) {
+        setPoll(updatedPoll)
+        if (updatedPoll.userVoted) setSelectedOption(updatedPoll.userVoted)
+      }
+    },
+  })
 
   // Suscribirse al topic del poll para recibir updates en tiempo real
   useEffect(() => {
@@ -47,7 +55,9 @@ export function PollComponent({ poll: initialPoll, onVote }: PollComponentProps)
   }, [initialPoll.id])
 
   const handleVote = (optionId: string) => {
-    if (hasVoted || isExpired) return
+    if (isExpired) return
+    // El backend permite cambiar voto, solo bloqueamos si es la misma opción
+    if (selectedOption === optionId) return
 
     // Optimistic update
     setSelectedOption(optionId)

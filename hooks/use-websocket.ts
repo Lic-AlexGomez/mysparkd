@@ -29,6 +29,7 @@ export interface WebSocketCallbacks {
   onRead?: (event: ReadEvent) => void
   onChatUpdated?: (chatId: string) => void
   onPollVoted?: (optionId: string) => void
+  onPollState?: (poll: any) => void
 }
 
 export function useWebSocket(userId: string | undefined, callbacks: WebSocketCallbacks | ((message: Message) => void)) {
@@ -53,8 +54,8 @@ export function useWebSocket(userId: string | undefined, callbacks: WebSocketCal
     if (!token) return
 
     const client = new Client({
-      webSocketFactory: () => new SockJS(`${BACKEND_URL}/ws`),
-      connectHeaders: { Authorization: `Bearer ${token}` },
+      webSocketFactory: () => new SockJS(`${BACKEND_URL}/ws?token=${token}`),
+      connectHeaders: {},
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
@@ -96,6 +97,12 @@ export function useWebSocket(userId: string | undefined, callbacks: WebSocketCal
         client.subscribe('/user/queue/poll-voted', (frame) => {
           const data = JSON.parse(frame.body) as { optionId: string }
           callbacksRef.current.onPollVoted?.(data.optionId)
+        })
+
+        // ── Poll state personal (tras votar) ──────────────────────
+        client.subscribe('/user/queue/poll-state', (frame) => {
+          const poll = JSON.parse(frame.body)
+          callbacksRef.current.onPollState?.(poll)
         })
 
         // ── Ping de presencia cada 90s ────────────────────────────
