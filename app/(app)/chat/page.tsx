@@ -21,7 +21,7 @@ export default function ChatListPage() {
   const fetchChats = useCallback(async () => {
     try {
       const data = await chatService.getMyChats()
-      
+
       const chatsWithPhotos = await Promise.all(
         data.map(async (chat) => {
           try {
@@ -36,7 +36,6 @@ export default function ChatListPage() {
         })
       )
 
-      // Ordenar por último mensaje más reciente
       const sorted = chatsWithPhotos.sort((a, b) => {
         if (!a.lastMessageAt) return 1
         if (!b.lastMessageAt) return -1
@@ -51,10 +50,12 @@ export default function ChatListPage() {
     }
   }, [])
 
+  // Mantener ref actualizada para usarla dentro del callback del WS
+  useEffect(() => {
     fetchChatsRef.current = fetchChats
   }, [fetchChats])
 
-  // Escuchar chat-updated via WebSocket para refrescar la lista
+  // Refrescar lista cuando llega un mensaje nuevo en cualquier chat
   const wsCallbacksRef = useRef({
     onChatUpdated: (_chatId: string) => {
       fetchChatsRef.current()
@@ -119,9 +120,7 @@ export default function ChatListPage() {
                         e.stopPropagation()
                         window.location.href = `/profile/${chat.otherUserId}`
                       }}
-                      className={`font-bold cursor-pointer hover:text-primary hover:underline ${
-                        chat.unread ? 'text-foreground' : 'text-foreground'
-                      }`}
+                      className="font-bold cursor-pointer hover:text-primary hover:underline text-foreground"
                     >
                       {chat.otherUsername}
                     </span>
