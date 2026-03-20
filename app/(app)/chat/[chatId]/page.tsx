@@ -120,13 +120,13 @@ export default function ChatRoomPage() {
       const data = await api.get<Message[]>(`/api/chat/${chatId}/messages`)
       setMessages(prev => {
         if (!merge) return [...data]
-        // Merge: combinar los del backend con los optimistas que aún no tienen ID del servidor
-        const serverIds = new Set(data.map((m: Message) => m.messageId || m.id).filter(Boolean))
-        const optimistic = prev.filter(m => {
-          const id = m.messageId || m.id
-          return !id || !serverIds.has(id)
-        })
-        return [...data, ...optimistic]
+        // Quitar optimistas cuyo contenido ya aparece en la respuesta del servidor
+        const serverContents = new Set(data.map((m: Message) => m.content))
+        const stillPending = prev.filter(m =>
+          (m.messageId || m.id || '').startsWith('optimistic-') &&
+          !serverContents.has(m.content)
+        )
+        return [...data, ...stillPending]
       })
     } catch (error) {
       console.error('[Chat] Error al obtener mensajes:', error)
@@ -447,6 +447,23 @@ export default function ChatRoomPage() {
     }
     setNewMessage("")
     setReplyTo(null)
+
+    // Agregar mensaje optimista inmediatamente (el remitente no recibe su propio msg por WS)
+    const optimisticId = `optimistic-${Date.now()}`
+    const optimisticMsg: Message = {
+      messageId: optimisticId,
+      id: optimisticId,
+      chatId,
+      senderId: user?.userId ?? '',
+      receiverId: chatInfo?.otherUserId ?? '',
+      content: messageContent,
+      sentAt: new Date().toISOString().replace('Z', ''),
+      read: false,
+    }
+
+    if (!selectedFile && !selectedImage) {
+      setMessages(prev => [...prev, optimisticMsg])
+    }
     
     try {
       if (selectedFile) {
