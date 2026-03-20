@@ -4,7 +4,7 @@ import SockJS from 'sockjs-client'
 import type { Message } from '@/lib/types'
 
 const BACKEND_URL = 'https://sparkd1-0.onrender.com'
-const PRESENCE_PING_INTERVAL = 90_000 // 90s — backend TTL es 2min
+const PRESENCE_PING_INTERVAL = 30_000 // 30s según documentación
 
 export interface PresenceEvent {
   userId: string
