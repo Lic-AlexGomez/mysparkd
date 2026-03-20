@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { api } from "@/lib/api"
-import type { UserProfile } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -13,7 +12,6 @@ import { Card } from "@/components/ui/card"
 import { LocationInput } from "@/components/ui/location-input"
 import { ArrowLeft, Loader2, Save, Camera } from "lucide-react"
 import { toast } from "sonner"
-import { getFeatureFlags } from "@/lib/utils/feature-flags"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
 
 export default function EditProfilePage() {
@@ -34,11 +32,6 @@ export default function EditProfilePage() {
 
   useEffect(() => {
     if (user) {
-      console.log('Usuario cargado:', user)
-      console.log('Username:', user.username)
-      console.log('Bio:', user.bio)
-      console.log('Location:', user.location)
-      console.log('Website:', user.website)
       setFormData({
         username: user.username || "",
         bio: user.bio || "",
@@ -82,23 +75,18 @@ export default function EditProfilePage() {
 
     setLoading(true)
     try {
-      // Preparar datos para enviar
       const updateData: any = {
         username: formData.username,
         bio: formData.bio,
         location: formData.location,
         website: formData.website
       }
-      
-      // Si hay coordenadas, enviarlas también
       if (formData.latitude && formData.longitude) {
         updateData.latitude = formData.latitude
         updateData.longitude = formData.longitude
       }
-      
-      // TODO: await api.put('/api/profile/update', updateData)
-      console.log('Datos a enviar:', updateData)
-      toast.success("Perfil actualizado (pendiente backend)")
+      await api.put('/api/profile/update', updateData)
+      toast.success("Perfil actualizado")
       router.push(`/profile/${user?.userId}`)
     } catch {
       toast.error("Error al actualizar perfil")
@@ -109,36 +97,16 @@ export default function EditProfilePage() {
 
   const handleCoverPhotoUpload = async (file: File) => {
     setUploadingCover(true)
-    console.log('=== Iniciando subida de portada ===')
-    console.log('Archivo:', file.name, file.type, file.size)
-    
     try {
-      // Crear FormData para enviar el archivo
       const formDataUpload = new FormData()
       formDataUpload.append('file', file)
-
-      console.log('Enviando petición a través del proxy...')
-
-      // Usar el cliente API que maneja el proxy y autenticación
-      const data = await api.post<{ url: string; message: string }>(
-        '/api/photos/cover-picture',
-        formDataUpload
-      )
-
-      console.log('Respuesta del servidor:', data)
-      
-      setFormData({ ...formData, coverPictureUrl: data.url })
+      const data = await api.post<{ url: string; message: string }>('/api/photos/cover-picture', formDataUpload)
+      setFormData(prev => ({ ...prev, coverPictureUrl: data.url }))
       toast.success("Foto de portada actualizada")
-      
-      // Recargar el perfil del usuario para obtener los datos actualizados
-      const updatedProfile = await api.get<UserProfile>('/api/profile/me')
-      console.log('Perfil actualizado:', updatedProfile)
     } catch (error) {
-      console.error('Error completo:', error)
       toast.error(error instanceof Error ? error.message : "Error al subir foto")
     } finally {
       setUploadingCover(false)
-      console.log('=== Fin subida de portada ===')
     }
   }
 
