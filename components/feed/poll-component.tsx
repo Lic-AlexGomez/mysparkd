@@ -63,7 +63,7 @@ export function PollComponent({ poll: initialPoll, onVote }: PollComponentProps)
         totalVotes: total,
         options: prev.options.map(o => {
           const votes = o.id === optionId ? o.votes + 1 : o.votes
-          return { ...o, votes, percentage: Math.round((votes / total) * 100) }
+          return { ...o, votes, percentage: total > 0 ? Math.round((votes / total) * 100) : 0 }
         }),
       }
     })
@@ -107,11 +107,11 @@ export function PollComponent({ poll: initialPoll, onVote }: PollComponentProps)
                 </span>
                 {showResults && (
                   <span className="text-sm font-bold text-foreground">
-                    {option.percentage}%
+                    {isNaN(option.percentage) ? '0' : option.percentage}%
                   </span>
                 )}
               </div>
-              {showResults && <Progress value={option.percentage} className="h-2" />}
+              {showResults && <Progress value={isNaN(option.percentage) ? 0 : option.percentage} className="h-2" />}
             </button>
           )
         })}
