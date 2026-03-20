@@ -39,6 +39,7 @@ export default function ChatRoomPage() {
   const [uploadProgress, setUploadProgress] = useState(0)
   const [isTyping, setIsTyping] = useState(false) // typing del OTRO usuario
   const [isSelfTyping, setIsSelfTyping] = useState(false) // para enviar al backend
+  const [otherUserOnline, setOtherUserOnline] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
   const [replyTo, setReplyTo] = useState<Message | null>(null)
@@ -76,8 +77,10 @@ export default function ChatRoomPage() {
   const selfTypingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const chatIdRef = useRef(chatId)
   const userIdRef = useRef(user?.userId)
+  const otherUserIdRef = useRef<string | undefined>(undefined)
   useEffect(() => { chatIdRef.current = chatId }, [chatId])
   useEffect(() => { userIdRef.current = user?.userId }, [user?.userId])
+  useEffect(() => { otherUserIdRef.current = chatInfo?.otherUserId }, [chatInfo?.otherUserId])
 
   const wsCallbacksRef = useRef({
     onMessage: (newMessage: Message) => {
@@ -87,6 +90,11 @@ export default function ChatRoomPage() {
         if (newId && prev.some(m => (m.messageId || m.id) === newId)) return prev
         return [...prev, newMessage]
       })
+    },
+    onPresence: (event: any) => {
+      if (event.userId === otherUserIdRef.current) {
+        setOtherUserOnline(event.status === 'ONLINE')
+      }
     },
     onTyping: (event: any) => {
       if (event.chatId !== chatIdRef.current) return
