@@ -528,7 +528,7 @@ export default function ChatRoomPage() {
               </span>
               escribiendo...
             </p>
-          ) : isConnected ? (
+          ) : otherUserOnline ? (
             <p className="text-xs text-green-500 flex items-center gap-1">
               <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
               En línea
