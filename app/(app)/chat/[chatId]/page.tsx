@@ -744,16 +744,43 @@ export default function ChatRoomPage() {
                 <div
                   key={msgId}
                   className={cn(
-                    "flex",
+                    "flex group/msg items-end gap-1",
                     isOwn ? "justify-end" : "justify-start"
                   )}
                 >
+                  {/* Botões de ação estilo WhatsApp - aparecem no hover, fora da bolha */}
+                  {!isOwn && (
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover/msg:opacity-100 transition-opacity order-2 mb-1">
+                      <button
+                        className="h-7 w-7 rounded-full flex items-center justify-center bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors reactions-button"
+                        onClick={(e) => { e.stopPropagation(); setShowReactions(showReactions === msgId ? null : msgId) }}
+                        title="Reaccionar"
+                      >
+                        <Smile className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        className="h-7 w-7 rounded-full flex items-center justify-center bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={(e) => { e.stopPropagation(); setReplyTo(msg) }}
+                        title="Responder"
+                      >
+                        <Reply className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        className="h-7 w-7 rounded-full flex items-center justify-center bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={(e) => { e.stopPropagation(); handleCopyMessage(actualContent, msgId) }}
+                        title="Copiar"
+                      >
+                        {copiedMessageId === msgId ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+                      </button>
+                    </div>
+                  )}
+
                   <div
                     className={cn(
-                      "max-w-[75%] rounded-2xl px-4 py-3 shadow-lg relative group",
+                      "max-w-[75%] rounded-2xl px-4 py-3 shadow-lg relative",
                       isOwn
-                        ? "bg-gradient-to-br from-primary to-secondary text-black rounded-br-md"
-                        : "bg-gradient-to-br from-card to-muted/50 text-foreground rounded-bl-md border border-primary/5"
+                        ? "bg-gradient-to-br from-primary to-secondary text-black rounded-br-md order-1"
+                        : "bg-gradient-to-br from-card to-muted/50 text-foreground rounded-bl-md border border-primary/5 order-1"
                     )}
                   >
                     {repliedMsg && (
@@ -832,95 +859,33 @@ export default function ChatRoomPage() {
                       )
                     )}
                     {reactions.length > 0 && (
-                      <div className="flex gap-1 mt-2 flex-wrap">
+                      <div className="flex gap-1 mt-1 flex-wrap">
                         {reactions.map((emoji, idx) => (
-                          <span key={idx} className="text-sm bg-black/10 px-2 py-0.5 rounded-full">
+                          <span key={idx} className="text-sm bg-black/10 px-1.5 py-0.5 rounded-full">
                             {emoji}
                           </span>
                         ))}
                       </div>
                     )}
-                    <div className="flex items-center justify-between gap-2">
-                      <p
-                        className={cn(
-                          "mt-1 text-[10px]",
-                          isOwn ? "text-black/60" : "text-muted-foreground"
-                        )}
-                      >
-                        {formatDistanceToNow(new Date(msg.sentAt + 'Z'), {
-                          addSuffix: true,
-                          locale: es,
-                        })}
+                    {/* Hora + check de lectura - limpio, sin botones */}
+                    <div className="flex items-center justify-end gap-1 mt-1">
+                      <p className={cn("text-[10px]", isOwn ? "text-black/50" : "text-muted-foreground")}>
+                        {formatDistanceToNow(new Date(msg.sentAt + 'Z'), { addSuffix: false, locale: es })}
                       </p>
-                      <div className="flex items-center gap-1">
-                        {isOwn && (
-                          <span className={cn(
-                            "text-[10px] font-medium",
-                            msg.read ? "text-blue-400" : "text-black/40"
-                          )}>
-                            {msg.read ? "Visto" : "✓"}
-                          </span>
-                        )}
-                        <button
-                          className="h-6 w-6 rounded-full flex items-center justify-center hover:bg-black/20 transition-colors"
-                          onClick={(e) => { e.stopPropagation(); toggleStarMessage(msgId) }}
-                          title="Destacar"
-                        >
-                          <Star className={cn("h-3 w-3", starredMessages.has(msgId) && "fill-yellow-500 text-yellow-500")} />
-                        </button>
-                        {canEdit && (
-                          <button
-                            className="h-6 w-6 rounded-full flex items-center justify-center hover:bg-black/20 transition-colors"
-                            onClick={(e) => { e.stopPropagation(); handleStartEdit(msg) }}
-                            title="Editar"
-                          >
-                            <Pencil className="h-3 w-3" />
-                          </button>
-                        )}
-                        {isOwn && (
-                          <button
-                            className="h-6 w-6 rounded-full flex items-center justify-center hover:bg-red-500/30 transition-colors"
-                            onClick={(e) => { e.stopPropagation(); handleDeleteMessage(msgId) }}
-                            title="Eliminar"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        )}
-                        <button
-                          className="h-6 w-6 rounded-full flex items-center justify-center hover:bg-black/20 transition-colors"
-                          onClick={(e) => { e.stopPropagation(); handleCopyMessage(actualContent, msgId) }}
-                          title="Copiar"
-                        >
-                          {copiedMessageId === msgId ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                        </button>
-                        <button
-                          className="h-6 w-6 rounded-full flex items-center justify-center hover:bg-black/20 transition-colors"
-                          onClick={(e) => { e.stopPropagation(); setReplyTo(msg) }}
-                          title="Responder"
-                        >
-                          <Reply className="h-3 w-3" />
-                        </button>
-                        <button
-                          className="h-6 w-6 rounded-full flex items-center justify-center hover:bg-black/20 transition-colors reactions-button"
-                          onClick={(e) => { e.stopPropagation(); setShowReactions(showReactions === msgId ? null : msgId) }}
-                          title="Reaccionar"
-                        >
-                          <Smile className="h-3 w-3" />
-                        </button>
-                      </div>
+                      {isOwn && (
+                        <span className={cn("text-[10px]", msg.read ? "text-blue-400" : "text-black/40")}>
+                          {msg.read ? "✓✓" : "✓"}
+                        </span>
+                      )}
                     </div>
+                    {/* Picker de reacciones */}
                     {showReactions === msgId && (
-                      <div 
-                        className="reactions-menu absolute -top-10 right-0 bg-background border border-primary/20 rounded-full px-2 py-1 shadow-lg flex gap-1 z-50"
-                      >
+                      <div className="reactions-menu absolute -top-10 left-0 bg-background border border-primary/20 rounded-full px-2 py-1 shadow-lg flex gap-1 z-50">
                         {['❤️', '👍', '😂', '😮', '😢', '😡'].map(emoji => (
                           <button
                             key={emoji}
                             className="hover:scale-125 transition-transform text-lg p-1 cursor-pointer"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleReaction(msgId, emoji)
-                            }}
+                            onClick={(e) => { e.stopPropagation(); handleReaction(msgId, emoji) }}
                           >
                             {emoji}
                           </button>
@@ -928,6 +893,56 @@ export default function ChatRoomPage() {
                       </div>
                     )}
                   </div>
+
+                  {/* Botões de ação para mensagens próprias */}
+                  {isOwn && (
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover/msg:opacity-100 transition-opacity order-0 mb-1">
+                      <button
+                        className="h-7 w-7 rounded-full flex items-center justify-center bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors reactions-button"
+                        onClick={(e) => { e.stopPropagation(); setShowReactions(showReactions === msgId ? null : msgId) }}
+                        title="Reaccionar"
+                      >
+                        <Smile className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        className="h-7 w-7 rounded-full flex items-center justify-center bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={(e) => { e.stopPropagation(); setReplyTo(msg) }}
+                        title="Responder"
+                      >
+                        <Reply className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        className="h-7 w-7 rounded-full flex items-center justify-center bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={(e) => { e.stopPropagation(); handleCopyMessage(actualContent, msgId) }}
+                        title="Copiar"
+                      >
+                        {copiedMessageId === msgId ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+                      </button>
+                      {canEdit && (
+                        <button
+                          className="h-7 w-7 rounded-full flex items-center justify-center bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                          onClick={(e) => { e.stopPropagation(); handleStartEdit(msg) }}
+                          title="Editar"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                      <button
+                        className="h-7 w-7 rounded-full flex items-center justify-center bg-muted/80 hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
+                        onClick={(e) => { e.stopPropagation(); handleDeleteMessage(msgId) }}
+                        title="Eliminar"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        className="h-7 w-7 rounded-full flex items-center justify-center bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={(e) => { e.stopPropagation(); toggleStarMessage(msgId) }}
+                        title="Destacar"
+                      >
+                        <Star className={cn("h-3.5 w-3.5", starredMessages.has(msgId) && "fill-yellow-500 text-yellow-500")} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               )
             })
