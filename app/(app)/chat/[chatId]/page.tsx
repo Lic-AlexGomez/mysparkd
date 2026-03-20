@@ -74,37 +74,37 @@ export default function ChatRoomPage() {
 
   const typingTimeoutOtherRef = useRef<NodeJS.Timeout | null>(null)
   const selfTypingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const chatIdRef = useRef(chatId)
+  const userIdRef = useRef(user?.userId)
+  useEffect(() => { chatIdRef.current = chatId }, [chatId])
+  useEffect(() => { userIdRef.current = user?.userId }, [user?.userId])
+
+  const wsCallbacksRef = useRef({
+    onMessage: (newMessage: Message) => {
+      if (newMessage.chatId !== chatIdRef.current) return
+      setMessages(prev => {
+        const newId = newMessage.messageId || newMessage.id
+        if (newId && prev.some(m => (m.messageId || m.id) === newId)) return prev
+        return [...prev, newMessage]
+      })
+    },
+    onTyping: (event: any) => {
+      if (event.chatId !== chatIdRef.current) return
+      setIsTyping(true)
+      if (typingTimeoutOtherRef.current) clearTimeout(typingTimeoutOtherRef.current)
+      typingTimeoutOtherRef.current = setTimeout(() => setIsTyping(false), 3000)
+    },
+    onRead: (event: any) => {
+      if (event.chatId !== chatIdRef.current) return
+      setMessages(prev => prev.map(m =>
+        m.senderId === userIdRef.current ? { ...m, read: true } : m
+      ))
+    },
+  })
 
   const { sendMessage: sendViaWebSocket, sendTyping, sendSeen, isConnected } = useWebSocket(
     user?.userId,
-    useCallback({
-      onMessage: (newMessage: Message) => {
-        if (newMessage.chatId === chatId) {
-          setMessages(prev => {
-            const newId = newMessage.messageId || newMessage.id
-            if (newId && prev.some(m => (m.messageId || m.id) === newId)) return prev
-            return [...prev, newMessage]
-          })
-          // Marcar como leído automáticamente si estamos en este chat
-          sendSeen(chatId)
-        }
-      },
-      onTyping: (event) => {
-        if (event.chatId === chatId) {
-          setIsTyping(true)
-          if (typingTimeoutOtherRef.current) clearTimeout(typingTimeoutOtherRef.current)
-          typingTimeoutOtherRef.current = setTimeout(() => setIsTyping(false), 3000)
-        }
-      },
-      onRead: (event) => {
-        if (event.chatId === chatId) {
-          // Marcar todos los mensajes propios como leídos
-          setMessages(prev => prev.map(m =>
-            m.senderId === user?.userId ? { ...m, read: true } : m
-          ))
-        }
-      },
-    } as any, [chatId, user?.userId])
+    wsCallbacksRef.current
   )
 
   const fetchMessages = useCallback(async () => {
@@ -144,9 +144,10 @@ export default function ChatRoomPage() {
   useEffect(() => {
     fetchMessages()
     fetchChatInfo()
-    // Marcar chat como leído al abrirlo
     chatService.markChatAsRead(chatId).catch(() => {})
-  }, [fetchMessages, fetchChatInfo])
+    // Marcar como leído via WebSocket también
+    if (isConnected) sendSeen(chatId)
+  }, [fetchMessages, fetchChatInfo, chatId])
 
   const scrollToBottom = useCallback((instant = false) => {
     const el = scrollAreaRef.current
@@ -510,12 +511,21 @@ export default function ChatRoomPage() {
           >
             {chatInfo?.otherUsername || "Chat"}
           </Link>
-          {isConnected && (
+          {isTyping ? (
+            <p className="text-xs text-primary flex items-center gap-1">
+              <span className="flex gap-0.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }} />
+              </span>
+              escribiendo...
+            </p>
+          ) : isConnected ? (
             <p className="text-xs text-green-500 flex items-center gap-1">
               <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
               En línea
             </p>
-          )}
+          ) : null}
         </div>
         <div className="flex gap-2">
           <Button
@@ -873,17 +883,6 @@ export default function ChatRoomPage() {
             })
           )}
           <div ref={messagesEndRef} />
-          {isTyping && (
-            <div className="flex justify-start">
-              <div className="bg-muted/50 rounded-2xl px-4 py-3">
-                <div className="flex gap-1">
-                  <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
