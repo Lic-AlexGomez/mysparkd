@@ -17,8 +17,17 @@ interface PollComponentProps {
 
 export function PollComponent({ poll: initialPoll, onVote }: PollComponentProps) {
   const { user } = useAuth()
+  const storageKey = `poll_vote_${initialPoll.id}_${user?.userId}`
+
+  // Leer voto guardado localmente como fallback
+  const savedVote = typeof window !== 'undefined'
+    ? localStorage.getItem(storageKey)
+    : null
+
   const [poll, setPoll] = useState<Poll>(initialPoll)
-  const [selectedOption, setSelectedOption] = useState<string | null>(initialPoll.userVoted || null)
+  const [selectedOption, setSelectedOption] = useState<string | null>(
+    initialPoll.userVoted || savedVote || null
+  )
   const unsubscribeRef = useRef<(() => void) | null>(null)
 
   const expiresDate = poll.expiresAt ? new Date(poll.expiresAt) : null
@@ -75,7 +84,10 @@ export function PollComponent({ poll: initialPoll, onVote }: PollComponentProps)
 
   useEffect(() => {
     setPoll(initialPoll)
-    setSelectedOption(initialPoll.userVoted || null)
+    // Priorizar el voto del backend, si no usar el local
+    const backendVote = initialPoll.userVoted
+    const localVote = typeof window !== 'undefined' ? localStorage.getItem(storageKey) : null
+    setSelectedOption(backendVote || localVote || null)
   }, [initialPoll.id])
 
   const handleVote = (optionId: string) => {
@@ -100,6 +112,11 @@ export function PollComponent({ poll: initialPoll, onVote }: PollComponentProps)
       setPoll(initialPoll)
       toast.error("No conectado, intenta de nuevo")
       return
+    }
+
+    // Guardar voto localmente como fallback
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(storageKey, optionId)
     }
 
     onVote?.(optionId)
