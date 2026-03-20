@@ -99,12 +99,12 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
     try {
       // Si hay encuesta, crearla primero via /api/polls
       if (pollData) {
-        const expiresAt = new Date(Date.now() + pollData.duration * 60 * 60 * 1000).toISOString()
+        const expiresAtMs = Date.now() + pollData.duration * 60 * 60 * 1000
         await api.post('/api/polls', {
           body: body.trim(),
           question: pollData.question,
           options: pollData.options,
-          expiresAt,
+          expiresAt: expiresAtMs,
         })
         toast.success("Encuesta creada!")
         setBody("")
