@@ -36,6 +36,7 @@ export interface FeatureFlags {
   storiesPage: boolean;
   analyticsPage: boolean;
   groupsPage: boolean;
+  dashboard: boolean;
 }
 
 const TEST_USER_EMAIL = 'test1@test.com';
@@ -68,20 +69,21 @@ export function canUseNewFeatures(userEmail?: string | null, username?: string |
  * TODAS LAS FUNCIONALIDADES ACTIVADAS PARA TODOS LOS USUARIOS
  */
 export function getFeatureFlags(userEmail?: string | null, username?: string | null): FeatureFlags {
-  // Activar todas las features para todos los usuarios
+  const isTest1 = canUseNewFeatures(userEmail, username);
   return {
-    multipleReactions: true,      // ✅ Reacciones múltiples activadas
-    shareWithQR: true,            // ✅ Compartir con QR activado
-    polls: true,                  // ✅ Encuestas activadas
-    personalizedFeed: true,       // ✅ Feed personalizado activado
-    profileEdit: true,            // ✅ Edición de perfil activada
-    groupPosts: true,             // ✅ Posts en grupos activados
-    groupRoles: true,             // ✅ Roles en grupos activados
-    hashtagsAndMentions: true,    // ✅ Hashtags y menciones activados
-    advancedSearch: true,         // ✅ Búsqueda avanzada activada
-    searchPage: true,             // ✅ Página de búsqueda activada
-    storiesPage: true,            // ✅ Página de stories activada
-    analyticsPage: true,          // ✅ Página de analytics activada
-    groupsPage: true,             // ✅ Página de grupos activada
+    multipleReactions: true,
+    shareWithQR: true,
+    polls: true,
+    personalizedFeed: true,
+    profileEdit: true,
+    groupPosts: true,
+    groupRoles: true,
+    hashtagsAndMentions: true,
+    advancedSearch: true,
+    searchPage: true,
+    storiesPage: true,
+    analyticsPage: true,
+    groupsPage: true,
+    dashboard: isTest1,           // 🔒 Solo test1
   };
 }
