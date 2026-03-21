@@ -1,4 +1,4 @@
-const BACKEND_URL = "https://sparkd1-0.onrender.com"
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "https://sparkd1-0.onrender.com"
 
 async function handler(
   request: Request,
