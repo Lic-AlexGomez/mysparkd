@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   description: 'Conoce gente nueva con Sparkd, la app de citas y red social. Haz match, chatea y encuentra personas con tus intereses.',
   keywords: ['red social', 'dating app', 'app de citas', 'conocer gente', 'hacer match', 'chat', 'citas online', 'ligar', 'amor', 'amistad', 'sparkd', 'tinder', 'bumble', 'badoo'],
   authors: [{ name: 'Alex Manuel Gomez Salazar ', url: 'https://www.mysparkd.com' }],
-  creator: 'Alex Manuel Gomez Salazar',
+  creator: 'Johan M. Jones Anderson y Alex Manuel Gomez Salazar',
   publisher: 'Alex Manuel Gomez Salazar',
   formatDetection: {
     email: false,
