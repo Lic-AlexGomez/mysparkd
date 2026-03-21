@@ -453,14 +453,6 @@ export default function ChatRoomPage() {
   const handleSend = async () => {
     if (!newMessage.trim() && !selectedImage && !selectedFile) return
     
-    console.log('[Chat] Iniciando envío...', { 
-      chatId, 
-      hasMessage: !!newMessage.trim(), 
-      hasImage: !!selectedImage, 
-      hasFile: !!selectedFile,
-      isConnected 
-    })
-    
     setIsSending(true)
     
     let messageContent = newMessage.trim()
@@ -471,7 +463,7 @@ export default function ChatRoomPage() {
     setNewMessage("")
     setReplyTo(null)
 
-    // Agregar mensaje optimista inmediatamente (el remitente no recibe su propio msg por WS)
+    // Mensaje optimista
     const optimisticId = `optimistic-${Date.now()}`
     const optimisticMsg: Message = {
       messageId: optimisticId,
@@ -484,11 +476,6 @@ export default function ChatRoomPage() {
       read: false,
     }
 
-    if (!selectedFile && !selectedImage) {
-      console.log('[handleSend] Agregando optimista al estado:', messageContent)
-      setMessages(prev => [...prev, optimisticMsg])
-    }
-    
     try {
       if (selectedFile) {
         setIsUploading(true)
@@ -503,7 +490,7 @@ export default function ChatRoomPage() {
         fetchMessages()
       } else if (selectedImage) {
         setIsUploading(true)
-        const { mediaUrl } = await uploadToBackend(selectedImage)
+        await uploadToBackend(selectedImage)
         setIsUploading(false)
         const formData = new FormData()
         formData.append('message', JSON.stringify({ chatId, content: '', mediaType: 'IMAGE' }))
@@ -512,18 +499,31 @@ export default function ChatRoomPage() {
         handleRemoveImage()
         fetchMessages()
       } else {
-        console.log('[handleSend] Enviando por WebSocket:', messageContent)
-        const sent = sendViaWebSocket(chatId, messageContent)
-        console.log('[handleSend] WebSocket send result:', sent)
+        // Agregar optimista inmediatamente
+        setMessages(prev => [...prev, optimisticMsg])
+
+        // Intentar WebSocket primero, si falla usar REST
+        const sentViaWS = sendViaWebSocket(chatId, messageContent)
+        console.log('[handleSend] WebSocket:', sentViaWS ? 'OK' : 'fallback a REST')
+
+        if (!sentViaWS) {
+          // Fallback a REST
+          const saved = await api.post<Message>('/api/chat/send', { chatId, content: messageContent })
+          // Reemplazar optimista con el mensaje real
+          setMessages(prev => prev.map(m =>
+            (m.messageId || m.id) === optimisticId ? { ...saved, messageId: saved.messageId || saved.id } : m
+          ))
+        }
       }
     } catch (error) {
       console.error('[Chat] Error al enviar:', error)
-      if (error instanceof Error) {
-        toast.error(error.message)
-      }
+      // Revertir optimista en caso de error
+      setMessages(prev => prev.filter(m => (m.messageId || m.id) !== optimisticId))
+      setNewMessage(messageContent)
+      if (error instanceof Error) toast.error(error.message)
+    } finally {
+      setIsSending(false)
     }
-    
-    setIsSending(false)
   }
 
   if (isLoading) {

@@ -3,7 +3,7 @@ import { Client } from '@stomp/stompjs'
 import SockJS from 'sockjs-client'
 import type { Message } from '@/lib/types'
 
-const BACKEND_URL = 'https://sparkd1-0.onrender.com'
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://sparkd1-0.onrender.com'
 const PRESENCE_PING_INTERVAL = 30_000 // 30s según documentación
 
 export interface PresenceEvent {
