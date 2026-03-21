@@ -150,18 +150,15 @@ export function useWebSocket(userId: string | undefined, callbacks: WebSocketCal
     }
   }, [])
 
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem('sparkd_token')
-    return token ? { Authorization: `Bearer ${token}` } : {}
-  }
-
   const sendMessage = useCallback((chatId: string, content: string) => {
     if (!clientRef.current?.active || !isConnected) return false
+    const token = localStorage.getItem('sparkd_token')
+    const body = { chatId, content, token }
+    console.log('[WS sendMessage] payload:', body)
     try {
       clientRef.current.publish({
         destination: '/app/chat.send',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ chatId, content }),
+        body: JSON.stringify(body),
       })
       return true
     } catch {
@@ -171,20 +168,23 @@ export function useWebSocket(userId: string | undefined, callbacks: WebSocketCal
 
   const sendTyping = useCallback((chatId: string) => {
     if (!clientRef.current?.active || !isConnected) return
+    const token = localStorage.getItem('sparkd_token')
+    const body = { chatId, token }
+    console.log('[WS sendTyping] payload:', body)
     clientRef.current.publish({
       destination: '/app/chat.typing',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ chatId }),
+      body: JSON.stringify(body),
     })
   }, [isConnected])
 
   const sendSeen = useCallback((chatId: string) => {
     if (!clientRef.current?.active || !isConnected) return
+    const token = localStorage.getItem('sparkd_token')
+    const body = { chatId, token }
     try {
       clientRef.current.publish({
         destination: '/app/chat.seen',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ chatId }),
+        body: JSON.stringify(body),
       })
     } catch {
       // ignorar si no hay conexión
@@ -197,7 +197,6 @@ export function useWebSocket(userId: string | undefined, callbacks: WebSocketCal
     try {
       clientRef.current.publish({
         destination: '/app/poll.vote',
-        headers: getAuthHeaders(),
         body: JSON.stringify({ optionId }),
       })
       return true
