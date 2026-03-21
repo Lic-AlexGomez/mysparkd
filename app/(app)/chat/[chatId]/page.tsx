@@ -84,8 +84,29 @@ export default function ChatRoomPage() {
   useEffect(() => { otherUserIdRef.current = chatInfo?.otherUserId }, [chatInfo?.otherUserId])
 
   const wsCallbacksRef = useRef({
+    onPresence: (event: any) => {
+      const eventUserId = event.userId?.toString ? event.userId.toString() : String(event.userId)
+      const otherId = otherUserIdRef.current
+      console.log('[onPresence] event.userId:', eventUserId, '| otherUserId:', otherId, '| status:', event.status)
+      if (otherId && eventUserId === otherId) {
+        setOtherUserOnline(event.status === 'ONLINE')
+      }
+    },
+    onTyping: (event: any) => {
+      if (event.chatId !== chatIdRef.current) return
+      setIsTyping(true)
+      // Si recibimos typing, el otro usuario está online
+      const otherId = otherUserIdRef.current
+      if (otherId) setOtherUserOnline(true)
+      if (typingTimeoutOtherRef.current) clearTimeout(typingTimeoutOtherRef.current)
+      typingTimeoutOtherRef.current = setTimeout(() => setIsTyping(false), 3000)
+    },
     onMessage: (newMessage: Message) => {
       if (newMessage.chatId !== chatIdRef.current) return
+      // Si recibimos un mensaje del otro, está online
+      if (newMessage.senderId !== userIdRef.current) {
+        setOtherUserOnline(true)
+      }
       setMessages(prev => {
         const newId = newMessage.messageId || newMessage.id
         if (newId && prev.some(m => (m.messageId || m.id) === newId)) return prev
@@ -100,21 +121,6 @@ export default function ChatRoomPage() {
         }
         return [...prev, newMessage]
       })
-    },
-    onPresence: (event: any) => {
-      // El backend puede enviar userId como UUID object o string
-      const eventUserId = event.userId?.toString ? event.userId.toString() : String(event.userId)
-      const otherId = otherUserIdRef.current
-      console.log('[onPresence] event.userId:', eventUserId, '| otherUserId:', otherId, '| status:', event.status)
-      if (otherId && eventUserId === otherId) {
-        setOtherUserOnline(event.status === 'ONLINE')
-      }
-    },
-    onTyping: (event: any) => {
-      if (event.chatId !== chatIdRef.current) return
-      setIsTyping(true)
-      if (typingTimeoutOtherRef.current) clearTimeout(typingTimeoutOtherRef.current)
-      typingTimeoutOtherRef.current = setTimeout(() => setIsTyping(false), 3000)
     },
     onRead: (event: any) => {
       if (event.chatId !== chatIdRef.current) return
