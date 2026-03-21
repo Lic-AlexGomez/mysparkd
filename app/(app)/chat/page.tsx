@@ -123,7 +123,7 @@ export default function ChatListPage() {
                       {chat.otherUsername?.[0]?.toUpperCase() || "?"}
                     </AvatarFallback>
                   </Avatar>
-                  <span className={`absolute bottom-0.45 right-0.5 h-3.5 w-3.5 rounded-full border-2 border-background z-20 ${onlineUsers.has(chat.otherUserId) ? 'bg-green-500' : 'bg-red-500'}`} />
+                  <span className={`absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full border-2 border-background z-20 ${onlineUsers.has(chat.otherUserId) ? 'bg-green-500' : 'bg-red-500'}`} />
                 </div>
                 <div className="flex-1 min-w-0 relative z-10">
                   <div className="flex items-center justify-between mb-1">
