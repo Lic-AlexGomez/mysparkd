@@ -689,7 +689,7 @@ export default function ChatRoomPage() {
       {/* Messages */}
       <div
         ref={scrollAreaRef}
-        className="flex-1 overflow-y-auto px-4 py-4"
+        className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4"
       >
         <div className="flex flex-col gap-3">
           {filteredMessages.length === 0 ? (
@@ -861,7 +861,7 @@ export default function ChatRoomPage() {
                     </div>
                     {/* Picker de reacciones */}
                     {showReactions === msgId && (
-                      <div className="reactions-menu absolute -top-10 left-0 bg-background border border-primary/20 rounded-full px-2 py-1 shadow-lg flex gap-1 z-50">
+                      <div className="reactions-menu absolute -top-10 left-1/2 -translate-x-1/2 bg-background border border-primary/20 rounded-full px-2 py-1 shadow-lg flex gap-1 z-50 whitespace-nowrap">
                         {['❤️', '👍', '😂', '😮', '😢', '😡'].map(emoji => (
                           <button
                             key={emoji}
