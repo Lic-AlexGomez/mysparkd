@@ -17,24 +17,19 @@ async function handler(
   }
   
   const authHeader = request.headers.get("authorization")
-  if (authHeader) {
-    headers["Authorization"] = authHeader
-  }
+  if (authHeader) headers["Authorization"] = authHeader
 
   const contentType = request.headers.get("content-type")
-  if (contentType && !contentType.includes("multipart/form-data")) {
-    headers["Content-Type"] = contentType
-  }
 
   let body: BodyInit | undefined = undefined
   if (request.method !== "GET" && request.method !== "HEAD") {
     try {
       if (contentType?.includes("multipart/form-data")) {
         body = await request.formData()
+        // No poner Content-Type para FormData, el browser lo pone con boundary
       } else {
         body = await request.text()
-        // Siempre forzar application/json para body de texto
-        if (body) headers["Content-Type"] = "application/json"
+        headers["Content-Type"] = "application/json"
       }
     } catch {
       // no body
