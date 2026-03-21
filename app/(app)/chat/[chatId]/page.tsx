@@ -447,10 +447,7 @@ export default function ChatRoomPage() {
 
   const handleSend = async () => {
     if (!newMessage.trim() && !selectedImage && !selectedFile) return
-    
-    console.log('[handleSend] START', { newMessage, isConnected, chatId, userId: user?.userId })
     setIsSending(true)
-    
     let messageContent = newMessage.trim()
     if (replyTo) {
       const replyId = replyTo.messageId || replyTo.id
@@ -458,7 +455,6 @@ export default function ChatRoomPage() {
     }
     setNewMessage("")
     setReplyTo(null)
-
     const optimisticId = `optimistic-${Date.now()}`
     const optimisticMsg: Message = {
       messageId: optimisticId,
@@ -470,7 +466,6 @@ export default function ChatRoomPage() {
       sentAt: new Date().toISOString().replace('Z', ''),
       read: false,
     }
-
     try {
       if (selectedFile) {
         setIsUploading(true)
@@ -494,35 +489,25 @@ export default function ChatRoomPage() {
         handleRemoveImage()
         fetchMessages()
       } else {
-        console.log('[handleSend] Agregando optimista:', optimisticMsg)
         setMessages(prev => [...prev, optimisticMsg])
-
-        // Enviar por WS — el backend ahora confirma al remitente por /queue/messages
         const sentViaWS = sendViaWebSocket(chatId, messageContent)
-        console.log('[handleSend] WebSocket result:', sentViaWS)
-
         if (!sentViaWS) {
-          // Fallback REST solo si WS no está conectado
           const formData = new FormData()
           formData.append('message', JSON.stringify({ chatId, content: messageContent }))
           const saved = await api.post<Message>('/api/chat/send', formData)
-          console.log('[handleSend] REST response:', saved)
           setMessages(prev => prev.map(m =>
             (m.messageId || m.id) === optimisticId
               ? { ...saved, messageId: saved.messageId || (saved as any).id }
               : m
           ))
         }
-        // Si WS OK: el backend envia confirmacion por /queue/messages al remitente
-        // wsCallbacksRef.onMessage reemplazara el optimista automaticamente
       }
     } catch (error) {
-      console.error('[handleSend] ERROR:', error)
+      console.error('[Chat] Error al enviar:', error)
       setMessages(prev => prev.filter(m => (m.messageId || m.id) !== optimisticId))
       setNewMessage(messageContent)
       if (error instanceof Error) toast.error(error.message)
     } finally {
-      console.log('[handleSend] DONE')
       setIsSending(false)
     }
   }
