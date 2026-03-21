@@ -851,14 +851,12 @@ export default function ChatRoomPage() {
                         </span>
                       )}
                     </div>
-                    {reactions.length > 0 && (
+                    {reactions && (
                       <div className={cn(
                         "absolute -bottom-3 flex gap-0.5 bg-background border border-border rounded-full px-1.5 py-0.5 shadow-md",
                         isOwn ? "right-2" : "left-2"
                       )}>
-                        {reactions.map((emoji, idx) => (
-                          <span key={idx} className="text-sm leading-none">{emoji}</span>
-                        ))}
+                        <span className="text-sm leading-none">{reactions}</span>
                       </div>
                     )}
                   </div>
