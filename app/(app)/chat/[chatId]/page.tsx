@@ -14,7 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ArrowLeft, Send, Loader2, MessageCircle, Smile, Image as ImageIcon, X, Mic, Reply, MoreVertical, Copy, Paperclip, Check, Search, Star, Images, Sparkles, Gamepad2, Pencil, Trash2 } from "lucide-react"
 import dynamic from "next/dynamic"
 import { AudioMessage } from "@/components/audio-message"
-import { GamePanel } from "@/components/chat/game-panel"
+import { ChatInput } from "@/components/chat/chat-input"
 
 const EmojiPicker = dynamic(() => import("emoji-picker-react"), { ssr: false })
 import { formatDistanceToNow } from "date-fns"
