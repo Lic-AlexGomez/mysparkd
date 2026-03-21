@@ -158,6 +158,14 @@ export default function ChatRoomPage() {
           // Si falla, continuar sin foto
         }
         setChatInfo(current)
+
+        // Consultar presencia por REST al cargar
+        try {
+          const presence = await api.get<{ online: boolean }>(`/api/profile/${current.otherUserId}/online`)
+          setOtherUserOnline(presence.online)
+        } catch {
+          // ignorar
+        }
       }
     } catch {
       // silent
