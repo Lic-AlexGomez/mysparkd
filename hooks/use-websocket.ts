@@ -54,7 +54,7 @@ export function useWebSocket(userId: string | undefined, callbacks: WebSocketCal
     if (!token) return
 
     const client = new Client({
-      webSocketFactory: () => new SockJS(`${BACKEND_URL}/ws`),
+      webSocketFactory: () => new SockJS(`${BACKEND_URL}/ws?token=${token}`),
       connectHeaders: {
         Authorization: `Bearer ${token}`,
       },
