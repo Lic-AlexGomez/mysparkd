@@ -127,6 +127,7 @@ export default function ChatRoomPage() {
   const fetchMessages = useCallback(async () => {
     try {
       const data = await api.get<Message[]>(`/api/chat/${chatId}/messages`)
+      console.log('[fetchMessages] total:', data.length, '| último:', data[data.length-1])
       setMessages(prev => {
         // Mantener optimistas cuyo contenido aún no está en el backend
         const serverIds = new Set(data.map((m: Message) => m.messageId || m.id))

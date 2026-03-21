@@ -62,9 +62,11 @@ export function useWebSocket(userId: string | undefined, callbacks: WebSocketCal
 
       onConnect: () => {
         setIsConnected(true)
+        console.log('[WS] Conectado, userId:', userId)
 
         // ── Mensajes de chat ──────────────────────────────────────
         client.subscribe('/user/queue/messages', (frame) => {
+          console.log('[WS] Mensaje recibido en /user/queue/messages:', frame.body)
           const msg = JSON.parse(frame.body) as Message
           callbacksRef.current.onMessage?.(msg)
         })
