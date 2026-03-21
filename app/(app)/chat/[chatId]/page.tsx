@@ -84,28 +84,19 @@ export default function ChatRoomPage() {
 
   const wsCallbacksRef = useRef({
     onMessage: (newMessage: Message) => {
-      console.log('[WS onMessage] Mensaje recibido:', newMessage.content, '| chatId:', newMessage.chatId, '| esperado:', chatIdRef.current)
-      if (newMessage.chatId !== chatIdRef.current) {
-        console.log('[WS onMessage] Ignorado - chatId diferente')
-        return
-      }
+      if (newMessage.chatId !== chatIdRef.current) return
       setMessages(prev => {
         const newId = newMessage.messageId || newMessage.id
-        if (newId && prev.some(m => (m.messageId || m.id) === newId)) {
-          console.log('[WS onMessage] Duplicado ignorado, id:', newId)
-          return prev
-        }
+        if (newId && prev.some(m => (m.messageId || m.id) === newId)) return prev
         const optimisticIdx = prev.findIndex(m =>
           (m.messageId || m.id || '').startsWith('optimistic-') &&
           m.content === newMessage.content
         )
         if (optimisticIdx !== -1) {
-          console.log('[WS onMessage] Reemplazando optimista con mensaje real')
           const next = [...prev]
           next[optimisticIdx] = newMessage
           return next
         }
-        console.log('[WS onMessage] Agregando nuevo mensaje al estado')
         return [...prev, newMessage]
       })
     },
@@ -136,20 +127,15 @@ export default function ChatRoomPage() {
   const fetchMessages = useCallback(async () => {
     try {
       const data = await api.get<Message[]>(`/api/chat/${chatId}/messages`)
-      console.log('[fetchMessages] Backend devolvió:', data.length, 'mensajes')
-      console.log('[fetchMessages] IDs del backend:', data.map((m: Message) => m.id || m.messageId))
       setMessages(prev => {
-        console.log('[fetchMessages] Estado actual:', prev.length, 'mensajes')
-        console.log('[fetchMessages] Optimistas actuales:', prev.filter(m => (m.messageId || m.id || '').startsWith('optimistic-')).map(m => m.content))
+        // Mantener optimistas cuyo contenido aún no está en el backend
+        const serverIds = new Set(data.map((m: Message) => m.messageId || m.id))
         const serverContents = new Set(data.map((m: Message) => m.content))
         const pendingOptimistic = prev.filter(m =>
           (m.messageId || m.id || '').startsWith('optimistic-') &&
           !serverContents.has(m.content)
         )
-        console.log('[fetchMessages] Optimistas pendientes (no en backend):', pendingOptimistic.length)
-        const result = [...data, ...pendingOptimistic]
-        console.log('[fetchMessages] Estado final:', result.length, 'mensajes')
-        return result
+        return [...data, ...pendingOptimistic]
       })
     } catch (error) {
       console.error('[Chat] Error al obtener mensajes:', error)
