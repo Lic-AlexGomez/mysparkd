@@ -765,6 +765,7 @@ export default function ChatRoomPage() {
                   <div
                     className={cn(
                       "max-w-[75%] rounded-2xl px-4 py-3 shadow-lg relative",
+                      repliedMsg ? "min-w-[220px]" : "",
                       isOwn
                         ? "bg-gradient-to-br from-primary to-secondary text-black rounded-br-md order-1"
                         : "bg-gradient-to-br from-card to-muted/50 text-foreground rounded-bl-md border border-primary/5 order-1"
