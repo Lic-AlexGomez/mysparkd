@@ -108,13 +108,13 @@ export default function RootLayout({
               operatingSystem: 'All',
               author: {
                 '@type': 'Person',
-                name: 'Alex Manuel Gomez Salazar',
-                jobTitle: 'Desarrollador Web Full Stack',
+                name: 'Johan M. Jones Anderson y Alex Manuel Gomez Salazar',
+                jobTitle: 'Desarrolladores Web Full Stack',
                 description: 'Creador de Sparkd - Red Social y Dating App'
               },
               creator: {
                 '@type': 'Person',
-                name: 'Alex Manuel Gomez Salazar'
+                name: 'Johan M. Jones Anderson y Alex Manuel Gomez Salazar'
               },
               offers: {
                 '@type': 'Offer',
