@@ -135,12 +135,12 @@ export default function RootLayout({
             __html: JSON.stringify({
               '@context': 'https://schema.org',
               '@type': 'Person',
-              name: 'Alex Manuel Gomez Salazar',
-              jobTitle: 'Desarrollador Web Full Stack',
+              name: 'Johan M. Jones Anderson y Alex Manuel Gomez Salazar',
+              jobTitle: 'Desarrolladores Web Full Stack',
               description: 'Creador de Sparkd, una innovadora red social y dating app para conocer gente nueva',
-              url: 'https://sparkd.app',
+              url: 'https://mysparkd.com',
               sameAs: [
-                'https://sparkd.app'
+                'https://mysparkd.com'
               ],
               knowsAbout: ['Desarrollo Web', 'React', 'Next.js', 'TypeScript', 'Node.js', 'Dating Apps', 'Redes Sociales'],
               alumniOf: 'Universidad',
