@@ -155,10 +155,11 @@ export function useWebSocket(userId: string | undefined, callbacks: WebSocketCal
   // ── Enviar mensaje de chat ────────────────────────────────────────────────
   const sendMessage = useCallback((chatId: string, content: string) => {
     if (!clientRef.current?.active || !isConnected) return false
+    const token = localStorage.getItem('sparkd_token')
     try {
       clientRef.current.publish({
         destination: '/app/chat.send',
-        body: JSON.stringify({ chatId, content }),
+        body: JSON.stringify({ chatId, content, token }),
       })
       return true
     } catch {
@@ -169,18 +170,20 @@ export function useWebSocket(userId: string | undefined, callbacks: WebSocketCal
   // ── Enviar typing ─────────────────────────────────────────────────────────
   const sendTyping = useCallback((chatId: string) => {
     if (!clientRef.current?.active || !isConnected) return
+    const token = localStorage.getItem('sparkd_token')
     clientRef.current.publish({
       destination: '/app/chat.typing',
-      body: JSON.stringify({ chatId }),
+      body: JSON.stringify({ chatId, token }),
     })
   }, [isConnected])
 
   // ── Marcar como leído ─────────────────────────────────────────────────────
   const sendSeen = useCallback((chatId: string) => {
     if (!clientRef.current?.active || !isConnected) return
+    const token = localStorage.getItem('sparkd_token')
     clientRef.current.publish({
       destination: '/app/chat.seen',
-      body: JSON.stringify({ chatId }),
+      body: JSON.stringify({ chatId, token }),
     })
   }, [isConnected])
 
