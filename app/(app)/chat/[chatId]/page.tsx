@@ -513,6 +513,10 @@ export default function ChatRoomPage() {
           setMessages(prev => prev.map(m =>
             (m.messageId || m.id) === optimisticId ? { ...saved, messageId: saved.messageId || saved.id } : m
           ))
+        } else {
+          // WS enviado: esperar un poco y confirmar con el backend
+          // El remitente NO recibe su propio msg por WS, hay que fetchear
+          setTimeout(() => fetchMessages(), 800)
         }
       }
     } catch (error) {
