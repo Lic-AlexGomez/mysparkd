@@ -725,7 +725,7 @@ export default function ChatRoomPage() {
                 <div
                   key={msgId}
                   className={cn(
-                    "flex group/msg items-end gap-1",
+                    "flex group/msg items-end gap-1 relative",
                     isOwn ? "justify-end" : "justify-start"
                   )}
                 >
@@ -859,21 +859,25 @@ export default function ChatRoomPage() {
                         </span>
                       )}
                     </div>
-                    {/* Picker de reacciones */}
-                    {showReactions === msgId && (
-                      <div className="reactions-menu absolute -top-10 left-1/2 -translate-x-1/2 bg-background border border-primary/20 rounded-full px-2 py-1 shadow-lg flex gap-1 z-50 whitespace-nowrap">
-                        {['❤️', '👍', '😂', '😮', '😢', '😡'].map(emoji => (
-                          <button
-                            key={emoji}
-                            className="hover:scale-125 transition-transform text-lg p-1 cursor-pointer"
-                            onClick={(e) => { e.stopPropagation(); handleReaction(msgId, emoji) }}
-                          >
-                            {emoji}
-                          </button>
-                        ))}
-                      </div>
-                    )}
                   </div>
+
+                  {/* Picker de reacciones - fuera de la burbuja */}
+                  {showReactions === msgId && (
+                    <div
+                      className="reactions-menu absolute -top-10 left-1/2 -translate-x-1/2 bg-background border border-primary/20 rounded-full px-2 py-1 shadow-lg flex gap-1 z-50"
+                      style={{ whiteSpace: 'nowrap' }}
+                    >
+                      {['❤️', '👍', '😂', '😮', '😢', '😡'].map(emoji => (
+                        <button
+                          key={emoji}
+                          className="hover:scale-125 transition-transform text-lg p-1 cursor-pointer"
+                          onClick={(e) => { e.stopPropagation(); handleReaction(msgId, emoji) }}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Botões de ação para mensagens próprias */}
                   {isOwn && (
