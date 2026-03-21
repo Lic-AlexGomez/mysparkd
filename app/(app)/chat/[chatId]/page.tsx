@@ -726,7 +726,8 @@ export default function ChatRoomPage() {
                   key={msgId}
                   className={cn(
                     "flex group/msg items-end gap-1 relative",
-                    isOwn ? "justify-end" : "justify-start"
+                    isOwn ? "justify-end" : "justify-start",
+                    reactions.length > 0 ? "mb-4" : "mb-0"
                   )}
                 >
                   {/* Botões de ação estilo WhatsApp - aparecem no hover, fora da bolha */}
@@ -840,11 +841,12 @@ export default function ChatRoomPage() {
                       )
                     )}
                     {reactions.length > 0 && (
-                      <div className="flex gap-1 mt-1 flex-wrap">
+                      <div className={cn(
+                        "absolute -bottom-3 flex gap-0.5 bg-background border border-border rounded-full px-1.5 py-0.5 shadow-md",
+                        isOwn ? "right-2" : "left-2"
+                      )}>
                         {reactions.map((emoji, idx) => (
-                          <span key={idx} className="text-sm bg-black/10 px-1.5 py-0.5 rounded-full">
-                            {emoji}
-                          </span>
+                          <span key={idx} className="text-sm leading-none">{emoji}</span>
                         ))}
                       </div>
                     )}
