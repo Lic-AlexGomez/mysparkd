@@ -33,10 +33,8 @@ async function handler(
         body = await request.formData()
       } else {
         body = await request.text()
-        // Si el body es JSON y no tiene Content-Type, forzarlo
-        if (body && !headers["Content-Type"]) {
-          headers["Content-Type"] = "application/json"
-        }
+        // Siempre forzar application/json para body de texto
+        if (body) headers["Content-Type"] = "application/json"
       }
     } catch {
       // no body
