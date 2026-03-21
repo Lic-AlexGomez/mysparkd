@@ -440,13 +440,14 @@ export default function ChatRoomPage() {
     })
   }
 
-  const handleSend = async () => {
-    if (!newMessage.trim() && !selectedImage && !selectedFile) return
+  const handleSend = async (messageContent?: string) => {
+    const content = messageContent ?? newMessage.trim()
+    if (!content && !selectedImage && !selectedFile) return
     setIsSending(true)
-    let messageContent = newMessage.trim()
+    let finalContent = content
     if (replyTo) {
       const replyId = replyTo.messageId || replyTo.id
-      messageContent = `@reply:${replyId}|${messageContent}`
+      finalContent = `@reply:${replyId}|${content}`
     }
     setNewMessage("")
     setReplyTo(null)
@@ -457,7 +458,7 @@ export default function ChatRoomPage() {
       chatId,
       senderId: user?.userId ?? '',
       receiverId: chatInfo?.otherUserId ?? '',
-      content: messageContent,
+      content: finalContent,
       sentAt: new Date().toISOString().replace('Z', ''),
       read: false,
     }
@@ -485,10 +486,10 @@ export default function ChatRoomPage() {
         fetchMessages()
       } else {
         setMessages(prev => [...prev, optimisticMsg])
-        const sentViaWS = sendViaWebSocket(chatId, messageContent)
+        const sentViaWS = sendViaWebSocket(chatId, finalContent)
         if (!sentViaWS) {
           const formData = new FormData()
-          formData.append('message', JSON.stringify({ chatId, content: messageContent }))
+          formData.append('message', JSON.stringify({ chatId, content: finalContent }))
           const saved = await api.post<Message>('/api/chat/send', formData)
           setMessages(prev => prev.map(m =>
             (m.messageId || m.id) === optimisticId
@@ -500,7 +501,6 @@ export default function ChatRoomPage() {
     } catch (error) {
       console.error('[Chat] Error al enviar:', error)
       setMessages(prev => prev.filter(m => (m.messageId || m.id) !== optimisticId))
-      setNewMessage(messageContent)
       if (error instanceof Error) toast.error(error.message)
     } finally {
       setIsSending(false)
@@ -933,10 +933,7 @@ export default function ChatRoomPage() {
       </div>
 
       <ChatInput
-        onSend={(content) => {
-          setNewMessage(content)
-          setTimeout(() => handleSend(), 0)
-        }}
+        onSend={handleSend}
         onTyping={handleTypingInput}
         onImageSelect={(file) => {
           setSelectedImage(file)
