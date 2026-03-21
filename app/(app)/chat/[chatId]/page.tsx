@@ -490,22 +490,19 @@ export default function ChatRoomPage() {
         console.log('[handleSend] Agregando optimista:', optimisticMsg)
         setMessages(prev => [...prev, optimisticMsg])
 
-        // Siempre persistir por REST (WS no garantiza persistencia)
-        const saved = await api.post<Message>('/api/chat/send', { chatId, content: messageContent })
+        // El backend espera multipart/form-data con campo 'message' como JSON string
+        const formData = new FormData()
+        formData.append('message', JSON.stringify({ chatId, content: messageContent }))
+        const saved = await api.post<Message>('/api/chat/send', formData)
         console.log('[handleSend] REST response:', saved)
 
-        // Reemplazar optimista con mensaje real
         setMessages(prev => prev.map(m =>
           (m.messageId || m.id) === optimisticId
             ? { ...saved, messageId: saved.messageId || saved.id }
             : m
         ))
 
-        // Notificar al receptor por WS si está conectado
-        if (isConnected) {
-          sendViaWebSocket(chatId, messageContent)
-          console.log('[handleSend] WS notificación enviada')
-        }
+        if (isConnected) sendViaWebSocket(chatId, messageContent)
       }
     } catch (error) {
       console.error('[handleSend] ERROR:', error)
