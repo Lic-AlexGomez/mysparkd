@@ -1105,7 +1105,7 @@ export default function ChatRoomPage() {
             />
             <Input
               value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
+              onChange={(e) => handleTypingInput(e.target.value)}
               placeholder="Escribe un mensaje..."
               className="bg-muted/50 border-primary/20 text-foreground placeholder:text-muted-foreground rounded-2xl focus:border-primary/40 transition-colors"
               onKeyDown={(e) => {
