@@ -854,7 +854,7 @@ export default function ChatRoomPage() {
                     </div>
                     {reactions && (
                       <div className={cn(
-                        "absolute -bottom-3 flex gap-0.5 bg-background border border-border rounded-full px-1.5 py-0.5 shadow-md",
+                        "absolute -bottom-3 flex gap-0.5 rounded-full px-1 py-0.5",
                         isOwn ? "right-2" : "left-2"
                       )}>
                         <span className="text-sm leading-none">{reactions}</span>
