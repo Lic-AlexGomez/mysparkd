@@ -233,8 +233,9 @@ export default function ChatRoomPage() {
   const handleReaction = async (messageId: string, emoji: string) => {
     setMessageReactions(prev => {
       const current = prev[messageId]
-      // Si es la misma reacción, quitarla. Si es diferente, reemplazar
-      return { ...prev, [messageId]: current === emoji ? '' : emoji }
+      const next = { ...prev, [messageId]: current === emoji ? '' : emoji }
+      localStorage.setItem(`chat_reactions_${chatId}`, JSON.stringify(next))
+      return next
     })
     setShowReactions(null)
   }
