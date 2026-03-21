@@ -239,7 +239,6 @@ export default function ChatRoomPage() {
       }, 2000)
     }
   }, [newMessage, isConnected, chatId, sendTyping])
-
   const handleReaction = async (messageId: string, emoji: string) => {
     setMessageReactions(prev => ({
       ...prev,
