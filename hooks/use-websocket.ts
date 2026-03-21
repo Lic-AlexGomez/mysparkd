@@ -25,6 +25,7 @@ export interface ReadEvent {
 export interface WebSocketCallbacks {
   onMessage?: (message: Message) => void
   onPresence?: (event: PresenceEvent) => void
+  onPresenceSnapshot?: (events: PresenceEvent[]) => void
   onTyping?: (event: TypingEvent) => void
   onRead?: (event: ReadEvent) => void
   onChatUpdated?: (chatId: string) => void
@@ -74,6 +75,12 @@ export function useWebSocket(userId: string | undefined, callbacks: WebSocketCal
         client.subscribe('/topic/presence', (frame) => {
           const event = JSON.parse(frame.body) as PresenceEvent
           callbacksRef.current.onPresence?.(event)
+        })
+
+        // ── Snapshot inicial de presencia ─────────────────────────
+        client.subscribe('/user/queue/presence-snapshot', (frame) => {
+          const events = JSON.parse(frame.body) as PresenceEvent[]
+          callbacksRef.current.onPresenceSnapshot?.(events)
         })
 
         // ── Al conectar, emitir propio ping para que el backend
