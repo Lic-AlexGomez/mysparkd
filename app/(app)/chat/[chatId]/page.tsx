@@ -771,14 +771,14 @@ export default function ChatRoomPage() {
                     )}
                   >
                     {repliedMsg && (
-                      <div className={`mb-2 p-2 rounded-lg text-xs border-l-2 border-primary/70 ${
+                      <div className={`mb-2 p-2 rounded-lg text-xs border-l-2 border-primary/70 w-full ${
                         isOwn ? 'bg-black/20' : 'bg-primary/10'
                       }`}>
                         <p className="font-semibold text-primary/90 mb-0.5">
                           {repliedMsg.senderId === user?.userId ? 'Tú' : chatInfo?.otherUsername}
                         </p>
-                        <p className="truncate opacity-80">
-                          {repliedMsg.media?.mediaUrl ? '📎 Archivo multimedia' : repliedMsg.content.substring(0, 60)}
+                        <p className="opacity-80 line-clamp-2">
+                          {repliedMsg.media?.mediaUrl ? '📎 Archivo multimedia' : repliedMsg.content.substring(0, 100)}
                         </p>
                       </div>
                     )}
