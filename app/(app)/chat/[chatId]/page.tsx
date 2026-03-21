@@ -48,7 +48,7 @@ export default function ChatRoomPage() {
   const [recordingTime, setRecordingTime] = useState(0)
   const [replyTo, setReplyTo] = useState<Message | null>(null)
   const [showReactions, setShowReactions] = useState<string | null>(null)
-  const [messageReactions, setMessageReactions] = useState<Record<string, string[]>>({})
+  const [messageReactions, setMessageReactions] = useState<Record<string, string>>({})
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
   const [editingContent, setEditingContent] = useState("")
@@ -230,7 +230,7 @@ export default function ChatRoomPage() {
   const handleReaction = async (messageId: string, emoji: string) => {
     setMessageReactions(prev => ({
       ...prev,
-      [messageId]: [...(prev[messageId] || []), emoji]
+      [messageId]: prev[messageId] === emoji ? '' : emoji
     }))
     setShowReactions(null)
   }
@@ -715,7 +715,7 @@ export default function ChatRoomPage() {
               const fileMatch = isFile ? actualContent.match(/📎 (.+)\|(.+)/) : null
               const fileName = fileMatch?.[1]
               const fileUrl = fileMatch?.[2]
-              const reactions = messageReactions[msgId] || []
+              const reactions = messageReactions[msgId] || ''
               const isEditing = editingMessageId === msgId
               const displayContent = editedMessages[msgId] || actualContent
               const wasEdited = !!editedMessages[msgId]
