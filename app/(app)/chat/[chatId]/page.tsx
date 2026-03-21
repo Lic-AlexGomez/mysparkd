@@ -727,7 +727,7 @@ export default function ChatRoomPage() {
                   className={cn(
                     "flex group/msg items-end gap-1 relative",
                     isOwn ? "justify-end" : "justify-start",
-                    reactions.length > 0 ? "mb-4" : "mb-0"
+                    reactions ? "mb-4" : "mb-0"
                   )}
                 >
                   {/* Botões de ação estilo WhatsApp - aparecem no hover, fora da bolha */}
