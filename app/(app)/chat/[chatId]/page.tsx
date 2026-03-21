@@ -89,7 +89,6 @@ export default function ChatRoomPage() {
     onPresence: (event: any) => {
       const eventUserId = event.userId?.toString ? event.userId.toString() : String(event.userId)
       const otherId = otherUserIdRef.current
-      console.log('[onPresence] event.userId:', eventUserId, '| otherUserId:', otherId, '| status:', event.status)
       if (otherId && eventUserId === otherId) {
         setOtherUserOnline(event.status === 'ONLINE')
       }
@@ -218,18 +217,13 @@ export default function ChatRoomPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [showReactions])
 
-  // Enviar typing al backend cuando el usuario escribe
   const handleTypingInput = useCallback((value: string) => {
     setNewMessage(value)
-    if (value.length > 0 && isConnected) {
-      if (!isSelfTypingRef.current) {
-        isSelfTypingRef.current = true
-        sendTyping(chatId)
-      }
+    if (value.length > 0 && isConnected && !isSelfTypingRef.current) {
+      isSelfTypingRef.current = true
+      sendTyping(chatId)
       if (selfTypingTimeoutRef.current) clearTimeout(selfTypingTimeoutRef.current)
-      selfTypingTimeoutRef.current = setTimeout(() => {
-        isSelfTypingRef.current = false
-      }, 2000)
+      selfTypingTimeoutRef.current = setTimeout(() => { isSelfTypingRef.current = false }, 2000)
     }
   }, [isConnected, chatId, sendTyping])
   const handleReaction = async (messageId: string, emoji: string) => {
