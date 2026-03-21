@@ -440,6 +440,7 @@ export default function ChatRoomPage() {
   const handleSend = async () => {
     if (!newMessage.trim() && !selectedImage && !selectedFile) return
     
+    console.log('[handleSend] START', { newMessage, isConnected, chatId, userId: user?.userId })
     setIsSending(true)
     
     let messageContent = newMessage.trim()
@@ -450,7 +451,6 @@ export default function ChatRoomPage() {
     setNewMessage("")
     setReplyTo(null)
 
-    // Mensaje optimista
     const optimisticId = `optimistic-${Date.now()}`
     const optimisticMsg: Message = {
       messageId: optimisticId,
@@ -486,33 +486,37 @@ export default function ChatRoomPage() {
         handleRemoveImage()
         fetchMessages()
       } else {
-        // Agregar optimista inmediatamente
-        setMessages(prev => [...prev, optimisticMsg])
+        console.log('[handleSend] Agregando optimista:', optimisticMsg)
+        setMessages(prev => {
+          console.log('[handleSend] Estado antes de optimista:', prev.length, 'msgs')
+          return [...prev, optimisticMsg]
+        })
 
-        // Intentar WebSocket primero, si falla usar REST
         const sentViaWS = sendViaWebSocket(chatId, messageContent)
-        console.log('[handleSend] WebSocket:', sentViaWS ? 'OK' : 'fallback a REST')
+        console.log('[handleSend] WebSocket result:', sentViaWS)
 
         if (!sentViaWS) {
-          // Fallback a REST
+          console.log('[handleSend] WS falló, usando REST')
           const saved = await api.post<Message>('/api/chat/send', { chatId, content: messageContent })
-          // Reemplazar optimista con el mensaje real
+          console.log('[handleSend] REST response:', saved)
           setMessages(prev => prev.map(m =>
             (m.messageId || m.id) === optimisticId ? { ...saved, messageId: saved.messageId || saved.id } : m
           ))
         } else {
-          // WS enviado: esperar un poco y confirmar con el backend
-          // El remitente NO recibe su propio msg por WS, hay que fetchear
-          setTimeout(() => fetchMessages(), 800)
+          console.log('[handleSend] WS OK, esperando 800ms para fetchMessages')
+          setTimeout(() => {
+            console.log('[handleSend] Ejecutando fetchMessages post-WS')
+            fetchMessages()
+          }, 800)
         }
       }
     } catch (error) {
-      console.error('[Chat] Error al enviar:', error)
-      // Revertir optimista en caso de error
+      console.error('[handleSend] ERROR:', error)
       setMessages(prev => prev.filter(m => (m.messageId || m.id) !== optimisticId))
       setNewMessage(messageContent)
       if (error instanceof Error) toast.error(error.message)
     } finally {
+      console.log('[handleSend] DONE')
       setIsSending(false)
     }
   }
