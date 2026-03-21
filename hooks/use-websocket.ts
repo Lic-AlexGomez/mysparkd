@@ -181,11 +181,14 @@ export function useWebSocket(userId: string | undefined, callbacks: WebSocketCal
     if (!clientRef.current?.active || !isConnected) return
     const token = localStorage.getItem('sparkd_token')
     const body = { chatId, token }
-    console.log('[WS sendSeen] payload:', body)
-    clientRef.current.publish({
-      destination: '/app/chat.seen',
-      body: JSON.stringify(body),
-    })
+    try {
+      clientRef.current.publish({
+        destination: '/app/chat.seen',
+        body: JSON.stringify(body),
+      })
+    } catch {
+      // ignorar si no hay conexión
+    }
   }, [isConnected])
 
   // ── Votar en poll via WebSocket ───────────────────────────────────────────
