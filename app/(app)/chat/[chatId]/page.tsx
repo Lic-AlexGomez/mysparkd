@@ -140,16 +140,12 @@ export default function ChatRoomPage() {
   const fetchMessages = useCallback(async () => {
     try {
       const data = await api.get<Message[]>(`/api/chat/${chatId}/messages`)
-      console.log('[fetchMessages] total:', data.length)
-      console.log('[fetchMessages] últimos 3:', data.slice(-3).map((m: Message) => ({ id: m.messageId || m.id, senderId: m.senderId, content: m.content })))
       setMessages(prev => {
-        console.log('[fetchMessages] optimistas actuales:', prev.filter(m => (m.messageId||m.id||'').startsWith('optimistic-')).map(m => m.content))
         const serverContents = new Set(data.map((m: Message) => m.content))
         const pendingOptimistic = prev.filter(m =>
           (m.messageId || m.id || '').startsWith('optimistic-') &&
           !serverContents.has(m.content)
         )
-        console.log('[fetchMessages] optimistas pendientes:', pendingOptimistic.length)
         return [...data, ...pendingOptimistic]
       })
     } catch (error) {
