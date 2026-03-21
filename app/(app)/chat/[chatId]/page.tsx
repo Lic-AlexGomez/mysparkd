@@ -48,7 +48,10 @@ export default function ChatRoomPage() {
   const [recordingTime, setRecordingTime] = useState(0)
   const [replyTo, setReplyTo] = useState<Message | null>(null)
   const [showReactions, setShowReactions] = useState<string | null>(null)
-  const [messageReactions, setMessageReactions] = useState<Record<string, string>>({})
+  const [messageReactions, setMessageReactions] = useState<Record<string, string>>(() => {
+    if (typeof window === 'undefined') return {}
+    try { return JSON.parse(localStorage.getItem(`chat_reactions_${chatId}`) || '{}') } catch { return {} }
+  })
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
   const [editingContent, setEditingContent] = useState("")
