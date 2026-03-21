@@ -488,27 +488,23 @@ export default function ChatRoomPage() {
         fetchMessages()
       } else {
         console.log('[handleSend] Agregando optimista:', optimisticMsg)
-        setMessages(prev => {
-          console.log('[handleSend] Estado antes de optimista:', prev.length, 'msgs')
-          return [...prev, optimisticMsg]
-        })
+        setMessages(prev => [...prev, optimisticMsg])
 
-        const sentViaWS = sendViaWebSocket(chatId, messageContent)
-        console.log('[handleSend] WebSocket result:', sentViaWS)
+        // Siempre persistir por REST (WS no garantiza persistencia)
+        const saved = await api.post<Message>('/api/chat/send', { chatId, content: messageContent })
+        console.log('[handleSend] REST response:', saved)
 
-        if (!sentViaWS) {
-          console.log('[handleSend] WS falló, usando REST')
-          const saved = await api.post<Message>('/api/chat/send', { chatId, content: messageContent })
-          console.log('[handleSend] REST response:', saved)
-          setMessages(prev => prev.map(m =>
-            (m.messageId || m.id) === optimisticId ? { ...saved, messageId: saved.messageId || saved.id } : m
-          ))
-        } else {
-          console.log('[handleSend] WS OK, esperando 800ms para fetchMessages')
-          setTimeout(() => {
-            console.log('[handleSend] Ejecutando fetchMessages post-WS')
-            fetchMessages()
-          }, 800)
+        // Reemplazar optimista con mensaje real
+        setMessages(prev => prev.map(m =>
+          (m.messageId || m.id) === optimisticId
+            ? { ...saved, messageId: saved.messageId || saved.id }
+            : m
+        ))
+
+        // Notificar al receptor por WS si está conectado
+        if (isConnected) {
+          sendViaWebSocket(chatId, messageContent)
+          console.log('[handleSend] WS notificación enviada')
         }
       }
     } catch (error) {
