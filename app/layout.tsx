@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   keywords: ['red social', 'dating app', 'app de citas', 'conocer gente', 'hacer match', 'chat', 'citas online', 'ligar', 'amor', 'amistad', 'sparkd', 'tinder', 'bumble', 'badoo'],
   authors: [{ name: 'Alex Manuel Gomez Salazar ', url: 'https://www.mysparkd.com' }],
   creator: 'Johan M. Jones Anderson y Alex Manuel Gomez Salazar',
-  publisher: 'Alex Manuel Gomez Salazar',
+  publisher: 'Johan M. Jones Anderson y Alex Manuel Gomez Salazar',
   formatDetection: {
     email: false,
     address: false,
@@ -44,7 +44,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Sparkd - Red Social y Dating App',
+    title: 'MySparkd - Red Social y Dating App',
     description: 'Conoce gente nueva, haz match y chatea. La mejor app de citas.',
     images: ['/placeholder-logo.png'],
   },
