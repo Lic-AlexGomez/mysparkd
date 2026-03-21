@@ -39,6 +39,7 @@ export default function ChatRoomPage() {
   const [uploadProgress, setUploadProgress] = useState(0)
   const [isTyping, setIsTyping] = useState(false) // typing del OTRO usuario
   const [isSelfTyping, setIsSelfTyping] = useState(false) // para enviar al backend
+  const isSelfTypingRef = useRef(false)
   const [otherUserOnline, setOtherUserOnline] = useState(false)
   const lastActivityRef = useRef<Record<string, number>>({})
   const [isRecording, setIsRecording] = useState(false)
