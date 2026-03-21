@@ -39,9 +39,12 @@ async function handler(
     }
   }
 
-  // Solo loguear en desarrollo si hay errores
   if (process.env.NODE_ENV === 'development') {
-    // console.log(`[proxy] ${request.method} ${targetUrl}`, { headers, bodyLength: body?.length })
+    if (endpoint.includes('/chat')) {
+      console.log(`[chat] ${request.method} ${endpoint}`, {
+        body: typeof body === 'string' ? body : body instanceof FormData ? '[FormData]' : body
+      })
+    }
   }
 
   try {
@@ -51,7 +54,7 @@ async function handler(
       body: body || undefined,
     })
 
-    // console.log(`[proxy] Response ${response.status}`, response.statusText)
+    console.log(`[proxy] ${request.method} ${targetUrl} → ${response.status}`)
 
     const responseHeaders = new Headers()
     const respContentType = response.headers.get("content-type")
