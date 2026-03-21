@@ -77,6 +77,14 @@ export function useWebSocket(userId: string | undefined, callbacks: WebSocketCal
           callbacksRef.current.onPresence?.(event)
         })
 
+        // ── Al conectar, emitir propio ping para que el backend
+        //    registre presencia y otros usuarios vean ONLINE ────────
+        setTimeout(() => {
+          if (client.active) {
+            client.publish({ destination: '/app/presence.ping', body: '' })
+          }
+        }, 500)
+
         // ── Typing indicator ──────────────────────────────────────
         client.subscribe('/user/queue/typing', (frame) => {
           const event = JSON.parse(frame.body) as TypingEvent
