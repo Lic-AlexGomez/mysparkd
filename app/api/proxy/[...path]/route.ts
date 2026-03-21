@@ -33,6 +33,10 @@ async function handler(
         body = await request.formData()
       } else {
         body = await request.text()
+        // Si el body es JSON y no tiene Content-Type, forzarlo
+        if (body && !headers["Content-Type"]) {
+          headers["Content-Type"] = "application/json"
+        }
       }
     } catch {
       // no body
@@ -42,6 +46,7 @@ async function handler(
   if (process.env.NODE_ENV === 'development') {
     if (endpoint.includes('/chat')) {
       console.log(`[chat] ${request.method} ${endpoint}`, {
+        contentType,
         body: typeof body === 'string' ? body : body instanceof FormData ? '[FormData]' : body
       })
     }
