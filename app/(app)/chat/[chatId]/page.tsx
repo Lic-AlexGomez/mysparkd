@@ -198,18 +198,13 @@ export default function ChatRoomPage() {
   // Scroll al fondo al cargar mensajes
   useEffect(() => {
     if (!isLoading && messages.length > 0) {
-      requestAnimationFrame(() => scrollToBottom(true))
-      setTimeout(() => scrollToBottom(true), 100)
-      setTimeout(() => scrollToBottom(true), 300)
+      scrollToBottom(true)
     }
   }, [isLoading])
 
   // Scroll al fondo cuando llegan nuevos mensajes
   useEffect(() => {
-    if (messages.length > 0) {
-      requestAnimationFrame(() => scrollToBottom(false))
-      setTimeout(() => scrollToBottom(false), 100)
-    }
+    if (messages.length > 0) scrollToBottom(false)
   }, [messages.length])
 
   // Cerrar emoji picker y reacciones al hacer clic fuera
@@ -228,8 +223,9 @@ export default function ChatRoomPage() {
   }, [showReactions])
 
   // Enviar typing al backend cuando el usuario escribe
-  useEffect(() => {
-    if (newMessage.length > 0 && isConnected) {
+  const handleTypingInput = useCallback((value: string) => {
+    setNewMessage(value)
+    if (value.length > 0 && isConnected) {
       if (!isSelfTypingRef.current) {
         isSelfTypingRef.current = true
         sendTyping(chatId)
@@ -239,7 +235,7 @@ export default function ChatRoomPage() {
         isSelfTypingRef.current = false
       }, 2000)
     }
-  }, [newMessage, isConnected, chatId, sendTyping])
+  }, [isConnected, chatId, sendTyping])
   const handleReaction = async (messageId: string, emoji: string) => {
     setMessageReactions(prev => ({
       ...prev,
@@ -1107,23 +1103,11 @@ export default function ChatRoomPage() {
               className="hidden"
               onChange={handleFileSelect}
             />
-            <input
-              ref={(el) => {
-                if (el) {
-                  el.oninput = (e) => {
-                    const val = (e.target as HTMLInputElement).value
-                    newMessageRef.current = val
-                    setNewMessage(val)
-                  }
-                }
-              }}
+            <Input
               value={newMessage}
-              onChange={(e) => {
-                newMessageRef.current = e.target.value
-                setNewMessage(e.target.value)
-              }}
+              onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Escribe un mensaje..."
-              className="flex-1 bg-muted/50 border border-primary/20 text-foreground placeholder:text-muted-foreground rounded-2xl px-4 py-2 text-sm focus:outline-none focus:border-primary/40 transition-colors"
+              className="bg-muted/50 border-primary/20 text-foreground placeholder:text-muted-foreground rounded-2xl focus:border-primary/40 transition-colors"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault()
