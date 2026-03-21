@@ -54,8 +54,10 @@ export function useWebSocket(userId: string | undefined, callbacks: WebSocketCal
     if (!token) return
 
     const client = new Client({
-      webSocketFactory: () => new SockJS(`${BACKEND_URL}/ws?token=${token}`),
-      connectHeaders: {},
+      webSocketFactory: () => new SockJS(`${BACKEND_URL}/ws`),
+      connectHeaders: {
+        Authorization: `Bearer ${token}`,
+      },
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
