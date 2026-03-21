@@ -840,17 +840,7 @@ export default function ChatRoomPage() {
                         </>
                       )
                     )}
-                    {reactions.length > 0 && (
-                      <div className={cn(
-                        "absolute -bottom-3 flex gap-0.5 bg-background border border-border rounded-full px-1.5 py-0.5 shadow-md",
-                        isOwn ? "right-2" : "left-2"
-                      )}>
-                        {reactions.map((emoji, idx) => (
-                          <span key={idx} className="text-sm leading-none">{emoji}</span>
-                        ))}
-                      </div>
-                    )}
-                    {/* Hora + check de lectura - limpio, sin botones */}
+                    {/* Hora + check de lectura */}
                     <div className="flex items-center justify-end gap-1 mt-1">
                       <p className={cn("text-[10px]", isOwn ? "text-black/50" : "text-muted-foreground")}>
                         {formatDistanceToNow(new Date(msg.sentAt + 'Z'), { addSuffix: false, locale: es })}
@@ -861,6 +851,16 @@ export default function ChatRoomPage() {
                         </span>
                       )}
                     </div>
+                    {reactions.length > 0 && (
+                      <div className={cn(
+                        "absolute -bottom-3 flex gap-0.5 bg-background border border-border rounded-full px-1.5 py-0.5 shadow-md",
+                        isOwn ? "right-2" : "left-2"
+                      )}>
+                        {reactions.map((emoji, idx) => (
+                          <span key={idx} className="text-sm leading-none">{emoji}</span>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Picker de reacciones - fuera de la burbuja */}
