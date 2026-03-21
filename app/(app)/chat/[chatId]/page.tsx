@@ -932,177 +932,40 @@ export default function ChatRoomPage() {
         </div>
       </div>
 
-      {/* Message input */}
-      <div className="border-t border-primary/20 bg-background/95 backdrop-blur-xl px-4 py-3 pb-3 lg:pb-3 shadow-lg shadow-primary/5">
-        <div className="relative">
-          {replyTo && (
-            <div className="mb-2 p-2 bg-muted/50 rounded-lg flex items-center justify-between">
-              <div className="flex-1">
-                <p className="text-xs font-semibold">Respondiendo a {replyTo.senderId === user?.userId ? 'ti mismo' : chatInfo?.otherUsername}</p>
-                <p className="text-xs opacity-70 truncate">{replyTo.content.substring(0, 50)}</p>
-              </div>
-              <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setReplyTo(null)}>
-                <X className="h-3 w-3" />
-              </Button>
-            </div>
-          )}
-          {showEmojiPicker && (
-            <div ref={emojiPickerRef} className="absolute bottom-full mb-2 right-0 z-50">
-              <EmojiPicker
-                onEmojiClick={(emojiData) => {
-                  setNewMessage(prev => prev + emojiData.emoji)
-                  setShowEmojiPicker(false)
-                }}
-              />
-            </div>
-          )}
-          {imagePreview && (
-            <div className="mb-2 relative inline-block">
-              {isUploading && (
-                <div className="absolute inset-0 bg-black/60 rounded-lg flex flex-col items-center justify-center gap-1">
-                  <span className="text-white text-xs font-bold">{uploadProgress}%</span>
-                  <div className="w-3/4 h-1.5 bg-white/30 rounded-full overflow-hidden">
-                    <div className="h-full bg-white rounded-full transition-all duration-200" style={{ width: `${uploadProgress}%` }} />
-                  </div>
-                </div>
-              )}
-              {imagePreview === 'video' ? (
-                <div className="h-20 w-32 rounded-lg bg-muted flex items-center justify-center gap-2 text-muted-foreground">
-                  <span className="text-xs">{selectedImage?.name}</span>
-                </div>
-              ) : (
-                <img src={imagePreview} alt="Preview" className="h-20 rounded-lg" />
-              )}
-              <Button
-                type="button"
-                size="icon"
-                variant="destructive"
-                className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-                onClick={handleRemoveImage}
-                disabled={isUploading}
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            </div>
-          )}
-          {filePreview && (
-            <div className="mb-2 flex flex-col gap-1 bg-muted/50 border border-primary/20 rounded-lg px-3 py-2">
-              <div className="flex items-center gap-2">
-                <Paperclip className="h-4 w-4" />
-                <span className="text-sm flex-1 truncate">{filePreview}</span>
-                <Button type="button" size="icon" variant="ghost" className="h-6 w-6" onClick={handleRemoveFile}>
-                  <X className="h-3 w-3" />
-                </Button>
-              </div>
-              {isUploading && (
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-primary rounded-full transition-all duration-200" style={{ width: `${uploadProgress}%` }} />
-                  </div>
-                  <span className="text-xs text-muted-foreground">{uploadProgress}%</span>
-                </div>
-              )}
-            </div>
-          )}
-          {isRecording && (
-            <div className="mb-2 flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
-              <div className="h-3 w-3 bg-red-500 rounded-full animate-pulse" />
-              <span className="text-sm font-medium text-red-500 flex-1">
-                Grabando... {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
-              </span>
-              <Button
-                type="button"
-                size="sm"
-                variant="destructive"
-                onClick={stopRecording}
-              >
-                Detener
-              </Button>
-            </div>
-          )}
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              className="h-10 w-10 rounded-2xl text-muted-foreground hover:text-foreground hover:bg-muted/50"
-            >
-              <Smile className="h-5 w-5" />
-              <span className="sr-only">Emojis</span>
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => fileInputRef.current?.click()}
-              className="h-10 w-10 rounded-2xl text-muted-foreground hover:text-foreground hover:bg-muted/50"
-            >
-              <ImageIcon className="h-5 w-5" />
-              <span className="sr-only">Imagen</span>
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={isRecording ? stopRecording : startRecording}
-              className={cn(
-                "h-10 w-10 rounded-2xl text-muted-foreground hover:text-foreground hover:bg-muted/50",
-                isRecording && "bg-red-500 text-white animate-pulse"
-              )}
-            >
-              <Mic className="h-5 w-5" />
-              <span className="sr-only">Audio</span>
-            </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*,image/gif,video/*"
-              className="hidden"
-              onChange={handleImageSelect}
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => fileInputRefDoc.current?.click()}
-              className="h-10 w-10 rounded-2xl text-muted-foreground hover:text-foreground hover:bg-muted/50"
-              title="Compartir archivo"
-            >
-              <Paperclip className="h-5 w-5" />
-              <span className="sr-only">Archivo</span>
-            </Button>
-            <input
-              ref={fileInputRefDoc}
-              type="file"
-              accept="image/*,video/*,audio/*,application/pdf"
-              className="hidden"
-              onChange={handleFileSelect}
-            />
-            <Input
-              value={newMessage}
-              onChange={(e) => handleTypingInput(e.target.value)}
-              placeholder="Escribe un mensaje..."
-              className="bg-muted/50 border-primary/20 text-foreground placeholder:text-muted-foreground rounded-2xl focus:border-primary/40 transition-colors"
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault()
-                  handleSend()
-                }
-              }}
-            />
-            <Button
-              onClick={handleSend}
-              disabled={isSending || isUploading || (!newMessage.trim() && !selectedImage && !selectedFile)}
-              size="icon"
-              className="h-10 w-10 rounded-2xl bg-gradient-to-br from-primary to-secondary text-black hover:scale-110 transition-transform shadow-lg disabled:opacity-50 disabled:hover:scale-100"
-            >
-              {isUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
-              <span className="sr-only">Enviar</span>
-            </Button>
-          </div>
-        </div>
-      </div>
+      <ChatInput
+        onSend={(content) => {
+          setNewMessage(content)
+          setTimeout(() => handleSend(), 0)
+        }}
+        onTyping={handleTypingInput}
+        onImageSelect={(file) => {
+          setSelectedImage(file)
+          if (file.type.startsWith('image/')) {
+            const reader = new FileReader()
+            reader.onloadend = () => setImagePreview(reader.result as string)
+            reader.readAsDataURL(file)
+          } else {
+            setImagePreview('video')
+          }
+        }}
+        onFileSelect={(file) => { setSelectedFile(file); setFilePreview(file.name) }}
+        onStartRecording={startRecording}
+        onStopRecording={stopRecording}
+        isRecording={isRecording}
+        recordingTime={recordingTime}
+        isSending={isSending}
+        isUploading={isUploading}
+        uploadProgress={uploadProgress}
+        imagePreview={imagePreview}
+        filePreview={filePreview}
+        selectedImage={selectedImage}
+        replyTo={replyTo}
+        onCancelReply={() => setReplyTo(null)}
+        onRemoveImage={handleRemoveImage}
+        onRemoveFile={handleRemoveFile}
+        otherUsername={chatInfo?.otherUsername}
+        userId={user?.userId}
+      />
     </div>
   )
 }
