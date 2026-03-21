@@ -490,19 +490,24 @@ export default function ChatRoomPage() {
         console.log('[handleSend] Agregando optimista:', optimisticMsg)
         setMessages(prev => [...prev, optimisticMsg])
 
-        // El backend espera multipart/form-data con campo 'message' como JSON string
-        const formData = new FormData()
-        formData.append('message', JSON.stringify({ chatId, content: messageContent }))
-        const saved = await api.post<Message>('/api/chat/send', formData)
-        console.log('[handleSend] REST response:', saved)
+        // Enviar por WS — el backend ahora confirma al remitente por /queue/messages
+        const sentViaWS = sendViaWebSocket(chatId, messageContent)
+        console.log('[handleSend] WebSocket result:', sentViaWS)
 
-        setMessages(prev => prev.map(m =>
-          (m.messageId || m.id) === optimisticId
-            ? { ...saved, messageId: saved.messageId || saved.id }
-            : m
-        ))
-
-        if (isConnected) sendViaWebSocket(chatId, messageContent)
+        if (!sentViaWS) {
+          // Fallback REST solo si WS no está conectado
+          const formData = new FormData()
+          formData.append('message', JSON.stringify({ chatId, content: messageContent }))
+          const saved = await api.post<Message>('/api/chat/send', formData)
+          console.log('[handleSend] REST response:', saved)
+          setMessages(prev => prev.map(m =>
+            (m.messageId || m.id) === optimisticId
+              ? { ...saved, messageId: saved.messageId || (saved as any).id }
+              : m
+          ))
+        }
+        // Si WS OK: el backend envia confirmacion por /queue/messages al remitente
+        // wsCallbacksRef.onMessage reemplazara el optimista automaticamente
       }
     } catch (error) {
       console.error('[handleSend] ERROR:', error)
