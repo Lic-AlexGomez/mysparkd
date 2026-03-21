@@ -228,10 +228,11 @@ export default function ChatRoomPage() {
     }
   }, [isConnected, chatId, sendTyping])
   const handleReaction = async (messageId: string, emoji: string) => {
-    setMessageReactions(prev => ({
-      ...prev,
-      [messageId]: prev[messageId] === emoji ? '' : emoji
-    }))
+    setMessageReactions(prev => {
+      const current = prev[messageId]
+      // Si es la misma reacción, quitarla. Si es diferente, reemplazar
+      return { ...prev, [messageId]: current === emoji ? '' : emoji }
+    })
     setShowReactions(null)
   }
 
