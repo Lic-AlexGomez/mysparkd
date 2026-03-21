@@ -29,6 +29,7 @@ export default function ChatRoomPage() {
   const chatId = params.chatId as string
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState("")
+  const newMessageRef = useRef("")
   const [isLoading, setIsLoading] = useState(true)
   const [isSending, setIsSending] = useState(false)
   const [chatInfo, setChatInfo] = useState<Chat | null>(null)
