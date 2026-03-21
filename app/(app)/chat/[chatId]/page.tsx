@@ -101,7 +101,11 @@ export default function ChatRoomPage() {
       })
     },
     onPresence: (event: any) => {
-      if (event.userId === otherUserIdRef.current) {
+      // El backend puede enviar userId como UUID object o string
+      const eventUserId = event.userId?.toString ? event.userId.toString() : String(event.userId)
+      const otherId = otherUserIdRef.current
+      console.log('[onPresence] event.userId:', eventUserId, '| otherUserId:', otherId, '| status:', event.status)
+      if (otherId && eventUserId === otherId) {
         setOtherUserOnline(event.status === 'ONLINE')
       }
     },
