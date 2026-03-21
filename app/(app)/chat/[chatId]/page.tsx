@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 import { api } from "@/lib/api"
@@ -294,14 +294,15 @@ export default function ChatRoomPage() {
     setDeletedMessages(prev => new Set(prev).add(msgId))
   }
 
-  const filteredMessages = searchQuery
+  const filteredMessages = useMemo(() => searchQuery
     ? messages.filter(msg => !deletedMessages.has(msg.messageId || msg.id || '') && msg.content.toLowerCase().includes(searchQuery.toLowerCase()))
     : messages.filter(msg => !deletedMessages.has(msg.messageId || msg.id || ''))
+  , [messages, deletedMessages, searchQuery])
 
-  const mediaMessages = messages.filter(msg => {
+  const mediaMessages = useMemo(() => messages.filter(msg => {
     const content = msg.content.startsWith('@reply:') ? msg.content.split('|')[1] : msg.content
     return content?.startsWith('http') && (content.includes('cloudinary.com') || content.match(/\.(jpg|jpeg|png|gif|webp)$/i))
-  })
+  }), [messages])
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
