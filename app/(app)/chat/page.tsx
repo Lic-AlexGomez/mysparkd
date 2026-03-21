@@ -16,6 +16,7 @@ export default function ChatListPage() {
   const { user } = useAuth()
   const [chats, setChats] = useState<Chat[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set())
   const fetchChatsRef = useRef<() => void>(() => {})
 
   const fetchChats = useCallback(async () => {
@@ -59,6 +60,15 @@ export default function ChatListPage() {
   const wsCallbacksRef = useRef({
     onChatUpdated: (_chatId: string) => {
       fetchChatsRef.current()
+    },
+    onPresence: (event: any) => {
+      const userId = event.userId?.toString ? event.userId.toString() : String(event.userId)
+      setOnlineUsers(prev => {
+        const next = new Set(prev)
+        if (event.status === 'ONLINE') next.add(userId)
+        else next.delete(userId)
+        return next
+      })
     },
   })
 
@@ -106,12 +116,17 @@ export default function ChatListPage() {
                 className="relative overflow-hidden flex items-center gap-4 p-4 bg-gradient-to-br from-card to-muted/20 rounded-2xl border border-primary/10 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 group"
               >
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/5 to-transparent rounded-full blur-2xl" />
-                <Avatar className="h-14 w-14 border-2 border-primary/30 ring-4 ring-primary/10 group-hover:scale-110 transition-transform relative z-10">
-                  <AvatarImage src={chat.otherUserPhoto} alt={chat.otherUsername} className="object-cover" />
-                  <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-bold">
-                    {chat.otherUsername?.[0]?.toUpperCase() || "?"}
-                  </AvatarFallback>
-                </Avatar>
+                <div className="relative">
+                  <Avatar className="h-14 w-14 border-2 border-primary/30 ring-4 ring-primary/10 group-hover:scale-110 transition-transform relative z-10">
+                    <AvatarImage src={chat.otherUserPhoto} alt={chat.otherUsername} className="object-cover" />
+                    <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-bold">
+                      {chat.otherUsername?.[0]?.toUpperCase() || "?"}
+                    </AvatarFallback>
+                  </Avatar>
+                  {onlineUsers.has(chat.otherUserId) && (
+                    <span className="absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full bg-green-500 border-2 border-background z-20" />
+                  )}
+                </div>
                 <div className="flex-1 min-w-0 relative z-10">
                   <div className="flex items-center justify-between mb-1">
                     <span
