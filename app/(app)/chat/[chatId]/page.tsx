@@ -229,14 +229,16 @@ export default function ChatRoomPage() {
   // Enviar typing al backend cuando el usuario escribe
   useEffect(() => {
     if (newMessage.length > 0 && isConnected) {
-      if (!isSelfTyping) {
-        setIsSelfTyping(true)
+      if (!isSelfTypingRef.current) {
+        isSelfTypingRef.current = true
         sendTyping(chatId)
       }
       if (selfTypingTimeoutRef.current) clearTimeout(selfTypingTimeoutRef.current)
-      selfTypingTimeoutRef.current = setTimeout(() => setIsSelfTyping(false), 2000)
+      selfTypingTimeoutRef.current = setTimeout(() => {
+        isSelfTypingRef.current = false
+      }, 2000)
     }
-  }, [newMessage, isConnected, chatId, sendTyping, isSelfTyping])
+  }, [newMessage, isConnected, chatId, sendTyping])
 
   const handleReaction = async (messageId: string, emoji: string) => {
     setMessageReactions(prev => ({
