@@ -1,0 +1,162 @@
+PROBLEMA
+========
+El indicador de presencia (punto verde/rojo) en la pantalla de Mensajes no es consistente
+entre usuarios. Si el usuario A ya estaba conectado cuando el usuario B abre la app,
+B nunca recibe el evento ONLINE de A porque ese evento ya se emitió antes de que B
+se suscribiera a /topic/presence.
+
+CAUSA
+=====
+El backend emite ONLINE en /topic/presence solo en el momento de conexión.
+No hay forma de consultar el estado actual de presencia al conectarse.
+
+SOLUCIÓN REQUERIDA
+==================
+En WebSocketEventListener.java, dentro del método handleConnect(), después de llamar
+a presenceService.userConnected(userId) y emitir el evento ONLINE global, agregar
+lógica para enviar al usuario recién conectado un snapshot con el estado de presencia
+actual de todos sus matches.
+
+El snapshot debe enviarse por: /user/queue/presence-snapshot
+El payload es una List<PresenceDTO> (ya existe esta clase en el proyecto).
+
+CÓDIGO A AGREGAR EN WebSocketEventListener.java
+================================================
+
+1. Agregar estas dependencias en el constructor (ya existen en el proyecto):
+   - MatchRepository matchRepository
+   - UsersRepository usersRepository
+
+2. Dentro de handleConnect(), después de emitir el ONLINE global, agregar:
+
+    usersRepository.findById(userId).ifPresent(user -> {
+        List<Match> matches = matchRepository.findByUser(user);
+        List<PresenceDTO> snapshot = matches.stream()
+            .map(m -> m.getUser1().getUserId().equals(userId) ? m.getUser2() : m.getUser1())
+            .map(other -> new PresenceDTO(
+                    other.getUserId(),
+                    presenceService.isOnline(other.getUserId()) ? "ONLINE" : "OFFLINE"))
+            .toList();
+        messagingTemplate.convertAndSendToUser(
+                userId.toString(),
+                "/queue/presence-snapshot",
+                snapshot
+        );
+    });
+
+IMPORTS NECESARIOS (ya existen en el proyecto)
+===============================================
+import sparkd.Model.Match;
+import sparkd.Model.Users;
+import sparkd.Repository.MatchRepository;
+import sparkd.Repository.UsersRepository;
+import java.util.List;
+
+ARCHIVO COMPLETO RESULTANTE: WebSocketEventListener.java
+=========================================================
+
+package sparkd.Config;
+
+import org.springframework.context.event.EventListener;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
+import org.springframework.stereotype.Component;
+import org.springframework.web.socket.messaging.SessionConnectedEvent;
+import org.springframework.web.socket.messaging.SessionDisconnectEvent;
+
+import sparkd.DTOs.PresenceDTO;
+import sparkd.Service.UserPresenceService;
+import sparkd.Model.Match;
+import sparkd.Model.Users;
+import sparkd.Repository.MatchRepository;
+import sparkd.Repository.UsersRepository;
+
+import java.util.List;
+import java.util.UUID;
+
+@Component
+public class WebSocketEventListener {
+
+    private final UserPresenceService presenceService;
+    private final SimpMessagingTemplate messagingTemplate;
+    private final MatchRepository matchRepository;
+    private final UsersRepository usersRepository;
+
+    public WebSocketEventListener(
+            UserPresenceService presenceService,
+            SimpMessagingTemplate messagingTemplate,
+            MatchRepository matchRepository,
+            UsersRepository usersRepository
+    ) {
+        this.presenceService = presenceService;
+        this.messagingTemplate = messagingTemplate;
+        this.matchRepository = matchRepository;
+        this.usersRepository = usersRepository;
+    }
+
+    @EventListener
+    public void handleConnect(SessionConnectedEvent event) {
+
+        StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
+
+        if (accessor.getUser() != null) {
+            UUID userId = UUID.fromString(accessor.getUser().getName());
+
+            presenceService.userConnected(userId);
+
+            // Emitir ONLINE al topic global para que otros usuarios lo vean
+            messagingTemplate.convertAndSend(
+                    "/topic/presence",
+                    new PresenceDTO(userId, "ONLINE")
+            );
+
+            // Enviar snapshot de presencia al usuario recién conectado
+            // para que vea el estado actual de sus matches sin esperar eventos futuros
+            usersRepository.findById(userId).ifPresent(user -> {
+                List<Match> matches = matchRepository.findByUser(user);
+                List<PresenceDTO> snapshot = matches.stream()
+                    .map(m -> m.getUser1().getUserId().equals(userId) ? m.getUser2() : m.getUser1())
+                    .map(other -> new PresenceDTO(
+                            other.getUserId(),
+                            presenceService.isOnline(other.getUserId()) ? "ONLINE" : "OFFLINE"))
+                    .toList();
+                messagingTemplate.convertAndSendToUser(
+                        userId.toString(),
+                        "/queue/presence-snapshot",
+                        snapshot
+                );
+            });
+
+            System.out.println("User connected: " + userId);
+        }
+    }
+
+    @EventListener
+    public void handleDisconnect(SessionDisconnectEvent event) {
+
+        StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
+
+        if (accessor.getUser() != null) {
+            UUID userId = UUID.fromString(accessor.getUser().getName());
+
+            presenceService.userDisconnected(userId);
+
+            if (!presenceService.isOnline(userId)) {
+                messagingTemplate.convertAndSend(
+                        "/topic/presence",
+                        new PresenceDTO(userId, "OFFLINE")
+                );
+            }
+
+            System.out.println("User disconnected: " + userId);
+        }
+    }
+}
+
+NOTAS
+=====
+- No se modifica ningún otro archivo del backend.
+- MatchRepository.findByUser() ya existe en el proyecto.
+- UserPresenceService.isOnline() ya existe en el proyecto.
+- PresenceDTO ya existe en el proyecto.
+- El frontend ya está preparado para recibir este snapshot en /user/queue/presence-snapshot.
