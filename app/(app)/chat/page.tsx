@@ -77,6 +77,7 @@ export default function ChatListPage() {
       fetchChatsRef.current()
     },
     onPresence: (event: any) => {
+      console.log('[presence WS event raw]', JSON.stringify(event))
       const userId = event.userId?.toString ? event.userId.toString() : String(event.userId)
       setOnlineUsers(prev => {
         const next = new Set(prev)
