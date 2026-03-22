@@ -85,6 +85,7 @@ export default function ChatRoomPage() {
   const chatIdRef = useRef(chatId)
   const userIdRef = useRef(user?.userId)
   const otherUserIdRef = useRef<string | undefined>(undefined)
+  const sendSeenRef = useRef<(chatId: string) => void>(() => {})
   useEffect(() => { chatIdRef.current = chatId }, [chatId])
   useEffect(() => { userIdRef.current = user?.userId }, [user?.userId])
   useEffect(() => { otherUserIdRef.current = chatInfo?.otherUserId }, [chatInfo?.otherUserId])
@@ -110,8 +111,7 @@ export default function ChatRoomPage() {
       if (newMessage.chatId !== chatIdRef.current) return
       if (newMessage.senderId !== userIdRef.current) {
         setOtherUserOnline(true)
-        // Marcar como leído en tiempo real si estoy viendo este chat
-        sendSeen(chatIdRef.current)
+        sendSeenRef.current(chatIdRef.current)
       }
       setMessages(prev => {
         const newId = newMessage.messageId || newMessage.id
@@ -140,6 +140,9 @@ export default function ChatRoomPage() {
     user?.userId,
     wsCallbacksRef.current
   )
+
+  // Mantener ref de sendSeen actualizada para usarla en callbacks del WS
+  useEffect(() => { sendSeenRef.current = sendSeen }, [sendSeen])
 
   const fetchMessages = useCallback(async () => {
     try {
