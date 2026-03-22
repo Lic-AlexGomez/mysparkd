@@ -1,0 +1,107 @@
+PROBLEMA
+========
+MessageResponseDTO no expone el campo "read" del modelo Message.
+El frontend siempre recibe read: undefined, por lo que los ticks de
+lectura (✓ / ✓✓ / ✓✓ azul) no funcionan correctamente.
+
+CAMBIO REQUERIDO — solo 1 archivo: MessageResponseDTO.java
+==========================================================
+
+Agregar el campo "read" al DTO y exponerlo en el constructor
+y en todos los lugares donde se construye el DTO.
+
+ARCHIVO: src/main/java/sparkd/DTOs/MessageResponseDTO.java
+----------------------------------------------------------
+
+1. Agregar campo:
+   private boolean read;
+
+2. Agregar al constructor existente el parámetro "boolean read"
+
+3. Agregar getter:
+   public boolean isRead() { return read; }
+
+ARCHIVO COMPLETO RESULTANTE:
+-----------------------------
+
+package sparkd.DTOs;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
+import sparkd.Enums.MediaType;
+
+public class MessageResponseDTO {
+
+    private UUID id;
+    private UUID chatId;
+    private UUID senderId;
+    private UUID receiverId;
+    private String content;
+    private LocalDateTime sentAt;
+    private MediaType mediaType;
+    private MediaDTO media;
+    private boolean read;   // <-- NUEVO
+
+    public MessageResponseDTO(
+            UUID id,
+            UUID chatId,
+            UUID senderId,
+            UUID receiverId,
+            String content,
+            LocalDateTime sentAt,
+            MediaType mediaType,
+            boolean read        // <-- NUEVO
+    ) {
+        this.id = id;
+        this.chatId = chatId;
+        this.senderId = senderId;
+        this.receiverId = receiverId;
+        this.content = content;
+        this.sentAt = sentAt;
+        this.mediaType = mediaType;
+        this.read = read;       // <-- NUEVO
+    }
+
+    public UUID getId() { return id; }
+    public UUID getChatId() { return chatId; }
+    public UUID getSenderId() { return senderId; }
+    public UUID getReceiverId() { return receiverId; }
+    public String getContent() { return content; }
+    public LocalDateTime getSentAt() { return sentAt; }
+    public MediaType getMediaType() { return mediaType; }
+    public MediaDTO getMedia() { return media; }
+    public void setMedia(MediaDTO media) { this.media = media; }
+    public boolean isRead() { return read; }   // <-- NUEVO
+}
+
+
+ARCHIVO: src/main/java/sparkd/Service/ChatService.java
+------------------------------------------------------
+En los 2 lugares donde se construye MessageResponseDTO, agregar
+msg.isRead() como último argumento:
+
+1. En sendMessage():
+   MessageResponseDTO response = new MessageResponseDTO(
+       msg.getId(),
+       chat.getId(),
+       sender.getUserId(),
+       receiver.getUserId(),
+       msg.getContent(),
+       msg.getSentAt(),
+       msg.getMediaType(),
+       msg.isRead()           // <-- NUEVO (siempre false al enviar)
+   );
+
+2. En getMessages() dentro del .map():
+   MessageResponseDTO dto = new MessageResponseDTO(
+       m.getId(),
+       chat.getId(),
+       m.getSender().getUserId(),
+       receiverId,
+       m.getContent(),
+       m.getSentAt(),
+       m.getMediaType(),
+       m.isRead()             // <-- NUEVO
+   );
+
+ESO ES TODO. No se modifica ningún otro archivo.
