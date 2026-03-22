@@ -60,7 +60,7 @@ export function useLocalFeed(radiusKm: number = 50) {
         })
       )
       
-      console.log('Fotos de usuarios obtenidas (feed local):', userPhotosMap)
+      //console.log('Fotos de usuarios obtenidas (feed local):', userPhotosMap)
       
       // Normalizar las fechas y campos de los posts
       const normalizedPosts = data.map((item: any) => {
