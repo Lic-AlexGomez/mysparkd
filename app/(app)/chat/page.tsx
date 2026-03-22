@@ -79,7 +79,9 @@ export default function ChatListPage() {
       console.log('[presence WS event raw]', JSON.stringify(event))
       const userId = event.userId?.toString ? event.userId.toString() : String(event.userId)
       api.get<any>(`/api/presence/${userId}`).then(res => {
+        console.log('[presence REST confirm]', res)
         setOnlineUsers(prev => {
+          console.log('[presence current chats otherUserIds]', [...prev])
           const next = new Set(prev)
           if (res.status === 'ONLINE') next.add(res.userId)
           else next.delete(res.userId)
