@@ -856,8 +856,15 @@ export default function ChatRoomPage() {
                         {formatDistanceToNow(new Date(msg.sentAt + 'Z'), { addSuffix: false, locale: es })}
                       </p>
                       {isOwn && (
-                        <span className={cn("text-[10px]", msg.read ? "text-blue-400" : "text-black/40")}>
-                          {msg.read ? "✓✓" : "✓"}
+                        <span className={cn(
+                          "text-[10px]",
+                          msg.read
+                            ? "text-blue-400"           // ✓✓ azul — visto
+                            : msgId.startsWith('optimistic-')
+                              ? "text-black/40"         // ✓ — enviando
+                              : "text-black/40"         // ✓✓ gris — entregado
+                        )}>
+                          {msgId.startsWith('optimistic-') ? "✓" : msg.read ? "✓✓" : "✓✓"}
                         </span>
                       )}
                     </div>
