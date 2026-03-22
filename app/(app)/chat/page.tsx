@@ -71,16 +71,13 @@ export default function ChatListPage() {
     fetchChatsRef.current = fetchChats
   }, [fetchChats])
 
-  // Refrescar lista cuando llega un mensaje nuevo en cualquier chat
-  const wsCallbacksRef = useRef({
+  const wsCallbacks = {
     onChatUpdated: (_chatId: string) => {
       fetchChatsRef.current()
     },
     onPresence: (event: any) => {
       console.log('[presence WS event raw]', JSON.stringify(event))
       const userId = event.userId?.toString ? event.userId.toString() : String(event.userId)
-      const status = event.status?.toUpperCase()
-      // Verificar via REST para confirmar el estado real
       api.get<any>(`/api/presence/${userId}`).then(res => {
         setOnlineUsers(prev => {
           const next = new Set(prev)
@@ -89,10 +86,9 @@ export default function ChatListPage() {
           return next
         })
       }).catch(() => {
-        // fallback al evento WS
         setOnlineUsers(prev => {
           const next = new Set(prev)
-          if (status === 'ONLINE') next.add(userId)
+          if (event.status?.toUpperCase() === 'ONLINE') next.add(userId)
           else next.delete(userId)
           return next
         })
@@ -105,9 +101,9 @@ export default function ChatListPage() {
           .map(e => e.userId?.toString ? e.userId.toString() : String(e.userId))
       ))
     },
-  })
+  }
 
-  useWebSocket(user?.userId, wsCallbacksRef.current)
+  useWebSocket(user?.userId, wsCallbacks)
 
   useEffect(() => {
     fetchChats()
