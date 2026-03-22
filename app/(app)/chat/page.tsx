@@ -19,6 +19,20 @@ export default function ChatListPage() {
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set())
   const fetchChatsRef = useRef<() => void>(() => {})
 
+  const refreshPresence = useCallback(async (chatList: Chat[]) => {
+    if (chatList.length === 0) return
+    const results = await Promise.allSettled(
+      chatList.map(chat => api.get<any>(`/api/presence/${chat.otherUserId}`))
+    )
+    const onlineSet = new Set<string>()
+    results.forEach((result, i) => {
+      if (result.status === 'fulfilled' && result.value.status === 'ONLINE') {
+        onlineSet.add(chatList[i].otherUserId)
+      }
+    })
+    setOnlineUsers(onlineSet)
+  }, [])
+
   const fetchChats = useCallback(async () => {
     try {
       const data = await chatService.getMyChats()
@@ -44,29 +58,13 @@ export default function ChatListPage() {
       })
 
       setChats(sorted)
-
-      // Consultar presencia actual de todos los usuarios via REST
       await refreshPresence(sorted)
     } catch {
       // silent
     } finally {
       setIsLoading(false)
     }
-  }, [])
-
-  const refreshPresence = useCallback(async (chatList: Chat[]) => {
-    if (chatList.length === 0) return
-    const results = await Promise.allSettled(
-      chatList.map(chat => api.get<any>(`/api/presence/${chat.otherUserId}`))
-    )
-    const onlineSet = new Set<string>()
-    results.forEach((result, i) => {
-      if (result.status === 'fulfilled' && result.value.status === 'ONLINE') {
-        onlineSet.add(chatList[i].otherUserId)
-      }
-    })
-    setOnlineUsers(onlineSet)
-  }, [])
+  }, [refreshPresence])
 
   // Mantener ref actualizada para usarla dentro del callback del WS
   useEffect(() => {
