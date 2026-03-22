@@ -108,9 +108,10 @@ export default function ChatRoomPage() {
     },
     onMessage: (newMessage: Message) => {
       if (newMessage.chatId !== chatIdRef.current) return
-      // Si recibimos un mensaje del otro, está online
       if (newMessage.senderId !== userIdRef.current) {
         setOtherUserOnline(true)
+        // Marcar como leído en tiempo real si estoy viendo este chat
+        sendSeen(chatIdRef.current)
       }
       setMessages(prev => {
         const newId = newMessage.messageId || newMessage.id

@@ -70,6 +70,13 @@ export default function ChatListPage() {
         return next
       })
     },
+    onPresenceSnapshot: (events: any[]) => {
+      setOnlineUsers(new Set(
+        events
+          .filter(e => e.status === 'ONLINE')
+          .map(e => e.userId?.toString ? e.userId.toString() : String(e.userId))
+      ))
+    },
   })
 
   useWebSocket(user?.userId, wsCallbacksRef.current)
