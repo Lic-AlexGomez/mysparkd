@@ -86,9 +86,22 @@ export default function ChatRoomPage() {
   const userIdRef = useRef(user?.userId)
   const otherUserIdRef = useRef<string | undefined>(undefined)
   const sendSeenRef = useRef<(chatId: string) => void>(() => {})
+  const pendingSnapshotRef = useRef<any[] | null>(null)
   useEffect(() => { chatIdRef.current = chatId }, [chatId])
   useEffect(() => { userIdRef.current = user?.userId }, [user?.userId])
-  useEffect(() => { otherUserIdRef.current = chatInfo?.otherUserId }, [chatInfo?.otherUserId])
+  useEffect(() => {
+    otherUserIdRef.current = chatInfo?.otherUserId
+    // procesar snapshot pendiente si ya tenemos el otherUserId
+    if (chatInfo?.otherUserId && pendingSnapshotRef.current) {
+      const events = pendingSnapshotRef.current
+      pendingSnapshotRef.current = null
+      const found = events.find(e => {
+        const id = e.userId?.toString ? e.userId.toString() : String(e.userId)
+        return id === chatInfo.otherUserId
+      })
+      if (found) setOtherUserOnline(found.status === 'ONLINE')
+    }
+  }, [chatInfo?.otherUserId])
 
   const wsCallbacksRef = useRef({
     onPresence: (event: any) => {
@@ -97,6 +110,19 @@ export default function ChatRoomPage() {
       if (otherId && eventUserId === otherId) {
         setOtherUserOnline(event.status === 'ONLINE')
       }
+    },
+    onPresenceSnapshot: (events: any[]) => {
+      const otherId = otherUserIdRef.current
+      if (!otherId) {
+        // chatInfo aún no cargó, guardar para procesar después
+        pendingSnapshotRef.current = events
+        return
+      }
+      const found = events.find(e => {
+        const id = e.userId?.toString ? e.userId.toString() : String(e.userId)
+        return id === otherId
+      })
+      if (found) setOtherUserOnline(found.status === 'ONLINE')
     },
     onTyping: (event: any) => {
       if (event.chatId !== chatIdRef.current) return
