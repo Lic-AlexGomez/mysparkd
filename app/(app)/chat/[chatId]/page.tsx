@@ -206,6 +206,9 @@ export default function ChatRoomPage() {
         try {
           const presence = await api.get<any>(`/api/presence/${current.otherUserId}`)
           setOtherUserOnline(presence.status === 'ONLINE')
+          if (presence.status !== 'ONLINE') {
+            setOtherUserLastSeen(presence.lastSeen || null)
+          }
         } catch {
           // silent
         }
