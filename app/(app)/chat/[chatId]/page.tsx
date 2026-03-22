@@ -99,7 +99,7 @@ export default function ChatRoomPage() {
         const id = e.userId?.toString ? e.userId.toString() : String(e.userId)
         return id === chatInfo.otherUserId
       })
-      if (found) setOtherUserOnline(found.status === 'ONLINE')
+      if (found) setOtherUserOnline(found.status?.toUpperCase() === 'ONLINE')
     }
   }, [chatInfo?.otherUserId])
 
@@ -108,13 +108,12 @@ export default function ChatRoomPage() {
       const eventUserId = event.userId?.toString ? event.userId.toString() : String(event.userId)
       const otherId = otherUserIdRef.current
       if (otherId && eventUserId === otherId) {
-        setOtherUserOnline(event.status === 'ONLINE')
+        setOtherUserOnline(event.status?.toUpperCase() === 'ONLINE')
       }
     },
     onPresenceSnapshot: (events: any[]) => {
       const otherId = otherUserIdRef.current
       if (!otherId) {
-        // chatInfo aún no cargó, guardar para procesar después
         pendingSnapshotRef.current = events
         return
       }
@@ -122,7 +121,7 @@ export default function ChatRoomPage() {
         const id = e.userId?.toString ? e.userId.toString() : String(e.userId)
         return id === otherId
       })
-      if (found) setOtherUserOnline(found.status === 'ONLINE')
+      if (found) setOtherUserOnline(found.status?.toUpperCase() === 'ONLINE')
     },
     onTyping: (event: any) => {
       if (event.chatId !== chatIdRef.current) return
@@ -135,7 +134,10 @@ export default function ChatRoomPage() {
     },
     onMessage: (newMessage: Message) => {
       if (newMessage.chatId !== chatIdRef.current) return
-      if (newMessage.senderId !== userIdRef.current) {
+      // solo marcar online si el mensaje es del OTRO usuario, no del propio
+      const senderId = newMessage.senderId?.toString ? newMessage.senderId.toString() : String(newMessage.senderId)
+      const myId = userIdRef.current?.toString ? userIdRef.current.toString() : String(userIdRef.current)
+      if (senderId !== myId) {
         setOtherUserOnline(true)
         sendSeenRef.current(chatIdRef.current)
       }

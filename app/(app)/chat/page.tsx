@@ -65,7 +65,7 @@ export default function ChatListPage() {
       const userId = event.userId?.toString ? event.userId.toString() : String(event.userId)
       setOnlineUsers(prev => {
         const next = new Set(prev)
-        if (event.status === 'ONLINE') next.add(userId)
+        if (event.status?.toUpperCase() === 'ONLINE') next.add(userId)
         else next.delete(userId)
         return next
       })
@@ -73,7 +73,7 @@ export default function ChatListPage() {
     onPresenceSnapshot: (events: any[]) => {
       setOnlineUsers(new Set(
         events
-          .filter(e => e.status === 'ONLINE')
+          .filter(e => e.status?.toUpperCase() === 'ONLINE')
           .map(e => e.userId?.toString ? e.userId.toString() : String(e.userId))
       ))
     },
