@@ -102,6 +102,14 @@ export default function ChatListPage() {
     fetchChats()
   }, [fetchChats])
 
+  // Refrescar presencia cada 30s para detectar desconexiones
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setChats(prev => { refreshPresence(prev); return prev })
+    }, 30_000)
+    return () => clearInterval(interval)
+  }, [refreshPresence])
+
   if (isLoading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
