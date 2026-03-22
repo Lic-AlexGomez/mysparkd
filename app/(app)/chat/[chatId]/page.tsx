@@ -613,6 +613,10 @@ export default function ChatRoomPage() {
               <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
               En línea
             </p>
+          ) : otherUserLastSeen ? (
+            <p className="text-xs text-muted-foreground">
+              visto {formatDistanceToNow(new Date(otherUserLastSeen), { addSuffix: true, locale: es })}
+            </p>
           ) : null}
         </div>
         <div className="flex gap-2">
