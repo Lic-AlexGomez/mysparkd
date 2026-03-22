@@ -43,6 +43,7 @@ export default function ChatRoomPage() {
   const [isSelfTyping, setIsSelfTyping] = useState(false) // para enviar al backend
   const isSelfTypingRef = useRef(false)
   const [otherUserOnline, setOtherUserOnline] = useState(false)
+  const [otherUserLastSeen, setOtherUserLastSeen] = useState<string | null>(null)
   const lastActivityRef = useRef<Record<string, number>>({})
   const [isRecording, setIsRecording] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
