@@ -299,6 +299,7 @@ export interface Chat {
   lastMessage: string | null
   lastMessageAt: string | null
   unread?: number
+  otherUserLastSeen?: string | null
 }
 
 export interface Message {
