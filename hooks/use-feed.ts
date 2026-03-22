@@ -33,7 +33,7 @@ export function useFeed() {
         })
       )
       
-      console.log('Fotos de usuarios obtenidas:', userPhotosMap)
+      //console.log('Fotos de usuarios obtenidas:', userPhotosMap)
       
       // Normalizar posts con reacciones y fotos
     
