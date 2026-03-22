@@ -169,7 +169,10 @@ export default function MatchesPage() {
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-bold text-xl text-foreground truncate">
+                        <h3
+                          className="font-bold text-xl text-foreground truncate cursor-pointer hover:text-primary hover:underline"
+                          onClick={() => router.push(`/profile/${match.userId}`)}
+                        >
                           {match.nombre}{match.apellidos ? ` ${match.apellidos}` : ''}
                         </h3>
                         {match.edad && (
