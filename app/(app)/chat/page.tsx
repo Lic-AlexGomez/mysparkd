@@ -44,6 +44,18 @@ export default function ChatListPage() {
       })
 
       setChats(sorted)
+
+      // Consultar presencia actual de todos los usuarios via REST
+      const presenceResults = await Promise.allSettled(
+        sorted.map(chat => api.get<any>(`/api/presence/${chat.otherUserId}`))
+      )
+      const onlineSet = new Set<string>()
+      presenceResults.forEach((result, i) => {
+        if (result.status === 'fulfilled' && result.value.status === 'ONLINE') {
+          onlineSet.add(sorted[i].otherUserId)
+        }
+      })
+      setOnlineUsers(onlineSet)
     } catch {
       // silent
     } finally {
