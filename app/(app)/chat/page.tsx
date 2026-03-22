@@ -63,6 +63,20 @@ export default function ChatListPage() {
     }
   }, [])
 
+  const refreshPresence = useCallback(async (chatList: Chat[]) => {
+    if (chatList.length === 0) return
+    const results = await Promise.allSettled(
+      chatList.map(chat => api.get<any>(`/api/presence/${chat.otherUserId}`))
+    )
+    const onlineSet = new Set<string>()
+    results.forEach((result, i) => {
+      if (result.status === 'fulfilled' && result.value.status === 'ONLINE') {
+        onlineSet.add(chatList[i].otherUserId)
+      }
+    })
+    setOnlineUsers(onlineSet)
+  }, [])
+
   // Mantener ref actualizada para usarla dentro del callback del WS
   useEffect(() => {
     fetchChatsRef.current = fetchChats
