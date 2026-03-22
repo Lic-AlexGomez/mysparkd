@@ -1,0 +1,44 @@
+PROBLEMA
+========
+El frontend no puede saber si un usuario está online al cargar la pantalla
+porque solo recibe eventos de presencia en tiempo real (futuros), pero no
+el estado actual. El snapshot por WS requiere cambios más complejos.
+
+SOLUCIÓN MÁS SIMPLE — 1 endpoint REST
+======================================
+Agregar GET /api/presence/{userId} que consulte Redis y devuelva si está online.
+
+ARCHIVO NUEVO: src/main/java/sparkd/Controllers/PresenceController.java
+------------------------------------------------------------------------
+
+package sparkd.Controllers;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import sparkd.Service.UserPresenceService;
+
+import java.util.Map;
+import java.util.UUID;
+
+@RestController
+@RequestMapping("/api/presence")
+public class PresenceController {
+
+    private final UserPresenceService presenceService;
+
+    public PresenceController(UserPresenceService presenceService) {
+        this.presenceService = presenceService;
+    }
+
+    @GetMapping("/{userId}")
+    public ResponseEntity<Map<String, Object>> getPresence(@PathVariable UUID userId) {
+        boolean online = presenceService.isOnline(userId);
+        return ResponseEntity.ok(Map.of(
+            "userId", userId.toString(),
+            "status", online ? "ONLINE" : "OFFLINE"
+        ));
+    }
+}
+
+ESO ES TODO. No se modifica ningún otro archivo.
+El endpoint es público para usuarios autenticados (Spring Security ya lo maneja).

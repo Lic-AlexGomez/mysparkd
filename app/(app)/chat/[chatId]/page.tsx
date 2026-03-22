@@ -201,6 +201,13 @@ export default function ChatRoomPage() {
         } catch {
           // Si falla, continuar sin foto
         }
+        // Consultar presencia actual via REST
+        try {
+          const presence = await api.get<any>(`/api/presence/${current.otherUserId}`)
+          setOtherUserOnline(presence.status === 'ONLINE')
+        } catch {
+          // silent
+        }
         setChatInfo(current)
       }
     } catch {
