@@ -164,7 +164,9 @@ export default function ChatListPage() {
                       {chat.otherUsername?.[0]?.toUpperCase() || "?"}
                     </AvatarFallback>
                   </Avatar>
-                  <span className={`absolute pb-1 bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full border-2 border-background z-20 ${onlineUsers.has(chat.otherUserId) ? 'bg-green-500' : 'bg-red-500'}`} />
+                  <span className={`absolute pb-1 bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full border-2 border-background z-20 ${onlineUsers.has(chat.otherUserId) ? 'bg-green-500' : 'bg-red-500'}`}
+                    onClick={() => console.log('[presence check]', chat.otherUserId, 'in set:', onlineUsers.has(chat.otherUserId), 'set:', [...onlineUsers])}
+                  />
                 </div>
                 <div className="flex-1 min-w-0 relative z-10">
                   <div className="flex items-center justify-between mb-1">
