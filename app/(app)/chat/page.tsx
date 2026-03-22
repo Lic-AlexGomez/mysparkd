@@ -51,7 +51,6 @@ export default function ChatListPage() {
       )
       const onlineSet = new Set<string>()
       presenceResults.forEach((result, i) => {
-        console.log('[presence] REST response:', sorted[i].otherUserId, result)
         if (result.status === 'fulfilled' && result.value.status === 'ONLINE') {
           onlineSet.add(sorted[i].otherUserId)
         }
