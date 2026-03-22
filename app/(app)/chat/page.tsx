@@ -79,11 +79,23 @@ export default function ChatListPage() {
     onPresence: (event: any) => {
       console.log('[presence WS event raw]', JSON.stringify(event))
       const userId = event.userId?.toString ? event.userId.toString() : String(event.userId)
-      setOnlineUsers(prev => {
-        const next = new Set(prev)
-        if (event.status?.toUpperCase() === 'ONLINE') next.add(userId)
-        else next.delete(userId)
-        return next
+      const status = event.status?.toUpperCase()
+      // Verificar via REST para confirmar el estado real
+      api.get<any>(`/api/presence/${userId}`).then(res => {
+        setOnlineUsers(prev => {
+          const next = new Set(prev)
+          if (res.status === 'ONLINE') next.add(res.userId)
+          else next.delete(res.userId)
+          return next
+        })
+      }).catch(() => {
+        // fallback al evento WS
+        setOnlineUsers(prev => {
+          const next = new Set(prev)
+          if (status === 'ONLINE') next.add(userId)
+          else next.delete(userId)
+          return next
+        })
       })
     },
     onPresenceSnapshot: (events: any[]) => {
