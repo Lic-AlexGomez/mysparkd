@@ -225,7 +225,7 @@ export default function ChatRoomPage() {
           setOtherUserOnline(presence.status === 'ONLINE')
           console.log(presence.status)
           if (presence.status !== 'ONLINE') {
-            console.log("si",presence.lastSeen)
+            console.log("si",presence)
             setOtherUserLastSeen(presence.lastSeen || null)
           }
           console.log("entro")
