@@ -226,6 +226,7 @@ export default function ChatRoomPage() {
           if (presence.status !== 'ONLINE') {
             setOtherUserLastSeen(presence.lastSeen || null)
           }
+          console.log("entro")
         } catch {
           // silent
         }
