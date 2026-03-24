@@ -574,7 +574,7 @@ export default function ChatRoomPage() {
       </div>
     )
   }
-   
+   console.log("")
   return (
     <div className="chat-room flex flex-col" style={{ height: 'calc(100svh - 4rem)' }}>
       {/* Chat header */}
