@@ -292,6 +292,7 @@ export interface CreateGroupRequest {
 
 // Chat
 export interface Chat {
+  lastSeen: null
   chatId: string
   otherUserId: string
   otherUsername: string

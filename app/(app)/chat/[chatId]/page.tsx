@@ -113,11 +113,11 @@ export default function ChatRoomPage() {
       if (otherId && eventUserId === otherId) {
         const isOnline = event.status?.toUpperCase() === 'ONLINE'
         setOtherUserOnline(isOnline)
-        console.log(isOnline)
+       
         if (!isOnline) {
           // Consultar lastSeen actualizado
           api.get<any>(`/api/presence/${otherId}`).then(res => {
-            console.log("aqui"+res)
+         
             setOtherUserLastSeen(res.lastSeen || null)
           }).catch(() => {})
         } else {
@@ -126,7 +126,7 @@ export default function ChatRoomPage() {
       }
     },
     onPresenceSnapshot: (events: any[]) => {
-      console.log("dajdshd")
+     
       const otherId = otherUserIdRef.current
       if (!otherId) {
         pendingSnapshotRef.current = events
