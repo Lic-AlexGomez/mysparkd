@@ -117,11 +117,11 @@ export default function ChatRoomPage() {
         if (!isOnline) {
           // Consultar lastSeen actualizado
           api.get<any>(`/api/presence/${otherId}`).then(res => {
-            console.log(res)
+            console.log("aqui"+res)
             setOtherUserLastSeen(res.lastSeen || null)
           }).catch(() => {})
         } else {
-          setOtherUserLastSeen("aa")
+          setOtherUserLastSeen("null")
         }
       }
     },
