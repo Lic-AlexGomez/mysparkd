@@ -626,7 +626,7 @@ export default function ChatRoomPage() {
             </p>
           ) : otherUserLastSeen ? (
             <p className="text-xs text-muted-foreground">
-              visto {formatDistanceToNow(new Date(otherUserLastSeen), { addSuffix: true, locale: es })}
+              En linea {formatDistanceToNow(new Date(otherUserLastSeen), { addSuffix: true, locale: es })}
             </p>
           ) : null}
         </div>
