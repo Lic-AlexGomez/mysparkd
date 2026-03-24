@@ -190,6 +190,7 @@ export default function ChatRoomPage() {
   const fetchMessages = useCallback(async () => {
     try {
       const data = await api.get<Message[]>(`/api/chat/${chatId}/messages`)
+      console.log(data)
       setMessages(prev => {
         const serverContents = new Set(data.map((m: Message) => m.content))
         const pendingOptimistic = prev.filter(m =>
