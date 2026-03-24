@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
 export default function ChatRoomPage() {
+  console.log("Dsds")
   const params = useParams()
   const router = useRouter()
   const { user } = useAuth()
