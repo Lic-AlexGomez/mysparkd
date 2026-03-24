@@ -210,7 +210,7 @@ export default function ChatRoomPage() {
     try {
       const chats = await api.get<Chat[]>("/api/chat/chats")
       const current = chats.find((c) => c.chatId === chatId)
-      console.log(current)
+      console.log(chats)
       if (current) {
         try {
           const profile = await api.get<any>(`/api/profile/${current.otherUserId}`)
