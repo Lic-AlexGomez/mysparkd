@@ -126,6 +126,7 @@ export default function ChatRoomPage() {
       }
     },
     onPresenceSnapshot: (events: any[]) => {
+      console.log("dajdshd")
       const otherId = otherUserIdRef.current
       if (!otherId) {
         pendingSnapshotRef.current = events
