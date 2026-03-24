@@ -114,6 +114,7 @@ export default function ChatRoomPage() {
         if (!isOnline) {
           // Consultar lastSeen actualizado
           api.get<any>(`/api/presence/${otherId}`).then(res => {
+            console.log(res)
             setOtherUserLastSeen(res.lastSeen || null)
           }).catch(() => {})
         } else {
