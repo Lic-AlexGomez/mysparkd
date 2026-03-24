@@ -221,6 +221,7 @@ export default function ChatRoomPage() {
         // Consultar presencia actual via REST
         try {
           const presence = await api.get<any>(`/api/presence/${current.otherUserId}`)
+          console.log("presence"+)
           setOtherUserOnline(presence.status === 'ONLINE')
           if (presence.status !== 'ONLINE') {
             setOtherUserLastSeen(presence.lastSeen || null)
