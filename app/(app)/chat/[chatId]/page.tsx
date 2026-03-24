@@ -121,7 +121,7 @@ export default function ChatRoomPage() {
             setOtherUserLastSeen(res.lastSeen || null)
           }).catch(() => {})
         } else {
-          setOtherUserLastSeen(null)
+          setOtherUserLastSeen("aa")
         }
       }
     },
