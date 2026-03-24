@@ -106,6 +106,7 @@ export default function ChatRoomPage() {
   }, [chatInfo?.otherUserId])
 
   const wsCallbacksRef = useRef({
+    console.log("aqui")
     onPresence: (event: any) => {
       const eventUserId = event.userId?.toString ? event.userId.toString() : String(event.userId)
       const otherId = otherUserIdRef.current
