@@ -111,6 +111,7 @@ export default function ChatRoomPage() {
       if (otherId && eventUserId === otherId) {
         const isOnline = event.status?.toUpperCase() === 'ONLINE'
         setOtherUserOnline(isOnline)
+        console.log(isOnline)
         if (!isOnline) {
           // Consultar lastSeen actualizado
           api.get<any>(`/api/presence/${otherId}`).then(res => {
