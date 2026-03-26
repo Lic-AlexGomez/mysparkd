@@ -350,6 +350,8 @@ export default function ChatRoomPage() {
     setDeletedMessages(prev => new Set(prev).add(msgId))
   }
 
+  const [activeMessageId, setActiveMessageId] = useState<string | null>(null)
+
   const filteredMessages = useMemo(() => searchQuery
     ? messages.filter(msg => !deletedMessages.has(msg.messageId || msg.id || '') && msg.content.toLowerCase().includes(searchQuery.toLowerCase()))
     : messages.filter(msg => !deletedMessages.has(msg.messageId || msg.id || ''))
@@ -801,10 +803,15 @@ export default function ChatRoomPage() {
                     isOwn ? "justify-end" : "justify-start",
                     reactions ? "mb-4" : "mb-0"
                   )}
+                  onTouchStart={() => setActiveMessageId(activeMessageId === msgId ? null : msgId)}
+                  onClick={() => setActiveMessageId(activeMessageId === msgId ? null : msgId)}
                 >
                   {/* Botões de ação estilo WhatsApp - aparecem no hover, fora da bolha */}
                   {!isOwn && (
-                    <div className="flex items-center gap-0.5 opacity-0 group-hover/msg:opacity-100 transition-opacity order-2 mb-1">
+                    <div className={cn(
+                      "flex items-center gap-0.5 transition-opacity order-2 mb-1",
+                      activeMessageId === msgId ? "opacity-100" : "opacity-0 group-hover/msg:opacity-100"
+                    )}>
                       <button
                         className="h-7 w-7 rounded-full flex items-center justify-center bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors reactions-button"
                         onClick={(e) => { e.stopPropagation(); setShowReactions(showReactions === msgId ? null : msgId) }}
@@ -961,7 +968,10 @@ export default function ChatRoomPage() {
 
                   {/* Botões de ação para mensagens próprias */}
                   {isOwn && (
-                    <div className="flex items-center gap-0.5 opacity-0 group-hover/msg:opacity-100 transition-opacity order-0 mb-1">
+                    <div className={cn(
+                      "flex items-center gap-0.5 transition-opacity order-0 mb-1",
+                      activeMessageId === msgId ? "opacity-100" : "opacity-0 group-hover/msg:opacity-100"
+                    )}>
                       <button
                         className="h-7 w-7 rounded-full flex items-center justify-center bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors reactions-button"
                         onClick={(e) => { e.stopPropagation(); setShowReactions(showReactions === msgId ? null : msgId) }}
