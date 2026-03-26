@@ -26,7 +26,7 @@ export function PollComponent({ poll: initialPoll, onVote }: PollComponentProps)
 
   const [poll, setPoll] = useState<Poll>(initialPoll)
   const [selectedOption, setSelectedOption] = useState<string | null>(
-    initialPoll.userVoted || savedVote || null
+    savedVote || initialPoll.userVoted || null
   )
   const unsubscribeRef = useRef<(() => void) | null>(null)
 
@@ -39,16 +39,7 @@ export function PollComponent({ poll: initialPoll, onVote }: PollComponentProps)
     ? formatDistanceToNow(expiresDate, { addSuffix: true, locale: es })
     : null
 
-  const { sendPollVote, subscribeToPoll, isConnected } = useWebSocket(user?.userId, {
-    onPollState: (raw: any) => {
-      if (!raw) return
-      const normalized = normalizePollResponse(raw)
-      if (normalized.id === poll.id) {
-        setPoll(normalized)
-        if (normalized.userVoted) setSelectedOption(normalized.userVoted)
-      }
-    },
-  })
+  const { sendPollVote, subscribeToPoll, isConnected } = useWebSocket(user?.userId, {})
 
   // Normalizar PollResponse del backend al tipo Poll del frontend
   function normalizePollResponse(p: any): Poll {
@@ -84,11 +75,9 @@ export function PollComponent({ poll: initialPoll, onVote }: PollComponentProps)
 
   useEffect(() => {
     setPoll(initialPoll)
-    // Priorizar el voto del backend, si no usar el local
-    const backendVote = initialPoll.userVoted
     const localVote = typeof window !== 'undefined' ? localStorage.getItem(storageKey) : null
-    setSelectedOption(backendVote || localVote || null)
-  }, [initialPoll.id])
+    setSelectedOption(localVote || initialPoll.userVoted || null)
+  }, [initialPoll.id, initialPoll.userVoted])
 
   const handleVote = (optionId: string) => {
     if (isExpired || selectedOption === optionId) return
@@ -106,21 +95,22 @@ export function PollComponent({ poll: initialPoll, onVote }: PollComponentProps)
       }
     })
 
-    const sent = sendPollVote(optionId)
-    if (!sent) {
-      setSelectedOption(null)
-      setPoll(initialPoll)
-      toast.error("No conectado, intenta de nuevo")
-      return
+    const tryVote = (attempts = 0) => {
+      const sent = sendPollVote(optionId)
+      if (sent) {
+        if (typeof window !== 'undefined') localStorage.setItem(storageKey, optionId)
+        onVote?.(optionId)
+        toast.success("Voto registrado")
+      } else if (attempts < 10) {
+        setTimeout(() => tryVote(attempts + 1), 300)
+      } else {
+        setSelectedOption(null)
+        setPoll(initialPoll)
+        toast.error("No conectado, intenta de nuevo")
+      }
     }
 
-    // Guardar voto localmente como fallback
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(storageKey, optionId)
-    }
-
-    onVote?.(optionId)
-    toast.success("Voto registrado")
+    tryVote()
   }
 
   return (

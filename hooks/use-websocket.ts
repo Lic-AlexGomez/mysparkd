@@ -4,7 +4,65 @@ import SockJS from 'sockjs-client'
 import type { Message } from '@/lib/types'
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://sparkd1-0.onrender.com'
-const PRESENCE_PING_INTERVAL = 30_000 // 30s — más realtime
+const PRESENCE_PING_INTERVAL = 30_000
+
+// ── Singleton: una sola conexión WS compartida por toda la app ────────────────
+let sharedClient: Client | null = null
+let sharedConnected = false
+let consumerCount = 0
+let pingInterval: NodeJS.Timeout | null = null
+const connectedListeners = new Set<(v: boolean) => void>()
+
+function notifyConnected(v: boolean) {
+  sharedConnected = v
+  connectedListeners.forEach(fn => fn(v))
+}
+
+function ensureConnected(userId: string) {
+  if (sharedClient?.active) return
+
+  const token = localStorage.getItem('sparkd_token')
+  if (!token) return
+
+  const client = new Client({
+    webSocketFactory: () => new SockJS(`${BACKEND_URL}/ws`),
+    connectHeaders: { Authorization: `Bearer ${token}` },
+    reconnectDelay: 5000,
+    heartbeatIncoming: 4000,
+    heartbeatOutgoing: 4000,
+
+    onConnect: () => {
+      notifyConnected(true)
+
+      setTimeout(() => {
+        if (client.active) client.publish({ destination: '/app/presence.ping', body: '' })
+      }, 500)
+
+      pingInterval = setInterval(() => {
+        if (client.active) client.publish({ destination: '/app/presence.ping', body: '' })
+      }, PRESENCE_PING_INTERVAL)
+    },
+
+    onDisconnect: () => {
+      notifyConnected(false)
+      if (pingInterval) { clearInterval(pingInterval); pingInterval = null }
+    },
+
+    onStompError: (frame) => console.error('[WS] STOMP error:', frame),
+    onWebSocketError: (event) => console.error('[WS] WebSocket error:', event),
+  })
+
+  client.activate()
+  sharedClient = client
+}
+
+function teardown() {
+  if (pingInterval) { clearInterval(pingInterval); pingInterval = null }
+  sharedClient?.deactivate()
+  sharedClient = null
+  notifyConnected(false)
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 export interface PresenceEvent {
   userId: string
@@ -34,197 +92,137 @@ export interface WebSocketCallbacks {
 }
 
 export function useWebSocket(userId: string | undefined, callbacks: WebSocketCallbacks | ((message: Message) => void)) {
-  const clientRef = useRef<Client | null>(null)
-  const [isConnected, setIsConnected] = useState(false)
+  const [isConnected, setIsConnected] = useState(sharedConnected)
   const callbacksRef = useRef<WebSocketCallbacks>({})
-  const pingIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const subsRef = useRef<Array<{ unsubscribe: () => void }>>([])
 
-  // Normalizar callbacks — soporta tanto el formato viejo (función) como el nuevo (objeto)
+  // Normalizar callbacks
   useEffect(() => {
-    if (typeof callbacks === 'function') {
-      callbacksRef.current = { onMessage: callbacks }
-    } else {
-      callbacksRef.current = callbacks
-    }
+    callbacksRef.current = typeof callbacks === 'function' ? { onMessage: callbacks } : callbacks
   }, [callbacks])
 
-  const connect = useCallback(() => {
-    if (!userId || clientRef.current?.active) return
-
-    const token = localStorage.getItem('sparkd_token')
-    if (!token) return
-
-    const client = new Client({
-      webSocketFactory: () => new SockJS(`${BACKEND_URL}/ws`),
-      connectHeaders: {
-        Authorization: `Bearer ${token}`,
-      },
-      reconnectDelay: 5000,
-      heartbeatIncoming: 4000,
-      heartbeatOutgoing: 4000,
-
-      onConnect: () => {
-        setIsConnected(true)
-        // ── Mensajes de chat ──────────────────────────────────────
-        client.subscribe('/user/queue/messages', (frame) => {
-          const msg = JSON.parse(frame.body) as Message
-          callbacksRef.current.onMessage?.(msg)
-        })
-
-        // ── Presencia global ──────────────────────────────────────
-        client.subscribe('/topic/presence', (frame) => {
-          const event = JSON.parse(frame.body) as PresenceEvent
-          callbacksRef.current.onPresence?.(event)
-        })
-
-        // ── Snapshot inicial de presencia ─────────────────────────
-        client.subscribe('/user/queue/presence-snapshot', (frame) => {
-          const events = JSON.parse(frame.body) as PresenceEvent[]
-          callbacksRef.current.onPresenceSnapshot?.(events)
-        })
-
-        // ── Al conectar, emitir propio ping para que el backend
-        //    registre presencia y otros usuarios vean ONLINE ────────
-        setTimeout(() => {
-          if (client.active) {
-            client.publish({ destination: '/app/presence.ping', body: '' })
-          }
-        }, 500)
-
-        // ── Typing indicator ──────────────────────────────────────
-        client.subscribe('/user/queue/typing', (frame) => {
-          const event = JSON.parse(frame.body) as TypingEvent
-          callbacksRef.current.onTyping?.(event)
-        })
-
-        // ── Read receipts ─────────────────────────────────────────
-        client.subscribe('/user/queue/read', (frame) => {
-          const event = JSON.parse(frame.body) as ReadEvent
-          callbacksRef.current.onRead?.(event)
-        })
-
-        // ── Chat actualizado (nuevo mensaje en otro chat) ─────────
-        client.subscribe('/user/queue/chat-updated', (frame) => {
-          const chatId = JSON.parse(frame.body) as string
-          callbacksRef.current.onChatUpdated?.(chatId)
-        })
-
-        // ── Poll votado (confirmación personal) ───────────────────
-        client.subscribe('/user/queue/poll-voted', (frame) => {
-          const data = JSON.parse(frame.body) as { optionId: string }
-          callbacksRef.current.onPollVoted?.(data.optionId)
-        })
-
-        // ── Poll state personal (tras votar) ──────────────────────
-        client.subscribe('/user/queue/poll-state', (frame) => {
-          const poll = JSON.parse(frame.body)
-          callbacksRef.current.onPollState?.(poll)
-        })
-
-        // ── Ping de presencia cada 90s ────────────────────────────
-        pingIntervalRef.current = setInterval(() => {
-          if (client.active) {
-            client.publish({ destination: '/app/presence.ping', body: '' })
-          }
-        }, PRESENCE_PING_INTERVAL)
-      },
-
-      onDisconnect: () => {
-        setIsConnected(false)
-        if (pingIntervalRef.current) {
-          clearInterval(pingIntervalRef.current)
-          pingIntervalRef.current = null
-        }
-      },
-
-      onStompError: (frame) => console.error('[WS] STOMP error:', frame),
-      onWebSocketError: (event) => console.error('[WS] WebSocket error:', event),
-    })
-
-    client.activate()
-    clientRef.current = client
-  }, [userId])
-
-  const disconnect = useCallback(() => {
-    if (pingIntervalRef.current) {
-      clearInterval(pingIntervalRef.current)
-      pingIntervalRef.current = null
-    }
-    if (clientRef.current) {
-      clientRef.current.deactivate()
-      clientRef.current = null
-      setIsConnected(false)
-    }
+  // Sincronizar estado de conexión con el singleton
+  useEffect(() => {
+    const listener = (v: boolean) => setIsConnected(v)
+    connectedListeners.add(listener)
+    return () => { connectedListeners.delete(listener) }
   }, [])
 
+  // Suscribirse a los topics cuando el cliente esté conectado
+  const subscribe = useCallback(() => {
+    const client = sharedClient
+    if (!client?.active) return
+
+    // Limpiar suscripciones anteriores
+    subsRef.current.forEach(s => s.unsubscribe())
+    subsRef.current = []
+
+    subsRef.current.push(
+      client.subscribe('/user/queue/messages', (frame) => {
+        callbacksRef.current.onMessage?.(JSON.parse(frame.body) as Message)
+      }),
+      client.subscribe('/topic/presence', (frame) => {
+        callbacksRef.current.onPresence?.(JSON.parse(frame.body) as PresenceEvent)
+      }),
+      client.subscribe('/user/queue/presence-snapshot', (frame) => {
+        callbacksRef.current.onPresenceSnapshot?.(JSON.parse(frame.body) as PresenceEvent[])
+      }),
+      client.subscribe('/user/queue/typing', (frame) => {
+        callbacksRef.current.onTyping?.(JSON.parse(frame.body) as TypingEvent)
+      }),
+      client.subscribe('/user/queue/read', (frame) => {
+        callbacksRef.current.onRead?.(JSON.parse(frame.body) as ReadEvent)
+      }),
+      client.subscribe('/user/queue/chat-updated', (frame) => {
+        callbacksRef.current.onChatUpdated?.(JSON.parse(frame.body) as string)
+      }),
+      client.subscribe('/user/queue/poll-voted', (frame) => {
+        callbacksRef.current.onPollVoted?.((JSON.parse(frame.body) as { optionId: string }).optionId)
+      }),
+      client.subscribe('/user/queue/poll-state', (frame) => {
+        callbacksRef.current.onPollState?.(JSON.parse(frame.body))
+      }),
+    )
+  }, [])
+
+  useEffect(() => {
+    if (!userId) return
+
+    consumerCount++
+    ensureConnected(userId)
+
+    // Si ya está conectado, suscribirse inmediatamente
+    if (sharedConnected) {
+      subscribe()
+    }
+
+    // Suscribirse cuando conecte
+    const onConnect = (v: boolean) => { if (v) subscribe() }
+    connectedListeners.add(onConnect)
+
+    return () => {
+      connectedListeners.delete(onConnect)
+      subsRef.current.forEach(s => s.unsubscribe())
+      subsRef.current = []
+      consumerCount--
+      // Solo desconectar cuando no queda ningún consumidor
+      if (consumerCount <= 0) {
+        consumerCount = 0
+        teardown()
+      }
+    }
+  }, [userId, subscribe])
+
   const sendMessage = useCallback((chatId: string, content: string) => {
-    if (!clientRef.current?.active || !isConnected) return false
+    if (!sharedClient?.active || !sharedConnected) return false
     const token = localStorage.getItem('sparkd_token')
-    const body = { chatId, content, token }
-    console.log('[WS sendMessage] payload:', body)
     try {
-      clientRef.current.publish({
+      sharedClient.publish({
         destination: '/app/chat.send',
-        body: JSON.stringify(body),
+        body: JSON.stringify({ chatId, content, token }),
       })
       return true
-    } catch {
-      return false
-    }
-  }, [isConnected])
+    } catch { return false }
+  }, [])
 
   const sendTyping = useCallback((chatId: string) => {
-    if (!clientRef.current?.active || !isConnected) return
+    if (!sharedClient?.active || !sharedConnected) return
     const token = localStorage.getItem('sparkd_token')
-    const body = { chatId, token }
-    console.log('[WS sendTyping] payload:', body)
-    clientRef.current.publish({
+    sharedClient.publish({
       destination: '/app/chat.typing',
-      body: JSON.stringify(body),
+      body: JSON.stringify({ chatId, token }),
     })
-  }, [isConnected])
+  }, [])
 
   const sendSeen = useCallback((chatId: string) => {
-    if (!clientRef.current?.active || !isConnected) return
+    if (!sharedClient?.active || !sharedConnected) return
     const token = localStorage.getItem('sparkd_token')
-    const body = { chatId, token }
     try {
-      clientRef.current.publish({
+      sharedClient.publish({
         destination: '/app/chat.seen',
-        body: JSON.stringify(body),
+        body: JSON.stringify({ chatId, token }),
       })
-    } catch {
-      // ignorar si no hay conexión
-    }
-  }, [isConnected])
+    } catch { /* ignorar */ }
+  }, [])
 
-  // ── Votar en poll via WebSocket ───────────────────────────────────────────
   const sendPollVote = useCallback((optionId: string) => {
-    if (!clientRef.current?.active || !isConnected) return false
+    if (!sharedClient?.active || !sharedConnected) return false
     try {
-      clientRef.current.publish({
+      sharedClient.publish({
         destination: '/app/poll.vote',
         body: JSON.stringify({ optionId }),
       })
       return true
-    } catch {
-      return false
-    }
-  }, [isConnected])
+    } catch { return false }
+  }, [])
 
-  // ── Suscribirse a un poll en tiempo real ──────────────────────────────────
   const subscribeToPoll = useCallback((pollId: string, onUpdate: (poll: any) => void) => {
-    if (!clientRef.current?.active) return () => {}
-    const sub = clientRef.current.subscribe(`/topic/polls/${pollId}`, (frame) => {
+    if (!sharedClient?.active) return () => {}
+    const sub = sharedClient.subscribe(`/topic/polls/${pollId}`, (frame) => {
       onUpdate(JSON.parse(frame.body))
     })
     return () => sub.unsubscribe()
   }, [])
-
-  useEffect(() => {
-    connect()
-    return () => disconnect()
-  }, [connect, disconnect])
 
   return {
     sendMessage,
@@ -233,6 +231,6 @@ export function useWebSocket(userId: string | undefined, callbacks: WebSocketCal
     sendPollVote,
     subscribeToPoll,
     isConnected,
-    client: clientRef,
+    client: { current: sharedClient },
   }
 }
