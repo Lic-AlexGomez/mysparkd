@@ -803,8 +803,6 @@ export default function ChatRoomPage() {
                     isOwn ? "justify-end" : "justify-start",
                     reactions ? "mb-4" : "mb-0"
                   )}
-                  onTouchStart={() => setActiveMessageId(activeMessageId === msgId ? null : msgId)}
-                  onClick={() => setActiveMessageId(activeMessageId === msgId ? null : msgId)}
                 >
                   {/* Botões de ação estilo WhatsApp - aparecem no hover, fora da bolha */}
                   {!isOwn && (
@@ -838,12 +836,15 @@ export default function ChatRoomPage() {
 
                   <div
                     className={cn(
-                      "max-w-[75%] rounded-2xl px-4 py-3 shadow-lg relative",
+                      "max-w-[75%] rounded-2xl px-4 pt-2 pb-3 shadow-lg relative",
                       repliedMsg ? "min-w-[220px]" : "",
                       isOwn
-                        ? "bg-gradient-to-br from-primary to-secondary text-black rounded-br-md order-1"
-                        : "bg-gradient-to-br from-card to-muted/50 text-foreground rounded-bl-md border border-primary/5 order-1"
+                        ? "text-white rounded-br-md order-1"
+                        : "bg-card text-foreground rounded-bl-md border border-border order-1"
                     )}
+                    onTouchStart={(e) => { e.stopPropagation(); setActiveMessageId(activeMessageId === msgId ? null : msgId) }}
+                    onClick={(e) => { e.stopPropagation(); setActiveMessageId(activeMessageId === msgId ? null : msgId) }}
+                    style={isOwn ? { background: 'linear-gradient(135deg, #0f3f52 0%, #0a5c55 100%)' } : undefined}
                   >
                     {repliedMsg && (
                       <div className={`mb-2 p-2 rounded-lg text-xs border-l-2 border-primary/70 w-full ${
@@ -900,7 +901,7 @@ export default function ChatRoomPage() {
                           <textarea
                             value={editingContent}
                             onChange={(e) => setEditingContent(e.target.value)}
-                            className="w-full text-sm bg-black/20 rounded-lg p-2 text-black resize-none outline-none border border-white/30 focus:border-white/60"
+                            className="w-full text-sm bg-white/10 rounded-lg p-2 text-white resize-none outline-none border border-white/30 focus:border-white/60"
                             rows={2}
                             autoFocus
                             onKeyDown={(e) => {
@@ -909,40 +910,43 @@ export default function ChatRoomPage() {
                             }}
                           />
                           <div className="flex gap-1 justify-end">
-                            <button onClick={handleCancelEdit} className="text-xs px-2 py-1 rounded bg-black/20 hover:bg-black/30">Cancelar</button>
-                            <button onClick={() => handleSaveEdit(msgId)} className="text-xs px-2 py-1 rounded bg-white/30 hover:bg-white/40 font-medium">Guardar</button>
+                            <button onClick={handleCancelEdit} className="text-xs px-2 py-1 rounded bg-white/10 hover:bg-white/20 text-white">Cancelar</button>
+                            <button onClick={() => handleSaveEdit(msgId)} className="text-xs px-2 py-1 rounded bg-white/30 hover:bg-white/40 font-medium text-white">Guardar</button>
                           </div>
                         </div>
                       ) : (
-                        <>
-                          <p className="text-sm leading-relaxed">{displayContent}</p>
-                          {wasEdited && <span className="text-[10px] opacity-50">editado</span>}
-                        </>
+                        <span className="text-sm leading-relaxed break-words">
+                          {displayContent}
+                          {wasEdited && <span className="text-[10px] opacity-50 ml-1">editado</span>}
+                          {/* Spacer invisible para reservar espacio de la hora */}
+                          <span className="inline-block align-bottom ml-2 opacity-0 select-none text-[10px] whitespace-nowrap">
+                            {formatDistanceToNow(new Date(msg.sentAt + 'Z'), { addSuffix: false, locale: es })}{isOwn ? ' ✓✓' : ''}
+                          </span>
+                        </span>
                       )
                     )}
-                    {/* Hora + check de lectura */}
-                    <div className="flex items-center justify-end gap-1 mt-1">
-                      <p className={cn("text-[10px]", isOwn ? "text-black/50" : "text-muted-foreground")}>
+                    {/* Hora + check flotando abajo a la derecha */}
+                    <div className="flex items-center justify-end gap-1 -mt-4 pointer-events-none">
+                      <p className={cn("text-[10px]", isOwn ? "text-white/50" : "text-muted-foreground")}>
                         {formatDistanceToNow(new Date(msg.sentAt + 'Z'), { addSuffix: false, locale: es })}
                       </p>
                       {isOwn && (
                         <span className={cn(
                           "text-[10px]",
-                          msg.read
-                            ? "text-blue-400"           // ✓✓ azul — visto
-                            : msgId.startsWith('optimistic-')
-                              ? "text-black/40"         // ✓ — enviando
-                              : "text-black/40"         // ✓✓ gris — entregado
+                          msg.read ? "text-blue-300" : "text-white/40"
                         )}>
-                          {msgId.startsWith('optimistic-') ? "✓" : msg.read ? "✓✓" : "✓✓"}
+                          {msgId.startsWith('optimistic-') ? '✓' : msg.read ? '✓✓' : '✓✓'}
                         </span>
                       )}
                     </div>
                     {reactions && (
-                      <div className={cn(
-                        "absolute -bottom-3 flex gap-0.5 rounded-full px-1 py-0.5",
-                        isOwn ? "right-2" : "left-2"
-                      )}>
+                      <div
+                        className={cn(
+                          "absolute -bottom-3 flex gap-0.5 rounded-full px-1.5 py-0.5 border border-white/10 shadow-sm",
+                          isOwn ? "right-2" : "left-2"
+                        )}
+                        style={isOwn ? { background: 'linear-gradient(135deg, #082838 0%, #063d38 100%)' } : undefined}
+                      >
                         <span className="text-sm leading-none">{reactions}</span>
                       </div>
                     )}
