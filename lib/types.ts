@@ -322,6 +322,9 @@ export interface Message {
     format?: string
   }
   read?: boolean
+  edited?: boolean
+  editedAt?: string
+  deletedForEveryone?: boolean
 }
 
 export interface SendMessageRequest {

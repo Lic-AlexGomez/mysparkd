@@ -8,16 +8,21 @@ import { useAuth } from "@/lib/auth-context"
 import { useWebSocket } from "@/hooks/use-websocket"
 import type { Chat } from "@/lib/types"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Loader2, MessageCircle } from "lucide-react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Loader2, MessageCircle, EyeOff, Trash2, MoreVertical, Eye } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
+import { toast } from "sonner"
 
 export default function ChatListPage() {
   const { user } = useAuth()
   const [chats, setChats] = useState<Chat[]>([])
+  const [hiddenChats, setHiddenChats] = useState<Chat[]>([])
+  const [showHidden, setShowHidden] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set())
   const fetchChatsRef = useRef<() => void>(() => {})
+  const [swipedChatId, setSwipedChatId] = useState<string | null>(null)
 
   const refreshPresence = useCallback(async (chatList: Chat[]) => {
     if (chatList.length === 0) return
@@ -32,6 +37,37 @@ export default function ChatListPage() {
     })
     setOnlineUsers(onlineSet)
   }, [])
+
+  const handleHideChat = async (chatId: string) => {
+    try {
+      await api.post(`/api/chat/chats/${chatId}/hide`)
+      setChats(prev => prev.filter(c => c.chatId !== chatId))
+      toast.success('Chat ocultado')
+    } catch {
+      toast.error('Error al ocultar chat')
+    }
+  }
+
+  const handleUnhideChat = async (chatId: string) => {
+    try {
+      await api.post(`/api/chat/chats/${chatId}/unhide`)
+      setHiddenChats(prev => prev.filter(c => c.chatId !== chatId))
+      fetchChats()
+      toast.success('Chat restaurado')
+    } catch {
+      toast.error('Error al restaurar chat')
+    }
+  }
+
+  const handleDeleteChat = async (chatId: string) => {
+    try {
+      await api.delete(`/api/chat/chats/${chatId}`)
+      setChats(prev => prev.filter(c => c.chatId !== chatId))
+      toast.success('Chat eliminado')
+    } catch {
+      toast.error('Error al eliminar chat')
+    }
+  }
 
   const fetchChats = useCallback(async () => {
     try {
@@ -59,6 +95,12 @@ export default function ChatListPage() {
 
       setChats(sorted)
       await refreshPresence(sorted)
+
+      // Cargar chats ocultos
+      try {
+        const hidden = await api.get<Chat[]>('/api/chat/chats/hidden')
+        setHiddenChats(hidden)
+      } catch { /* silent */ }
     } catch {
       // silent
     } finally {
@@ -133,7 +175,18 @@ export default function ChatListPage() {
         <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-xl border-b border-primary/20 shadow-lg shadow-primary/5">
           <div className="px-6 py-4">
             <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent">Mensajes</h1>
-            <p className="text-sm text-muted-foreground mt-1">{chats.length} {chats.length === 1 ? 'conversación' : 'conversaciones'}</p>
+            <div className="flex items-center justify-between mt-1">
+              <p className="text-sm text-muted-foreground">{chats.length} {chats.length === 1 ? 'conversación' : 'conversaciones'}</p>
+              {hiddenChats.length > 0 && (
+                <button
+                  onClick={() => setShowHidden(!showHidden)}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <EyeOff className="h-3.5 w-3.5" />
+                  {hiddenChats.length} oculto{hiddenChats.length > 1 ? 's' : ''}
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -151,12 +204,9 @@ export default function ChatListPage() {
         ) : (
           <div className="p-4 space-y-3">
             {chats.map((chat) => (
-              <Link
-                key={chat.chatId}
-                href={`/chat/${chat.chatId}`}
-                className="relative overflow-hidden flex items-center gap-4 p-4 bg-gradient-to-br from-card to-muted/20 rounded-2xl border border-primary/10 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 group"
-              >
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/5 to-transparent rounded-full blur-2xl" />
+              <div key={chat.chatId} className="relative flex items-center gap-4 p-4 bg-gradient-to-br from-card to-muted/20 rounded-2xl border border-primary/10 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/5 to-transparent rounded-full blur-2xl pointer-events-none" />
+                <Link href={`/chat/${chat.chatId}`} className="flex items-center gap-4 flex-1 min-w-0">
                 <div className="relative">
                   <Avatar className="h-14 w-14 border-2 border-primary/30 ring-4 ring-primary/10 group-hover:scale-110 transition-transform relative z-10">
                     <AvatarImage src={chat.otherUserPhoto} alt={chat.otherUsername} className="object-cover" />
@@ -164,29 +214,15 @@ export default function ChatListPage() {
                       {chat.otherUsername?.[0]?.toUpperCase() || "?"}
                     </AvatarFallback>
                   </Avatar>
-                  <span className={`absolute pb-1 bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full border-2 border-background z-20 ${onlineUsers.has(chat.otherUserId) ? 'bg-green-500' : 'bg-red-500'}`}
-                    onClick={() => console.log('[presence check]', chat.otherUserId, 'in set:', onlineUsers.has(chat.otherUserId), 'set:', [...onlineUsers])}
-                  />
+                  <span className={`absolute pb-1 bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full border-2 border-background z-20 ${onlineUsers.has(chat.otherUserId) ? 'bg-green-500' : 'bg-red-500'}`} />
                 </div>
                 <div className="flex-1 min-w-0 relative z-10">
                   <div className="flex items-center justify-between mb-1">
-                    <span
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        window.location.href = `/profile/${chat.otherUserId}`
-                      }}
-                      className="font-bold cursor-pointer hover:text-primary hover:underline text-foreground"
-                    >
-                      {chat.otherUsername}
-                    </span>
-                    <div className="flex items-center gap-2">
+                    <span className="font-bold text-foreground truncate">{chat.otherUsername}</span>
+                    <div className="flex items-center gap-2 shrink-0 ml-2">
                       {chat.lastMessageAt && (
                         <span className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(chat.lastMessageAt + 'Z'), {
-                            addSuffix: true,
-                            locale: es,
-                          })}
+                          {formatDistanceToNow(new Date(chat.lastMessageAt), { addSuffix: true, locale: es })}
                         </span>
                       )}
                       {!!chat.unread && chat.unread > 0 && (
@@ -202,8 +238,49 @@ export default function ChatListPage() {
                     {chat.lastMessage || "Sin mensajes aún"}
                   </p>
                 </div>
-              </Link>
+                </Link>
+                {/* Menú de acciones */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="shrink-0 h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors z-10" onClick={e => e.preventDefault()}>
+                      <MoreVertical className="h-4 w-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-card border-border">
+                    <DropdownMenuItem onClick={() => handleHideChat(chat.chatId)} className="cursor-pointer gap-2">
+                      <EyeOff className="h-4 w-4" /> Ocultar
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleDeleteChat(chat.chatId)} className="cursor-pointer gap-2 text-destructive">
+                      <Trash2 className="h-4 w-4" /> Eliminar
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             ))}
+          </div>
+        )}
+
+        {/* Chats ocultos */}
+        {showHidden && hiddenChats.length > 0 && (
+          <div className="px-4 pb-4">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Chats ocultos</p>
+            <div className="space-y-2">
+              {hiddenChats.map(chat => (
+                <div key={chat.chatId} className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl border border-border">
+                  <Avatar className="h-10 w-10 border border-border">
+                    <AvatarImage src={chat.otherUserPhoto} alt={chat.otherUsername} className="object-cover" />
+                    <AvatarFallback className="text-xs">{chat.otherUsername?.[0]?.toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <span className="flex-1 text-sm font-medium text-foreground truncate">{chat.otherUsername}</span>
+                  <button
+                    onClick={() => handleUnhideChat(chat.chatId)}
+                    className="flex items-center gap-1.5 text-xs text-primary hover:underline"
+                  >
+                    <Eye className="h-3.5 w-3.5" /> Mostrar
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>

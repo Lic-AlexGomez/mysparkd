@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '@/lib/api'
 import { feedService } from '@/lib/services/feed'
-import { profileService } from '@/lib/services/profile'
 import { contentValidation } from '@/lib/services/content-validation'
 import type { Post } from '@/lib/types'
 
@@ -18,40 +17,10 @@ export function useFeed() {
   const loadPosts = useCallback(async () => {
     try {
       setLoading(true)
-      const data = await api.get<any[]>('/api/posts/feed')
+      const data = await api.get<any[]>('/api/feed/feed')
       
-      // Obtener fotos de usuarios únicos
-      const uniqueUserIds = [...new Set(data.map(post => post.userId))]
-      const userPhotosMap = new Map<string, string>()
-      
-      await Promise.all(
-        uniqueUserIds.map(async (userId) => {
-          const photo = await profileService.getProfilePhoto(userId)
-          if (photo) {
-            userPhotosMap.set(userId, photo)
-          }
-        })
-      )
-      
-      //console.log('Fotos de usuarios obtenidas:', userPhotosMap)
-      
-      // Normalizar posts con reacciones y fotos
-    
-  const normalizedPosts = data.map((post) => {
- /*        console.log('=== POST ORIGINAL ====')
-        console.log('Post ID:', post.id)
-        console.log('username:', post.username)
-        console.log('userId:', post.userId)
-        console.log('userPhoto del backend:', post.userPhoto)
-        console.log('photoUrl del backend:', post.photoUrl)
-        console.log('Foto obtenida del perfil:', userPhotosMap.get(post.userId))
-        console.log('myReaction:', post.myReaction)
-        console.log('reactions array:', post.reactions) 
-        
-        
-        */
-        
-        // Convertir array de reacciones a objeto
+      // Normalizar posts — la foto ya viene en profilePictureUrl
+      const normalizedPosts = data.map((post) => {
         const reactionsObj: Record<string, { type: string; count: number; userReacted: boolean }> = {}
         if (Array.isArray(post.reactions)) {
           post.reactions.forEach((r: any) => {
@@ -63,7 +32,6 @@ export function useFeed() {
           })
         }
         
-        // Mapear poll del backend al tipo Poll del frontend
         let poll = null
         if (post.poll) {
           const p = post.poll
@@ -84,12 +52,12 @@ export function useFeed() {
           }
         }
 
-        const normalized = {
+        return {
           id: post.id || '',
           body: post.body || '',
           userId: post.userId || '',
           username: post.username || 'Usuario',
-          userPhoto: userPhotosMap.get(post.userId) || post.userPhoto || post.photoUrl || post.profilePictureUrl || '',
+          userPhoto: post.profilePictureUrl || post.userPhoto || post.photoUrl || '',
           createdAt: post.createdAt || new Date().toISOString(),
           file: post.file || null,
           visibility: post.visibility || 'PUBLIC',
@@ -111,14 +79,6 @@ export function useFeed() {
           repostCount: post.repostCount || 0,
           poll,
         }
-        
-   /*      console.log('=== POST NORMALIZADO ===')
-        console.log('userPhoto normalizado:', normalized.userPhoto)
-        console.log('userReaction:', normalized.userReaction)
-        console.log('reactions:', normalized.reactions)
-        console.log('========================')
-         */
-        return normalized
       })
       
       const filtered = contentValidation.filterBlockedUsers('current-user', normalizedPosts)

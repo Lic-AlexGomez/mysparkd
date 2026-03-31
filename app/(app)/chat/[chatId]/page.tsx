@@ -177,6 +177,18 @@ export default function ChatRoomPage() {
         m.senderId === userIdRef.current ? { ...m, read: true } : m
       ))
     },
+    onMessageEdited: (edited: any) => {
+      const id = edited.messageId || edited.id
+      if (!id) return
+      setMessages(prev => prev.map(m =>
+        (m.messageId || m.id) === id ? { ...m, content: edited.content } : m
+      ))
+      setEditedMessages(prev => ({ ...prev, [id]: edited.content }))
+    },
+    onMessageDeleted: (messageId: any) => {
+      const id = typeof messageId === 'string' ? messageId : String(messageId)
+      setDeletedMessages(prev => new Set(prev).add(id))
+    },
   })
 
   const { sendMessage: sendViaWebSocket, sendTyping, sendSeen, isConnected } = useWebSocket(
@@ -189,7 +201,7 @@ export default function ChatRoomPage() {
 
   const fetchMessages = useCallback(async () => {
     try {
-      const data = await api.get<Message[]>(`/api/chat/${chatId}/messages`)
+      const data = await api.get<Message[]>(`/api/messages/${chatId}/messages`)
       
       setMessages(prev => {
         const serverContents = new Set(data.map((m: Message) => m.content))
@@ -326,7 +338,8 @@ export default function ChatRoomPage() {
   }
 
   const canEditMessage = (sentAt: string) => {
-    return (Date.now() - new Date(sentAt + 'Z').getTime()) < 15 * 60 * 1000
+    const date = new Date(sentAt.endsWith('Z') ? sentAt : sentAt + 'Z')
+    return (Date.now() - date.getTime()) < 15 * 60 * 1000
   }
 
   const handleStartEdit = (msg: Message) => {
@@ -335,10 +348,15 @@ export default function ChatRoomPage() {
     setEditingContent(editedMessages[msgId] || msg.content)
   }
 
-  const handleSaveEdit = (msgId: string) => {
+  const handleSaveEdit = async (msgId: string) => {
     if (!editingContent.trim()) return
-    setEditedMessages(prev => ({ ...prev, [msgId]: editingContent.trim() }))
-    setEditingMessageId(null)
+    try {
+      await api.put(`/api/messages/messages/${msgId}`, { content: editingContent.trim() })
+      setEditedMessages(prev => ({ ...prev, [msgId]: editingContent.trim() }))
+      setEditingMessageId(null)
+    } catch {
+      toast.error('Error al editar el mensaje')
+    }
   }
 
   const handleCancelEdit = () => {
@@ -346,8 +364,13 @@ export default function ChatRoomPage() {
     setEditingContent("")
   }
 
-  const handleDeleteMessage = (msgId: string) => {
-    setDeletedMessages(prev => new Set(prev).add(msgId))
+  const handleDeleteMessage = async (msgId: string) => {
+    try {
+      await api.delete(`/api/messages/messages/${msgId}/everyone`)
+      setDeletedMessages(prev => new Set(prev).add(msgId))
+    } catch {
+      toast.error('Error al eliminar el mensaje')
+    }
   }
 
   const [activeMessageId, setActiveMessageId] = useState<string | null>(null)
@@ -792,7 +815,7 @@ export default function ChatRoomPage() {
               const reactions = messageReactions[msgId] || ''
               const isEditing = editingMessageId === msgId
               const displayContent = editedMessages[msgId] || actualContent
-              const wasEdited = !!editedMessages[msgId]
+              const wasEdited = !!editedMessages[msgId] || !!msg.edited
               const canEdit = isOwn && !msg.media?.mediaUrl && canEditMessage(msg.sentAt)
               
               return (
@@ -920,7 +943,7 @@ export default function ChatRoomPage() {
                           {wasEdited && <span className="text-[10px] opacity-50 ml-1">editado</span>}
                           {/* Spacer invisible para reservar espacio de la hora */}
                           <span className="inline-block align-bottom ml-2 opacity-0 select-none text-[10px] whitespace-nowrap">
-                            {formatDistanceToNow(new Date(msg.sentAt + 'Z'), { addSuffix: false, locale: es })}{isOwn ? ' ✓✓' : ''}
+                            {formatDistanceToNow(new Date(msg.sentAt), { addSuffix: false, locale: es })}{isOwn ? ' ✓✓' : ''}
                           </span>
                         </span>
                       )
@@ -928,7 +951,7 @@ export default function ChatRoomPage() {
                     {/* Hora + check flotando abajo a la derecha */}
                     <div className="flex items-center justify-end gap-1 -mt-4 pointer-events-none">
                       <p className={cn("text-[10px]", isOwn ? "text-white/50" : "text-muted-foreground")}>
-                        {formatDistanceToNow(new Date(msg.sentAt + 'Z'), { addSuffix: false, locale: es })}
+                        {formatDistanceToNow(new Date(msg.sentAt), { addSuffix: false, locale: es })}
                       </p>
                       {isOwn && (
                         <span className={cn(

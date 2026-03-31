@@ -44,6 +44,7 @@ import { ShareModal } from "./share-modal"
 import { UnlockPostModal } from "./unlock-post-modal"
 import { parseTextWithLinks } from "@/lib/utils/text-parser"
 import { PollComponent } from "./poll-component"
+import { ReportModal } from "./report-modal"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
 import { usePremiumStatus } from "@/hooks/use-premium-status"
 import { Tooltip } from "@/components/ui/tooltip"
@@ -108,6 +109,7 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
   const [showUnlockModal, setShowUnlockModal] = useState(false)
   const [showImageModal, setShowImageModal] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showReportModal, setShowReportModal] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [editedBody, setEditedBody] = useState(post.body)
   const [isSaving, setIsSaving] = useState(false)
@@ -434,7 +436,7 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
                     <Bookmark className={`h-4 w-4 ${bookmarked ? 'fill-current' : ''}`} />
                     {bookmarked ? 'Quitar guardado' : 'Guardar'}
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleReport} className="cursor-pointer text-destructive flex items-center gap-2">
+                  <DropdownMenuItem onClick={() => setShowReportModal(true)} className="cursor-pointer text-destructive flex items-center gap-2">
                     <Flag className="h-4 w-4" />
                     Reportar
                   </DropdownMenuItem>
@@ -715,6 +717,15 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
         onClose={() => setShowUnlockModal(false)}
         onUnlocked={onUpdate || (() => {})}
       />
+      {user && (
+        <ReportModal
+          open={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          reportedUserId={post.userId}
+          targetId={post.id}
+          targetType="POST"
+        />
+      )}
       
       {/* Delete Confirm Dialog */}
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>

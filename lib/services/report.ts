@@ -1,54 +1,38 @@
-interface Report {
-  id: string
-  reporterId: string
+import { api } from '@/lib/api'
+
+export type ReportTargetType = 'POST' | 'USER' | 'MESSAGE' | 'COMMENT'
+
+export interface CreateReportPayload {
+  reportedUserId: string
   targetId: string
-  targetType: 'user' | 'post' | 'message'
-  reason: string
-  status: 'pending' | 'confirmed' | 'rejected'
-  createdAt: string
+  targetType: ReportTargetType
+  reasonId: string
+  description?: string
 }
 
-class ReportService {
-  private reports: Report[] = []
-
-  constructor() {
-    this.loadReports()
-  }
-
-  private loadReports() {
-    const saved = localStorage.getItem('sparkd_reports')
-    if (saved) {
-      this.reports = JSON.parse(saved)
-    }
-  }
-
-  private saveReports() {
-    localStorage.setItem('sparkd_reports', JSON.stringify(this.reports))
-  }
-
-  createReport(
-    reporterId: string,
-    targetId: string,
-    targetType: 'user' | 'post' | 'message',
-    reason: string
-  ): Report {
-    const report: Report = {
-      id: `rep_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      reporterId,
-      targetId,
-      targetType,
-      reason,
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-    }
-    this.reports.push(report)
-    this.saveReports()
-    return report
-  }
-
-  getUserReports(userId: string): Report[] {
-    return this.reports.filter(r => r.targetId === userId)
-  }
+export interface ReportReason {
+  id: string
+  name: string
 }
 
-export const reportService = new ReportService()
+export const reportService = {
+  async getReasons(): Promise<ReportReason[]> {
+    try {
+      return await api.get<ReportReason[]>('/api/reports/reasons')
+    } catch {
+      // fallback con razones hardcodeadas si el endpoint no existe aún
+      return [
+        { id: '1', name: 'Spam' },
+        { id: '2', name: 'Contenido inapropiado' },
+        { id: '3', name: 'Acoso' },
+        { id: '4', name: 'Violencia' },
+        { id: '5', name: 'Perfil falso' },
+        { id: '6', name: 'Otro' },
+      ]
+    }
+  },
+
+  async createReport(payload: CreateReportPayload): Promise<void> {
+    await api.post('/api/reports', payload)
+  },
+}

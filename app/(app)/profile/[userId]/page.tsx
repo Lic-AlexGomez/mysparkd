@@ -16,6 +16,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Loader2, MoreHorizontal, MessageCircle, UserPlus, UserCheck, ArrowLeft, Heart, Crown, Sparkles } from "lucide-react"
 import { PostCard } from "@/components/feed/post-card"
+import { ReportModal } from "@/components/feed/report-modal"
 import { toast } from "sonner"
 
 function getAge(dateOfBirth?: string): number | null {
@@ -40,6 +41,7 @@ export default function UserProfilePage() {
   const [isLiking, setIsLiking] = useState(false)
   const [liked, setLiked] = useState(false)
   const [interests, setInterests] = useState<any[]>([])
+  const [showReportModal, setShowReportModal] = useState(false)
 
   useEffect(() => {
     if (user?.userId) setFollowing(followService.isFollowing(user.userId, userId))
@@ -161,14 +163,7 @@ export default function UserProfilePage() {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-card border-border">
-              <DropdownMenuItem onClick={() => {
-                if (!user?.userId) return
-                const reason = prompt("Motivo del reporte (mínimo 10 caracteres):")
-                if (reason && reason.length >= 10) {
-                  reportService.createReport(user.userId, userId, "user", reason)
-                  toast.success("Reporte enviado")
-                }
-              }} className="cursor-pointer">Reportar</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowReportModal(true)} className="cursor-pointer">Reportar</DropdownMenuItem>
               <DropdownMenuItem onClick={() => {
                 if (!user?.userId) return
                 blockService.blockUser(user.userId, userId)
@@ -356,6 +351,16 @@ export default function UserProfilePage() {
           <img src={viewPhotoUrl || ""} alt="Vista completa" className="w-full h-auto max-h-[90vh] object-contain" />
         </DialogContent>
       </Dialog>
+
+      {user && (
+        <ReportModal
+          open={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          reportedUserId={userId}
+          targetId={userId}
+          targetType="USER"
+        />
+      )}
     </div>
   )
 }

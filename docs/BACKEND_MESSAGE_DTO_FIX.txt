@@ -1,0 +1,50 @@
+================================================================================
+BACKEND - CAMPOS FALTANTES EN MessageResponseDTO
+================================================================================
+
+PROBLEMA:
+  El frontend espera los campos `read` y `edited` en cada mensaje,
+  pero MessageResponseDTO no los expone. Esto causa que:
+  - Los ticks ✓✓ azules (mensaje visto) nunca se muestren
+  - El indicador "editado" nunca aparezca aunque el mensaje fue editado
+
+ARCHIVO A MODIFICAR:
+  src/main/java/sparkd/DTOs/MessageResponseDTO.java
+
+CAMBIOS REQUERIDOS:
+
+1. Agregar campos al DTO:
+
+    private boolean read;
+    private boolean edited;
+
+2. Agregar getters:
+
+    public boolean isRead() { return read; }
+    public boolean isEdited() { return edited; }
+
+3. Agregar setters:
+
+    public void setRead(boolean read) { this.read = read; }
+    public void setEdited(boolean edited) { this.edited = edited; }
+
+4. En MessageService.java — en getMessages(), al construir el DTO pasar los valores:
+
+    MessageResponseDTO dto = new MessageResponseDTO(...);
+    dto.setRead(m.isRead());
+    dto.setEdited(m.isEdited());
+
+5. En MessageService.java — en sendMessage(), al construir el response:
+
+    response.setRead(false);   // mensaje recién enviado, no leído
+    response.setEdited(false);
+
+6. En MessageService.java — en editMessage(), al construir el response:
+
+    response.setEdited(true);
+    response.setRead(msg.isRead());
+
+================================================================================
+TAMBIÉN EN ChatService.java (si aún se usa para getMessages):
+  Mismo cambio — pasar read y edited al construir MessageResponseDTO
+================================================================================

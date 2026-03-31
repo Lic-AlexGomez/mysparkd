@@ -89,6 +89,8 @@ export interface WebSocketCallbacks {
   onChatUpdated?: (chatId: string) => void
   onPollVoted?: (optionId: string) => void
   onPollState?: (poll: any) => void
+  onMessageEdited?: (message: Message) => void
+  onMessageDeleted?: (messageId: string) => void
 }
 
 export function useWebSocket(userId: string | undefined, callbacks: WebSocketCallbacks | ((message: Message) => void)) {
@@ -141,6 +143,12 @@ export function useWebSocket(userId: string | undefined, callbacks: WebSocketCal
       }),
       client.subscribe('/user/queue/poll-state', (frame) => {
         callbacksRef.current.onPollState?.(JSON.parse(frame.body))
+      }),
+      client.subscribe('/user/queue/message-edited', (frame) => {
+        callbacksRef.current.onMessageEdited?.(JSON.parse(frame.body) as Message)
+      }),
+      client.subscribe('/user/queue/message-deleted', (frame) => {
+        callbacksRef.current.onMessageDeleted?.(JSON.parse(frame.body) as string)
       }),
     )
   }, [])

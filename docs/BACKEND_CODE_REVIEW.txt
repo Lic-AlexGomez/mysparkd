@@ -1,0 +1,506 @@
+================================================================================
+BACKEND CODE REVIEW - SPARKD
+Revisión completa del código backend
+Fecha: 2026
+================================================================================
+
+RESUMEN EJECUTIVO
+-----------------
+Se revisaron todos los archivos del backend en:
+C:\Sparkd1.0-desarrollo (1)\Sparkd1.0\src\main\java\sparkd\
+
+Se encontraron issues en las siguientes categorías:
+  [CRITICO]   Seguridad — credenciales hardcodeadas, JWT sin expiración
+  [ALTO]      Bugs funcionales — lógica incorrecta, datos perdidos
+  [MEDIO]     Calidad de código — duplicados, código comentado, System.out
+  [BAJO]      Mejoras — buenas prácticas, optimizaciones menores
+
+================================================================================
+ISSUES CRÍTICOS DE SEGURIDAD
+================================================================================
+
+[CRITICO-1] CREDENCIALES HARDCODEADAS EN CÓDIGO FUENTE
+Archivo: SecurityConfig.java (líneas 44-47)
+-----------------------------------------------
+PROBLEMA:
+  El usuario y contraseña del servidor de correo están escritos directamente
+  en el código fuente:
+    mailSender.setUsername("cotcejonesan1@gmail.com");
+    mailSender.setPassword("lmsb btuq phsh xthw");
+
+  Esto expone las credenciales a cualquiera que tenga acceso al repositorio.
+
+SOLUCIÓN:
+  Mover al archivo application.properties o variables de entorno:
+
+  # application.properties
+  spring.mail.username=${MAIL_USERNAME}
+  spring.mail.password=${MAIL_PASSWORD}
+
+  # SecurityConfig.java
+  @Value("${spring.mail.username}") private String mailUsername;
+  @Value("${spring.mail.password}") private String mailPassword;
+  mailSender.setUsername(mailUsername);
+  mailSender.setPassword(mailPassword);
+
+  Y en el .env del servidor:
+  MAIL_USERNAME=cotcejonesan1@gmail.com
+  MAIL_PASSWORD=lmsb btuq phsh xthw
+
+--------------------------------------------------------------------------------
+
+[CRITICO-2] JWT SIN FECHA DE EXPIRACIÓN
+Archivo: JwtUtils.java (línea 54)
+-----------------------------------------------
+PROBLEMA:
+  El token principal de autenticación no tiene fecha de expiración:
+    //.setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60))
+
+  Un token robado es válido para siempre. No hay forma de invalidarlo.
+
+SOLUCIÓN:
+  Descomentar y configurar la expiración. Recomendado: 7 días para móvil.
+
+    .setExpiration(new Date(System.currentTimeMillis() + 1000L * 60 * 60 * 24 * 7))
+
+  Si se necesita sesión más larga, implementar refresh tokens.
+
+--------------------------------------------------------------------------------
+
+[CRITICO-3] CLAVE SECRETA JWT HARDCODEADA
+Archivo: SecurityConfig.java (línea 65)
+-----------------------------------------------
+PROBLEMA:
+  La clave secreta del JWT está escrita en el código:
+    Keys.hmacShaKeyFor("clave-secreta-muy-larga-y-segura-para-jwt"
+                       .getBytes(StandardCharsets.UTF_8))
+
+  Esta clave es débil y está expuesta en el repositorio.
+
+SOLUCIÓN:
+  # application.properties
+  jwt.secret=${JWT_SECRET}
+
+  # SecurityConfig.java
+  @Value("${jwt.secret}") private String jwtSecret;
+
+  @Bean
+  public SecretKey jwtSecretKey() {
+      return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+  }
+
+  Y en .env usar una clave aleatoria de al menos 64 caracteres:
+  JWT_SECRET=<generar con: openssl rand -base64 64>
+
+--------------------------------------------------------------------------------
+
+[CRITICO-4] CORS SOLO PERMITE LOCALHOST — PRODUCCIÓN BLOQUEADA
+Archivo: CorsConfig.java (líneas 16-22)
+-----------------------------------------------
+PROBLEMA:
+  Solo se permiten orígenes de localhost. El frontend en producción
+  (mysparkd.com) está bloqueado por CORS:
+    .allowedOrigins("http://localhost:3000",
+                    "http://localhost:3001",
+                    "http://localhost:8081")
+
+SOLUCIÓN:
+  Agregar los dominios de producción:
+    .allowedOrigins(
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "https://www.mysparkd.com",
+        "https://mysparkd.com"
+    )
+    .allowedHeaders("*")
+
+================================================================================
+ISSUES ALTOS — BUGS FUNCIONALES
+================================================================================
+
+[ALTO-1] PRESENCIA: STATUS "online" EN MINÚSCULA vs "ONLINE" EN MAYÚSCULA
+Archivo: ChatService.java (línea ~200)
+-----------------------------------------------
+PROBLEMA:
+  Cuando se envía un mensaje, se emite un evento de presencia con status
+  en minúscula:
+    Map.of("userId", sender.getUserId().toString(), "status", "online")
+
+  Pero WebSocketEventListener emite "ONLINE" (mayúscula) y el frontend
+  compara con .toUpperCase(). Esto causa inconsistencias en el indicador
+  de "En línea".
+
+SOLUCIÓN:
+  Cambiar a mayúscula para ser consistente:
+    Map.of("userId", sender.getUserId().toString(), "status", "ONLINE")
+
+  O mejor aún, usar el PresenceDTO que ya existe:
+    messagingTemplate.convertAndSend("/topic/presence",
+        new PresenceDTO(sender.getUserId(), "ONLINE"));
+
+--------------------------------------------------------------------------------
+
+[ALTO-2] GOOGLE LOGIN — USUARIO SIN CONTRASEÑA NI VALIDACIÓN
+Archivo: AuthService.java (líneas ~110-145)
+-----------------------------------------------
+PROBLEMA:
+  Al crear un usuario con Google OAuth, no se asigna contraseña ni se
+  valida que el email sea válido. El username se setea como el email completo
+  (con @), lo que puede causar conflictos:
+    newUser.setUsername(payload.email()); // "usuario@gmail.com" como username
+
+  Además, no hay @Transactional en el método, por lo que si falla la subida
+  a Cloudinary, el usuario queda guardado sin foto pero sin rollback.
+
+SOLUCIÓN:
+  1. Generar username limpio desde el email:
+     String username = payload.email().split("@")[0] + "_" + UUID.randomUUID().toString().substring(0,4);
+     newUser.setUsername(username);
+
+  2. Agregar @Transactional al método loginWithGoogle
+
+  3. Manejar el error de Cloudinary sin romper el registro:
+     try {
+         // subir foto
+     } catch (Exception e) {
+         // continuar sin foto, no fallar el registro
+     }
+
+--------------------------------------------------------------------------------
+
+[ALTO-3] RESET PASSWORD — URL DEL FRONTEND HARDCODEADA
+Archivo: AuthService.java (línea ~85)
+-----------------------------------------------
+PROBLEMA:
+  La URL del enlace de reset password apunta a un dominio placeholder:
+    String resetLink = "https://tu-frontend.com/reset-password?token=" + token;
+
+  Los usuarios reciben un enlace que no funciona.
+
+SOLUCIÓN:
+  # application.properties
+  app.frontend.url=${FRONTEND_URL:https://www.mysparkd.com}
+
+  # AuthService.java
+  @Value("${app.frontend.url}") private String frontendUrl;
+  String resetLink = frontendUrl + "/reset-password?token=" + token;
+
+--------------------------------------------------------------------------------
+
+[ALTO-4] POLL SYNC — CARGA TODOS LOS POLLS CADA 30 SEGUNDOS
+Archivo: PollService.java (línea ~185)
+-----------------------------------------------
+PROBLEMA:
+  El job programado carga TODOS los polls de la base de datos cada 30 segundos:
+    List<Poll> polls = pollRepository.findAll();
+
+  Con muchos polls esto puede saturar la base de datos y causar timeouts.
+
+SOLUCIÓN:
+  Solo sincronizar polls activos (no expirados):
+    List<Poll> polls = pollRepository.findByExpiresAtAfter(LocalDateTime.now());
+
+  O aumentar el intervalo a 5 minutos:
+    @Scheduled(fixedRate = 300000)
+
+--------------------------------------------------------------------------------
+
+[ALTO-5] DELETE POLL — SOLO LIMPIA REDIS DEL USUARIO QUE BORRA
+Archivo: PollService.java (línea ~170)
+-----------------------------------------------
+PROBLEMA:
+  Al eliminar un poll, solo se borra la clave Redis del usuario que hace
+  el delete, no de todos los usuarios que votaron:
+    redisTemplate.delete("poll:" + poll.getId() + ":user:" + userId);
+
+  Las claves de otros votantes quedan huérfanas en Redis.
+
+SOLUCIÓN:
+  Usar un patrón para borrar todas las claves del poll:
+    // Borrar votos de opciones
+    for (PollOption option : poll.getOptions()) {
+        redisTemplate.delete("poll:" + poll.getId() + ":option:" + option.getId());
+    }
+    // Borrar todos los votos de usuarios (requiere scan o guardar lista de votantes)
+    Set<String> keys = redisTemplate.keys("poll:" + poll.getId() + ":user:*");
+    if (keys != null) redisTemplate.delete(keys);
+
+================================================================================
+ISSUES MEDIOS — CALIDAD DE CÓDIGO
+================================================================================
+
+[MEDIO-1] SYSTEM.OUT.PRINTLN EN PRODUCCIÓN
+Archivo: PostService.java (líneas ~105-110)
+-----------------------------------------------
+PROBLEMA:
+  Hay varios System.out.println de debug que se ejecutan en producción:
+    System.out.println("FILE SIZE: " + file.getSize());
+    System.out.println("FILE NULL? " + (file == null));
+    System.out.println("FILE EMPTY? " + (file != null && file.isEmpty()));
+    System.out.println("CLOUDINARY RESULT: " + result);
+
+SOLUCIÓN:
+  Reemplazar con un logger:
+    private static final Logger log = LoggerFactory.getLogger(PostService.class);
+    log.debug("FILE SIZE: {}", file.getSize());
+
+  O simplemente eliminarlos si ya no son necesarios.
+
+--------------------------------------------------------------------------------
+
+[MEDIO-2] BEAN REDIS DUPLICADO (YA CORREGIDO)
+Archivo: RedisConfig.java
+-----------------------------------------------
+ESTADO: CORREGIDO
+  Se eliminó el bean redisTemplateString duplicado. Ahora existe un solo
+  bean redisTemplate<String, Object>.
+
+  IMPORTANTE: Verificar que ningún servicio inyecte RedisTemplate<String, String>
+  por nombre "redisTemplateString". Si lo hace, actualizar la referencia a
+  "redisTemplate".
+
+--------------------------------------------------------------------------------
+
+[MEDIO-3] MODERACIÓN DE CONTENIDO DESACTIVADA
+Archivos: PostService.java, ChatService.java
+-----------------------------------------------
+PROBLEMA:
+  La moderación de texto e imágenes está comentada en ambos servicios:
+    // String moderation = moderationService.moderateText(...)
+    // if (moderationService.isFlagged(moderation)) { ... }
+
+  Esto significa que cualquier contenido inapropiado puede publicarse
+  sin filtro.
+
+RECOMENDACIÓN:
+  Reactivar la moderación cuando el servicio de OpenAI esté estable,
+  o implementar un feature flag para activarla/desactivarla sin deploy:
+    @Value("${feature.moderation.enabled:false}")
+    private boolean moderationEnabled;
+
+    if (moderationEnabled) {
+        // moderar contenido
+    }
+
+--------------------------------------------------------------------------------
+
+[MEDIO-4] USO DE @AUTOWIRED EN VEZ DE INYECCIÓN POR CONSTRUCTOR
+Archivo: AuthService.java (múltiples campos)
+-----------------------------------------------
+PROBLEMA:
+  Se usa @Autowired en campos, lo que dificulta el testing y puede causar
+  problemas con dependencias circulares:
+    @Autowired private UsersRepository usersRepository;
+    @Autowired private PasswordEncoder passwordEncoder;
+    // etc.
+
+SOLUCIÓN:
+  Usar inyección por constructor (como ya se hace en ChatService, PostService):
+    private final UsersRepository usersRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    public AuthService(UsersRepository usersRepository,
+                       PasswordEncoder passwordEncoder, ...) {
+        this.usersRepository = usersRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+--------------------------------------------------------------------------------
+
+[MEDIO-5] CÓDIGO COMENTADO EXTENSO
+Archivos: AuthService.java, PostService.java, ChatService.java
+-----------------------------------------------
+PROBLEMA:
+  Hay bloques grandes de código comentado que ensucian el código:
+  - Método loginWithGoogle duplicado (versión vieja comentada) en AuthService.java
+  - Validaciones de posts comentadas en PostService.java
+  - Moderación de chat comentada en ChatService.java
+
+SOLUCIÓN:
+  Eliminar el código comentado. Si se necesita recuperar, está en el
+  historial de Git. El código comentado confunde a los desarrolladores
+  sobre qué está activo y qué no.
+
+--------------------------------------------------------------------------------
+
+[MEDIO-6] WEBSOCKET — ORIGEN PERMITIDO ES "*" (TODOS)
+Archivo: WebSocketConfig.java (línea 34)
+-----------------------------------------------
+PROBLEMA:
+  El WebSocket permite conexiones desde cualquier origen:
+    .setAllowedOriginPatterns("*")
+
+  Esto permite que cualquier sitio web externo se conecte al WS.
+
+SOLUCIÓN:
+  Restringir a los dominios conocidos:
+    .setAllowedOriginPatterns(
+        "http://localhost:3000",
+        "https://www.mysparkd.com",
+        "https://mysparkd.com"
+    )
+
+================================================================================
+ISSUES BAJOS — MEJORAS Y BUENAS PRÁCTICAS
+================================================================================
+
+[BAJO-1] PRESENCECONTROLLER — SIN LASTSEEEN EN RESPUESTA
+Archivo: PresenceController.java
+-----------------------------------------------
+PROBLEMA:
+  El endpoint GET /api/presence/{userId} no devuelve el campo lastSeen
+  cuando el usuario está OFFLINE, aunque el dato existe en la base de datos.
+
+SOLUCIÓN:
+  Agregar lastSeen a la respuesta:
+
+  @GetMapping("/{userId}")
+  public ResponseEntity<Map<String, Object>> getPresence(@PathVariable UUID userId) {
+      boolean online = presenceService.isOnline(userId);
+      Map<String, Object> response = new HashMap<>();
+      response.put("userId", userId.toString());
+      response.put("status", online ? "ONLINE" : "OFFLINE");
+      if (!online) {
+          usersRepository.findById(userId).ifPresent(user -> {
+              response.put("lastSeen", user.getLastSeen());
+          });
+      }
+      return ResponseEntity.ok(response);
+  }
+
+--------------------------------------------------------------------------------
+
+[BAJO-2] SWIPESERVICE — LÍMITE DIARIO NO APLICA AL ACTUALIZAR SWIPE
+Archivo: SwipeService.java
+-----------------------------------------------
+PROBLEMA:
+  checkDailySwipeLimit() se define pero nunca se llama en el método swipe().
+  El límite de 10 swipes diarios no se aplica.
+
+SOLUCIÓN:
+  Llamar el método al inicio de swipe():
+    public UserSwipeResponseDTO swipe(UUID fromId, UUID toId, SwipeType type) {
+        // ...
+        checkDailySwipeLimit(from); // <-- agregar esta línea
+        // ...
+    }
+
+--------------------------------------------------------------------------------
+
+[BAJO-3] NOTIFICATIONSSERVICE — COMENTARIO DUPLICADO
+Archivo: NotificationsService.java (línea ~45)
+-----------------------------------------------
+PROBLEMA:
+  Hay una línea comentada y luego la misma línea activa:
+    //String firebaseToken = receiver.getFirebaseToken();
+    String firebaseToken = receiver.getFirebaseToken();
+
+SOLUCIÓN:
+  Eliminar la línea comentada.
+
+--------------------------------------------------------------------------------
+
+[BAJO-4] RESOLVERESOURCETYPE — LÓGICA DUPLICADA
+Archivo: PostService.java (método resolveResourceType)
+-----------------------------------------------
+PROBLEMA:
+  El método tiene una verificación redundante — verifica format dos veces:
+    if (post.getMedia().getFormat() != null) {
+        return post.getMedia().getFormat(); // retorna el format crudo, no "image"/"video"
+    }
+    String format = post.getMedia().getFormat(); // nunca llega aquí
+
+SOLUCIÓN:
+  Simplificar el método:
+    private String resolveResourceType(Posts post) {
+        if (post.getMedia() == null) return "image";
+        String url = post.getMedia().getMediaUrl();
+        if (url != null && url.contains("/video/")) return "video";
+        String format = post.getMedia().getFormat();
+        if (format != null) {
+            format = format.toLowerCase();
+            if (List.of("mp4","mov","avi","webm").contains(format)) return "video";
+        }
+        return "image";
+    }
+
+--------------------------------------------------------------------------------
+
+[BAJO-5] POLLSERVICE — INSTANCIACIÓN DE REDISSCRIPT DENTRO DEL MÉTODO
+Archivo: PollService.java (método voteRedis)
+-----------------------------------------------
+PROBLEMA:
+  Se crea una nueva instancia de DefaultRedisScript en cada llamada al método
+  voteRedis(), lo que es ineficiente:
+    DefaultRedisScript<Long> redisScript = new DefaultRedisScript<>();
+    redisScript.setScriptText(script);
+
+SOLUCIÓN:
+  Declarar el script como campo final de la clase:
+    private static final DefaultRedisScript<Long> VOTE_SCRIPT;
+    static {
+        VOTE_SCRIPT = new DefaultRedisScript<>();
+        VOTE_SCRIPT.setScriptText("...script lua...");
+        VOTE_SCRIPT.setResultType(Long.class);
+    }
+
+================================================================================
+RESUMEN DE PRIORIDADES
+================================================================================
+
+IMPLEMENTAR INMEDIATAMENTE (antes del próximo deploy):
+  [CRITICO-1] Mover credenciales de email a variables de entorno
+  [CRITICO-2] Agregar expiración al JWT (7 días recomendado)
+  [CRITICO-3] Mover clave JWT a variable de entorno
+  [CRITICO-4] Agregar dominios de producción al CORS
+  [ALTO-1]    Corregir status "online" → "ONLINE" en ChatService
+
+IMPLEMENTAR EN EL PRÓXIMO SPRINT:
+  [ALTO-2]    Corregir Google Login (username, transacción)
+  [ALTO-3]    Corregir URL de reset password
+  [ALTO-4]    Optimizar sync de polls
+  [ALTO-5]    Limpiar todas las claves Redis al borrar poll
+  [BAJO-2]    Aplicar límite diario de swipes (checkDailySwipeLimit)
+
+MEJORAS DE CALIDAD (cuando haya tiempo):
+  [MEDIO-1]   Reemplazar System.out.println con Logger
+  [MEDIO-3]   Reactivar moderación con feature flag
+  [MEDIO-4]   Migrar @Autowired a inyección por constructor en AuthService
+  [MEDIO-5]   Eliminar código comentado
+  [MEDIO-6]   Restringir orígenes del WebSocket
+  [BAJO-1]    Agregar lastSeen al PresenceController
+  [BAJO-3]    Limpiar comentarios duplicados
+  [BAJO-4]    Simplificar resolveResourceType
+  [BAJO-5]    Mover RedisScript a campo estático
+
+================================================================================
+ARCHIVOS REVISADOS
+================================================================================
+Config/
+  SecurityConfig.java       — CRITICO-1, CRITICO-2, CRITICO-3
+  CorsConfig.java           — CRITICO-4
+  WebSocketConfig.java      — MEDIO-6
+  WebSocketEventListener.java — OK (bien implementado)
+  RedisConfig.java          — MEDIO-2 (YA CORREGIDO)
+
+Controllers/
+  AuthController.java       — OK
+  PollController.java       — OK
+  PresenceController.java   — BAJO-1
+
+JWT/
+  JwtUtils.java             — CRITICO-2
+  JwtFilter.java            — OK
+
+Service/
+  AuthService.java          — ALTO-2, ALTO-3, MEDIO-4, MEDIO-5
+  ChatService.java          — ALTO-1, MEDIO-3, MEDIO-5
+  PostService.java          — MEDIO-1, MEDIO-3, BAJO-4
+  PollService.java          — ALTO-4, ALTO-5, BAJO-5
+  SwipeService.java         — BAJO-2
+  NotificationsService.java — BAJO-3
+  UserPresenceService.java  — OK (bien implementado)
+
+================================================================================
+Preparado para el equipo de backend de Sparkd
+================================================================================
