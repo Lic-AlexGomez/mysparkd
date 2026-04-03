@@ -74,6 +74,7 @@ export function useFeed() {
           unlocked: post.unlocked || false,
           permanent: post.permanent !== false,
           expiresAt: post.expiresAt || null,
+          message: post.message || null,
           reputation: post.reputation,
           verificationLevel: post.verificationLevel,
           repostCount: post.repostCount || 0,
@@ -82,6 +83,7 @@ export function useFeed() {
       })
       
       const filtered = contentValidation.filterBlockedUsers('current-user', normalizedPosts)
+        .filter(p => !(p.message && !p.body && !p.file))
       setPosts(feedService.sortPosts(filtered, sortMode))
     } catch (error) {
       console.error('[Feed Global] Error:', error)

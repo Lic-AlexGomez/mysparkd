@@ -144,7 +144,6 @@ export interface Post {
   permanent: boolean
   expiresAt: string | null
   locked: boolean
-  privat_e: boolean
   visibility: PostVisibility
   canUnlock: boolean
   unlocked: boolean

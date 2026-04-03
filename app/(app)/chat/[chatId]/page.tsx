@@ -59,6 +59,7 @@ export default function ChatRoomPage() {
   const [editingContent, setEditingContent] = useState("")
   const [editedMessages, setEditedMessages] = useState<Record<string, string>>({})
   const [deletedMessages, setDeletedMessages] = useState<Set<string>>(new Set())
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [filePreview, setFilePreview] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
@@ -338,7 +339,9 @@ export default function ChatRoomPage() {
   }
 
   const canEditMessage = (sentAt: string) => {
+    if (!sentAt) return false
     const date = new Date(sentAt.endsWith('Z') ? sentAt : sentAt + 'Z')
+    if (isNaN(date.getTime())) return false
     return (Date.now() - date.getTime()) < 15 * 60 * 1000
   }
 
@@ -364,13 +367,18 @@ export default function ChatRoomPage() {
     setEditingContent("")
   }
 
-  const handleDeleteMessage = async (msgId: string) => {
+  const handleDeleteMessage = async (msgId: string, forEveryone: boolean) => {
     try {
-      await api.delete(`/api/messages/messages/${msgId}/everyone`)
+      if (forEveryone) {
+        await api.delete(`/api/messages/messages/${msgId}/everyone`)
+      } else {
+        await api.delete(`/api/messages/messages/${msgId}/me`)
+      }
       setDeletedMessages(prev => new Set(prev).add(msgId))
     } catch {
       toast.error('Error al eliminar el mensaje')
     }
+    setDeleteConfirmId(null)
   }
 
   const [activeMessageId, setActiveMessageId] = useState<string | null>(null)
@@ -943,7 +951,7 @@ export default function ChatRoomPage() {
                           {wasEdited && <span className="text-[10px] opacity-50 ml-1">editado</span>}
                           {/* Spacer invisible para reservar espacio de la hora */}
                           <span className="inline-block align-bottom ml-2 opacity-0 select-none text-[10px] whitespace-nowrap">
-                            {formatDistanceToNow(new Date(msg.sentAt), { addSuffix: false, locale: es })}{isOwn ? ' ✓✓' : ''}
+                            {msg.sentAt ? formatDistanceToNow(new Date(msg.sentAt), { addSuffix: false, locale: es }) : ''}{isOwn ? ' ✓✓' : ''}
                           </span>
                         </span>
                       )
@@ -951,7 +959,7 @@ export default function ChatRoomPage() {
                     {/* Hora + check flotando abajo a la derecha */}
                     <div className="flex items-center justify-end gap-1 -mt-4 pointer-events-none">
                       <p className={cn("text-[10px]", isOwn ? "text-white/50" : "text-muted-foreground")}>
-                        {formatDistanceToNow(new Date(msg.sentAt), { addSuffix: false, locale: es })}
+                        {msg.sentAt ? formatDistanceToNow(new Date(msg.sentAt), { addSuffix: false, locale: es }) : ''}
                       </p>
                       {isOwn && (
                         <span className={cn(
@@ -1031,7 +1039,7 @@ export default function ChatRoomPage() {
                       )}
                       <button
                         className="h-7 w-7 rounded-full flex items-center justify-center bg-muted/80 hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
-                        onClick={(e) => { e.stopPropagation(); handleDeleteMessage(msgId) }}
+                        onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(msgId) }}
                         title="Eliminar"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -1052,6 +1060,35 @@ export default function ChatRoomPage() {
           <div ref={messagesEndRef} />
         </div>
       </div>
+
+      {/* Diálogo eliminar mensaje */}
+      {deleteConfirmId && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 pb-6 px-4" onClick={() => setDeleteConfirmId(null)}>
+          <div className="w-full max-w-sm bg-card rounded-2xl border border-border overflow-hidden" onClick={e => e.stopPropagation()}>
+            <p className="text-sm font-semibold text-center text-foreground px-4 pt-4 pb-2">Eliminar mensaje</p>
+            <div className="divide-y divide-border">
+              <button
+                className="w-full px-4 py-3.5 text-sm text-destructive font-medium hover:bg-muted/50 transition-colors text-left"
+                onClick={() => handleDeleteMessage(deleteConfirmId, true)}
+              >
+                Eliminar para todos
+              </button>
+              <button
+                className="w-full px-4 py-3.5 text-sm text-foreground hover:bg-muted/50 transition-colors text-left"
+                onClick={() => handleDeleteMessage(deleteConfirmId, false)}
+              >
+                Eliminar para mí
+              </button>
+              <button
+                className="w-full px-4 py-3.5 text-sm text-muted-foreground hover:bg-muted/50 transition-colors text-left"
+                onClick={() => setDeleteConfirmId(null)}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ChatInput
         onSend={handleSend}

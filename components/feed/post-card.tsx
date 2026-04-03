@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import type { Post, ReactionType } from "@/lib/types"
+import type { Post, ReactionType, PostVisibility } from "@/lib/types"
 import { api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Heart,
   MessageCircle,
@@ -27,11 +28,13 @@ import {
   Bookmark,
   Flag,
   Check,
+  Globe,
+  Users as UsersIcon,
+  LockKeyhole,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { reputationService } from "@/lib/services/reputation"
 import { bookmarkService } from "@/lib/services/bookmark"
-import { reportService } from "@/lib/services/report"
 import { reactionService } from "@/lib/services/reaction"
 import { toast } from "sonner"
 import { formatDistanceToNow } from "date-fns"
@@ -112,11 +115,13 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
   const [showReportModal, setShowReportModal] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [editedBody, setEditedBody] = useState(post.body)
+  const [editedVisibility, setEditedVisibility] = useState<PostVisibility>(post.visibility || 'PUBLIC')
   const [isSaving, setIsSaving] = useState(false)
   const isOwn = user?.userId === post.userId
   const reputation = post.reputation
   const reputationColor = reputation ? reputationService.getReputationColor(reputation) : undefined
   const shouldShowLocked = post.locked && !post.unlocked && !isOwn && !isPremium
+  const isAccessDenied = !post.body && !post.file && !!post.message && !post.locked && !post.canUnlock
 
   const handleReaction = async (type: ReactionType) => {
     const prevReaction = userReaction
@@ -249,19 +254,6 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
     }
   }
 
-  const handleReport = () => {
-    if (user?.userId) {
-      const reason = prompt('Motivo del reporte (mínimo 10 caracteres):')
-      if (reason && reason.length >= 10) {
-        reportService.createReport(user.userId, post.id, 'post', reason)
-        toast.success('Reporte enviado')
-        setShowMenu(false)
-      } else if (reason) {
-        toast.error('El motivo debe tener al menos 10 caracteres')
-      }
-    }
-  }
-
   const handleEdit = () => {
     setIsEditing(true)
     setShowMenu(false)
@@ -274,7 +266,7 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
     }
     setIsSaving(true)
     try {
-      await api.put(`/api/posts/update/${post.id}`, { body: editedBody.trim() })
+      await api.put(`/api/posts/update/${post.id}`, { body: editedBody.trim(), visibility: editedVisibility })
       toast.success("Post actualizado")
       setIsEditing(false)
       onUpdate?.()
@@ -287,6 +279,7 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
 
   const handleCancelEdit = () => {
     setEditedBody(post.body)
+    setEditedVisibility(post.visibility || 'PUBLIC')
     setIsEditing(false)
   }
 
@@ -489,6 +482,31 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
               <span className="text-xs text-muted-foreground text-right">
                 {editedBody.length}/500 {editedBody.length < 10 && editedBody.length > 0 && '(mínimo 10)'}
               </span>
+              <Select value={editedVisibility} onValueChange={(v) => setEditedVisibility(v as PostVisibility)}>
+                <SelectTrigger className="bg-muted border-border text-foreground text-xs h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border">
+                  <SelectItem value="PUBLIC">
+                    <div className="flex items-center gap-2 text-xs">
+                      <Globe className="h-3.5 w-3.5" />
+                      Público
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="FOLLOWERS">
+                    <div className="flex items-center gap-2 text-xs">
+                      <UsersIcon className="h-3.5 w-3.5" />
+                      Seguidores
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="PRIVATE">
+                    <div className="flex items-center gap-2 text-xs">
+                      <LockKeyhole className="h-3.5 w-3.5" />
+                      Privado
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
               <div className="flex gap-2 justify-end">
                 <Button
                   size="sm"
@@ -512,8 +530,29 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
           ) : (
             <div className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
               {shouldShowLocked ? (
-                <p className="text-muted-foreground italic select-none">
-                  Este contenido está bloqueado. Desbloquea para ver el contenido completo.
+                <div className="flex flex-col gap-2">
+                  <p className="text-muted-foreground italic select-none">
+                    Este contenido está bloqueado.
+                  </p>
+                  {!post.file && (
+                    <button
+                      onClick={() => setShowUnlockModal(true)}
+                      className="flex items-center justify-between rounded-lg bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/30 px-4 py-3 cursor-pointer hover:from-primary/20 hover:to-secondary/20 transition-all w-full text-left"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Lock className="h-5 w-5 text-primary" />
+                        <span className="font-medium text-foreground text-sm">Contenido Premium Bloqueado</span>
+                      </div>
+                      <span className="text-xs border border-primary text-primary rounded px-2 py-1 hover:bg-primary hover:text-primary-foreground transition-colors">
+                        Desbloquear
+                      </span>
+                    </button>
+                  )}
+                </div>
+              ) : isAccessDenied ? (
+                <p className="text-muted-foreground italic select-none flex items-center gap-1.5">
+                  <Lock className="h-3.5 w-3.5 shrink-0" />
+                  {post.message}
                 </p>
               ) : (
                 features.hashtagsAndMentions ? parseTextWithLinks(post.body) : post.body

@@ -1,9 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Lock, Crown, RefreshCw, Loader2 } from "lucide-react"
+import { Lock, Crown, RefreshCw, Loader2, Upload } from "lucide-react"
 import { api } from "@/lib/api"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
@@ -18,6 +18,9 @@ interface UnlockPostModalProps {
 
 export function UnlockPostModal({ postId, open, onClose, onUnlocked }: UnlockPostModalProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [postBody, setPostBody] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const { isPremium } = usePremiumStatus()
 
@@ -26,31 +29,29 @@ export function UnlockPostModal({ postId, open, onClose, onUnlocked }: UnlockPos
     router.push('/premium')
   }
 
-  const handleUnlock = async (type: 'PAYMENT' | 'EXCHANGE') => {
-    console.log('Intentando desbloquear post:', postId, 'con tipo:', type)
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null
+    setSelectedFile(file)
+  }
+
+  const handleUnlock = async () => {
+    if (!selectedFile) {
+      toast.error('Debes subir una imagen o video para desbloquear')
+      return
+    }
     setIsLoading(true)
     try {
-      // Intentar desbloquear el post
-      const response = await api.post(`/api/posts/${postId}/unlock`, { type })
-      console.log('Respuesta del servidor:', response)
-      toast.success(type === 'PAYMENT' ? 'Post desbloqueado permanentemente' : 'Post desbloqueado por 24h')
+      const formData = new FormData()
+      formData.append('post', JSON.stringify({ body: postBody.trim() || 'Intercambio de contenido' }))
+      formData.append('file', selectedFile)
+
+      await api.post(`/api/posts/${postId}/unlock`, formData)
+      toast.success('Post desbloqueado exitosamente')
       onUnlocked()
       onClose()
     } catch (err: any) {
-      console.error('Error al desbloquear:', err)
-      // Si el endpoint no existe (404), mostrar mensaje alternativo
-      if (err?.response?.status === 404) {
-        toast.error('Función de desbloqueo no disponible', {
-          description: 'Por favor, obtén una suscripción Premium para acceder a todo el contenido',
-          action: {
-            label: 'Ver Premium',
-            onClick: handleGetPremium
-          }
-        })
-      } else {
-        const errorMessage = err?.response?.data?.message || err?.message || 'Error al desbloquear'
-        toast.error(errorMessage)
-      }
+      const errorMessage = err?.response?.data?.message || err?.message || 'Error al desbloquear'
+      toast.error(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -99,27 +100,53 @@ export function UnlockPostModal({ postId, open, onClose, onUnlocked }: UnlockPos
             </div>
           </div>
 
-          {/* Opción de intercambio */}
-          <Button
-            onClick={() => handleUnlock('EXCHANGE')}
-            disabled={isLoading}
-            className="w-full justify-start h-auto py-4 px-4"
-            variant="outline"
-          >
-            <div className="flex items-start gap-3 w-full">
+          {/* Opción de intercambio con archivo */}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-start gap-3 rounded-lg border border-border p-3">
               <RefreshCw className="h-5 w-5 text-secondary shrink-0 mt-0.5" />
-              <div className="flex-1 text-left">
-                <p className="font-semibold text-foreground">Intercambiar</p>
-                <p className="text-xs text-muted-foreground">Comparte tu post premium por 24h de acceso</p>
+              <div className="flex-1">
+                <p className="font-semibold text-foreground text-sm">Intercambiar</p>
+                <p className="text-xs text-muted-foreground">Sube tu propio post premium para obtener acceso</p>
               </div>
             </div>
-          </Button>
 
-          {isLoading && (
-            <div className="flex items-center justify-center py-2">
-              <Loader2 className="h-5 w-5 animate-spin text-primary" />
-            </div>
-          )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,video/*"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            <textarea
+              value={postBody}
+              onChange={(e) => setPostBody(e.target.value)}
+              placeholder="Escribe algo sobre tu post de intercambio..."
+              maxLength={300}
+              rows={3}
+              className="w-full p-2 text-sm bg-muted border border-border rounded-lg text-foreground resize-none placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+            <span className="text-xs text-muted-foreground text-right">{postBody.length}/300</span>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isLoading}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              {selectedFile ? selectedFile.name : 'Seleccionar imagen o video'}
+            </Button>
+
+            <Button
+              onClick={handleUnlock}
+              disabled={isLoading || !selectedFile}
+              className="w-full"
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Desbloquear
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

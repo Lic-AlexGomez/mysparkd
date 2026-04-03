@@ -98,6 +98,7 @@ export function useLocalFeed(radiusKm: number = 50) {
           canUnlock: post.canUnlock ?? false,
           visibility: post.visibility || 'PUBLIC',
           file: post.file || null,
+          message: post.message || null,
           likeCount: post.likeCount || 0,
           commentsCount: post.commentsCount || 0,
           repostCount: post.repostCount || 0,
@@ -122,7 +123,7 @@ export function useLocalFeed(radiusKm: number = 50) {
       console.log('Posts normalizados:', normalizedPosts);
       console.log('Primer post normalizado (ejemplo):', normalizedPosts[0]);
       
-      setPosts(normalizedPosts)
+      setPosts(normalizedPosts.filter(p => !(p.message && !p.body && !p.file)))
       setLocationEnabled(true)
     } catch (err) {
       console.error('Error fetching local feed:', err)
