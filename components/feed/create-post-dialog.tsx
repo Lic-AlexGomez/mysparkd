@@ -52,36 +52,60 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const [showCamera, setShowCamera] = useState(false)
-  const [cameraError, setCameraError] = useState('')
+  const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment')
+  const [zoom, setZoom] = useState(1)
+  const [maxZoom, setMaxZoom] = useState(1)
 
-  const openGallery = () => fileInputRef.current?.click()
-
-  const openCamera = async () => {
-    setCameraError('')
+  const startCamera = async (facing: 'environment' | 'user') => {
+    streamRef.current?.getTracks().forEach(t => t.stop())
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
+        video: { facingMode: facing, width: { ideal: 1920 }, height: { ideal: 1080 } },
         audio: false,
       })
       streamRef.current = stream
-      setShowCamera(true)
-      // Asignar stream al video después de que el elemento esté en el DOM
-      setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream
-          videoRef.current.play()
-        }
-      }, 100)
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        videoRef.current.play()
+      }
+      // Detectar zoom máximo soportado
+      const track = stream.getVideoTracks()[0]
+      const capabilities = track.getCapabilities?.() as any
+      setMaxZoom(capabilities?.zoom?.max || 1)
+      setZoom(1)
     } catch {
-      setCameraError('No se pudo acceder a la cámara')
       toast.error('No se pudo acceder a la cámara. Verifica los permisos.')
+      setShowCamera(false)
     }
+  }
+
+  const openCamera = async () => {
+    setShowCamera(true)
+    setTimeout(() => startCamera(facingMode), 100)
   }
 
   const closeCamera = () => {
     streamRef.current?.getTracks().forEach(t => t.stop())
     streamRef.current = null
     setShowCamera(false)
+    setZoom(1)
+  }
+
+  const flipCamera = () => {
+    const next = facingMode === 'environment' ? 'user' : 'environment'
+    setFacingMode(next)
+    startCamera(next)
+  }
+
+  const applyZoom = async (value: number) => {
+    setZoom(value)
+    const track = streamRef.current?.getVideoTracks()[0]
+    if (!track) return
+    try {
+      await (track as any).applyConstraints({ advanced: [{ zoom: value }] })
+    } catch {
+      // zoom no soportado en este dispositivo, ignorar
+    }
   }
 
   const capturePhoto = () => {
@@ -99,6 +123,8 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
       closeCamera()
     }, 'image/jpeg', 0.9)
   }
+
+  const openGallery = () => fileInputRef.current?.click()
 
   const renderFilePreview = () => {
     if (!filePreview && !isUploading) return null
@@ -522,26 +548,57 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
         {/* Modal cámara */}
         {showCamera && (
           <div className="fixed inset-0 z-50 bg-black flex flex-col">
-            <div className="flex items-center justify-between p-4">
-              <span className="text-white font-medium">Cámara</span>
-              <button onClick={closeCamera} className="text-white">
-                <X className="h-6 w-6" />
+            {/* Top bar */}
+            <div className="flex items-center justify-between p-4 absolute top-0 left-0 right-0 z-10">
+              <button onClick={closeCamera} className="h-10 w-10 rounded-full bg-black/50 flex items-center justify-center">
+                <X className="h-5 w-5 text-white" />
+              </button>
+              <button onClick={flipCamera} className="h-10 w-10 rounded-full bg-black/50 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M3 7V5a2 2 0 0 1 2-2h2" /><path d="M17 3h2a2 2 0 0 1 2 2v2" />
+                  <path d="M21 17v2a2 2 0 0 1-2 2h-2" /><path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+                  <path d="M8 12a4 4 0 1 0 8 0 4 4 0 0 0-8 0" />
+                </svg>
               </button>
             </div>
-            <div className="flex-1 relative">
+
+            {/* Video */}
+            <div className="flex-1 relative overflow-hidden">
               <video
                 ref={videoRef}
                 autoPlay
                 playsInline
                 muted
                 className="w-full h-full object-cover"
+                style={{ transform: facingMode === 'user' ? 'scaleX(-1)' : 'none' }}
               />
             </div>
-            <div className="p-6 flex justify-center">
-              <button
-                onClick={capturePhoto}
-                className="h-16 w-16 rounded-full bg-white border-4 border-white/50 hover:scale-105 transition-transform"
-              />
+
+            {/* Bottom controls */}
+            <div className="p-6 flex flex-col gap-4 bg-black">
+              {/* Zoom slider */}
+              {maxZoom > 1 && (
+                <div className="flex items-center gap-3 px-2">
+                  <span className="text-white text-xs w-6">1x</span>
+                  <input
+                    type="range"
+                    min={1}
+                    max={maxZoom}
+                    step={0.1}
+                    value={zoom}
+                    onChange={(e) => applyZoom(parseFloat(e.target.value))}
+                    className="flex-1 accent-white"
+                  />
+                  <span className="text-white text-xs w-8">{zoom.toFixed(1)}x</span>
+                </div>
+              )}
+              {/* Shutter */}
+              <div className="flex items-center justify-center">
+                <button
+                  onClick={capturePhoto}
+                  className="h-16 w-16 rounded-full bg-white border-4 border-white/40 hover:scale-105 active:scale-95 transition-transform shadow-lg"
+                />
+              </div>
             </div>
           </div>
         )}
