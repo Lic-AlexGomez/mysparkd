@@ -17,7 +17,7 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import { Loader2, Plus, ImageIcon, X, BarChart3, Lock, Globe, Users as UsersIcon, LockKeyhole } from "lucide-react"
+import { Loader2, Plus, ImageIcon, Camera, X, BarChart3, Lock, Globe, Users as UsersIcon, LockKeyhole } from "lucide-react"
 import { uploadToCloudinary } from "@/lib/cloudinary"
 import { CreatePollDialog } from "./create-poll-dialog"
 import { useAuth } from "@/lib/auth-context"
@@ -49,7 +49,13 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
   const [pollData, setPollData] = useState<{ question: string; options: string[]; duration: number } | null>(null)
 
   const renderFilePreview = () => {
-    if (!filePreview) return null
+    if (!filePreview && !isUploading) return null
+    if (isUploading && !filePreview) return (
+      <div className="flex items-center justify-center h-16 gap-2 text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin" />
+        <span className="text-sm">Subiendo... {uploadProgress}%</span>
+      </div>
+    )
     return (
       <div className="relative">
         {file?.type.startsWith('video/') ? (
@@ -272,10 +278,20 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
                   Imagen o Video (opcional)
                 </Label>
                 {renderFilePreview()}
-                <div className="flex gap-2">
-                  <Input type="file" accept="image/*,video/*,.mp4,.webm,.mov,.avi,.mkv" onChange={handleImageUpload} disabled={isUploading} className="bg-muted border-border text-foreground" />
-                  {isUploading && <Loader2 className="h-5 w-5 animate-spin" />}
-                </div>
+                {!filePreview && (
+                  <div className="flex gap-2">
+                    <input id="file-gallery" type="file" accept="image/*,video/*,.mp4,.webm,.mov,.avi,.mkv" onChange={handleImageUpload} disabled={isUploading} className="hidden" />
+                    <input id="file-camera" type="file" accept="image/*,video/*" capture="environment" onChange={handleImageUpload} disabled={isUploading} className="hidden" />
+                    <Button type="button" variant="outline" className="flex-1" disabled={isUploading} onClick={() => document.getElementById('file-gallery')?.click()}>
+                      <ImageIcon className="h-4 w-4 mr-2" />
+                      Galería
+                    </Button>
+                    <Button type="button" variant="outline" className="flex-1" disabled={isUploading} onClick={() => document.getElementById('file-camera')?.click()}>
+                      <Camera className="h-4 w-4 mr-2" />
+                      Cámara
+                    </Button>
+                  </div>
+                )}
               </div>
             </TabsContent>
 
@@ -345,10 +361,20 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
                   Imagen o Video (opcional)
                 </Label>
                 {renderFilePreview()}
-                <div className="flex gap-2">
-                  <Input type="file" accept="image/*,video/*,.mp4,.webm,.mov,.avi,.mkv" onChange={handleImageUpload} disabled={isUploading} className="bg-muted border-border text-foreground" />
-                  {isUploading && <Loader2 className="h-5 w-5 animate-spin" />}
-                </div>
+                {!filePreview && (
+                  <div className="flex gap-2">
+                    <input id="file-gallery-2" type="file" accept="image/*,video/*,.mp4,.webm,.mov,.avi,.mkv" onChange={handleImageUpload} disabled={isUploading} className="hidden" />
+                    <input id="file-camera-2" type="file" accept="image/*,video/*" capture="environment" onChange={handleImageUpload} disabled={isUploading} className="hidden" />
+                    <Button type="button" variant="outline" className="flex-1" disabled={isUploading} onClick={() => document.getElementById('file-gallery-2')?.click()}>
+                      <ImageIcon className="h-4 w-4 mr-2" />
+                      Galería
+                    </Button>
+                    <Button type="button" variant="outline" className="flex-1" disabled={isUploading} onClick={() => document.getElementById('file-camera-2')?.click()}>
+                      <Camera className="h-4 w-4 mr-2" />
+                      Cámara
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           )}
