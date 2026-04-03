@@ -49,18 +49,10 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
   const [pollData, setPollData] = useState<{ question: string; options: string[]; duration: number } | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
 
-  const openGallery = () => {
-    if (!fileInputRef.current) return
-    fileInputRef.current.removeAttribute('capture')
-    fileInputRef.current.click()
-  }
-
-  const openCamera = () => {
-    if (!fileInputRef.current) return
-    fileInputRef.current.setAttribute('capture', 'environment')
-    fileInputRef.current.click()
-  }
+  const openGallery = () => fileInputRef.current?.click()
+  const openCamera = () => cameraInputRef.current?.click()
 
   const renderFilePreview = () => {
     if (!filePreview && !isUploading) return null
@@ -477,6 +469,14 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
           ref={fileInputRef}
           type="file"
           accept="image/*,video/*,.mp4,.webm,.mov,.avi,.mkv"
+          onChange={handleImageUpload}
+          className="hidden"
+        />
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*,video/*"
+          capture="environment"
           onChange={handleImageUpload}
           className="hidden"
         />
