@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { api } from "@/lib/api"
 import {
   Dialog,
@@ -47,6 +47,20 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
   const [uploadProgress, setUploadProgress] = useState(0)
   const [showPollDialog, setShowPollDialog] = useState(false)
   const [pollData, setPollData] = useState<{ question: string; options: string[]; duration: number } | null>(null)
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const openGallery = () => {
+    if (!fileInputRef.current) return
+    fileInputRef.current.removeAttribute('capture')
+    fileInputRef.current.click()
+  }
+
+  const openCamera = () => {
+    if (!fileInputRef.current) return
+    fileInputRef.current.setAttribute('capture', 'environment')
+    fileInputRef.current.click()
+  }
 
   const renderFilePreview = () => {
     if (!filePreview && !isUploading) return null
@@ -280,13 +294,12 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
                 {renderFilePreview()}
                 {!filePreview && (
                   <div className="flex gap-2">
-                    <input id="file-gallery" type="file" accept="image/*,video/*,.mp4,.webm,.mov,.avi,.mkv" onChange={handleImageUpload} disabled={isUploading} className="hidden" />
-                    <input id="file-camera" type="file" accept="image/*,video/*" capture="environment" onChange={handleImageUpload} disabled={isUploading} className="hidden" />
-                    <Button type="button" variant="outline" className="flex-1" disabled={isUploading} onClick={() => document.getElementById('file-gallery')?.click()}>
+                    <input ref={fileInputRef} type="file" accept="image/*,video/*,.mp4,.webm,.mov,.avi,.mkv" onChange={handleImageUpload} disabled={isUploading} className="hidden" />
+                    <Button type="button" variant="outline" className="flex-1" disabled={isUploading} onClick={openGallery}>
                       <ImageIcon className="h-4 w-4 mr-2" />
                       Galería
                     </Button>
-                    <Button type="button" variant="outline" className="flex-1" disabled={isUploading} onClick={() => document.getElementById('file-camera')?.click()}>
+                    <Button type="button" variant="outline" className="flex-1" disabled={isUploading} onClick={openCamera}>
                       <Camera className="h-4 w-4 mr-2" />
                       Cámara
                     </Button>
@@ -363,13 +376,11 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
                 {renderFilePreview()}
                 {!filePreview && (
                   <div className="flex gap-2">
-                    <input id="file-gallery-2" type="file" accept="image/*,video/*,.mp4,.webm,.mov,.avi,.mkv" onChange={handleImageUpload} disabled={isUploading} className="hidden" />
-                    <input id="file-camera-2" type="file" accept="image/*,video/*" capture="environment" onChange={handleImageUpload} disabled={isUploading} className="hidden" />
-                    <Button type="button" variant="outline" className="flex-1" disabled={isUploading} onClick={() => document.getElementById('file-gallery-2')?.click()}>
+                    <Button type="button" variant="outline" className="flex-1" disabled={isUploading} onClick={openGallery}>
                       <ImageIcon className="h-4 w-4 mr-2" />
                       Galería
                     </Button>
-                    <Button type="button" variant="outline" className="flex-1" disabled={isUploading} onClick={() => document.getElementById('file-camera-2')?.click()}>
+                    <Button type="button" variant="outline" className="flex-1" disabled={isUploading} onClick={openCamera}>
                       <Camera className="h-4 w-4 mr-2" />
                       Cámara
                     </Button>
@@ -461,6 +472,13 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
           onCreatePoll={(question, options, duration) => {
             setPollData({ question, options, duration })
           }}
+        />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*,video/*,.mp4,.webm,.mov,.avi,.mkv"
+          onChange={handleImageUpload}
+          className="hidden"
         />
       </DialogContent>
     </Dialog>
