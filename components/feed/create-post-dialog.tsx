@@ -49,10 +49,56 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
   const [pollData, setPollData] = useState<{ question: string; options: string[]; duration: number } | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const cameraInputRef = useRef<HTMLInputElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+  const [showCamera, setShowCamera] = useState(false)
+  const [cameraError, setCameraError] = useState('')
 
   const openGallery = () => fileInputRef.current?.click()
-  const openCamera = () => cameraInputRef.current?.click()
+
+  const openCamera = async () => {
+    setCameraError('')
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+        audio: false,
+      })
+      streamRef.current = stream
+      setShowCamera(true)
+      // Asignar stream al video después de que el elemento esté en el DOM
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream
+          videoRef.current.play()
+        }
+      }, 100)
+    } catch {
+      setCameraError('No se pudo acceder a la cámara')
+      toast.error('No se pudo acceder a la cámara. Verifica los permisos.')
+    }
+  }
+
+  const closeCamera = () => {
+    streamRef.current?.getTracks().forEach(t => t.stop())
+    streamRef.current = null
+    setShowCamera(false)
+  }
+
+  const capturePhoto = () => {
+    if (!videoRef.current) return
+    const canvas = document.createElement('canvas')
+    canvas.width = videoRef.current.videoWidth
+    canvas.height = videoRef.current.videoHeight
+    canvas.getContext('2d')?.drawImage(videoRef.current, 0, 0)
+    canvas.toBlob((blob) => {
+      if (!blob) return
+      const captured = new File([blob], `foto-${Date.now()}.jpg`, { type: 'image/jpeg' })
+      setFile(captured)
+      setFilePreview(URL.createObjectURL(captured))
+      toast.success('Foto capturada')
+      closeCamera()
+    }, 'image/jpeg', 0.9)
+  }
 
   const renderFilePreview = () => {
     if (!filePreview && !isUploading) return null
@@ -472,14 +518,33 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
           onChange={handleImageUpload}
           className="hidden"
         />
-        <input
-          ref={cameraInputRef}
-          type="file"
-          accept="image/*,video/*"
-          capture="environment"
-          onChange={handleImageUpload}
-          className="hidden"
-        />
+
+        {/* Modal cámara */}
+        {showCamera && (
+          <div className="fixed inset-0 z-50 bg-black flex flex-col">
+            <div className="flex items-center justify-between p-4">
+              <span className="text-white font-medium">Cámara</span>
+              <button onClick={closeCamera} className="text-white">
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            <div className="flex-1 relative">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="p-6 flex justify-center">
+              <button
+                onClick={capturePhoto}
+                className="h-16 w-16 rounded-full bg-white border-4 border-white/50 hover:scale-105 transition-transform"
+              />
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   )
