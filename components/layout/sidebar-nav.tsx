@@ -20,8 +20,6 @@ import { useFeatureFlags } from "@/hooks/use-feature-flags"
 import { useUnreadChats } from "@/hooks/use-unread-chats"
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard",    icon: LayoutDashboard, flag: "dashboard"    as const },
-  { href: "/manager",   label: "Manager Panel", icon: ShieldCheck,     flag: "managerPanel" as const },
   { href: "/feed", label: "Feed", icon: Newspaper },
   { href: "/search", label: "Buscar", icon: Search },
   { href: "/swipes", label: "Swipes", icon: Zap },
@@ -41,10 +39,19 @@ export function SidebarNav() {
   const filteredNavItems = navItems.filter(item => {
     if (item.href === '/search' && !features.searchPage) return false
     if (item.href === '/groups' && !features.groupsPage) return false
-    if ('flag' in item && item.flag === 'dashboard'    && !features.dashboard)    return false
-    if ('flag' in item && item.flag === 'managerPanel' && !features.managerPanel) return false
     return true
   })
+
+  // Un solo item de panel según el rol
+  const panelItem = features.dashboard
+    ? { href: '/dashboard', label: 'Admin Panel', icon: LayoutDashboard }
+    : features.managerPanel
+    ? { href: '/manager', label: 'Manager Panel', icon: ShieldCheck }
+    : null
+
+  const allNavItems = panelItem
+    ? [panelItem, ...filteredNavItems]
+    : filteredNavItems
 
   return (
     <aside className="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:z-50 bg-gradient-to-b from-background via-background to-muted/20 border-r border-primary/10 lg:w-20 xl:w-72 shadow-xl shadow-primary/5">
@@ -62,7 +69,7 @@ export function SidebarNav() {
       {/* Nav items */}
       <nav className="flex-1 px-2 xl:px-4 py-6">
         <ul className="flex flex-col gap-3">
-          {filteredNavItems.map((item) => {
+          {allNavItems.map((item) => {
             const isActive =
               pathname === item.href || pathname.startsWith(item.href + "/")
             return (

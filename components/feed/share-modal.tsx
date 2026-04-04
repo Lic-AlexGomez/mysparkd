@@ -12,7 +12,7 @@ interface ShareModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   postId: string
-  postContent: string
+  postContent: string | null
   username: string
 }
 
@@ -21,7 +21,8 @@ export function ShareModal({ open, onOpenChange, postId, postContent, username }
   const [qrDataUrl, setQrDataUrl] = useState("")
 
   const postUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/post/${postId}`
-  const shareText = `${postContent.substring(0, 100)}${postContent.length > 100 ? '...' : ''}`
+  const safeContent = postContent || ''
+  const shareText = `${safeContent.substring(0, 100)}${safeContent.length > 100 ? '...' : ''}`
 
   const handleShareFacebook = () => {
     window.open(

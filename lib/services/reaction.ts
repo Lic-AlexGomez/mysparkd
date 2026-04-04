@@ -3,12 +3,12 @@ import type { ReactionType, ReactionTargetType } from '../types'
 
 export const reactionService = {
   async toggleReaction(targetId: string, targetType: ReactionTargetType, reactionType: ReactionType) {
-    console.log('toggleReaction llamado:', { targetId, targetType, reactionType });
-    console.log('URL que se llamará:', `/api/likes/toggle?targetId=${targetId}&reaction=${reactionType}`);
+    //console.log('toggleReaction llamado:', { targetId, targetType, reactionType });
+    //console.log('URL que se llamará:', `/api/likes/toggle?targetId=${targetId}&reaction=${reactionType}`);
     
     // El backend usa /api/likes/toggle con query params
     const result = await api.post(`/api/likes/toggle?targetId=${targetId}&reaction=${reactionType}`, {})
-    console.log('Resultado de toggleReaction:', result);
+    //console.log('Resultado de toggleReaction:', result);
     return result;
   },
 

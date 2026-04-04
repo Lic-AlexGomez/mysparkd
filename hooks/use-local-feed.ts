@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { locationService } from '@/lib/services/location'
-import { profileService } from '@/lib/services/profile'
 import type { Post } from '@/lib/types'
 
 export function useLocalFeed(radiusKm: number = 50) {
@@ -11,7 +10,7 @@ export function useLocalFeed(radiusKm: number = 50) {
   const [error, setError] = useState<string | null>(null)
   const [locationEnabled, setLocationEnabled] = useState(false)
 
-  const fetchLocalFeed = async () => {
+  const fetchLocalFeed = useCallback(async () => {
     if (!user?.userId) return
 
     setLoading(true)
@@ -19,80 +18,65 @@ export function useLocalFeed(radiusKm: number = 50) {
 
     try {
       const location = await locationService.getCurrentLocation()
-      
+
       if (!location) {
         setError('No se pudo obtener la ubicación')
         setLocationEnabled(false)
         return
       }
 
-      // El backend obtiene el userId del JWT
       await locationService.updateLocation(location)
       const data = await locationService.getLocalFeed(radiusKm)
-      
-      console.log('=== FEED LOCAL ===');
-      console.log('Datos recibidos del backend:', data);
-      console.log('Tipo de datos:', typeof data);
-      console.log('Es array?:', Array.isArray(data));
-      console.log('Cantidad de posts:', Array.isArray(data) ? data.length : 'N/A');
-      
-      // Validar que data sea un array
+
       if (!Array.isArray(data)) {
-        console.error('Feed local no es un array:', data)
         setPosts([])
         setLocationEnabled(true)
         return
       }
-      
-      // Obtener fotos de usuarios únicos
-      const uniqueUserIds = [...new Set(data.map((item: any) => {
+
+      const normalizedPosts: Post[] = data.map((item: any) => {
         const post = item.post || item
-        return post.userId
-      }))]
-      const userPhotosMap = new Map<string, string>()
-      
-      await Promise.all(
-        uniqueUserIds.map(async (userId) => {
-          const photo = await profileService.getProfilePhoto(userId)
-          if (photo) {
-            userPhotosMap.set(userId, photo)
-          }
-        })
-      )
-      
-      //console.log('Fotos de usuarios obtenidas (feed local):', userPhotosMap)
-      
-      // Normalizar las fechas y campos de los posts
-      const normalizedPosts = data.map((item: any) => {
-        console.log('Post original del backend:', item);
-        
-        // El backend puede devolver un objeto con estructura diferente
-        const post = item.post || item; // Algunos endpoints envuelven el post
-        
-        // Convertir el array de reacciones a objeto con formato esperado
-        const reactionsObj: any = {}
-        if (post.reactions && Array.isArray(post.reactions)) {
+
+        const reactionsObj: Record<string, { type: string; count: number; userReacted: boolean }> = {}
+        if (Array.isArray(post.reactions)) {
           post.reactions.forEach((r: any) => {
             reactionsObj[r.reaction] = {
               type: r.reaction,
               count: r.count,
-              userReacted: post.myReaction === r.reaction
+              userReacted: post.myReaction === r.reaction,
             }
           })
         }
-        
-        console.log('myReaction del backend:', post.myReaction);
-        console.log('reactionsObj convertido:', reactionsObj);
-        
-        const normalizedPost = {
+
+        let poll = null
+        if (post.poll) {
+          const p = post.poll
+          const totalVotes = p.options?.reduce((sum: number, o: any) => sum + (o.voteCount || 0), 0) || 0
+          poll = {
+            id: p.pollId || '',
+            question: p.question || '',
+            options: (p.options || []).map((o: any) => ({
+              id: o.id || '',
+              text: o.text || '',
+              votes: o.voteCount || 0,
+              percentage: o.percentage || 0,
+            })),
+            totalVotes,
+            expiresAt: p.expiresAt || new Date().toISOString(),
+            userVoted: p.myVoteOptionId || null,
+            allowMultiple: false,
+          }
+        }
+
+        return {
           id: post.id || '',
-          body: post.body || '',
-          userId: post.userId || '',
+          body: post.body ?? null,
+          userId: post.userId ? String(post.userId) : '',
           username: post.username || 'Usuario',
-          userPhoto: userPhotosMap.get(post.userId) || post.userPhoto || post.photoUrl || '',
+          userPhoto: post.profilePictureUrl || post.userPhoto || post.photoUrl || '',
           createdAt: post.createdAt || new Date().toISOString(),
           expiresAt: post.expiresAt || null,
-          permanent: post.permanent ?? true,
+          permanent: post.permanent !== false,
           locked: post.locked ?? false,
           unlocked: post.unlocked ?? false,
           canUnlock: post.canUnlock ?? false,
@@ -106,46 +90,37 @@ export function useLocalFeed(radiusKm: number = 50) {
           shareCount: post.shareCount || 0,
           liked: post.likedByCurrentUser || false,
           reactions: reactionsObj,
-          userReaction: post.myReaction || null,  // IMPORTANTE: myReaction del backend
+          userReaction: post.myReaction || null,
           totalReactions: post.totalReactions || 0,
-          reputation: post.reputation || 0,
-          verificationLevel: post.verificationLevel || 0,
-          poll: post.poll || null,
-          distance: item.distance || post.distance || null
-        };
-        
-        console.log('Post normalizado - userReaction:', normalizedPost.userReaction);
-        console.log('Post normalizado completo:', normalizedPost);
-        
-        return normalizedPost;
-      });
-      
-      console.log('Posts normalizados:', normalizedPosts);
-      console.log('Primer post normalizado (ejemplo):', normalizedPosts[0]);
-      
+          reputation: post.reputation,
+          verificationLevel: post.verificationLevel,
+          media: post.media || undefined,
+          poll,
+        }
+      })
+
       setPosts(normalizedPosts.filter(p => !(p.message && !p.body && !p.file)))
       setLocationEnabled(true)
     } catch (err) {
-      console.error('Error fetching local feed:', err)
       setError(err instanceof Error ? err.message : 'Error al cargar feed local')
       setLocationEnabled(false)
-      setPosts([]) // Asegurar que posts sea un array vacío en caso de error
+      setPosts([])
     } finally {
       setLoading(false)
     }
-  }
+  }, [user?.userId, radiusKm])
 
   useEffect(() => {
     if (user?.userId) {
       fetchLocalFeed()
     }
-  }, [user?.userId, radiusKm])
+  }, [fetchLocalFeed])
 
   return {
     posts,
     loading,
     error,
     locationEnabled,
-    refresh: fetchLocalFeed
+    refresh: fetchLocalFeed,
   }
 }

@@ -54,8 +54,8 @@ export function useFeed() {
 
         return {
           id: post.id || '',
-          body: post.body || '',
-          userId: post.userId || '',
+          body: post.body ?? null,
+          userId: post.userId ? String(post.userId) : '',
           username: post.username || 'Usuario',
           userPhoto: post.profilePictureUrl || post.userPhoto || post.photoUrl || '',
           createdAt: post.createdAt || new Date().toISOString(),
@@ -86,7 +86,7 @@ export function useFeed() {
         .filter(p => !(p.message && !p.body && !p.file))
       setPosts(feedService.sortPosts(filtered, sortMode))
     } catch (error) {
-      console.error('[Feed Global] Error:', error)
+      console.error('[useFeed] Error cargando feed:', error)
       setPosts([])
     } finally {
       setLoading(false)

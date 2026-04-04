@@ -54,6 +54,36 @@ export default function FeedPage() {
   const { posts, sortMode, loading, onRefresh, changeSortMode } = useFeed()
   const { posts: localPosts, loading: localLoading, locationEnabled, refresh: refreshLocalFeed } = useLocalFeed(localFeedRadius)
   const [displayLocalPosts, setDisplayLocalPosts] = useState(posts)
+  const [scrollToPostId, setScrollToPostId] = useState<string | null>(null)
+
+  const handleRefreshAndScroll = (postId?: string) => {
+    if (postId) setScrollToPostId(postId)
+    onRefresh()
+  }
+
+  const handleLocalRefreshAndScroll = (postId?: string) => {
+    if (postId) setScrollToPostId(postId)
+    refreshLocalFeed()
+  }
+
+  useEffect(() => {
+    if (!scrollToPostId) return
+    if (loading || localLoading) return
+    const id = scrollToPostId
+    let attempts = 0
+    const interval = setInterval(() => {
+      const el = document.getElementById(`post-${id}`)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        setScrollToPostId(null)
+        clearInterval(interval)
+      } else if (++attempts >= 15) {
+        clearInterval(interval)
+        setScrollToPostId(null)
+      }
+    }, 100)
+    return () => clearInterval(interval)
+  }, [scrollToPostId, loading, localLoading])
   const [feedTab, setFeedTab] = useState<'global' | 'local' | 'following'>('global')
   const [searchQuery, setSearchQuery] = useState("")
   const [showSearch, setShowSearch] = useState(false)
@@ -432,7 +462,7 @@ export default function FeedPage() {
               key={post.id}
               post={post}
               onDelete={handleDelete}
-              onUpdate={feedTab === 'local' ? refreshLocalFeed : onRefresh}
+              onUpdate={feedTab === 'local' ? handleLocalRefreshAndScroll : handleRefreshAndScroll}
               highlight={post.id === highlightPostId}
               compact={viewMode === 'compact'}
             />

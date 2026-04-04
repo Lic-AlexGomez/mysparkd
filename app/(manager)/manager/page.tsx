@@ -3,7 +3,7 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
-import { ManagerPanel } from "@/components/manager/manager-panel"
+import { AdminPanel } from "@/components/admin-panel"
 
 export default function ManagerPage() {
   const router = useRouter()
@@ -15,5 +15,5 @@ export default function ManagerPage() {
 
   if (!features.managerPanel) return null
 
-  return <ManagerPanel />
+  return <AdminPanel role="manager" />
 }

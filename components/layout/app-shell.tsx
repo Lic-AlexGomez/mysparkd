@@ -1,11 +1,18 @@
 "use client"
 
+import { usePathname } from "next/navigation"
 import { TopNavbar } from "./top-navbar"
 import { BottomNav } from "./bottom-nav"
 import { SidebarNav } from "./sidebar-nav"
-import { MobileQuickMenu } from "./mobile-quick-menu"
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
+  const isAdminRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/manager')
+
+  if (isAdminRoute) {
+    return <>{children}</>
+  }
+
   return (
     <div className="min-h-svh bg-background">
       <SidebarNav />
@@ -16,7 +23,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </main>
       </div>
       <BottomNav />
-       {/* <MobileQuickMenu /> */}
     </div>
   )
 }

@@ -57,7 +57,7 @@ import { OptimizedImage } from "@/components/ui/optimized-image"
 interface PostCardProps {
   post: Post
   onDelete?: (postId: string) => void
-  onUpdate?: () => void
+  onUpdate?: (postId?: string) => void
   highlight?: boolean
   compact?: boolean
 }
@@ -114,7 +114,7 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
-  const [editedBody, setEditedBody] = useState(post.body)
+  const [editedBody, setEditedBody] = useState(post.body || '')
   const [editedVisibility, setEditedVisibility] = useState<PostVisibility>(post.visibility || 'PUBLIC')
   const [isSaving, setIsSaving] = useState(false)
   const isOwn = user?.userId === post.userId
@@ -122,6 +122,7 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
   const reputationColor = reputation ? reputationService.getReputationColor(reputation) : undefined
   const shouldShowLocked = post.locked && !post.unlocked && !isOwn && !isPremium
   const isAccessDenied = !post.body && !post.file && !!post.message && !post.locked && !post.canUnlock
+  const bodyText = post.body || ''
 
   const handleReaction = async (type: ReactionType) => {
     const prevReaction = userReaction
@@ -413,6 +414,12 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
                 Temporal
               </span>
             )}
+            {isOwn && post.locked && (
+              <span className="flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
+                <Lock className="h-3 w-3" />
+                Premium
+              </span>
+            )}
             {!isOwn && (
               <DropdownMenu open={showMenu} onOpenChange={setShowMenu}>
                 <DropdownMenuTrigger asChild>
@@ -555,7 +562,7 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
                   {post.message}
                 </p>
               ) : (
-                features.hashtagsAndMentions ? parseTextWithLinks(post.body) : post.body
+                features.hashtagsAndMentions ? parseTextWithLinks(bodyText) : bodyText
               )}
             </div>
           )}
@@ -754,7 +761,7 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
         postId={post.id}
         open={showUnlockModal}
         onClose={() => setShowUnlockModal(false)}
-        onUnlocked={onUpdate || (() => {})}
+        onUnlocked={() => onUpdate?.(post.id)}
       />
       {user && (
         <ReportModal

@@ -21,14 +21,16 @@ export function ReportModal({ open, onClose, reportedUserId, targetId, targetTyp
   const [description, setDescription] = useState("")
   const [loading, setLoading] = useState(false)
   const [loadingReasons, setLoadingReasons] = useState(false)
+  const [reasonsError, setReasonsError] = useState(false)
 
   useEffect(() => {
     if (!open) return
     setLoadingReasons(true)
-    reportService.getReasons().then(r => {
-      setReasons(r)
-      setLoadingReasons(false)
-    })
+    setReasonsError(false)
+    reportService.getReasons()
+      .then(r => setReasons(r))
+      .catch(() => setReasonsError(true))
+      .finally(() => setLoadingReasons(false))
   }, [open])
 
   const handleSubmit = async () => {
@@ -64,6 +66,8 @@ export function ReportModal({ open, onClose, reportedUserId, targetId, targetTyp
           <div className="flex justify-center py-6">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
+        ) : reasonsError ? (
+          <p className="text-sm text-destructive text-center py-4">No se pudieron cargar las razones. Intenta de nuevo.</p>
         ) : (
           <div className="space-y-3">
             <p className="text-xs text-muted-foreground">¿Por qué quieres reportar esto?</p>

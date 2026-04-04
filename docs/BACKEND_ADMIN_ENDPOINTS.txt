@@ -1,0 +1,140 @@
+ENDPOINTS NECESARIOS PARA EL DASHBOARD ADMIN
+=============================================
+Fecha: 2026-04-04
+
+Crear un nuevo controlador: AdminController.java
+Ruta base: /api/admin
+Requiere autenticación JWT (igual que los demás controllers)
+
+Los repositorios que ya existen y se pueden usar:
+- UsersRepository       (JpaRepository<Users, UUID>)
+- PostsRepository       (JpaRepository<Posts, UUID>)
+- ReportRepository      (findByStatus(ReportStatus status))
+- ReportReasonRepository
+
+Los enums que ya existen:
+- ReportStatus: PENDING, REVIEWED, REJECTED, ACTION_TAKEN
+
+==============================================
+1. GET /api/admin/stats
+==============================================
+Descripción: KPIs globales para el overview del dashboard.
+Respuesta (Map<String, Object>):
+{
+  "totalUsers":        long,   // usersRepo.count()
+  "totalPosts":        long,   // postsRepo.count()
+  "totalReports":      long,   // reportRepo.count()
+  "pendingReports":    long,   // reportRepo.findByStatus(PENDING).size()
+  "newUsersThisWeek":  long,   // users con fechaRegistro > now-7d
+  "newUsersToday":     long,   // users con fechaRegistro > now-1d
+  "premiumUsers":      long,   // users con stripeCustomerId != null
+  "disabledUsers":     long    // users con enabled = false
+}
+
+==============================================
+2. GET /api/admin/users
+==============================================
+Descripción: Lista de todos los usuarios para la tabla del dashboard.
+Respuesta (List<Map<String, Object>>), ordenado por fechaRegistro DESC:
+[
+  {
+    "userId":            UUID,
+    "username":          String,
+    "email":             String,
+    "enabled":           boolean,
+    "locked":            boolean,
+    "premium":           boolean,   // stripeCustomerId != null
+    "fechaRegistro":     LocalDateTime,
+    "postCount":         int,       // user.getPosts().size()
+    "nombres":           String,    // user.getProfile().getNombres()
+    "apellidos":         String,    // user.getProfile().getApellidos()
+    "profilePictureUrl": String     // user.getProfile().getProfilePictureUrl()
+  }
+]
+
+==============================================
+3. POST /api/admin/users/{userId}/disable
+==============================================
+Descripción: Deshabilitar un usuario (enabled = false).
+PathVariable: userId (UUID)
+Respuesta: 204 No Content
+
+Implementación:
+  Users user = usersRepo.findById(userId).orElseThrow();
+  user.setEnabled(false);
+  usersRepo.save(user);
+
+==============================================
+4. POST /api/admin/users/{userId}/enable
+==============================================
+Descripción: Habilitar un usuario (enabled = true).
+PathVariable: userId (UUID)
+Respuesta: 204 No Content
+
+Implementación:
+  Users user = usersRepo.findById(userId).orElseThrow();
+  user.setEnabled(true);
+  usersRepo.save(user);
+
+==============================================
+5. GET /api/admin/reports
+==============================================
+Descripción: Lista de todos los reportes para moderación.
+Respuesta (List<Map<String, Object>>), ordenado por createdAt DESC:
+[
+  {
+    "id":                UUID,
+    "reporterUsername":  String,   // report.getReporter().getUsername()
+    "reporterId":        UUID,     // report.getReporter().getUserId()
+    "reportedUsername":  String,   // report.getReported().getUsername()
+    "reportedId":        UUID,     // report.getReported().getUserId()
+    "targetId":          UUID,
+    "targetType":        String,   // ReportTargetType enum
+    "reasonName":        String,   // report.getReason().getName()
+    "description":       String,
+    "status":            String,   // ReportStatus enum
+    "createdAt":         Instant
+  }
+]
+
+==============================================
+6. POST /api/admin/reports/{reportId}/resolve
+==============================================
+Descripción: Marcar reporte como ACTION_TAKEN y deshabilitar al usuario reportado.
+PathVariable: reportId (UUID)
+Respuesta: 204 No Content
+
+Implementación:
+  Report report = reportRepo.findById(reportId).orElseThrow();
+  report.setStatus(ReportStatus.ACTION_TAKEN);
+  reportRepo.save(report);
+  Users reported = report.getReported();
+  reported.setEnabled(false);
+  usersRepo.save(reported);
+
+==============================================
+7. POST /api/admin/reports/{reportId}/dismiss
+==============================================
+Descripción: Descartar un reporte (marcarlo como REJECTED).
+PathVariable: reportId (UUID)
+Respuesta: 204 No Content
+
+Implementación:
+  Report report = reportRepo.findById(reportId).orElseThrow();
+  report.setStatus(ReportStatus.REJECTED);
+  reportRepo.save(report);
+
+==============================================
+NOTAS IMPORTANTES
+==============================================
+- Todos los endpoints deben requerir autenticación JWT
+- Idealmente proteger con un rol ADMIN (si existe el sistema de roles)
+- El ReportStatus.DISMISSED no existe, usar REJECTED para descartar
+- El frontend ya está listo para consumir estos endpoints en:
+    GET  /api/admin/stats        -> admin-overview.tsx
+    GET  /api/admin/users        -> admin-users.tsx
+    GET  /api/admin/reports      -> admin-moderation.tsx
+    POST /api/admin/users/{id}/disable
+    POST /api/admin/users/{id}/enable
+    POST /api/admin/reports/{id}/resolve
+    POST /api/admin/reports/{id}/dismiss
