@@ -13,13 +13,10 @@ import { Card } from "@/components/ui/card"
 import { LocationInput } from "@/components/ui/location-input"
 import { ArrowLeft, Loader2, Save, Camera } from "lucide-react"
 import { toast } from "sonner"
-import { getFeatureFlags } from "@/lib/utils/feature-flags"
-import { useFeatureFlags } from "@/hooks/use-feature-flags"
 
 export default function EditProfilePage() {
   const router = useRouter()
-  const { user, isLoading: authLoading } = useAuth()
-  const features = useFeatureFlags()
+  const { user, isLoading: authLoading, refreshProfile, updateUser } = useAuth()
   const [loading, setLoading] = useState(false)
   const [uploadingCover, setUploadingCover] = useState(false)
   const [formData, setFormData] = useState({
@@ -46,55 +43,44 @@ export default function EditProfilePage() {
     }
   }, [user])
 
-  // Redirigir si no tiene acceso a esta feature
-  useEffect(() => {
-    if (user && !features.profileEdit) {
-      toast.error("Esta funcionalidad no está disponible aún")
-      router.push(`/profile/${user.userId}`)
-    }
-  }, [user, features.profileEdit, router])
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user) return
 
-  if (!features.profileEdit) {
-    return null
+    setLoading(true)
+    try {
+      const lat: number = formData.latitude ?? (user.latitude as number | undefined) ?? 0
+      const lng: number = formData.longitude ?? (user.longitude as number | undefined) ?? 0
+
+      const body: any = {
+        nombres: user.nombres,
+        apellidos: user.apellidos,
+        sex: user.sex,
+        dateOfBirth: user.dateOfBirth,
+        telefono: user.telefono,
+        bio: formData.bio || null,
+        latitude: lat,
+        longitude: lng,
+      }
+      await api.put('/api/profile', body)
+      // Parche local mientras el backend no guarda bio en updateProfile
+      updateUser({ bio: formData.bio || null })
+      await refreshProfile()
+      toast.success("Perfil actualizado")
+      router.push(`/profile/${user.userId}`)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Error al actualizar perfil")
+    } finally {
+      setLoading(false)
+    }
   }
 
-  // Mostrar loading mientras se cargan los datos del usuario
   if (authLoading || !user) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (formData.username && formData.username.length < 3) {
-      toast.error("El username debe tener al menos 3 caracteres")
-      return
-    }
-
-    setLoading(true)
-    try {
-      const updateData: any = {
-        username: formData.username,
-        bio: formData.bio,
-        location: formData.location,
-        website: formData.website
-      }
-      if (formData.latitude && formData.longitude) {
-        updateData.latitude = formData.latitude
-        updateData.longitude = formData.longitude
-      }
-      await api.put('/api/profile/update', updateData)
-      toast.success("Perfil actualizado")
-      router.push(`/profile/${user?.userId}`)
-    } catch {
-      toast.error("Error al actualizar perfil")
-    } finally {
-      setLoading(false)
-    }
   }
 
   const handleCoverPhotoUpload = async (file: File) => {

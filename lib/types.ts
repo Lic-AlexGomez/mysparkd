@@ -82,6 +82,9 @@ export interface CreateProfileRequest {
   sex: Sex
   dateOfBirth: string
   telefono: string
+  bio?: string
+  latitude?: number
+  longitude?: number
 }
 
 export interface UpdateProfileRequest {
@@ -90,6 +93,27 @@ export interface UpdateProfileRequest {
   sex: Sex
   dateOfBirth: string
   telefono: string
+  bio?: string
+  location?: string
+  latitude?: number
+  longitude?: number
+}
+
+// Admin Stats
+export interface AdminStats {
+  totalUsers: number
+  premiumUsers: number
+  freeUsers: number
+  activeUsers: number
+  activeUsersLast24h: number
+  lockedUsers: number
+  newUsersLast7Days: number
+  usersByProvider: Record<string, number>
+}
+
+export interface UserGrowth {
+  date: string
+  count: number
 }
 
 // Reactions
@@ -157,9 +181,7 @@ export interface Post {
   verificationLevel?: number
   interests?: string[]
   liked?: boolean
-  reactions?: ReactionSummary
-  userReaction?: ReactionType | null
-  poll?: Poll
+  likedByCurrentUser?: boolean
   media?: {
     mediaUrl: string
     mediaPublicId?: string

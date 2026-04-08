@@ -76,6 +76,8 @@ export default function OnboardingPage() {
         sex,
         dateOfBirth,
         telefono: telefono.trim() || undefined,
+        latitude: 0,
+        longitude: 0,
       })
       setStep(2)
     } catch (err) {

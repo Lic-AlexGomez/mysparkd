@@ -27,6 +27,7 @@ interface AuthContextType {
   register: (data: RegisterRequest) => Promise<RegisterResponse>
   logout: () => void
   refreshProfile: () => Promise<void>
+  updateUser: (patch: Partial<UserProfile>) => void
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
@@ -39,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchProfile = useCallback(async () => {
     try {
       const profile = await api.get<UserProfile>("/api/profile/me")
+      console.log('profile/me:', profile)
       setUser(profile)
       localStorage.setItem('sparkd_user', JSON.stringify(profile))
     } catch (error) {
@@ -100,6 +102,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await fetchProfile()
   }
 
+  const updateUser = (patch: Partial<UserProfile>) => {
+    setUser(prev => {
+      if (!prev) return prev
+      const updated = { ...prev, ...patch }
+      localStorage.setItem('sparkd_user', JSON.stringify(updated))
+      return updated
+    })
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -112,6 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         logout,
         refreshProfile,
+        updateUser,
       }}
     >
       {children}

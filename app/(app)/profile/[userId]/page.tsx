@@ -53,7 +53,6 @@ export default function UserProfilePage() {
         api.get<any[]>(`/api/interests/me`),
       ])
       if (data.status === "fulfilled") {
-        console.log('Perfil:', data.value)
         setProfile(data.value)
       }
       // intereses del perfil visitado no hay endpoint, usamos los del perfil si vienen
@@ -252,7 +251,7 @@ export default function UserProfilePage() {
 
           {profile.username && <p className="text-sm text-muted-foreground mt-0.5">@{profile.username}</p>}
           {profile.bio && <p className="text-sm text-foreground mt-2 leading-relaxed">{profile.bio}</p>}
-          {profile.location && <p className="text-xs text-muted-foreground mt-1">📍 {profile.location}</p>}
+          {profile.location && profile.location !== "Unknown location" && <p className="text-xs text-muted-foreground mt-1">📍 {profile.location}</p>}
 
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             <Badge variant="secondary" className="bg-primary/10 text-primary border-0 text-xs">
@@ -323,7 +322,7 @@ export default function UserProfilePage() {
           <div className="grid grid-cols-3 gap-1.5">
             {profile.photos.map((photo) => (
               <div
-                key={photo.photoId}
+                key={photo.photoId || photo.id}
                 className="aspect-square overflow-hidden rounded-xl cursor-pointer"
                 onClick={() => setViewPhotoUrl(photo.url)}
               >

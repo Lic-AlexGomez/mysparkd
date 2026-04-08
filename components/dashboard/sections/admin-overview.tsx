@@ -8,53 +8,45 @@ import {
   Users, Heart, MessageCircle, DollarSign,
   Activity, FileText, Shield, UserPlus, Crown, Globe, Loader2
 } from "lucide-react"
-import { api } from "@/lib/api"
+import { adminService } from "@/lib/services/profile"
+import type { AdminStats, UserGrowth } from "@/lib/types"
 
-interface AdminStats {
-  totalUsers: number
-  totalPosts: number
-  totalReports: number
-  pendingReports: number
-  newUsersThisWeek: number
-  newUsersToday: number
-  premiumUsers: number
-  disabledUsers: number
-}
-
-const DAILY_USERS   = [820, 940, 880, 1100, 1250, 1380, 1203]
 const DAILY_MATCHES = [1800, 2100, 1950, 2400, 2800, 3100, 2341]
 const DAILY_REVENUE = [120, 145, 130, 160, 175, 190, 143]
 
-const TOP_COUNTRIES = [
-  { label: "Venezuela", value: 4820 },
-  { label: "Colombia",  value: 2340 },
-  { label: "México",    value: 1890 },
-  { label: "Argentina", value: 1240 },
-  { label: "España",    value: 980  },
-  { label: "Otros",     value: 1577 },
-]
-
 export function AdminOverview() {
   const [stats, setStats] = useState<AdminStats | null>(null)
+  const [growth, setGrowth] = useState<UserGrowth[]>([])
   const [loading, setLoading] = useState(true)
+  const [forbidden, setForbidden] = useState(false)
 
   useEffect(() => {
-    api.get<AdminStats>('/api/admin/stats')
-      .then(setStats)
-      .catch(() => {}) // endpoint aún no existe, silencioso
-      .finally(() => setLoading(false))
+    Promise.all([
+      adminService.getStats(),
+      adminService.getGrowth()
+    ]).then(([s, g]) => {
+      setStats(s)
+      setGrowth(g)
+      if (!s) setForbidden(true)
+    }).finally(() => setLoading(false))
   }, [])
 
+  // Últimos 7 días de crecimiento para el mini bar
+  const growthData = growth.slice(-7).map(g => g.count)
+
   const KPI = [
-    { label: "Usuarios totales",   value: stats ? stats.totalUsers.toLocaleString()       : "—", change: 0, icon: Users,         color: "bg-violet-500" },
-    { label: "Nuevos hoy",         value: stats ? stats.newUsersToday.toLocaleString()     : "—", change: 0, icon: UserPlus,      color: "bg-primary" },
-    { label: "Nuevos esta semana", value: stats ? stats.newUsersThisWeek.toLocaleString()  : "—", change: 0, icon: Activity,      color: "bg-emerald-500" },
-    { label: "Premium activos",    value: stats ? stats.premiumUsers.toLocaleString()      : "—", change: 0, icon: Crown,         color: "bg-amber-500" },
-    { label: "Posts publicados",   value: stats ? stats.totalPosts.toLocaleString()        : "—", change: 0, icon: FileText,      color: "bg-orange-500" },
-    { label: "Reportes pendientes",value: stats ? stats.pendingReports.toLocaleString()    : "—", change: 0, icon: Shield,        color: "bg-rose-500" },
-    { label: "Total reportes",     value: stats ? stats.totalReports.toLocaleString()      : "—", change: 0, icon: Shield,        color: "bg-blue-500" },
-    { label: "Deshabilitados",     value: stats ? stats.disabledUsers.toLocaleString()     : "—", change: 0, icon: Users,         color: "bg-muted-foreground" },
+    { label: "Usuarios totales",      value: stats ? stats.totalUsers.toLocaleString()          : "—", change: 0, icon: Users,    color: "bg-violet-500" },
+    { label: "Nuevos (7 días)",        value: stats ? stats.newUsersLast7Days.toLocaleString()   : "—", change: 0, icon: UserPlus, color: "bg-primary" },
+    { label: "Activos (24h)",          value: stats ? stats.activeUsersLast24h.toLocaleString()  : "—", change: 0, icon: Activity, color: "bg-emerald-500" },
+    { label: "Premium activos",        value: stats ? stats.premiumUsers.toLocaleString()        : "—", change: 0, icon: Crown,    color: "bg-amber-500" },
+    { label: "Usuarios free",          value: stats ? stats.freeUsers.toLocaleString()           : "—", change: 0, icon: Users,    color: "bg-orange-500" },
+    { label: "Usuarios activos",       value: stats ? stats.activeUsers.toLocaleString()         : "—", change: 0, icon: Activity, color: "bg-blue-500" },
+    { label: "Usuarios bloqueados",    value: stats ? stats.lockedUsers.toLocaleString()         : "—", change: 0, icon: Shield,   color: "bg-rose-500" },
+    { label: "Total usuarios",         value: stats ? stats.totalUsers.toLocaleString()          : "—", change: 0, icon: Users,    color: "bg-muted-foreground" },
   ]
+
+  const providerEntries = stats ? Object.entries(stats.usersByProvider) : []
+  const maxProvider = providerEntries.reduce((max, [, v]) => Math.max(max, v), 1)
 
   return (
     <div className="space-y-6">
@@ -64,28 +56,36 @@ export function AdminOverview() {
         <div className="flex justify-center py-8">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
+      ) : forbidden ? (
+        <div className="flex flex-col items-center justify-center py-16 gap-3">
+          <Shield className="h-12 w-12 text-muted-foreground" />
+          <p className="text-sm font-semibold text-foreground">Acceso restringido</p>
+          <p className="text-xs text-muted-foreground">Tu cuenta no tiene rol ADMIN para ver estas estadísticas</p>
+        </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {KPI.map(k => <StatCard key={k.label} {...k} />)}
         </div>
       )}
 
-      {/* Gráficas (hardcodeadas hasta que el backend tenga series temporales) */}
+      {/* Gráficas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="border-border">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
-              <Users className="h-4 w-4 text-primary" /> Usuarios activos (7d)
+              <Users className="h-4 w-4 text-primary" /> Crecimiento de usuarios (7d)
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-black text-foreground mb-3">
               {stats ? stats.totalUsers.toLocaleString() : "—"}
             </p>
-            <MiniBar data={DAILY_USERS} color="bg-primary" />
+            <MiniBar data={growthData.length > 0 ? growthData : [0,0,0,0,0,0,0]} color="bg-primary" />
             <div className="flex justify-between mt-1">
-              {["L","M","X","J","V","S","D"].map(d => (
-                <span key={d} className="text-[10px] text-muted-foreground flex-1 text-center">{d}</span>
+              {growth.slice(-7).map((g, i) => (
+                <span key={i} className="text-[10px] text-muted-foreground flex-1 text-center">
+                  {new Date(g.date).getDate()}
+                </span>
               ))}
             </div>
           </CardContent>
@@ -126,19 +126,22 @@ export function AdminOverview() {
         </Card>
       </div>
 
-      {/* Países */}
+      {/* Providers + Resumen */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="border-border">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
-              <Globe className="h-4 w-4 text-secondary" /> Usuarios por país
-              <Badge className="ml-auto text-[10px] border-0 bg-muted text-muted-foreground">Estimado</Badge>
+              <Globe className="h-4 w-4 text-secondary" /> Usuarios por proveedor
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2.5">
-            {TOP_COUNTRIES.map(c => (
-              <ProgressRow key={c.label} label={c.label} value={c.value} max={4820} color="bg-secondary" />
-            ))}
+            {providerEntries.length > 0 ? (
+              providerEntries.map(([provider, count]) => (
+                <ProgressRow key={provider} label={provider} value={count} max={maxProvider} color="bg-secondary" />
+              ))
+            ) : (
+              <p className="text-xs text-muted-foreground">Sin datos</p>
+            )}
           </CardContent>
         </Card>
 
@@ -150,10 +153,10 @@ export function AdminOverview() {
           </CardHeader>
           <CardContent className="space-y-3">
             {[
-              { label: "Usuarios premium",     value: stats ? `${stats.premiumUsers}` : "—",        color: "text-amber-500" },
-              { label: "Usuarios deshabilitados", value: stats ? `${stats.disabledUsers}` : "—",    color: "text-rose-500" },
-              { label: "Reportes pendientes",  value: stats ? `${stats.pendingReports}` : "—",      color: "text-orange-500" },
-              { label: "Total posts",          value: stats ? `${stats.totalPosts}` : "—",          color: "text-blue-500" },
+              { label: "Usuarios premium",    value: stats ? `${stats.premiumUsers}`       : "—", color: "text-amber-500" },
+              { label: "Usuarios free",        value: stats ? `${stats.freeUsers}`          : "—", color: "text-blue-500" },
+              { label: "Activos últimas 24h",  value: stats ? `${stats.activeUsersLast24h}` : "—", color: "text-emerald-500" },
+              { label: "Bloqueados",           value: stats ? `${stats.lockedUsers}`        : "—", color: "text-rose-500" },
             ].map(item => (
               <div key={item.label} className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">{item.label}</span>

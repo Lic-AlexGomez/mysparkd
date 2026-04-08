@@ -65,11 +65,15 @@ export function PollComponent({ poll: initialPoll, onVote }: PollComponentProps)
   }
 
   useEffect(() => {
-    if (!isConnected) return
-    unsubscribeRef.current = subscribeToPoll(poll.id, (raw: any) => {
-      const normalized = normalizePollResponse(raw)
-      setPoll(normalized)
-    })
+    if (!isConnected || !poll.id) return
+    try {
+      unsubscribeRef.current = subscribeToPoll(poll.id, (raw: any) => {
+        const normalized = normalizePollResponse(raw)
+        setPoll(normalized)
+      })
+    } catch {
+      // WebSocket no disponible, ignorar
+    }
     return () => { unsubscribeRef.current?.() }
   }, [isConnected, poll.id, subscribeToPoll])
 

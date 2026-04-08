@@ -29,9 +29,10 @@ interface CommentsSheetProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onUpdate?: () => void
+  onCommentAdded?: () => void
 }
 
-export function CommentsSheet({ postId, open, onOpenChange, onUpdate }: CommentsSheetProps) {
+export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentAdded }: CommentsSheetProps) {
   const { user } = useAuth()
   const features = useFeatureFlags()
   const [comments, setComments] = useState<CommentType[]>([])
@@ -87,14 +88,11 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate }: Comments
     setIsLoading(true)
     try {
       await api.post(`/api/comments/${postId}`, { text: newComment.trim() })
-      const { createNotification } = await import('@/lib/utils/notifications')
-      await createNotification('post-owner-id', 'comment', `${user.nombres} comentó tu post`, user.userId)
       setNewComment("")
       fetchComments()
-      onUpdate?.()
+      onCommentAdded?.()
       toast.success('Comentario publicado')
     } catch (error) {
-      console.error('Error posting comment:', error)
       toast.error('Error al publicar comentario')
     } finally {
       setIsLoading(false)

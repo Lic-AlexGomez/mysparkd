@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import type { Post, ReactionType, PostVisibility } from "@/lib/types"
 import { api } from "@/lib/api"
@@ -93,7 +93,12 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
   console.log('=======================') */
   
   const [likeCount, setLikeCount] = useState(post.likeCount)
-  const [liked, setLiked] = useState(post.liked || false)
+  const [liked, setLiked] = useState(post.liked || post.likedByCurrentUser || false)
+  const [commentsCount, setCommentsCount] = useState(post.commentsCount)
+
+  useEffect(() => {
+    setCommentsCount(post.commentsCount)
+  }, [post.commentsCount])
   const [userReaction, setUserReaction] = useState<ReactionType | null>(initialUserReaction)
   const [reactionCounts, setReactionCounts] = useState(post.reactions || {})
   const [repostCount, setRepostCount] = useState(post.repostCount || 0)
@@ -676,9 +681,9 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
               >
                 <MessageCircle className="h-5 w-5 hover:scale-110 transition-all" />
               </button>
-              {post.commentsCount > 0 && (
+              {commentsCount > 0 && (
                 <span className="text-sm text-muted-foreground">
-                  {post.commentsCount}
+                  {commentsCount}
                 </span>
               )}
             </div>
@@ -738,7 +743,7 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
         postId={post.id}
         open={showComments}
         onOpenChange={setShowComments}
-        onUpdate={onUpdate}
+        onCommentAdded={() => setCommentsCount(prev => prev + 1)}
       />
       <RepostModal
         open={showRepostModal}

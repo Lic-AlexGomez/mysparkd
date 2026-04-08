@@ -1,4 +1,5 @@
 import { api } from '../api'
+import type { AdminStats, UserGrowth } from '../types'
 
 export const profileService = {
   async getProfile(userId: string) {
@@ -16,6 +17,24 @@ export const profileService = {
       return profile?.profilePictureUrl || profile?.photos?.[0]?.url || null
     } catch {
       return null
+    }
+  }
+}
+
+export const adminService = {
+  async getStats(): Promise<AdminStats | null> {
+    try {
+      return await api.get<AdminStats>('/api/admin/stats')
+    } catch {
+      return null
+    }
+  },
+
+  async getGrowth(): Promise<UserGrowth[]> {
+    try {
+      return await api.get<UserGrowth[]>('/api/admin/growth')
+    } catch {
+      return []
     }
   }
 }

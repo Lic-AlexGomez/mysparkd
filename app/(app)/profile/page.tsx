@@ -25,12 +25,10 @@ import { toast } from "sonner"
 import { PostCard } from "@/components/feed/post-card"
 import { useRouter } from "next/navigation"
 import { uploadToCloudinary } from "@/lib/cloudinary"
-import { useFeatureFlags } from "@/hooks/use-feature-flags"
 
 export default function ProfilePage() {
   const { user, refreshProfile, isLoading } = useAuth()
   const router = useRouter()
-  const features = useFeatureFlags()
   
   const [editOpen, setEditOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -41,25 +39,16 @@ export default function ProfilePage() {
   const [telefono, setTelefono] = useState(user?.telefono || "")
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [localPhotos, setLocalPhotos] = useState(user?.photos || [])
-  const [userInterests, setUserInterests] = useState<any[]>([])
   const [viewPhotoUrl, setViewPhotoUrl] = useState<string | null>(null)
 
-  useEffect(() => {
-    const fetchInterests = async () => {
-      try {
-        const interests = await api.get('/api/interests/me')
-        setUserInterests(interests)
-      } catch (error) {
-        console.error('Error fetching interests:', error)
-      }
-    }
-    fetchInterests()
-  }, [])
+  // Intereses: vienen del perfil del backend como array de strings
+  const profileInterests = Array.isArray(user?.interests)
+    ? (user.interests as string[])
+    : []
 
   useEffect(() => {
     setLocalPhotos(user?.photos || [])
   }, [user?.photos])
-console.log('Usuario:', user)
   useEffect(() => {
     setCoverPhoto(user?.coverPictureUrl || null)
   }, [user?.coverPictureUrl])
@@ -77,7 +66,11 @@ console.log('Usuario:', user)
         apellidos: apellidos.trim(),
         sex,
         telefono: telefono.trim(),
-        dateOfBirth: user.dateOfBirth
+        dateOfBirth: user.dateOfBirth,
+        bio: user.bio,
+        location: user.location,
+        latitude: user.latitude,
+        longitude: user.longitude
       })
       await refreshProfile()
       toast.success("Perfil actualizado")
@@ -264,11 +257,7 @@ console.log('Usuario:', user)
                   className="border-border text-foreground hover:bg-muted"
                   onClick={(e) => {
                     e.preventDefault()
-                    if (features.profileEdit) {
-                      router.push('/profile/edit')
-                    } else {
-                      setEditOpen(true)
-                    }
+                    router.push('/profile/edit')
                   }}
                 >
                   <Pencil className="mr-2 h-3.5 w-3.5" />
@@ -355,16 +344,16 @@ console.log('Usuario:', user)
                 {reputation}
               </Badge>
             </div>
-            {features.profileEdit && user.username && (
+            {user.username && (
               <p className="text-sm text-muted-foreground mb-1">@{user.username}</p>
             )}
-            {features.profileEdit && user.bio && (
+            {user.bio && (
               <p className="text-sm text-foreground mb-2">{user.bio}</p>
             )}
-            {features.profileEdit && user.location && (
+            {user.location && user.location !== "Unknown location" && (
               <p className="text-xs text-muted-foreground mb-1">📍 {user.location}</p>
             )}
-            {features.profileEdit && user.website && (
+            {user.website && (
               <a href={user.website} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline mb-2 block">
                 🔗 {user.website}
               </a>
@@ -561,69 +550,20 @@ console.log('Usuario:', user)
       )}
 
       {/* Interests */}
-      {(() => {
-        console.log('User interests from state:', userInterests)
-        console.log('User interests length:', userInterests?.length)
-        
-        if (!userInterests || userInterests.length === 0) {
-          return (
-            <div className="mt-6 px-4">
-              <h2 className="mb-4 text-sm font-semibold text-foreground">Intereses</h2>
-              <p className="text-sm text-muted-foreground">No has seleccionado intereses aún</p>
-            </div>
-          )
-        }
-
-        const categoryNames: Record<string, string> = {
-          ENTRETENIMIENTO: "🎬 Entretenimiento",
-          DEPORTE: "⚽ Deporte",
-          VIAJES: "✈️ Viajes",
-          ESTILO_DE_VIDA: "💎 Estilo de Vida",
-          CONOCIMIENTO: "📚 Conocimiento",
-          SOCIAL: "👥 Social",
-          ARTE: "🎨 Arte",
-          MUSICA: "🎵 Música",
-          GASTRONOMIA: "🍽️ Gastronomía",
-          NATURALEZA: "🌿 Naturaleza",
-          TECNOLOGIA: "💻 Tecnología",
-          NEGOCIOS: "💼 Negocios",
-          BIENESTAR: "🧘 Bienestar",
-          CULTURA: "🏛️ Cultura",
-          AVENTURA: "🏔️ Aventura"
-        }
-
-        const interestsByCategory = userInterests.reduce((acc, interest) => {
-          const category = interest.category || 'OTROS'
-          if (!acc[category]) acc[category] = []
-          acc[category].push(interest)
-          return acc
-        }, {} as Record<string, typeof userInterests>)
-
-        console.log('Interests by category:', interestsByCategory)
-
-        return (
-          <div className="mt-6 px-4">
-            <h2 className="mb-4 text-sm font-semibold text-foreground">Intereses</h2>
-            <div className="space-y-4">
-              {Object.entries(interestsByCategory).map(([category, interests]) => (
-                <div key={category}>
-                  <p className="mb-2 text-xs font-bold text-muted-foreground">
-                    {categoryNames[category] || category}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {interests.map((interest, index) => (
-                      <span key={index} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/30 text-xs text-foreground font-medium">
-                        {interest.icon && <span>{interest.icon}</span>}
-                        {interest.name}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+      <div className="mt-6 px-4">
+        <h2 className="mb-4 text-sm font-semibold text-foreground">Intereses</h2>
+        {profileInterests.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {profileInterests.map((interest, index) => (
+              <span key={index} className="inline-flex items-center px-3 py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/30 text-xs text-foreground font-medium">
+                {interest}
+              </span>
+            ))}
           </div>
-        )
-      })()}
+        ) : (
+          <p className="text-sm text-muted-foreground">No has seleccionado intereses aún</p>
+        )}
+      </div>
 
       {/* Menu Items */}
       <div className="mt-6 px-4 space-y-3">
