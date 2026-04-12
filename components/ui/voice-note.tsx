@@ -52,6 +52,7 @@ export function VoiceNotePlayer({ url }: VoiceNotePlayerProps) {
     <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20">
       <audio ref={audioRef} src={url} preload="metadata" />
       <button
+        type="button"
         onClick={toggle}
         className="h-9 w-9 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center shrink-0 shadow-md"
       >
@@ -167,6 +168,7 @@ export function VoiceNoteRecorder({ currentUrl, onSaved }: VoiceNoteRecorderProp
             <VoiceNotePlayer url={activeUrl} />
           </div>
           <button
+            type="button"
             onClick={handleDelete}
             className="h-9 w-9 rounded-full bg-destructive/10 hover:bg-destructive/20 flex items-center justify-center transition-colors shrink-0"
           >
@@ -199,6 +201,7 @@ export function VoiceNoteRecorder({ currentUrl, onSaved }: VoiceNoteRecorderProp
                 </span>
               </div>
               <button
+                type="button"
                 onClick={stopRecording}
                 className="h-9 w-9 rounded-full bg-destructive flex items-center justify-center shrink-0"
               >
@@ -207,6 +210,7 @@ export function VoiceNoteRecorder({ currentUrl, onSaved }: VoiceNoteRecorderProp
             </>
           ) : (
             <button
+              type="button"
               onClick={startRecording}
               className="flex items-center gap-2 px-4 py-2 rounded-full border border-primary/30 hover:bg-primary/10 transition-colors text-sm text-foreground"
             >
@@ -219,6 +223,7 @@ export function VoiceNoteRecorder({ currentUrl, onSaved }: VoiceNoteRecorderProp
 
       {activeUrl && !uploading && !recording && (
         <button
+          type="button"
           onClick={() => { setPreviewUrl(null); onSaved(null) }}
           className="text-xs text-muted-foreground hover:text-primary transition-colors"
         >

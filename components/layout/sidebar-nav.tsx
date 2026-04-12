@@ -29,7 +29,7 @@ const navItems = [
   { href: "/matches", label: "Matches", icon: Heart },
   { href: "/chat", label: "Chat", icon: MessageCircle },
   { href: "/groups", label: "Grupos", icon: Users },
-  { href: "/profile", label: "Mi Perfil", icon: User },
+  { href: "/profile", label: "Perfil", icon: User },
   { href: "/premium", label: "Premium", icon: Crown },
 ]
 

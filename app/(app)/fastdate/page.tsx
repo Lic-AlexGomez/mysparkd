@@ -212,7 +212,7 @@ export default function FastDatePage() {
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap ">
                       <span className="text-sm font-semibold text-foreground">@{card.username}</span>
                       <Badge className="text-[10px] px-2 py-0 border-0 bg-primary/10 text-primary">
                         {CATEGORY_LABELS[card.category] || card.category}

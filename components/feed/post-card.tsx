@@ -542,24 +542,20 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
           ) : (
             <div className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
               {shouldShowLocked ? (
-                <div className="flex flex-col gap-2">
-                  <p className="text-muted-foreground italic select-none">
-                    Este contenido está bloqueado.
-                  </p>
-                  {!post.file && (
-                    <button
-                      onClick={() => setShowUnlockModal(true)}
-                      className="flex items-center justify-between rounded-lg bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/30 px-4 py-3 cursor-pointer hover:from-primary/20 hover:to-secondary/20 transition-all w-full text-left"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Lock className="h-5 w-5 text-primary" />
-                        <span className="font-medium text-foreground text-sm">Contenido Premium Bloqueado</span>
-                      </div>
-                      <span className="text-xs border border-primary text-primary rounded px-2 py-1 hover:bg-primary hover:text-primary-foreground transition-colors">
-                        Desbloquear
-                      </span>
-                    </button>
-                  )}
+                <div className="relative select-none cursor-pointer py-4" onClick={() => setShowUnlockModal(true)}>
+                  {/* Texto ficticio con blur */}
+                  <div className="blur-sm opacity-60 pointer-events-none text-sm text-foreground leading-relaxed">
+                    {post.body
+                      ? post.body
+                      : 'Contenido premium bloqueado. Desbloquea para ver este mensaje.'}
+                  </div>
+                  {/* Overlay con candado */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="flex items-center gap-2 bg-background/80 backdrop-blur-sm border border-primary/30 rounded-full px-4 py-2 shadow-lg">
+                      <Lock className="h-4 w-4 text-primary" />
+                      <span className="text-xs font-semibold text-primary">Desbloquear contenido</span>
+                    </div>
+                  </div>
                 </div>
               ) : isAccessDenied ? (
                 <p className="text-muted-foreground italic select-none flex items-center gap-1.5">

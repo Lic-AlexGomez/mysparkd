@@ -52,6 +52,7 @@ export default function EditProfilePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    e.stopPropagation()
     if (!user) return
 
     setLoading(true)
@@ -70,11 +71,9 @@ export default function EditProfilePage() {
         body.longitude = formData.longitude
       }
       await api.put('/api/profile', body)
-      // Parche local mientras el backend no guarda bio en updateProfile
       updateUser({ bio: formData.bio || null })
-      await refreshProfile()
       toast.success("Perfil actualizado")
-      router.push(`/profile/${user.userId}`)
+      window.location.href = '/profile'
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Error al actualizar perfil")
     } finally {
