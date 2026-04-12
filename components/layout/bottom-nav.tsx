@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import {
   Newspaper,
   Zap,
-  Heart,
+  Calendar,
   MessageCircle,
   User,
 } from "lucide-react"
@@ -15,7 +15,7 @@ import { useUnreadChats } from "@/hooks/use-unread-chats"
 const navItems = [
   { href: "/feed", label: "Feed", icon: Newspaper },
   { href: "/swipes", label: "Swipes", icon: Zap },
-  { href: "/matches", label: "Matches", icon: Heart },
+  { href: "/fastdate", label: "Citas", icon: Calendar },
   { href: "/chat", label: "Chat", icon: MessageCircle },
   { href: "/profile", label: "Perfil", icon: User },
 ]
@@ -24,15 +24,13 @@ export function BottomNav() {
   const pathname = usePathname()
   const unreadChats = useUnreadChats()
 
-  // Ocultar en chat room para que el input no quede tapado
   if (pathname.startsWith('/chat/')) return null
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur-md lg:hidden">
       <div className="flex items-center justify-around py-2">
         {navItems.map((item) => {
-          const isActive =
-            pathname === item.href || pathname.startsWith(item.href + "/")
+          const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
           const showBadge = item.href === '/chat' && unreadChats > 0
           return (
             <Link
@@ -40,9 +38,7 @@ export function BottomNav() {
               href={item.href}
               className={cn(
                 "flex flex-col items-center gap-0.5 px-3 py-1.5 text-xs transition-colors",
-                isActive
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground"
+                isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
               )}
             >
               <div className="relative">

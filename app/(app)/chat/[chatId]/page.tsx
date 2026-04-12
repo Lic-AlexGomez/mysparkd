@@ -24,7 +24,6 @@ import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
 export default function ChatRoomPage() {
-  console.log("Dsds")
   const params = useParams()
   const router = useRouter()
   const { user } = useAuth()
@@ -114,15 +113,20 @@ export default function ChatRoomPage() {
       if (otherId && eventUserId === otherId) {
         const isOnline = event.status?.toUpperCase() === 'ONLINE'
         setOtherUserOnline(isOnline)
-       
         if (!isOnline) {
-          // Consultar lastSeen actualizado
-          api.get<any>(`/api/presence/${otherId}`).then(res => {
-         
-            setOtherUserLastSeen(res.lastSeen || null)
-          }).catch(() => {})
+          if (event.lastSeen) {
+            setOtherUserLastSeen(event.lastSeen)
+          } else {
+            // fallback REST solo si hay token
+            const token = typeof window !== 'undefined' ? localStorage.getItem('sparkd_token') : null
+            if (token) {
+              api.get<any>(`/api/presence/${otherId}`)
+                .then(res => setOtherUserLastSeen(res.lastSeen || null))
+                .catch(() => {})
+            }
+          }
         } else {
-          setOtherUserLastSeen("null")
+          setOtherUserLastSeen(null)
         }
       }
     },

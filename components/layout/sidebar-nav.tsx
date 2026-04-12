@@ -8,12 +8,13 @@ import {
   Heart,
   MessageCircle,
   User,
-  Crown,
-  Search,
-  Users,
+  Calendar,
   ThumbsUp,
   LayoutDashboard,
   ShieldCheck,
+  Search,
+  Users,
+  Crown,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
@@ -23,6 +24,7 @@ const navItems = [
   { href: "/feed", label: "Feed", icon: Newspaper },
   { href: "/search", label: "Buscar", icon: Search },
   { href: "/swipes", label: "Swipes", icon: Zap },
+  { href: "/fastdate", label: "Fast Date", icon: Calendar },
   { href: "/likes", label: "Likes", icon: ThumbsUp },
   { href: "/matches", label: "Matches", icon: Heart },
   { href: "/chat", label: "Chat", icon: MessageCircle },

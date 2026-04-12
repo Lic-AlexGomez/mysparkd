@@ -6,9 +6,15 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { StatCard } from "./shared"
-import { Users, UserPlus, Crown, UserX, Search, Loader2 } from "lucide-react"
+import { Users, UserPlus, Crown, UserX, Search, Loader2, Shield } from "lucide-react"
 import { api } from "@/lib/api"
 import { toast } from "sonner"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface AdminUser {
   userId: string
@@ -54,6 +60,18 @@ export function AdminUsers() {
       ))
     } catch {
       toast.error('Error al actualizar usuario')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleAssignRole = async (userId: string, roleName: string) => {
+    setActionLoading(userId)
+    try {
+      await api.post('/api/administrator/user-roles/assign', { userId, roleName })
+      toast.success(`Rol ${roleName} asignado correctamente`)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Error al asignar rol')
     } finally {
       setActionLoading(null)
     }
@@ -116,16 +134,17 @@ export function AdminUsers() {
             </p>
           ) : (
             <>
-              <div className="grid grid-cols-6 gap-2 px-4 py-2 border-b border-border text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+              <div className="grid grid-cols-7 gap-2 px-4 py-2 border-b border-border text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
                 <span className="col-span-2">Usuario</span>
                 <span>Estado</span>
                 <span>Posts</span>
                 <span>Registro</span>
+                <span>Rol</span>
                 <span>Acción</span>
               </div>
               <div className="divide-y divide-border">
                 {filtered.map(u => (
-                  <div key={u.userId} className="grid grid-cols-6 gap-2 px-4 py-3 items-center hover:bg-muted/20 transition-colors">
+                  <div key={u.userId} className="grid grid-cols-7 gap-2 px-4 py-3 items-center hover:bg-muted/20 transition-colors">
                     <div className="col-span-2 min-w-0">
                       <div className="flex items-center gap-2">
                         <div className="h-7 w-7 rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 flex items-center justify-center shrink-0 overflow-hidden">
@@ -154,6 +173,42 @@ export function AdminUsers() {
                     </div>
                     <span className="text-xs text-foreground font-medium">{u.postCount}</span>
                     <span className="text-xs text-muted-foreground">{getTimeAgo(u.fechaRegistro)}</span>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs gap-1"
+                          disabled={actionLoading === u.userId}
+                        >
+                          <Shield className="h-3 w-3" />
+                          Rol
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-card border-border">
+                        <DropdownMenuItem
+                          onClick={() => handleAssignRole(u.userId, 'ROLE_ADMIN')}
+                          className="cursor-pointer text-xs"
+                        >
+                          <Crown className="h-3.5 w-3.5 mr-2 text-amber-500" />
+                          Asignar Admin
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleAssignRole(u.userId, 'ROLE_MODERATOR')}
+                          className="cursor-pointer text-xs"
+                        >
+                          <Shield className="h-3.5 w-3.5 mr-2 text-blue-500" />
+                          Asignar Moderador
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleAssignRole(u.userId, 'ROLE_USER')}
+                          className="cursor-pointer text-xs"
+                        >
+                          <Users className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                          Quitar rol especial
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     <Button
                       size="sm"
                       variant={u.enabled ? "destructive" : "outline"}

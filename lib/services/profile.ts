@@ -24,7 +24,7 @@ export const profileService = {
 export const adminService = {
   async getStats(): Promise<AdminStats | null> {
     try {
-      return await api.get<AdminStats>('/api/admin/stats')
+      return await api.get<AdminStats>('/admin/stats')
     } catch {
       return null
     }
@@ -32,7 +32,7 @@ export const adminService = {
 
   async getGrowth(): Promise<UserGrowth[]> {
     try {
-      return await api.get<UserGrowth[]>('/api/admin/growth')
+      return await api.get<UserGrowth[]>('/admin/growth')
     } catch {
       return []
     }

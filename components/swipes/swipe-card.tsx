@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { reputationService } from "@/lib/services/reputation"
 import { Sparkles } from "lucide-react"
 import Link from "next/link"
+import { VoiceNotePlayer } from "@/components/ui/voice-note"
 
 interface SwipeCardProps {
   user: {
@@ -18,6 +19,7 @@ interface SwipeCardProps {
     bio?: string
     location?: string
     dateOfBirth?: string
+    voiceNoteUrl?: string
   }
   onSwipe: (direction: "left" | "right") => void
   isTop: boolean
@@ -187,6 +189,14 @@ export function SwipeCard({ user, onSwipe, isTop, compatibility }: SwipeCardProp
                   <div>
                     <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-1">Sobre mí</p>
                     <p className="text-sm text-white/90 leading-relaxed">{user.bio}</p>
+                  </div>
+                )}
+                {user.voiceNoteUrl && (
+                  <div>
+                    <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-1">Nota de voz</p>
+                    <div onPointerDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
+                      <VoiceNotePlayer url={user.voiceNoteUrl} />
+                    </div>
                   </div>
                 )}
                 {!user.bio && !user.location && (

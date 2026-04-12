@@ -29,6 +29,7 @@ export default function OnboardingPage() {
   const [sex, setSex] = useState<Sex>("MALE")
   const [dateOfBirth, setDateOfBirth] = useState("")
   const [telefono, setTelefono] = useState("")
+  const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null)
 
   // Step 2: Interests
   const [allInterests, setAllInterests] = useState<Interest[]>([])
@@ -70,15 +71,37 @@ export default function OnboardingPage() {
 
       // Usar PUT si existe, POST si no
       const method = profileExists ? 'put' : 'post'
-      await api[method]("/api/profile", {
+
+      // Intentar obtener coordenadas en background (silencioso)
+      let location: { latitude: number; longitude: number } | null = coords
+      if (!location && navigator.geolocation) {
+        try {
+          location = await new Promise((resolve) => {
+            navigator.geolocation.getCurrentPosition(
+              (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+              () => resolve(null),
+              { timeout: 5000, maximumAge: 0 }
+            )
+          })
+          if (location) setCoords(location)
+        } catch {
+          location = null
+        }
+      }
+
+      const body: any = {
         nombres: nombres.trim(),
         apellidos: apellidos.trim(),
         sex,
         dateOfBirth,
         telefono: telefono.trim() || undefined,
-        latitude: 0,
-        longitude: 0,
-      })
+      }
+      if (location) {
+        body.latitude = location.latitude
+        body.longitude = location.longitude
+      }
+
+      await api[method]("/api/profile", body)
       setStep(2)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al guardar perfil")

@@ -11,14 +11,21 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card } from "@/components/ui/card"
 import { LocationInput } from "@/components/ui/location-input"
-import { ArrowLeft, Loader2, Save, Camera } from "lucide-react"
+import { ArrowLeft, Loader2, Save, Camera, Crown } from "lucide-react"
 import { toast } from "sonner"
+import { Switch } from "@/components/ui/switch"
+import { VoiceNoteRecorder } from "@/components/ui/voice-note"
 
 export default function EditProfilePage() {
   const router = useRouter()
   const { user, isLoading: authLoading, refreshProfile, updateUser } = useAuth()
   const [loading, setLoading] = useState(false)
   const [uploadingCover, setUploadingCover] = useState(false)
+  const [showPremiumBadge, setShowPremiumBadge] = useState(() => {
+    if (typeof window === 'undefined') return true
+    const userId = localStorage.getItem('sparkd_user_id') || ''
+    return localStorage.getItem(`sparkd_show_premium_${userId}`) !== 'false'
+  })
   const [formData, setFormData] = useState({
     username: "",
     bio: "",
@@ -49,9 +56,6 @@ export default function EditProfilePage() {
 
     setLoading(true)
     try {
-      const lat: number = formData.latitude ?? (user.latitude as number | undefined) ?? 0
-      const lng: number = formData.longitude ?? (user.longitude as number | undefined) ?? 0
-
       const body: any = {
         nombres: user.nombres,
         apellidos: user.apellidos,
@@ -59,8 +63,11 @@ export default function EditProfilePage() {
         dateOfBirth: user.dateOfBirth,
         telefono: user.telefono,
         bio: formData.bio || null,
-        latitude: lat,
-        longitude: lng,
+      }
+      // Solo mandar coords si el usuario seleccionó una ubicación
+      if (formData.latitude && formData.longitude) {
+        body.latitude = formData.latitude
+        body.longitude = formData.longitude
       }
       await api.put('/api/profile', body)
       // Parche local mientras el backend no guarda bio en updateProfile
@@ -203,6 +210,34 @@ export default function EditProfilePage() {
               onChange={(e) => setFormData({ ...formData, website: e.target.value })}
               placeholder="https://tusitio.com"
               maxLength={200}
+            />
+          </div>
+
+          {user.premium && (
+            <div className="flex items-center justify-between p-4 rounded-xl bg-yellow-500/5 border border-yellow-500/20">
+              <div className="flex items-center gap-2">
+                <Crown className="h-4 w-4 text-yellow-500" />
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Badge Premium</p>
+                  <p className="text-xs text-muted-foreground">Mostrar en tu perfil</p>
+                </div>
+              </div>
+              <Switch
+                checked={showPremiumBadge}
+                onCheckedChange={(val) => {
+                  setShowPremiumBadge(val)
+                  localStorage.setItem(`sparkd_show_premium_${user.userId}`, String(val))
+                }}
+              />
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label>Nota de voz</Label>
+            <p className="text-xs text-muted-foreground">Graba hasta 30 segundos para presentarte</p>
+            <VoiceNoteRecorder
+              currentUrl={user.voiceNoteUrl}
+              onSaved={(url) => updateUser({ voiceNoteUrl: url ?? undefined })}
             />
           </div>
 

@@ -58,6 +58,7 @@ export interface UserProfile {
   latitude?: number
   longitude?: number
   website?: string
+  voiceNoteUrl?: string
   coverPhoto?: string
   coverPictureUrl?: string
   profilePictureUrl?: string
@@ -97,6 +98,67 @@ export interface UpdateProfileRequest {
   location?: string
   latitude?: number
   longitude?: number
+}
+
+// FastDate
+export type DateCategory = 'FOOD' | 'ACTIVITY' | 'EVENT' | 'CHILL' | 'ADVENTURE' | 'OPEN_SUGGESTION'
+export type Plan = 'CAFE' | 'RESTAURANT' | 'BAR' | 'PARK' | 'BEACH' | 'MALL' | 'CINEMA' | 'OTHER' | 'OPEN_SUGGESTION'
+export type PlaceType = 'CAFE' | 'RESTAURANT' | 'BAR' | 'PARK' | 'BEACH' | 'MALL' | 'CINEMA' | 'OTHER' | 'OPEN_SUGGESTION'
+export type DateCardStatus = 'ACTIVE' | 'MATCHED' | 'CANCELLED' | 'EXPIRED'
+export type InterestStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED'
+
+export interface DateCard {
+  id: string
+  title: string
+  message?: string
+  dateTime: string
+  locationZone: string
+  category: DateCategory
+  detail?: string
+  plans: Plan[]
+  placeTypes: PlaceType[]
+  status: DateCardStatus
+  expiresAt: string
+  createdAt: string
+  userId: string
+  username: string
+  mainPhotoUrl?: string
+}
+
+export interface CreateDateCardRequest {
+  title: string
+  message?: string
+  dateTime: string
+  locationZone: string
+  category: DateCategory
+  detail?: string
+  plans: Plan[]
+  placeTypes: PlaceType[]
+}
+
+export interface DateCardInterest {
+  userId: string
+  profilePicture?: string
+  profileId?: string
+  message?: string
+  status: InterestStatus
+}
+
+export interface MyDateCard {
+  dateCardId: string
+  title: string
+  interests: DateCardInterest[]
+}
+
+export interface SentInterest {
+  interestId: string
+  message?: string
+  status: InterestStatus
+  dateCardId: string
+  title: string
+  dateStatus: string
+  profileId?: string
+  profilePicture?: string
 }
 
 // Admin Stats

@@ -5,6 +5,15 @@ import { Input } from "./input"
 import { MapPin, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
+// Extrae solo provincia y país de una dirección completa
+function formatLocation(location: string): string {
+  if (!location || location === 'Unknown location') return ''
+  const parts = location.split(',')
+  if (parts.length <= 2) return location
+  // Tomar las últimas 2 partes (provincia, país)
+  return parts.slice(-2).map(p => p.trim()).join(', ')
+}
+
 interface LocationSuggestion {
   place_id: string
   description: string
@@ -103,7 +112,15 @@ export function LocationInput({ value, onChange, placeholder = "Ciudad, País", 
   }
 
   const handleSelectSuggestion = (suggestion: any) => {
-    onChange(suggestion.description, {
+    // Construir location con solo provincia/estado y país
+    const addr = suggestion.address || {}
+    const parts = [
+      addr.state || addr.province || addr.region || addr.county,
+      addr.country
+    ].filter(Boolean)
+    const locationLabel = parts.length > 0 ? parts.join(', ') : suggestion.structured_formatting.main_text
+
+    onChange(locationLabel, {
       latitude: suggestion.lat,
       longitude: suggestion.lon
     })

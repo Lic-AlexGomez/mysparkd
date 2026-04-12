@@ -20,11 +20,12 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Pencil, Loader2, Camera, Newspaper, Shield, Bookmark, Heart } from "lucide-react"
+import { Pencil, Loader2, Camera, Newspaper, Shield, Bookmark, Heart, Crown } from "lucide-react"
 import { toast } from "sonner"
 import { PostCard } from "@/components/feed/post-card"
 import { useRouter } from "next/navigation"
 import { uploadToCloudinary } from "@/lib/cloudinary"
+import { VoiceNotePlayer } from "@/components/ui/voice-note"
 
 export default function ProfilePage() {
   const { user, refreshProfile, isLoading } = useAuth()
@@ -40,6 +41,10 @@ export default function ProfilePage() {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [localPhotos, setLocalPhotos] = useState(user?.photos || [])
   const [viewPhotoUrl, setViewPhotoUrl] = useState<string | null>(null)
+
+  const showPremiumBadge = typeof window !== 'undefined'
+    ? localStorage.getItem(`sparkd_show_premium_${user?.userId}`) !== 'false'
+    : true
 
   // Intereses: vienen del perfil del backend como array de strings
   const profileInterests = Array.isArray(user?.interests)
@@ -343,6 +348,12 @@ export default function ProfilePage() {
                 <Shield className="h-3 w-3" />
                 {reputation}
               </Badge>
+              {user.premium && showPremiumBadge && (
+                <Badge className="px-2 py-0.5 text-xs font-bold border-0 bg-yellow-500/20 text-yellow-500 flex items-center gap-1">
+                  <Crown className="h-3 w-3" />
+                  Premium
+                </Badge>
+              )}
             </div>
             {user.username && (
               <p className="text-sm text-muted-foreground mb-1">@{user.username}</p>
@@ -350,8 +361,13 @@ export default function ProfilePage() {
             {user.bio && (
               <p className="text-sm text-foreground mb-2">{user.bio}</p>
             )}
+            {user.voiceNoteUrl && (
+              <div className="mb-2">
+                <VoiceNotePlayer url={user.voiceNoteUrl} />
+              </div>
+            )}
             {user.location && user.location !== "Unknown location" && (
-              <p className="text-xs text-muted-foreground mb-1">📍 {user.location}</p>
+              <p className="text-xs text-muted-foreground mb-1">📍 {user.location.split(',').length > 2 ? user.location.split(',').slice(-2).map((p: string) => p.trim()).join(', ') : user.location}</p>
             )}
             {user.website && (
               <a href={user.website} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline mb-2 block">
@@ -555,7 +571,7 @@ export default function ProfilePage() {
         {profileInterests.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {profileInterests.map((interest, index) => (
-              <span key={index} className="inline-flex items-center px-3 py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/30 text-xs text-foreground font-medium">
+              <span key={index} className="inline-flex items-center px-3 py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20 text-xs font-medium text-foreground hover:from-primary/20 hover:to-secondary/20 transition-colors">
                 {interest}
               </span>
             ))}
@@ -645,7 +661,7 @@ export default function ProfilePage() {
 
       {/* Photo Viewer Modal */}
       <Dialog open={!!viewPhotoUrl} onOpenChange={() => setViewPhotoUrl(null)}>
-        <DialogContent className="max-w-3xl p-0 bg-black/95 border-0">
+        <DialogContent className="max-w-3xl p-0 bg-black/95 border-0 [&>button]:hidden">
           <div className="relative">
             <img
               src={viewPhotoUrl || ''}
@@ -654,7 +670,7 @@ export default function ProfilePage() {
             />
             <button
               onClick={() => setViewPhotoUrl(null)}
-              className="absolute top-4 right-4 h-10 w-10 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white"
+              className="absolute top-3 right-3 h-8 w-8 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center text-white text-sm"
             >
               ✕
             </button>

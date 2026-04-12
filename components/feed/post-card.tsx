@@ -577,29 +577,22 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
         {post.file && !compact && (
           <div className="mt-3 overflow-hidden rounded-xl relative">
             {shouldShowLocked ? (
-              <>
-                <div className="relative h-96 bg-muted">
-                  <OptimizedImage
-                    src={post.file}
-                    alt="Post media"
-                    className="max-h-96 blur-2xl opacity-30 pointer-events-none select-none"
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center p-4">
-                    <div 
-                      onClick={() => setShowUnlockModal(true)}
-                      className="flex items-center justify-between rounded-lg bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/30 px-4 py-3 cursor-pointer hover:from-primary/20 hover:to-secondary/20 transition-all backdrop-blur-sm w-full max-w-md"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Lock className="h-5 w-5 text-primary" />
-                        <span className="font-medium text-foreground">Contenido Premium Bloqueado</span>
-                      </div>
-                      <Button size="sm" variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground">
-                        Desbloquear
-                      </Button>
-                    </div>
+              <div className="relative overflow-hidden rounded-xl cursor-pointer" onClick={() => setShowUnlockModal(true)}>
+                <img
+                  src={post.file}
+                  alt="Post media"
+                  className="w-full max-h-96 object-cover blur-xl scale-105 brightness-50 select-none pointer-events-none"
+                />
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/30 backdrop-blur-sm">
+                  <div className="h-12 w-12 rounded-full bg-black/50 flex items-center justify-center">
+                    <Lock className="h-6 w-6 text-white" />
                   </div>
+                  <p className="text-white font-semibold text-sm">Contenido Premium</p>
+                  <span className="text-xs border border-white/50 text-white rounded-full px-4 py-1.5 hover:bg-white/20 transition-colors">
+                    Desbloquear
+                  </span>
                 </div>
-              </>
+              </div>
             ) : post.file.match(/\.(mp4|webm|ogg|mov|avi|mkv)$/i) || post.media?.mediaType === 'VIDEO' || (post.file.includes('cloudinary.com') && post.file.includes('/video/')) ? (
               <video
                 src={post.file}

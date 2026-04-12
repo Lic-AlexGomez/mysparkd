@@ -488,15 +488,13 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
             </Select>
           </div>
           
-          {isPremium && (
-            <div className="flex items-center justify-between">
-              <Label className="text-foreground flex items-center gap-2">
-                <Lock className="h-4 w-4 text-primary" />
-                Post Premium (bloqueado)
-              </Label>
-              <Switch checked={locked} onCheckedChange={setLocked} />
-            </div>
-          )}
+          <div className="flex items-center justify-between">
+            <Label className="text-foreground flex items-center gap-2">
+              <Lock className="h-4 w-4 text-primary" />
+              Post bloqueado (blur)
+            </Label>
+            <Switch checked={locked} onCheckedChange={setLocked} />
+          </div>
           {!permanent && (
             <div className="flex flex-col gap-2">
               <Label className="text-foreground">

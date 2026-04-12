@@ -1,0 +1,230 @@
+"use client"
+
+import { useState, useRef, useEffect } from "react"
+import { Mic, Play, Pause, Trash2, Square, Loader2 } from "lucide-react"
+import { toast } from "sonner"
+import { api } from "@/lib/api"
+
+interface VoiceNotePlayerProps {
+  url: string
+}
+
+interface VoiceNoteRecorderProps {
+  currentUrl?: string | null
+  onSaved: (url: string | null) => void
+}
+
+const MAX_SECONDS = 30
+
+// ── Player ────────────────────────────────────────────────────────────────────
+export function VoiceNotePlayer({ url }: VoiceNotePlayerProps) {
+  const audioRef = useRef<HTMLAudioElement>(null)
+  const [playing, setPlaying] = useState(false)
+  const [progress, setProgress] = useState(0)
+  const [duration, setDuration] = useState(0)
+
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return
+    const onEnd = () => { setPlaying(false); setProgress(0) }
+    const onTime = () => setProgress(audio.currentTime)
+    const onMeta = () => setDuration(audio.duration)
+    audio.addEventListener('ended', onEnd)
+    audio.addEventListener('timeupdate', onTime)
+    audio.addEventListener('loadedmetadata', onMeta)
+    return () => {
+      audio.removeEventListener('ended', onEnd)
+      audio.removeEventListener('timeupdate', onTime)
+      audio.removeEventListener('loadedmetadata', onMeta)
+    }
+  }, [])
+
+  const toggle = () => {
+    const audio = audioRef.current
+    if (!audio) return
+    if (playing) { audio.pause(); setPlaying(false) }
+    else { audio.play(); setPlaying(true) }
+  }
+
+  const fmt = (s: number) => `${Math.floor(s)}:${String(Math.floor((s % 1) * 60)).padStart(2, '0')}`
+
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20">
+      <audio ref={audioRef} src={url} preload="metadata" />
+      <button
+        onClick={toggle}
+        className="h-9 w-9 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center shrink-0 shadow-md"
+      >
+        {playing
+          ? <Pause className="h-4 w-4 text-black" />
+          : <Play className="h-4 w-4 text-black ml-0.5" />
+        }
+      </button>
+      <div className="flex-1 flex flex-col gap-1">
+        <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-primary to-secondary rounded-full transition-all"
+            style={{ width: duration > 0 ? `${(progress / duration) * 100}%` : '0%' }}
+          />
+        </div>
+        <div className="flex justify-between text-[10px] text-muted-foreground">
+          <span>{fmt(progress)}</span>
+          <span>{duration > 0 ? fmt(duration) : `0:${MAX_SECONDS}`}</span>
+        </div>
+      </div>
+      <span className="text-xs text-muted-foreground shrink-0">🎙️</span>
+    </div>
+  )
+}
+
+// ── Recorder ──────────────────────────────────────────────────────────────────
+export function VoiceNoteRecorder({ currentUrl, onSaved }: VoiceNoteRecorderProps) {
+  const [recording, setRecording] = useState(false)
+  const [seconds, setSeconds] = useState(0)
+  const [uploading, setUploading] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const chunksRef = useRef<Blob[]>([])
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      streamRef.current = stream
+      const mr = new MediaRecorder(stream)
+      mediaRecorderRef.current = mr
+      chunksRef.current = []
+
+      mr.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data) }
+      mr.onstop = async () => {
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
+        const url = URL.createObjectURL(blob)
+        setPreviewUrl(url)
+        stream.getTracks().forEach(t => t.stop())
+        await uploadAudio(blob)
+      }
+
+      mr.start()
+      setRecording(true)
+      setSeconds(0)
+
+      timerRef.current = setInterval(() => {
+        setSeconds(prev => {
+          if (prev >= MAX_SECONDS - 1) {
+            stopRecording()
+            return MAX_SECONDS
+          }
+          return prev + 1
+        })
+      }, 1000)
+    } catch {
+      toast.error('No se pudo acceder al micrófono')
+    }
+  }
+
+  const stopRecording = () => {
+    if (timerRef.current) clearInterval(timerRef.current)
+    mediaRecorderRef.current?.stop()
+    setRecording(false)
+  }
+
+  const uploadAudio = async (blob: Blob) => {
+    setUploading(true)
+    try {
+      const file = new File([blob], `voice-note-${Date.now()}.webm`, { type: 'audio/webm' })
+      const formData = new FormData()
+      formData.append('file', file)
+      const data = await api.post<{ url: string }>('/api/profile/voice-note', formData)
+      onSaved(data.url)
+      toast.success('Nota de voz guardada')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Error al guardar nota de voz')
+      setPreviewUrl(null)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    try {
+      await api.delete('/api/profile/voice-note')
+      setPreviewUrl(null)
+      onSaved(null)
+      toast.success('Nota de voz eliminada')
+    } catch {
+      toast.error('Error al eliminar nota de voz')
+    }
+  }
+
+  const activeUrl = previewUrl || currentUrl
+
+  return (
+    <div className="space-y-3">
+      {activeUrl && !uploading && (
+        <div className="flex items-center gap-2">
+          <div className="flex-1">
+            <VoiceNotePlayer url={activeUrl} />
+          </div>
+          <button
+            onClick={handleDelete}
+            className="h-9 w-9 rounded-full bg-destructive/10 hover:bg-destructive/20 flex items-center justify-center transition-colors shrink-0"
+          >
+            <Trash2 className="h-4 w-4 text-destructive" />
+          </button>
+        </div>
+      )}
+
+      {uploading && (
+        <div className="flex items-center gap-2 text-muted-foreground text-xs">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Guardando nota de voz...
+        </div>
+      )}
+
+      {!activeUrl && !uploading && (
+        <div className="flex items-center gap-3">
+          {recording ? (
+            <>
+              <div className="flex items-center gap-2 flex-1">
+                <div className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
+                <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-destructive rounded-full transition-all duration-1000"
+                    style={{ width: `${(seconds / MAX_SECONDS) * 100}%` }}
+                  />
+                </div>
+                <span className="text-xs text-destructive font-mono shrink-0">
+                  {seconds}s / {MAX_SECONDS}s
+                </span>
+              </div>
+              <button
+                onClick={stopRecording}
+                className="h-9 w-9 rounded-full bg-destructive flex items-center justify-center shrink-0"
+              >
+                <Square className="h-4 w-4 text-white" />
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={startRecording}
+              className="flex items-center gap-2 px-4 py-2 rounded-full border border-primary/30 hover:bg-primary/10 transition-colors text-sm text-foreground"
+            >
+              <Mic className="h-4 w-4 text-primary" />
+              Grabar nota de voz (máx. {MAX_SECONDS}s)
+            </button>
+          )}
+        </div>
+      )}
+
+      {activeUrl && !uploading && !recording && (
+        <button
+          onClick={() => { setPreviewUrl(null); onSaved(null) }}
+          className="text-xs text-muted-foreground hover:text-primary transition-colors"
+        >
+          Grabar de nuevo
+        </button>
+      )}
+    </div>
+  )
+}

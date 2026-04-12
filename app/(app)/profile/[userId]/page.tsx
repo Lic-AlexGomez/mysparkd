@@ -17,6 +17,7 @@ import { Loader2, MoreHorizontal, MessageCircle, UserPlus, UserCheck, ArrowLeft,
 import { PostCard } from "@/components/feed/post-card"
 import { ReportModal } from "@/components/feed/report-modal"
 import { toast } from "sonner"
+import { VoiceNotePlayer } from "@/components/ui/voice-note"
 
 function getAge(dateOfBirth?: string): number | null {
   if (!dateOfBirth) return null
@@ -39,7 +40,6 @@ export default function UserProfilePage() {
   const [isMessaging, setIsMessaging] = useState(false)
   const [isLiking, setIsLiking] = useState(false)
   const [liked, setLiked] = useState(false)
-  const [interests, setInterests] = useState<any[]>([])
   const [showReportModal, setShowReportModal] = useState(false)
 
   useEffect(() => {
@@ -48,14 +48,8 @@ export default function UserProfilePage() {
 
   const fetchProfile = useCallback(async () => {
     try {
-      const [data, interestsData] = await Promise.allSettled([
-        api.get<UserProfile>(`/api/profile/${userId}`),
-        api.get<any[]>(`/api/interests/me`),
-      ])
-      if (data.status === "fulfilled") {
-        setProfile(data.value)
-      }
-      // intereses del perfil visitado no hay endpoint, usamos los del perfil si vienen
+      const data = await api.get<UserProfile>(`/api/profile/${userId}`)
+      setProfile(data)
     } catch {} finally {
       setIsLoading(false)
     }
@@ -251,7 +245,12 @@ export default function UserProfilePage() {
 
           {profile.username && <p className="text-sm text-muted-foreground mt-0.5">@{profile.username}</p>}
           {profile.bio && <p className="text-sm text-foreground mt-2 leading-relaxed">{profile.bio}</p>}
-          {profile.location && profile.location !== "Unknown location" && <p className="text-xs text-muted-foreground mt-1">📍 {profile.location}</p>}
+          {(profile as any).voiceNoteUrl && (
+            <div className="mt-2">
+              <VoiceNotePlayer url={(profile as any).voiceNoteUrl} />
+            </div>
+          )}
+          {profile.location && profile.location !== "Unknown location" && <p className="text-xs text-muted-foreground mt-1">📍 {profile.location.split(',').length > 2 ? profile.location.split(',').slice(-2).map((p: string) => p.trim()).join(', ') : profile.location}</p>}
 
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             <Badge variant="secondary" className="bg-primary/10 text-primary border-0 text-xs">
@@ -299,15 +298,19 @@ export default function UserProfilePage() {
 
       {/* Intereses */}
       {profileInterests.length > 0 && (
-        <div className="px-4 mt-2">
+        <div className="px-4 mt-4">
           <h2 className="text-sm font-semibold text-foreground mb-3">Intereses</h2>
           <div className="flex flex-wrap gap-2">
             {profileInterests.map((interest, index) => {
               const name = typeof interest === "string" ? interest : interest.name
               const icon = typeof interest === "object" ? interest.icon : null
               return (
-                <span key={index} className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-xs text-foreground">
-                  {icon && <span>{icon}</span>}{name}
+                <span
+                  key={index}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20 text-xs font-medium text-foreground hover:from-primary/20 hover:to-secondary/20 transition-colors"
+                >
+                  {icon && <span>{icon}</span>}
+                  {name}
                 </span>
               )
             })}
@@ -345,8 +348,14 @@ export default function UserProfilePage() {
 
       {/* Photo viewer */}
       <Dialog open={!!viewPhotoUrl} onOpenChange={() => setViewPhotoUrl(null)}>
-        <DialogContent className="max-w-3xl p-0 bg-black border-0">
+        <DialogContent className="max-w-3xl p-0 bg-black border-0 [&>button]:hidden">
           <img src={viewPhotoUrl || ""} alt="Vista completa" className="w-full h-auto max-h-[90vh] object-contain" />
+          <button
+            onClick={() => setViewPhotoUrl(null)}
+            className="absolute top-3 right-3 h-8 w-8 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center text-white text-sm"
+          >
+            ✕
+          </button>
         </DialogContent>
       </Dialog>
 
