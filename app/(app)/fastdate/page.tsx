@@ -123,10 +123,11 @@ export default function FastDatePage() {
     setSendingInterest(true)
     try {
       await fastDateService.sendInterest(showInterestDialog.id, interestMessage)
-      toast.success("¡Interés enviado!")
+      toast.success("¡Interés enviado! Revisa la pestaña 'Enviados'")
       setShowInterestDialog(null)
       setInterestMessage("")
-      fetchMine()
+      await fetchMine()
+      setTab("sent")
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Error al enviar interés")
     } finally {
@@ -136,9 +137,19 @@ export default function FastDatePage() {
 
   const handleRespond = async (interestId: string, accept: boolean) => {
     try {
-      await fastDateService.respondInterest(interestId, accept)
-      toast.success(accept ? "¡Match creado! 🎉" : "Interés rechazado")
-      fetchMine()
+      const res = await fastDateService.respondInterest(interestId, accept)
+      if (accept) {
+        toast.success("¡Match creado! 🎉")
+        await fetchMine()
+        if (res?.chatId) {
+          router.push(`/chat/${res.chatId}`)
+        } else {
+          router.push('/chat')
+        }
+      } else {
+        toast.success("Interés rechazado")
+        await fetchMine()
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Error")
     }
@@ -353,13 +364,13 @@ export default function FastDatePage() {
                           {interest.status === 'PENDING' && (
                             <div className="flex gap-1 shrink-0">
                               <button
-                                onClick={() => handleRespond(interest.userId, true)}
+                                onClick={() => handleRespond(interest.interestId, true)}
                                 className="h-8 w-8 rounded-full bg-green-500/10 hover:bg-green-500/20 flex items-center justify-center transition-colors"
                               >
                                 <Check className="h-4 w-4 text-green-500" />
                               </button>
                               <button
-                                onClick={() => handleRespond(interest.userId, false)}
+                                onClick={() => handleRespond(interest.interestId, false)}
                                 className="h-8 w-8 rounded-full bg-destructive/10 hover:bg-destructive/20 flex items-center justify-center transition-colors"
                               >
                                 <X className="h-4 w-4 text-destructive" />

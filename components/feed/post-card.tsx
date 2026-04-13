@@ -794,7 +794,7 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
       {/* Image Modal */}
       {post.file && !post.file.match(/\.(mp4|webm|ogg|mov)$/i) && (
         <Dialog open={showImageModal} onOpenChange={setShowImageModal}>
-          <DialogContent className="max-w-7xl w-[95vw] h-[95vh] p-0 bg-black/95 border-0">
+          <DialogContent className="max-w-7xl w-[95vw] h-[95vh] p-0 bg-black/95 border-0 [&>button]:hidden">
             <div className="relative w-full h-full flex items-center justify-center">
               <button
                 onClick={() => setShowImageModal(false)}
