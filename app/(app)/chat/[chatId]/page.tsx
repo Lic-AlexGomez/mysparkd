@@ -621,9 +621,9 @@ export default function ChatRoomPage() {
   }
 
   return (
-    <div className="chat-room flex flex-col" style={{ height: 'calc(100svh - 4rem)' }}>
+    <div className="chat-room flex flex-col fixed inset-0 top-16 bg-background" style={{ zIndex: 10 }}>
       {/* Chat header */}
-      <div className="sticky top-16 z-30 flex items-center gap-3 border-b border-primary/20 bg-background/95 backdrop-blur-xl px-4 py-3 shadow-lg shadow-primary/5">
+      <div className="flex-shrink-0 flex items-center gap-3 border-b border-primary/20 bg-background/95 backdrop-blur-xl px-4 py-3 shadow-lg shadow-primary/5">
         <Button
           variant="ghost"
           size="icon"
@@ -699,7 +699,7 @@ export default function ChatRoomPage() {
       </div>
 
       {showSearch && (
-        <div className="sticky top-[calc(4rem+57px)] z-20 border-b border-primary/20 bg-background/95 px-4 py-2">
+        <div className="flex-shrink-0 border-b border-primary/20 bg-background/95 px-4 py-2">
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -710,7 +710,7 @@ export default function ChatRoomPage() {
       )}
 
       {showGallery && (
-        <div className="sticky top-[calc(4rem+57px)] z-20 border-b border-primary/20 bg-background/95 px-4 py-2">
+        <div className="flex-shrink-0 border-b border-primary/20 bg-background/95 px-4 py-2">
           <p className="text-xs font-semibold mb-1.5">Galería ({mediaMessages.length})</p>
           <div className="grid grid-cols-6 gap-1.5 max-h-20 overflow-y-auto">
             {mediaMessages.map((msg) => {
@@ -730,7 +730,7 @@ export default function ChatRoomPage() {
       )}
 
       {showAI && (
-        <div className="sticky top-[calc(4rem+57px)] z-20 border-b border-primary/20 bg-background/95 px-4 py-3">
+        <div className="flex-shrink-0 border-b border-primary/20 bg-background/95 px-4 py-3">
           <div className="flex items-center gap-2 mb-3">
             <Sparkles className="h-4 w-4 text-primary" />
             <span className="text-xs font-semibold text-primary">Asistente IA</span>
@@ -771,7 +771,7 @@ export default function ChatRoomPage() {
       )}
 
       {showGame && (
-        <div className="sticky top-[calc(4rem+57px)] z-20 mt-2  border-primary/20 bg-background/95 px-4 py-3">
+        <div className="flex-shrink-0 mt-2 border-primary/20 bg-background/95 px-4 py-3">
           <GamePanel
             onClose={() => setShowGame(false)}
             onSendMessage={(msg) => sendViaWebSocket(chatId, msg)}
