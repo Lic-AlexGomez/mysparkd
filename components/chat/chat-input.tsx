@@ -48,17 +48,23 @@ export const ChatInput = memo(function ChatInput({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const fileDocRef = useRef<HTMLInputElement>(null)
   const extrasRef = useRef<HTMLDivElement>(null)
+  const plusBtnRef = useRef<HTMLButtonElement>(null)
 
-  // Cerrar extras al hacer clic fuera
+  // Cerrar extras al hacer clic/toque fuera
   useEffect(() => {
     if (!showExtras) return
-    const handler = (e: MouseEvent) => {
-      if (extrasRef.current && !extrasRef.current.contains(e.target as Node)) {
-        setShowExtras(false)
-      }
+    const handler = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as Node
+      const outsidePanel = extrasRef.current && !extrasRef.current.contains(target)
+      const outsideBtn = plusBtnRef.current && !plusBtnRef.current.contains(target)
+      if (outsidePanel && outsideBtn) setShowExtras(false)
     }
     document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    document.addEventListener('touchstart', handler)
+    return () => {
+      document.removeEventListener('mousedown', handler)
+      document.removeEventListener('touchstart', handler)
+    }
   }, [showExtras])
 
   const handleChange = (v: string) => {
@@ -184,6 +190,7 @@ export const ChatInput = memo(function ChatInput({
         <div className="flex items-center gap-2">
           {/* Botón + expandible — solo móvil */}
           <button
+            ref={plusBtnRef}
             type="button"
             onClick={() => setShowExtras(!showExtras)}
             className={cn(

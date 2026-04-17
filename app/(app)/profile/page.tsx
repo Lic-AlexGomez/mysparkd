@@ -203,9 +203,9 @@ export default function ProfilePage() {
         )}
 
         {/* Voice note */}
-        {user.voiceNoteUrl && (
+        {(user.voiceIntroUrl || user.voiceNoteUrl) && (
           <div className="mt-3">
-            <VoiceNotePlayer url={user.voiceNoteUrl} />
+            <VoiceNotePlayer url={user.voiceIntroUrl || user.voiceNoteUrl!} />
           </div>
         )}
 

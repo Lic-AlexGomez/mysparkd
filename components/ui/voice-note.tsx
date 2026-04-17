@@ -100,10 +100,10 @@ export function VoiceNoteRecorder({ currentUrl, onSaved }: VoiceNoteRecorderProp
       mr.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data) }
       mr.onstop = async () => {
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
-        const url = URL.createObjectURL(blob)
-        setPreviewUrl(url)
+        const localUrl = URL.createObjectURL(blob)
+        setPreviewUrl(localUrl)
         stream.getTracks().forEach(t => t.stop())
-        await uploadAudio(blob)
+        await uploadAudio(blob, localUrl)
       }
 
       mr.start()
@@ -130,15 +130,27 @@ export function VoiceNoteRecorder({ currentUrl, onSaved }: VoiceNoteRecorderProp
     setRecording(false)
   }
 
-  const uploadAudio = async (blob: Blob) => {
+  const uploadAudio = async (blob: Blob, localUrl: string) => {
     setUploading(true)
     try {
       const file = new File([blob], `voice-note-${Date.now()}.webm`, { type: 'audio/webm' })
       const formData = new FormData()
       formData.append('file', file)
-      const data = await api.post<{ url: string }>('/api/profile/voice-note', formData)
-      onSaved(data.url)
+
+      const token = typeof window !== 'undefined' ? localStorage.getItem('sparkd_token') : null
+      const res = await fetch('/api/proxy/api/profile/voice-note', {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      })
+
+      if (!res.ok) {
+        const err = await res.text().catch(() => 'Error al guardar nota de voz')
+        throw new Error(err)
+      }
+
       toast.success('Nota de voz guardada')
+      onSaved(localUrl)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Error al guardar nota de voz')
       setPreviewUrl(null)
@@ -149,7 +161,7 @@ export function VoiceNoteRecorder({ currentUrl, onSaved }: VoiceNoteRecorderProp
 
   const handleDelete = async () => {
     try {
-      await api.delete('/api/profile/voice-note')
+      await api.delete('/api/profile/delete/voice')
       setPreviewUrl(null)
       onSaved(null)
       toast.success('Nota de voz eliminada')

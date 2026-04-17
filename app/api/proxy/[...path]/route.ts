@@ -25,11 +25,12 @@ async function handler(
   if (request.method !== "GET" && request.method !== "HEAD") {
     try {
       if (contentType?.includes("multipart/form-data")) {
-        body = await request.formData()
-        // No poner Content-Type para FormData, el browser lo pone con boundary
+        // Reenviar el body crudo como ArrayBuffer para preservar el boundary original
+        body = await request.arrayBuffer()
+        headers["Content-Type"] = contentType
       } else {
         body = await request.text()
-        headers["Content-Type"] = "application/json"
+        if (body) headers["Content-Type"] = "application/json"
       }
     } catch {
       // no body

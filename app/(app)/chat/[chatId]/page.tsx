@@ -621,7 +621,7 @@ export default function ChatRoomPage() {
   }
 
   return (
-    <div className="chat-room flex flex-col fixed inset-0 top-16 bg-background" style={{ zIndex: 10 }}>
+    <div className="chat-room flex flex-col fixed inset-0 top-16 lg:left-20 xl:left-72 bg-background" style={{ zIndex: 10 }}>
       {/* Chat header */}
       <div className="flex-shrink-0 flex items-center gap-3 border-b border-primary/20 bg-background/95 backdrop-blur-xl px-4 py-3 shadow-lg shadow-primary/5">
         <Button
