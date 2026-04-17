@@ -21,7 +21,10 @@ export function usePushNotifications() {
     }
 
     if (Notification.permission === "denied") {
-      toast.error("Las notificaciones están bloqueadas. Habilítalas en la configuración de tu navegador.", { duration: 5000 })
+      toast.error("Notificaciones bloqueadas", {
+        description: 'Para activarlas: haz clic en el candado 🔒 en la barra de direcciones → Notificaciones → Permitir',
+        duration: 8000
+      })
       return false
     }
 
@@ -45,7 +48,10 @@ export function usePushNotifications() {
         toast.success("¡Notificaciones activadas!")
         return true
       } else if (result === "denied") {
-        toast.error("Has rechazado las notificaciones.", { duration: 5000 })
+        toast.error("Notificaciones bloqueadas", {
+          description: 'Para activarlas: haz clic en el candado 🔒 en la barra de direcciones → Notificaciones → Permitir',
+          duration: 8000
+        })
         return false
       }
       return false

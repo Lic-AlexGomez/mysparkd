@@ -34,13 +34,13 @@ export function usePushNotifications() {
           return true
         } catch (swError) {
           console.error('Error al registrar SW:', swError)
-          // Aún así consideramos exitoso si se otorgaron permisos
           toast.success('Notificaciones activadas')
           return true
         }
       } else if (result === 'denied') {
-        toast.error('Permisos denegados', {
-          description: 'Habilita las notificaciones en la configuración de tu navegador'
+        toast.error('Notificaciones bloqueadas', {
+          description: 'Haz clic en el candado 🔒 en la barra de direcciones → Notificaciones → Permitir',
+          duration: 8000
         })
         return false
       } else {

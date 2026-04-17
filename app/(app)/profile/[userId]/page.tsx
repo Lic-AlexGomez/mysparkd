@@ -251,6 +251,16 @@ export default function UserProfilePage() {
             </div>
           )}
           {profile.location && profile.location !== "Unknown location" && <p className="text-xs text-muted-foreground mt-1">📍 {profile.location.split(',').length > 2 ? profile.location.split(',').slice(-2).map((p: string) => p.trim()).join(', ') : profile.location}</p>}
+          {(profile.url || profile.website) && (
+            <a
+              href={profile.url || profile.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-xs text-primary hover:underline mt-1"
+            >
+              🔗 {(profile.url || profile.website || '').replace(/^https?:\/\//, '')}
+            </a>
+          )}
 
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             <Badge variant="secondary" className="bg-primary/10 text-primary border-0 text-xs">
