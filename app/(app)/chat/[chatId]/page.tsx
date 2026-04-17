@@ -817,10 +817,21 @@ export default function ChatRoomPage() {
 
               if (isSystem) {
                 return (
-                  <div key={msgId} className="flex justify-center my-2">
-                    <span className="text-xs text-muted-foreground bg-muted/60 px-3 py-1 rounded-full border border-border">
-                      {msg.content}
-                    </span>
+                  <div key={msgId} className="flex justify-center my-4">
+                    <div className="flex flex-col items-center gap-2 max-w-[280px]">
+                      <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-primary/15 via-secondary/15 to-primary/15 border border-primary/30 shadow-sm">
+                        <span className="text-lg">⚡</span>
+                        <p className="text-xs font-semibold text-foreground text-center leading-snug">
+                          {msg.content}
+                        </p>
+                        <span className="text-lg">⚡</span>
+                      </div>
+                      {msg.sentAt && (
+                        <span className="text-[10px] text-muted-foreground">
+                          {formatDistanceToNow(new Date(msg.sentAt), { addSuffix: true, locale: es })}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 )
               }

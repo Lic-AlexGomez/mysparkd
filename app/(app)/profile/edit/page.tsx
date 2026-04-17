@@ -239,7 +239,7 @@ export default function EditProfilePage() {
             <p className="text-xs text-muted-foreground">Graba hasta 30 segundos para presentarte</p>
             <VoiceNoteRecorder
               currentUrl={user.voiceIntroUrl || user.voiceNoteUrl}
-              onSaved={(url) => updateUser({ voiceIntroUrl: url ?? undefined, voiceNoteUrl: url ?? undefined })}
+              onSaved={(url) => updateUser({ voiceIntroUrl: url ?? null, voiceNoteUrl: url ?? null })}
             />
           </div>
 

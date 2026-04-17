@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { fastDateService } from "@/lib/services/fastdate"
+import type { FeedFilter } from "@/lib/services/fastdate"
 import type { DateCard, MyDateCard, SentInterest, DateCategory, Plan, PlaceType } from "@/lib/types"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -14,7 +15,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
-import { Loader2, Plus, MapPin, Calendar, Clock, Heart, Check, X, Zap, ChevronRight, Send } from "lucide-react"
+import { Loader2, Plus, MapPin, Calendar, Clock, Heart, Check, X, Zap, ChevronRight, Send, SlidersHorizontal } from "lucide-react"
 import { formatDistanceToNow, format } from "date-fns"
 import { es } from "date-fns/locale"
 
@@ -55,6 +56,8 @@ export default function FastDatePage() {
   const [interestMessage, setInterestMessage] = useState("")
   const [sendingInterest, setSendingInterest] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [filter, setFilter] = useState<FeedFilter>({})
+  const [showFilter, setShowFilter] = useState(false)
 
   const [form, setForm] = useState({
     title: "",
@@ -69,14 +72,14 @@ export default function FastDatePage() {
 
   const fetchFeed = useCallback(async () => {
     try {
-      const data = await fastDateService.getFeed({})
+      const data = await fastDateService.getFeed(filter)
       setFeed(data)
     } catch {
       setFeed([])
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [filter])
 
   const fetchMine = useCallback(async () => {
     try {

@@ -268,8 +268,8 @@ export default function FeedPage() {
       {/* Stories */}
       <StoriesBar />
 
-      {/* Banner de ubicación para feed local */}
-      {feedTab === 'local' && locationError && (
+      {/* Banner de ubicación — solo cuando hay posts pero sin ubicación */}
+      {feedTab === 'local' && locationError && localPosts.length > 0 && (
         <div className="mx-4 mt-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
           <div className="flex items-center gap-3">
             <MapPin className="h-5 w-5 text-yellow-500 flex-shrink-0" />
@@ -432,6 +432,34 @@ export default function FeedPage() {
           ))}
         </div>
       ) : filteredPosts.length === 0 ? (
+        feedTab === 'local' && locationError ? (
+          <div className="flex flex-col items-center justify-center gap-4 py-20 px-6">
+            <div className="h-20 w-20 rounded-full bg-yellow-500/10 flex items-center justify-center">
+              <MapPin className="h-10 w-10 text-yellow-500" />
+            </div>
+            <div className="text-center">
+              <p className="text-foreground font-semibold text-lg">Activa tu ubicación</p>
+              <p className="text-sm text-muted-foreground mt-1 max-w-xs">
+                Para ver posts de personas cercanas a ti necesitamos acceder a tu ubicación
+              </p>
+            </div>
+            <button
+              onClick={requestLocation}
+              disabled={isRequestingLocation}
+              className="flex items-center gap-2 px-6 py-3 bg-yellow-500 hover:bg-yellow-600 text-black font-semibold rounded-full transition-colors disabled:opacity-50"
+            >
+              {isRequestingLocation ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <MapPin className="h-4 w-4" />
+              )}
+              {isRequestingLocation ? 'Activando...' : 'Activar ubicación'}
+            </button>
+            <p className="text-xs text-muted-foreground text-center max-w-xs">
+              Tu ubicación solo se usa para mostrarte contenido cercano y nunca se comparte públicamente
+            </p>
+          </div>
+        ) : (
         <div className="flex flex-col items-center justify-center gap-3 py-20">
           <Newspaper className="h-12 w-12 text-muted-foreground" />
           <p className="text-muted-foreground">
@@ -442,6 +470,8 @@ export default function FeedPage() {
               ? 'Intenta con otra búsqueda'
               : feedTab === 'following' 
               ? 'Sigue a más personas para ver su contenido' 
+              : feedTab === 'local'
+              ? 'No hay posts en tu zona aún'
               : 'Se el primero en publicar algo!'}
           </p>
           {searchQuery && (
@@ -450,6 +480,7 @@ export default function FeedPage() {
             </Button>
           )}
         </div>
+        )
       ) : (
         <div className="p-4">
           {searchQuery && (

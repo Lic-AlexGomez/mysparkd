@@ -142,7 +142,7 @@ export const ChatInput = memo(function ChatInput({
         {showExtras && (
           <div
             ref={extrasRef}
-            className="absolute bottom-full mb-2 left-0 z-50 flex gap-3 p-3 bg-card border border-border rounded-2xl shadow-xl lg:hidden"
+            className="absolute bottom-full mb-2 left-0 z-50 flex gap-3 p-3 bg-card border border-border rounded-2xl shadow-xl md:hidden"
           >
             <button
               type="button"
@@ -188,13 +188,13 @@ export const ChatInput = memo(function ChatInput({
         )}
 
         <div className="flex items-center gap-2">
-          {/* Botón + expandible — solo móvil */}
+          {/* Botón + expandible — móvil y tablet */}
           <button
             ref={plusBtnRef}
             type="button"
             onClick={() => setShowExtras(!showExtras)}
             className={cn(
-              "lg:hidden h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 flex-shrink-0",
+              "md:hidden h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 flex-shrink-0",
               showExtras
                 ? "bg-primary text-black rotate-45"
                 : "bg-muted/80 text-muted-foreground hover:bg-muted"
@@ -204,7 +204,7 @@ export const ChatInput = memo(function ChatInput({
           </button>
 
           {/* Botones individuales — solo desktop */}
-          <div className="hidden lg:flex gap-1">
+          <div className="hidden md:flex gap-1">
             <Button type="button" variant="ghost" size="icon" onClick={() => setShowEmoji(!showEmoji)} className="h-10 w-10 rounded-2xl text-muted-foreground hover:text-foreground hover:bg-muted/50">
               <Smile className="h-5 w-5" />
             </Button>

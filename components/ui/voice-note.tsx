@@ -236,8 +236,8 @@ export function VoiceNoteRecorder({ currentUrl, onSaved }: VoiceNoteRecorderProp
       {activeUrl && !uploading && !recording && (
         <button
           type="button"
-          onClick={() => { setPreviewUrl(null); onSaved(null) }}
-          className="text-xs text-muted-foreground hover:text-primary transition-colors"
+          onClick={handleDelete}
+          className="text-xs text-muted-foreground hover:text-destructive transition-colors"
         >
           Grabar de nuevo
         </button>
