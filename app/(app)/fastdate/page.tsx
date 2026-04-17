@@ -70,16 +70,23 @@ export default function FastDatePage() {
     placeTypes: [] as PlaceType[],
   })
 
-  const fetchFeed = useCallback(async () => {
+  const fetchFeed = useCallback(async (f?: FeedFilter) => {
     try {
-      const data = await fastDateService.getFeed(filter)
+      const data = await fastDateService.getFeed(f ?? filter)
       setFeed(data)
     } catch {
       setFeed([])
     } finally {
       setLoading(false)
     }
-  }, [filter])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const applyFilter = (newFilter: FeedFilter) => {
+    setFilter(newFilter)
+    setShowFilter(false)
+    fetchFeed(newFilter)
+  }
 
   const fetchMine = useCallback(async () => {
     try {
@@ -196,11 +203,89 @@ export default function FastDatePage() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="w-full grid grid-cols-3 mb-4">
-          <TabsTrigger value="feed">Feed</TabsTrigger>
-          <TabsTrigger value="mine">Mis citas</TabsTrigger>
-          <TabsTrigger value="sent">Enviados</TabsTrigger>
-        </TabsList>
+        <div className="flex items-center gap-2 mb-4">
+          <TabsList className="flex-1 grid grid-cols-3">
+            <TabsTrigger value="feed">Feed</TabsTrigger>
+            <TabsTrigger value="mine">Mis citas</TabsTrigger>
+            <TabsTrigger value="sent">Enviados</TabsTrigger>
+          </TabsList>
+          <button
+            onClick={() => setShowFilter(!showFilter)}
+            className={`h-9 w-9 rounded-xl flex items-center justify-center border transition-colors shrink-0 ${
+              Object.keys(filter).length > 0
+                ? 'bg-primary text-black border-primary'
+                : 'border-border text-muted-foreground hover:border-primary/50'
+            }`}
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Panel de filtros */}
+        {showFilter && (
+          <div className="mb-4 p-4 bg-card border border-border rounded-2xl space-y-3">
+            <p className="text-xs font-semibold text-foreground">Filtrar feed</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Distancia máx (km)</label>
+                <Input
+                  type="number"
+                  placeholder="Ej: 10"
+                  value={filter.maxDistanceKm ?? ''}
+                  onChange={e => setFilter(p => ({ ...p, maxDistanceKm: e.target.value ? Number(e.target.value) : undefined }))}
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Compatibilidad mín (%)</label>
+                <Input
+                  type="number"
+                  placeholder="Ej: 50"
+                  value={filter.minCompatibility ?? ''}
+                  onChange={e => setFilter(p => ({ ...p, minCompatibility: e.target.value ? Number(e.target.value) : undefined }))}
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Edad mín</label>
+                <Input
+                  type="number"
+                  placeholder="18"
+                  value={filter.minAge ?? ''}
+                  onChange={e => setFilter(p => ({ ...p, minAge: e.target.value ? Number(e.target.value) : undefined }))}
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Edad máx</label>
+                <Input
+                  type="number"
+                  placeholder="99"
+                  value={filter.maxAge ?? ''}
+                  onChange={e => setFilter(p => ({ ...p, maxAge: e.target.value ? Number(e.target.value) : undefined }))}
+                  className="h-8 text-sm"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={() => applyFilter({})}
+              >
+                Limpiar
+              </Button>
+              <Button
+                size="sm"
+                className="flex-1 bg-gradient-to-r from-primary to-secondary text-black font-bold"
+                onClick={() => applyFilter(filter)}
+              >
+                Aplicar
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* FEED */}
         <TabsContent value="feed" className="space-y-3">
