@@ -813,6 +813,18 @@ export default function ChatRoomPage() {
             filteredMessages.map((msg) => {
               const msgId = msg.messageId || msg.id || ''
               const isOwn = msg.senderId === user?.userId
+              const isSystem = msg.system === true || (!msg.senderId && !msg.receiverId)
+
+              if (isSystem) {
+                return (
+                  <div key={msgId} className="flex justify-center my-2">
+                    <span className="text-xs text-muted-foreground bg-muted/60 px-3 py-1 rounded-full border border-border">
+                      {msg.content}
+                    </span>
+                  </div>
+                )
+              }
+
               const isReply = msg.content.startsWith('@reply:')
               const replyMatch = isReply ? msg.content.match(/@reply:([^|]+)\|(.*)/) : null
               const replyToId = replyMatch?.[1]

@@ -69,7 +69,7 @@ export default function FastDatePage() {
 
   const fetchFeed = useCallback(async () => {
     try {
-      const data = await fastDateService.getFeed()
+      const data = await fastDateService.getFeed({})
       setFeed(data)
     } catch {
       setFeed([])

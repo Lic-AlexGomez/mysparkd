@@ -30,7 +30,7 @@ export default function EditProfilePage() {
     username: "",
     bio: "",
     location: "",
-    website: "",
+    url: "",
     coverPictureUrl: "",
     latitude: undefined as number | undefined,
     longitude: undefined as number | undefined
@@ -42,11 +42,12 @@ export default function EditProfilePage() {
         username: user.username || "",
         bio: user.bio || "",
         location: user.location || "",
-        website: user.website || "",
+        url: user.url || user.website || "",
         coverPictureUrl: user.coverPictureUrl || "",
         latitude: user.latitude,
         longitude: user.longitude
       })
+      setShowPremiumBadge(user.showPremiumBadge ?? true)
     }
   }, [user])
 
@@ -64,6 +65,8 @@ export default function EditProfilePage() {
         dateOfBirth: user.dateOfBirth,
         telefono: user.telefono,
         bio: formData.bio || null,
+        url: formData.url || null,
+        showPremiumBadge,
       }
       // Solo mandar coords si el usuario seleccionó una ubicación
       if (formData.latitude && formData.longitude) {
@@ -71,7 +74,7 @@ export default function EditProfilePage() {
         body.longitude = formData.longitude
       }
       await api.put('/api/profile', body)
-      updateUser({ bio: formData.bio || null })
+      updateUser({ bio: formData.bio || null, url: formData.url || undefined, showPremiumBadge })
       toast.success("Perfil actualizado")
       window.location.href = '/profile'
     } catch (error) {
@@ -205,8 +208,8 @@ export default function EditProfilePage() {
             <Input
               id="website"
               type="url"
-              value={formData.website}
-              onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+              value={formData.url}
+              onChange={(e) => setFormData({ ...formData, url: e.target.value })}
               placeholder="https://tusitio.com"
               maxLength={200}
             />
