@@ -9,7 +9,7 @@ import { useWebSocket } from "@/hooks/use-websocket"
 import type { Chat } from "@/lib/types"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Loader2, MessageCircle, EyeOff, Trash2, MoreVertical, Eye } from "lucide-react"
+import { MessageCircle, EyeOff, Trash2, MoreVertical, Eye } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
 import { toast } from "sonner"
@@ -71,36 +71,28 @@ export default function ChatListPage() {
 
   const fetchChats = useCallback(async () => {
     try {
-      const data = await chatService.getMyChats()
+      const raw = await chatService.getMyChats()
+      if (raw.length > 0) console.log('[chat] campos del backend:', Object.keys(raw[0]), raw[0])
+      const data = raw.map((c: any) => ({
+        ...c,
+        otherUserPhoto: c.otherUserPhoto || c.otherUserProfilePicture || c.profilePicture || c.photo || c.avatar || undefined,
+      }))
 
-      const chatsWithPhotos = await Promise.all(
-        data.map(async (chat) => {
-          try {
-            const profile = await api.get<any>(`/api/profile/${chat.otherUserId}`)
-            return {
-              ...chat,
-              otherUserPhoto: profile.profilePictureUrl || profile.photos?.[0]?.url || profile.photoUrl
-            }
-          } catch {
-            return chat
-          }
-        })
-      )
-
-      const sorted = chatsWithPhotos.sort((a, b) => {
+      const sorted = data.sort((a, b) => {
         if (!a.lastMessageAt) return 1
         if (!b.lastMessageAt) return -1
         return new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
       })
 
       setChats(sorted)
-      await refreshPresence(sorted)
 
-      // Cargar chats ocultos
-      try {
-        const hidden = await api.get<Chat[]>('/api/chat/chats/hidden')
-        setHiddenChats(hidden)
-      } catch { /* silent */ }
+      // Presencia en paralelo, sin bloquear el render
+      refreshPresence(sorted)
+
+      // Chats ocultos en paralelo
+      api.get<Chat[]>('/api/chat/chats/hidden')
+        .then(hidden => setHiddenChats(hidden))
+        .catch(() => {})
     } catch {
       // silent
     } finally {
@@ -118,24 +110,12 @@ export default function ChatListPage() {
       fetchChatsRef.current()
     },
     onPresence: (event: any) => {
-      console.log('[presence WS event raw]', JSON.stringify(event))
       const userId = event.userId?.toString ? event.userId.toString() : String(event.userId)
-      api.get<any>(`/api/presence/${userId}`).then(res => {
-        console.log('[presence REST confirm]', res)
-        setOnlineUsers(prev => {
-          console.log('[presence current chats otherUserIds]', [...prev])
-          const next = new Set(prev)
-          if (res.status === 'ONLINE') next.add(res.userId)
-          else next.delete(res.userId)
-          return next
-        })
-      }).catch(() => {
-        setOnlineUsers(prev => {
-          const next = new Set(prev)
-          if (event.status?.toUpperCase() === 'ONLINE') next.add(userId)
-          else next.delete(userId)
-          return next
-        })
+      setOnlineUsers(prev => {
+        const next = new Set(prev)
+        if (event.status?.toUpperCase() === 'ONLINE') next.add(userId)
+        else next.delete(userId)
+        return next
       })
     },
     onPresenceSnapshot: (events: any[]) => {
@@ -163,8 +143,27 @@ export default function ChatListPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex justify-center bg-gradient-to-b from-background to-muted/20">
+        <div className="w-full max-w-[680px]">
+          <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-xl border-b border-primary/20 shadow-lg shadow-primary/5">
+            <div className="px-6 py-4">
+              <div className="h-8 w-32 bg-muted rounded-lg animate-pulse" />
+              <div className="h-4 w-24 bg-muted rounded mt-2 animate-pulse" />
+            </div>
+          </div>
+          <div className="p-4 space-y-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4 p-4 bg-card rounded-2xl border border-primary/10">
+                <div className="h-14 w-14 rounded-full bg-muted animate-pulse shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-32 bg-muted rounded animate-pulse" />
+                  <div className="h-3 w-48 bg-muted rounded animate-pulse" />
+                </div>
+                <div className="h-3 w-12 bg-muted rounded animate-pulse" />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     )
   }
@@ -242,7 +241,7 @@ export default function ChatListPage() {
                 {/* Menú de acciones */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="shrink-0 h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors z-10" onClick={e => e.preventDefault()}>
+                    <button className="shrink-0 h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors z-10" onClick={e => e.preventDefault()} aria-label="Opciones del chat">
                       <MoreVertical className="h-4 w-4" />
                     </button>
                   </DropdownMenuTrigger>
@@ -287,3 +286,4 @@ export default function ChatListPage() {
     </div>
   )
 }
+

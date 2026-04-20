@@ -53,12 +53,21 @@ async function handler(
       body: body || undefined,
     })
 
-    console.log(`[proxy] ${request.method} ${targetUrl} → ${response.status}`)
-
     const responseHeaders = new Headers()
     const respContentType = response.headers.get("content-type")
     if (respContentType) {
       responseHeaders.set("content-type", respContentType)
+    }
+
+    // Cache para GETs — reduce llamadas repetidas al backend
+    if (request.method === 'GET' && response.status === 200) {
+      if (endpoint.includes('/profile/')) {
+        responseHeaders.set('Cache-Control', 'private, max-age=30')
+      } else if (endpoint.includes('/notifications') || endpoint.includes('/chat/chats')) {
+        responseHeaders.set('Cache-Control', 'private, max-age=10')
+      } else if (endpoint.includes('/feed') || endpoint.includes('/posts')) {
+        responseHeaders.set('Cache-Control', 'private, max-age=15')
+      }
     }
 
     if (response.status === 204) {

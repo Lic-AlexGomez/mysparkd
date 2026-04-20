@@ -127,6 +127,7 @@ export default function UserProfilePage() {
   const age = getAge(profile.dateOfBirth)
   const compatibility = compatibilityFromUrl ? parseInt(compatibilityFromUrl) : null
   const isPremium = profile.premium || profile.showPremiumBadge || profile.subscriptionStatus === 'ACTIVE'
+  const profileInterests: any[] = profile.interests || []
 
   return (
     <div className="mx-auto max-w-2xl pb-10">

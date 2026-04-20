@@ -53,7 +53,10 @@ export function TopNavbar() {
 
   useEffect(() => {
     fetchNotifications()
-    const interval = setInterval(fetchNotifications, 60000) // Cambiar de 30s a 60s
+    // Solo hacer polling si la ventana está visible
+    const interval = setInterval(() => {
+      if (!document.hidden) fetchNotifications()
+    }, 120000) // 2 minutos
     return () => clearInterval(interval)
   }, [fetchNotifications])
 
@@ -144,6 +147,7 @@ export function TopNavbar() {
             size="icon"
             className="lg:hidden text-muted-foreground hover:text-foreground"
             onClick={() => router.push('/search')}
+            aria-label="Buscar"
           >
             <Search className="h-5 w-5" />
           </Button>
@@ -170,7 +174,7 @@ export function TopNavbar() {
           >
             <Bell className="h-5 w-5" />
             {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-secondary text-[10px] font-bold text-secondary-foreground shadow-[0_0_8px_rgba(217,70,239,0.6)]">
+              <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-secondary text-[10px] font-bold text-black shadow-[0_0_8px_rgba(217,70,239,0.6)]">
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             )}
