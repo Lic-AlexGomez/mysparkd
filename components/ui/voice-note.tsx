@@ -93,17 +93,29 @@ export function VoiceNoteRecorder({ currentUrl, onSaved }: VoiceNoteRecorderProp
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       streamRef.current = stream
-      const mr = new MediaRecorder(stream)
+
+      // Safari solo soporta audio/mp4, otros navegadores prefieren audio/webm
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/webm')
+        ? 'audio/webm'
+        : MediaRecorder.isTypeSupported('audio/mp4')
+        ? 'audio/mp4'
+        : ''
+
+      const mr = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream)
+      const actualMime = mr.mimeType || 'audio/webm'
       mediaRecorderRef.current = mr
       chunksRef.current = []
 
       mr.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data) }
       mr.onstop = async () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
+        const blob = new Blob(chunksRef.current, { type: actualMime })
+        const ext = actualMime.includes('mp4') ? 'mp4' : 'webm'
         const localUrl = URL.createObjectURL(blob)
         setPreviewUrl(localUrl)
         stream.getTracks().forEach(t => t.stop())
-        await uploadAudio(blob, localUrl)
+        await uploadAudio(blob, localUrl, ext)
       }
 
       mr.start()
@@ -130,10 +142,11 @@ export function VoiceNoteRecorder({ currentUrl, onSaved }: VoiceNoteRecorderProp
     setRecording(false)
   }
 
-  const uploadAudio = async (blob: Blob, localUrl: string) => {
+  const uploadAudio = async (blob: Blob, localUrl: string, ext: string = 'webm') => {
     setUploading(true)
     try {
-      const file = new File([blob], `voice-note-${Date.now()}.webm`, { type: 'audio/webm' })
+      const mimeType = blob.type || `audio/${ext}`
+      const file = new File([blob], `voice-note-${Date.now()}.${ext}`, { type: mimeType })
       const formData = new FormData()
       formData.append('file', file)
 
