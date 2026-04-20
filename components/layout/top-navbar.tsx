@@ -61,6 +61,10 @@ export function TopNavbar() {
   }, [fetchNotifications])
 
   useEffect(() => {
+    if (pathname === '/notifications') setShowNotifications(false)
+  }, [pathname])
+
+  useEffect(() => {
     if (!showNotifications) return
     
     const handleClickOutside = (e: MouseEvent) => {
@@ -169,7 +173,10 @@ export function TopNavbar() {
             variant="ghost"
             size="icon"
             className="relative text-muted-foreground hover:text-foreground"
-            onClick={() => setShowNotifications(!showNotifications)}
+            onClick={() => {
+              if (pathname === '/notifications') return
+              setShowNotifications(!showNotifications)
+            }}
             data-notifications-button
           >
             <Bell className="h-5 w-5" />
