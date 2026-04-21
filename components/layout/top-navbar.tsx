@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
-import { Bell, Zap, LogOut, Settings, User, Crown, Search, Flame, BarChart3, Users, Bookmark } from "lucide-react"
+import { Bell, Zap, LogOut, Settings, User, Crown, Search, Flame, BarChart3, Users, Bookmark, X, CheckCheck, Heart, MessageCircle, UserPlus, Repeat2, AtSign } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
 import {
@@ -17,6 +17,8 @@ import { useEffect, useState, useCallback } from "react"
 import { api } from "@/lib/api"
 import type { Notification } from "@/lib/types"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
+import { formatDistanceToNow } from "date-fns"
+import { es } from "date-fns/locale"
 
 export function TopNavbar() {
   const router = useRouter()
@@ -34,8 +36,14 @@ export function TopNavbar() {
         `/api/notifications/${user.userId}`
       )
       const mapped = data.map(n => ({
-        notificationId: n.senderId + n.createdAt,
-        type: 'like',
+        notificationId: n.notificationId || (n.senderId + n.createdAt),
+        type: n.title?.toLowerCase().includes('like') ? 'like'
+          : n.title?.toLowerCase().includes('comment') ? 'comment'
+          : n.title?.toLowerCase().includes('follow') ? 'follow'
+          : n.title?.toLowerCase().includes('repost') ? 'repost'
+          : n.title?.toLowerCase().includes('mencion') || n.title?.toLowerCase().includes('mention') ? 'mention'
+          : n.title?.toLowerCase().includes('reacci') ? 'reaction'
+          : 'default',
         message: n.data,
         read: n.read,
         createdAt: n.createdAt,
@@ -82,16 +90,30 @@ export function TopNavbar() {
   }, [showNotifications])
 
   const markAsRead = async (notificationId: string) => {
-    // Marcar como leída localmente
-    setNotifications(prev => 
-      prev.map(n => 
-        n.notificationId === notificationId ? { ...n, read: true } : n
-      )
+    setNotifications(prev =>
+      prev.map(n => n.notificationId === notificationId ? { ...n, read: true } : n)
     )
     setUnreadCount(prev => Math.max(0, prev - 1))
-    
-    // TODO: Implementar endpoint en backend
-    // await api.put(`/api/notifications/${notificationId}/read`)
+    try { await api.put(`/api/notifications/${notificationId}/read`, {}) } catch {}
+  }
+
+  const markAllAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+    setUnreadCount(0)
+    notifications.filter(n => !n.read).forEach(n => {
+      api.put(`/api/notifications/${n.notificationId}/read`, {}).catch(() => {})
+    })
+  }
+
+  const deleteNotification = (notificationId: string, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setNotifications(prev => {
+      const n = prev.find(n => n.notificationId === notificationId)
+      if (n && !n.read) setUnreadCount(c => Math.max(0, c - 1))
+      return prev.filter(n => n.notificationId !== notificationId)
+    })
+    api.delete(`/api/notifications/${notificationId}`).catch(() => {})
   }
 
   const getNotificationLink = (notification: Notification): string => {
@@ -107,6 +129,18 @@ export function TopNavbar() {
         return `/feed?comment=${notification.targetId}`
       default:
         return `/profile/${notification.relatedUserId}`
+    }
+  }
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'like': return <Heart className="h-3.5 w-3.5 text-red-400" />
+      case 'comment': return <MessageCircle className="h-3.5 w-3.5 text-blue-400" />
+      case 'follow': return <UserPlus className="h-3.5 w-3.5 text-green-400" />
+      case 'repost': return <Repeat2 className="h-3.5 w-3.5 text-primary" />
+      case 'mention': return <AtSign className="h-3.5 w-3.5 text-secondary" />
+      case 'reaction': return <Heart className="h-3.5 w-3.5 text-secondary" />
+      default: return <Bell className="h-3.5 w-3.5 text-muted-foreground" />
     }
   }
 
@@ -189,54 +223,80 @@ export function TopNavbar() {
           </Button>
 
           {showNotifications && (
-            <div className="absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-xl border border-border bg-card shadow-xl" data-notifications-dropdown>
-              <div className="flex items-center justify-between border-b border-border px-4 py-3">
-                <h3 className="font-semibold text-foreground">
-                  Notificaciones
-                </h3>
-                <Link
-                  href="/notifications"
-                  className="text-xs text-primary hover:underline"
-                  onClick={() => setShowNotifications(false)}
-                >
-                  Ver todas
-                </Link>
-              </div>
-              <div className="max-h-80 overflow-y-auto">
-                {notifications.length === 0 ? (
-                  <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-                    Sin notificaciones
-                  </p>
-                ) : (
-                  notifications.slice(0, 5).map((n) => (
-                    <Link
-                      key={n.notificationId}
-                      href={getNotificationLink(n)}
-                      onClick={() => {
-                        markAsRead(n.notificationId)
-                        setShowNotifications(false)
-                      }}
-                      className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50 ${
-                        !n.read ? "bg-primary/5" : ""
-                      }`}
+            <div className="absolute right-0 top-full z-50 mt-2 w-96 overflow-hidden rounded-2xl border border-border bg-card shadow-2xl shadow-black/20" data-notifications-dropdown>
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/80 backdrop-blur-sm">
+                <div className="flex items-center gap-2">
+                  <Bell className="h-4 w-4 text-primary" />
+                  <h3 className="font-semibold text-foreground text-sm">Notificaciones</h3>
+                  {unreadCount > 0 && (
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-black px-1">
+                      {unreadCount}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={markAllAsRead}
+                      className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
                     >
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-foreground truncate">
+                      <CheckCheck className="h-3.5 w-3.5" />
+                      Leer todo
+                    </button>
+                  )}
+                  <Link
+                    href="/notifications"
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={() => setShowNotifications(false)}
+                  >
+                    Ver todas
+                  </Link>
+                </div>
+              </div>
+
+              {/* Lista */}
+              <div className="max-h-[420px] overflow-y-auto divide-y divide-border/50">
+                {notifications.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 gap-3">
+                    <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                      <Bell className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">Sin notificaciones</p>
+                  </div>
+                ) : (
+                  notifications.slice(0, 8).map((n) => (
+                    <div key={n.notificationId} className={`group relative flex items-start gap-3 px-4 py-3 transition-colors hover:bg-muted/40 ${!n.read ? 'bg-primary/5' : ''}`}>
+                      {/* Indicador no leída */}
+                      {!n.read && (
+                        <span className="absolute left-1.5 top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-primary" />
+                      )}
+                      {/* Ícono tipo */}
+                      <div className="mt-0.5 h-7 w-7 rounded-full bg-muted flex items-center justify-center shrink-0">
+                        {getNotificationIcon(n.type)}
+                      </div>
+                      {/* Contenido — clickeable */}
+                      <Link
+                        href={getNotificationLink(n)}
+                        className="flex-1 min-w-0"
+                        onClick={() => { markAsRead(n.notificationId); setShowNotifications(false) }}
+                      >
+                        <p className={`text-sm leading-snug ${!n.read ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
                           {n.message}
                         </p>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          {new Date(n.createdAt).toLocaleString("es", {
-                            day: "numeric",
-                            month: "short",
-                            hour: "2-digit",
-                            minute: "2-digit"
-                          })}
+                          {(() => { try { return formatDistanceToNow(new Date(n.createdAt), { addSuffix: true, locale: es }) } catch { return '' } })()}
                         </p>
-                      </div>
-                      {!n.read && (
-                        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
-                      )}
-                    </Link>
+                      </Link>
+                      {/* Botón eliminar */}
+                      <button
+                        onClick={(e) => deleteNotification(n.notificationId, e)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 h-6 w-6 rounded-full hover:bg-muted flex items-center justify-center mt-0.5"
+                        title="Eliminar"
+                      >
+                        <X className="h-3.5 w-3.5 text-muted-foreground" />
+                      </button>
+                    </div>
                   ))
                 )}
               </div>

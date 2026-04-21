@@ -15,7 +15,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
-import { Loader2, Plus, MapPin, Calendar, Clock, Heart, Check, X, Zap, ChevronRight, Send, SlidersHorizontal } from "lucide-react"
+import { Loader2, Plus, MapPin, Calendar, Clock, Heart, Check, X, Zap, ChevronRight, Send, SlidersHorizontal, ChevronDown, ChevronUp, History } from "lucide-react"
 import { formatDistanceToNow, format } from "date-fns"
 import { es } from "date-fns/locale"
 
@@ -362,7 +362,7 @@ export default function FastDatePage() {
         </TabsContent>
 
         {/* MIS CITAS */}
-        <TabsContent value="mine" className="space-y-3">
+        <TabsContent value="mine" className="space-y-4">
           {myCards.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <Calendar className="h-12 w-12 text-muted-foreground" />
@@ -371,108 +371,30 @@ export default function FastDatePage() {
                 Crear mi primera cita
               </Button>
             </div>
-          ) : myCards.map(card => (
-            <Card key={card.dateCardId} className="border-border">
-              <CardContent className="p-4">
-                {/* Detalles de la cita */}
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <h3 className="text-sm font-bold text-foreground">{card.title}</h3>
-                  {card.category && (
-                    <Badge className="text-[10px] px-2 py-0 border-0 bg-primary/10 text-primary shrink-0">
-                      {CATEGORY_LABELS[card.category] || card.category}
-                    </Badge>
-                  )}
+          ) : (
+            <>
+              {/* ACTIVAS */}
+              {myCards.filter(c => c.status === 'ACTIVE').length > 0 && (
+                <div className="space-y-3">
+                  {myCards.filter(c => c.status === 'ACTIVE').map(card => (
+                    <MyCardItem key={card.dateCardId} card={card} onRespond={handleRespond} router={router} />
+                  ))}
                 </div>
-                <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mb-2">
-                  {card.dateTime && (
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      {format(new Date(card.dateTime), "d MMM, HH:mm", { locale: es })}
-                    </span>
-                  )}
-                  {card.locationZone && (
-                    <span className="flex items-center gap-1">
-                      <MapPin className="h-3 w-3" />
-                      {card.locationZone}
-                    </span>
-                  )}
-                  {card.expiresAt && (
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      Expira {formatDistanceToNow(new Date(card.expiresAt), { addSuffix: true, locale: es })}
-                    </span>
-                  )}
-                </div>
-                {card.plans && card.plans.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mb-2">
-                    {card.plans.map(p => (
-                      <span key={p} className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                        {PLAN_LABELS[p] || p}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                {card.message && (
-                  <p className="text-xs text-muted-foreground italic mb-2">"{card.message}"</p>
-                )}
+              )}
 
-                {/* Intereses recibidos */}
-                <div className="border-t border-border pt-3 mt-1">
-                  {card.interests.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">Nadie ha mostrado interés aún</p>
-                  ) : (
-                    <div className="space-y-3">
-                      <p className="text-xs font-semibold text-muted-foreground">
-                        {card.interests.length} {card.interests.length === 1 ? "persona interesada" : "personas interesadas"}
-                      </p>
-                      {card.interests.map((interest, i) => (
-                        <div key={i} className="flex items-center gap-3">
-                          <Avatar
-                            className="h-9 w-9 border border-border cursor-pointer shrink-0"
-                            onClick={() => interest.userId && router.push(`/profile/${interest.userId}`)}
-                          >
-                            <AvatarImage src={interest.profilePicture} />
-                            <AvatarFallback className="bg-primary/10 text-primary text-xs">?</AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            {interest.message && (
-                              <p className="text-xs text-muted-foreground line-clamp-1">"{interest.message}"</p>
-                            )}
-                            <Badge
-                              className={`text-[10px] px-2 py-0 border-0 mt-0.5 ${
-                                interest.status === 'ACCEPTED' ? 'bg-green-500/10 text-green-500' :
-                                interest.status === 'REJECTED' ? 'bg-destructive/10 text-destructive' :
-                                'bg-muted text-muted-foreground'
-                              }`}
-                            >
-                              {interest.status === 'ACCEPTED' ? '✓ Aceptado' :
-                               interest.status === 'REJECTED' ? '✗ Rechazado' : 'Pendiente'}
-                            </Badge>
-                          </div>
-                          {interest.status === 'PENDING' && (
-                            <div className="flex gap-1 shrink-0">
-                              <button
-                                onClick={() => handleRespond(interest.interestId, true)}
-                                className="h-8 w-8 rounded-full bg-green-500/10 hover:bg-green-500/20 flex items-center justify-center transition-colors"
-                              >
-                                <Check className="h-4 w-4 text-green-500" />
-                              </button>
-                              <button
-                                onClick={() => handleRespond(interest.interestId, false)}
-                                className="h-8 w-8 rounded-full bg-destructive/10 hover:bg-destructive/20 flex items-center justify-center transition-colors"
-                              >
-                                <X className="h-4 w-4 text-destructive" />
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+              {/* EXPIRADAS */}
+              {myCards.filter(c => c.status !== 'ACTIVE').length > 0 && (
+                <ExpiredSection cards={myCards.filter(c => c.status !== 'ACTIVE')} onRespond={handleRespond} router={router} />
+              )}
+
+              {myCards.filter(c => c.status === 'ACTIVE').length === 0 && myCards.filter(c => c.status !== 'ACTIVE').length === 0 && (
+                <div className="flex flex-col items-center justify-center py-16 gap-3">
+                  <Calendar className="h-12 w-12 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">No has creado citas aún</p>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+              )}
+            </>
+          )}
         </TabsContent>
 
         {/* INTERESES ENVIADOS */}
