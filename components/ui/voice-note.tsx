@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useImperativeHandle, forwardRef } from "react"
 import { Mic, Play, Pause, Trash2, Square, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { api } from "@/lib/api"
@@ -12,6 +12,7 @@ interface VoiceNotePlayerProps {
 interface VoiceNoteRecorderProps {
   currentUrl?: string | null
   onSaved: (url: string | null) => void
+  onRecordingChange?: (isRecording: boolean) => void
 }
 
 const MAX_SECONDS = 30
@@ -78,8 +79,13 @@ export function VoiceNotePlayer({ url }: VoiceNotePlayerProps) {
   )
 }
 
+export interface VoiceNoteRecorderHandle {
+  isRecording: () => boolean
+  stopAndUpload: () => Promise<void>
+}
+
 // ── Recorder ──────────────────────────────────────────────────────────────────
-export function VoiceNoteRecorder({ currentUrl, onSaved }: VoiceNoteRecorderProps) {
+export const VoiceNoteRecorder = forwardRef<VoiceNoteRecorderHandle, VoiceNoteRecorderProps>(function VoiceNoteRecorder({ currentUrl, onSaved, onRecordingChange }, ref) {
   const [recording, setRecording] = useState(false)
   const [seconds, setSeconds] = useState(0)
   const [uploading, setUploading] = useState(false)
@@ -88,6 +94,25 @@ export function VoiceNoteRecorder({ currentUrl, onSaved }: VoiceNoteRecorderProp
   const chunksRef = useRef<Blob[]>([])
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
+  const recordingRef = useRef(false)
+  const uploadResolveRef = useRef<(() => void) | null>(null)
+  const onRecordingChangeRef = useRef(onRecordingChange)
+  useEffect(() => { onRecordingChangeRef.current = onRecordingChange }, [onRecordingChange])
+
+  useImperativeHandle(ref, () => ({
+    isRecording: () => recordingRef.current,
+    stopAndUpload: () => {
+      if (!recordingRef.current || !mediaRecorderRef.current) return Promise.resolve()
+      return new Promise<void>((resolve) => {
+        uploadResolveRef.current = resolve
+        if (timerRef.current) clearInterval(timerRef.current)
+        mediaRecorderRef.current!.stop()
+        setRecording(false)
+        recordingRef.current = false
+        onRecordingChangeRef.current?.(false)
+      })
+    }
+  }), [])
 
   const startRecording = async () => {
     try {
@@ -116,10 +141,17 @@ export function VoiceNoteRecorder({ currentUrl, onSaved }: VoiceNoteRecorderProp
         setPreviewUrl(localUrl)
         stream.getTracks().forEach(t => t.stop())
         await uploadAudio(blob, localUrl, ext)
+        // Resolver promesa externa si fue llamado desde stopAndUpload
+        if (uploadResolveRef.current) {
+          uploadResolveRef.current()
+          uploadResolveRef.current = null
+        }
       }
 
       mr.start()
       setRecording(true)
+      recordingRef.current = true
+      onRecordingChangeRef.current?.(true)
       setSeconds(0)
 
       timerRef.current = setInterval(() => {
@@ -140,6 +172,8 @@ export function VoiceNoteRecorder({ currentUrl, onSaved }: VoiceNoteRecorderProp
     if (timerRef.current) clearInterval(timerRef.current)
     mediaRecorderRef.current?.stop()
     setRecording(false)
+    recordingRef.current = false
+    onRecordingChangeRef.current?.(false)
   }
 
   const uploadAudio = async (blob: Blob, localUrl: string, ext: string = 'webm') => {
@@ -164,6 +198,13 @@ export function VoiceNoteRecorder({ currentUrl, onSaved }: VoiceNoteRecorderProp
 
       toast.success('Nota de voz guardada')
       onSaved(localUrl)
+      // Refrescar perfil desde el backend para obtener la URL real de Cloudinary
+      try {
+        const profile = await api.get<any>('/api/profile/me')
+        onSaved(profile.voiceIntroUrl || localUrl)
+      } catch {
+        // si falla el refresh, usar la URL local
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Error al guardar nota de voz')
       setPreviewUrl(null)
@@ -257,4 +298,4 @@ export function VoiceNoteRecorder({ currentUrl, onSaved }: VoiceNoteRecorderProp
       )}
     </div>
   )
-}
+})

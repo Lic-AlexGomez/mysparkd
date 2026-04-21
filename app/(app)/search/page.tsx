@@ -1,68 +1,105 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { api } from "@/lib/api"
 import type { UserProfile, Post } from "@/lib/types"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Search, Loader2, User, Hash, FileText, TrendingUp } from "lucide-react"
+import { Search, Loader2, User, Hash, FileText, TrendingUp, X } from "lucide-react"
 import { PostCard } from "@/components/feed/post-card"
-import { useAuth } from "@/lib/auth-context"
 
 interface Hashtag {
   tag: string
   usageCount: number
 }
 
-interface AutocompleteResult {
+interface SearchResults {
   users: UserProfile[]
-  hashtags: Hashtag[]
   posts: Post[]
+  hashtags: Hashtag[]
 }
 
 export default function SearchPage() {
-  const { user } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [query, setQuery] = useState(searchParams.get('q') || "")
-  const [activeTab, setActiveTab] = useState<'users' | 'posts' | 'hashtags'>(searchParams.get('type') as any || 'users')
-  const [userResults, setUserResults] = useState<UserProfile[]>([])
-  const [postResults, setPostResults] = useState<Post[]>([])
-  const [hashtagResults, setHashtagResults] = useState<Hashtag[]>([])
+
+  const [query, setQuery] = useState(searchParams.get("q") || "")
+  const [activeTab, setActiveTab] = useState<"all" | "users" | "posts" | "hashtags">("all")
+  const [results, setResults] = useState<SearchResults>({ users: [], posts: [], hashtags: [] })
   const [trendingHashtags, setTrendingHashtags] = useState<Hashtag[]>([])
-  const [autocomplete, setAutocomplete] = useState<AutocompleteResult | null>(null)
+  const [autocomplete, setAutocomplete] = useState<SearchResults | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const autocompleteTimeout = useRef<NodeJS.Timeout | null>(null)
+  const [hasSearched, setHasSearched] = useState(false)
+  const debounceRef = useRef<NodeJS.Timeout | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    // cargar trending al montar
-    api.get<Hashtag[]>('/api/search/hashtags/trending?limit=10')
+    api.get<Hashtag[]>("/api/search/hashtags/trending?limit=10")
       .then(setTrendingHashtags)
       .catch(() => {})
   }, [])
 
+  // Si viene con ?q= en la URL, buscar automáticamente
   useEffect(() => {
-    const q = searchParams.get('q')
-    const type = searchParams.get('type')
-    if (q) {
-      setQuery(q)
-      if (type === 'hashtag') { setActiveTab('hashtags'); doSearchHashtag(q) }
-      else if (type === 'user') { setActiveTab('users'); doSearchUsers(q) }
+    const q = searchParams.get("q")
+    if (q) { setQuery(q); doSearch(q) }
+  }, [])
+
+  const doSearch = useCallback(async (q: string) => {
+    const trimmed = q.trim()
+    if (!trimmed) return
+    setIsLoading(true)
+    setHasSearched(true)
+    setAutocomplete(null)
+
+    try {
+      // Búsqueda inteligente: detectar tipo por prefijo o buscar todo
+      if (trimmed.startsWith("@")) {
+        const res = await api.get<any>(`/api/search/autocomplete?q=${encodeURIComponent(trimmed)}`)
+        setResults({ users: res.users || [], posts: [], hashtags: [] })
+        setActiveTab("users")
+      } else if (trimmed.startsWith("#")) {
+        const tag = trimmed.slice(1)
+        const [posts, hashtags] = await Promise.all([
+          api.get<any>(`/api/search/hashtags/${encodeURIComponent(tag)}/posts?page=0&size=20`)
+            .then(r => Array.isArray(r) ? r : r.content || [])
+            .catch(() => []),
+          api.get<Hashtag[]>(`/api/search/hashtags?query=${encodeURIComponent(tag)}`).catch(() => [])
+        ])
+        setResults({ users: [], posts, hashtags })
+        setActiveTab("hashtags")
+      } else {
+        // Búsqueda general: usuarios + posts + hashtags en paralelo
+        const [general, users] = await Promise.all([
+          api.get<any>(`/api/search/general?query=${encodeURIComponent(trimmed)}`).catch(() => ({ posts: [], hashtags: [] })),
+          api.get<any>(`/api/search/autocomplete?q=${encodeURIComponent("@" + trimmed)}`).then(r => r.users || []).catch(() => [])
+        ])
+        setResults({
+          users: users,
+          posts: general.posts || [],
+          hashtags: general.hashtags || [],
+        })
+        setActiveTab("all")
+      }
+    } catch {
+      setResults({ users: [], posts: [], hashtags: [] })
+    } finally {
+      setIsLoading(false)
     }
-  }, [searchParams])
+  }, [])
 
   const handleQueryChange = (val: string) => {
     setQuery(val)
-    if (autocompleteTimeout.current) clearTimeout(autocompleteTimeout.current)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
     if (val.length >= 2) {
-      autocompleteTimeout.current = setTimeout(async () => {
+      debounceRef.current = setTimeout(async () => {
         try {
-          const res = await api.get<AutocompleteResult>(`/api/search/autocomplete?q=${encodeURIComponent(val)}`)
-          setAutocomplete(res)
+          const res = await api.get<any>(`/api/search/autocomplete?q=${encodeURIComponent(val)}`)
+          const hasResults = (res.users?.length || 0) + (res.hashtags?.length || 0) + (res.posts?.length || 0) > 0
+          setAutocomplete(hasResults ? res : null)
         } catch {}
       }, 300)
     } else {
@@ -70,214 +107,294 @@ export default function SearchPage() {
     }
   }
 
-  const doSearchUsers = async (q: string) => {
-    setIsLoading(true)
-    try {
-      const res = await api.get<AutocompleteResult>(`/api/search/autocomplete?q=${encodeURIComponent('@' + q.replace(/^@/, ''))}`)
-      setUserResults(res.users || [])
-    } catch { setUserResults([]) }
-    finally { setIsLoading(false) }
-  }
-
-  const doSearchHashtag = async (q: string) => {
-    setIsLoading(true)
-    const tag = q.replace(/^#/, '')
-    try {
-      const [posts, tags] = await Promise.all([
-        api.get<{ content: Post[] }>(`/api/search/hashtags/${encodeURIComponent(tag)}/posts?page=0&size=20`)
-          .then(r => (r as any).content || r as any)
-          .catch(() => []),
-        api.get<Hashtag[]>(`/api/search/hashtags?query=${encodeURIComponent(tag)}`).catch(() => [])
-      ])
-      setPostResults(Array.isArray(posts) ? posts : [])
-      setHashtagResults(Array.isArray(tags) ? tags : [])
-    } catch { setPostResults([]); setHashtagResults([]) }
-    finally { setIsLoading(false) }
-  }
-
-  const doSearchGeneral = async (q: string) => {
-    setIsLoading(true)
-    try {
-      const res = await api.get<AutocompleteResult>(`/api/search/general?query=${encodeURIComponent(q)}`)
-      setUserResults(res.users || [])
-      setPostResults(res.posts || [])
-      setHashtagResults(res.hashtags || [])
-    } catch {}
-    finally { setIsLoading(false) }
-  }
-
   const handleSearch = () => {
-    setAutocomplete(null)
-    if (!query.trim()) return
-    if (activeTab === 'users') doSearchUsers(query)
-    else if (activeTab === 'hashtags') doSearchHashtag(query)
-    else doSearchGeneral(query)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    doSearch(query)
   }
+
+  const clearSearch = () => {
+    setQuery("")
+    setAutocomplete(null)
+    setHasSearched(false)
+    setResults({ users: [], posts: [], hashtags: [] })
+    inputRef.current?.focus()
+  }
+
+  const totalResults = results.users.length + results.posts.length + results.hashtags.length
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
       <h1 className="text-2xl font-bold mb-4">Buscar</h1>
 
+      {/* Search input */}
       <div className="relative mb-6">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
         <Input
-          placeholder={activeTab === 'hashtags' ? '#hashtag...' : activeTab === 'posts' ? 'Buscar posts...' : '@usuario o texto...'}
+          ref={inputRef}
+          placeholder="Buscar usuarios, posts, #hashtags..."
           value={query}
           onChange={(e) => handleQueryChange(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+          onKeyDown={(e) => e.key === "Enter" && handleSearch()}
           className="pl-10 pr-24 h-12"
+          autoFocus
         />
-        <Button onClick={handleSearch} disabled={isLoading} className="absolute right-1 top-1/2 -translate-y-1/2">
+        {query && (
+          <button
+            onClick={clearSearch}
+            className="absolute right-20 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+        <Button
+          onClick={handleSearch}
+          disabled={isLoading || !query.trim()}
+          className="absolute right-1 top-1/2 -translate-y-1/2 h-10"
+        >
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Buscar"}
         </Button>
 
         {/* Autocomplete dropdown */}
-        {autocomplete && (autocomplete.users.length > 0 || autocomplete.hashtags.length > 0) && (
-          <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-card border border-border rounded-xl shadow-lg overflow-hidden">
-            {autocomplete.users.slice(0, 3).map(u => (
+        {autocomplete && (
+          <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-card border border-border rounded-xl shadow-xl overflow-hidden">
+            {autocomplete.users?.slice(0, 3).map(u => (
               <button
                 key={u.userId}
                 className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors text-left"
                 onClick={() => { setAutocomplete(null); router.push(`/profile/${u.userId}`) }}
               >
-                <Avatar className="h-7 w-7">
+                <Avatar className="h-8 w-8 shrink-0">
                   <AvatarImage src={u.profilePictureUrl} />
                   <AvatarFallback className="text-xs">{u.nombres?.[0]}</AvatarFallback>
                 </Avatar>
-                <div>
-                  <p className="text-sm font-medium">{u.nombres} {u.apellidos}</p>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{u.nombres} {u.apellidos}</p>
                   {u.username && <p className="text-xs text-muted-foreground">@{u.username}</p>}
                 </div>
+                <User className="h-3.5 w-3.5 text-muted-foreground ml-auto shrink-0" />
               </button>
             ))}
-            {autocomplete.hashtags.slice(0, 3).map(h => (
+            {autocomplete.hashtags?.slice(0, 3).map(h => (
               <button
                 key={h.tag}
                 className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors text-left"
-                onClick={() => { setQuery('#' + h.tag); setActiveTab('hashtags'); setAutocomplete(null); doSearchHashtag(h.tag) }}
+                onClick={() => { setQuery("#" + h.tag); setAutocomplete(null); doSearch("#" + h.tag) }}
               >
-                <Hash className="h-4 w-4 text-primary" />
-                <span className="text-sm">#{h.tag}</span>
+                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <Hash className="h-4 w-4 text-primary" />
+                </div>
+                <span className="text-sm font-medium">#{h.tag}</span>
                 <span className="text-xs text-muted-foreground ml-auto">{h.usageCount} posts</span>
+              </button>
+            ))}
+            {autocomplete.posts?.slice(0, 2).map(p => (
+              <button
+                key={p.id}
+                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors text-left"
+                onClick={() => { setAutocomplete(null); doSearch(query) }}
+              >
+                <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <p className="text-sm truncate flex-1">{p.body}</p>
               </button>
             ))}
           </div>
         )}
       </div>
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
-        <TabsList className="w-full grid grid-cols-3">
-          <TabsTrigger value="users" className="flex items-center gap-2">
-            <User className="h-4 w-4" />Usuarios
-          </TabsTrigger>
-          <TabsTrigger value="posts" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />Posts
-          </TabsTrigger>
-          <TabsTrigger value="hashtags" className="flex items-center gap-2">
-            <Hash className="h-4 w-4" />Hashtags
-          </TabsTrigger>
-        </TabsList>
+      {/* Trending — solo cuando no hay búsqueda */}
+      {!hasSearched && trendingHashtags.length > 0 && (
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <TrendingUp className="h-4 w-4 text-primary" />
+            <p className="text-sm font-semibold">Tendencias</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {trendingHashtags.map(h => (
+              <button
+                key={h.tag}
+                onClick={() => { setQuery("#" + h.tag); doSearch("#" + h.tag) }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 hover:bg-primary/20 border border-primary/20 transition-colors"
+              >
+                <Hash className="h-3 w-3 text-primary" />
+                <span className="text-sm text-primary font-medium">{h.tag}</span>
+                <span className="text-xs text-muted-foreground">{h.usageCount}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
-        <TabsContent value="users" className="mt-6">
-          {userResults.length > 0 ? (
-            <div className="space-y-3">
-              {userResults.map((u) => (
-                <div
-                  key={u.userId}
-                  onClick={() => router.push(`/profile/${u.userId}`)}
-                  className="flex items-center gap-4 p-4 bg-card rounded-2xl border hover:border-primary/30 cursor-pointer transition-colors"
-                >
-                  <Avatar className="h-14 w-14">
-                    <AvatarImage src={u.profilePictureUrl || u.photos?.find(p => p.isPrimary)?.url} />
-                    <AvatarFallback>{u.nombres?.[0]}{u.apellidos?.[0]}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <h3 className="font-bold">{u.nombres} {u.apellidos}</h3>
-                    {u.username && <p className="text-sm text-muted-foreground">@{u.username}</p>}
-                    {u.bio && <p className="text-sm line-clamp-1 text-muted-foreground">{u.bio}</p>}
+      {/* Resultados */}
+      {isLoading && (
+        <div className="flex justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      )}
+
+      {!isLoading && hasSearched && (
+        <>
+          {totalResults === 0 ? (
+            <div className="text-center py-20">
+              <Search className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+              <p className="font-semibold text-foreground">Sin resultados para "{query}"</p>
+              <p className="text-sm text-muted-foreground mt-1">Prueba con @usuario, #hashtag o texto del post</p>
+            </div>
+          ) : (
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+              <TabsList className="w-full grid grid-cols-4 mb-6">
+                <TabsTrigger value="all">
+                  Todo {totalResults > 0 && <span className="ml-1 text-xs opacity-70">({totalResults})</span>}
+                </TabsTrigger>
+                <TabsTrigger value="users">
+                  <User className="h-3.5 w-3.5 mr-1" />
+                  {results.users.length > 0 && <span className="text-xs opacity-70">({results.users.length})</span>}
+                </TabsTrigger>
+                <TabsTrigger value="posts">
+                  <FileText className="h-3.5 w-3.5 mr-1" />
+                  {results.posts.length > 0 && <span className="text-xs opacity-70">({results.posts.length})</span>}
+                </TabsTrigger>
+                <TabsTrigger value="hashtags">
+                  <Hash className="h-3.5 w-3.5 mr-1" />
+                  {results.hashtags.length > 0 && <span className="text-xs opacity-70">({results.hashtags.length})</span>}
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Tab: Todo */}
+              <TabsContent value="all" className="space-y-6">
+                {results.users.length > 0 && (
+                  <section>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Usuarios</p>
+                    <div className="space-y-2">
+                      {results.users.slice(0, 3).map(u => (
+                        <UserCard key={u.userId} user={u} onClick={() => router.push(`/profile/${u.userId}`)} />
+                      ))}
+                      {results.users.length > 3 && (
+                        <button onClick={() => setActiveTab("users")} className="text-xs text-primary hover:underline pl-1">
+                          Ver los {results.users.length} usuarios →
+                        </button>
+                      )}
+                    </div>
+                  </section>
+                )}
+                {results.hashtags.length > 0 && (
+                  <section>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Hashtags</p>
+                    <div className="flex flex-wrap gap-2">
+                      {results.hashtags.slice(0, 6).map(h => (
+                        <button
+                          key={h.tag}
+                          onClick={() => { setQuery("#" + h.tag); doSearch("#" + h.tag) }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 hover:bg-primary/20 border border-primary/20 transition-colors"
+                        >
+                          <Hash className="h-3 w-3 text-primary" />
+                          <span className="text-sm text-primary font-medium">{h.tag}</span>
+                          <span className="text-xs text-muted-foreground">{h.usageCount}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                )}
+                {results.posts.length > 0 && (
+                  <section>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Posts</p>
+                    <div className="space-y-3">
+                      {results.posts.slice(0, 3).map(post => (
+                        <PostCard key={post.id} post={post} />
+                      ))}
+                      {results.posts.length > 3 && (
+                        <button onClick={() => setActiveTab("posts")} className="text-xs text-primary hover:underline pl-1">
+                          Ver los {results.posts.length} posts →
+                        </button>
+                      )}
+                    </div>
+                  </section>
+                )}
+              </TabsContent>
+
+              {/* Tab: Usuarios */}
+              <TabsContent value="users">
+                {results.users.length > 0 ? (
+                  <div className="space-y-2">
+                    {results.users.map(u => (
+                      <UserCard key={u.userId} user={u} onClick={() => router.push(`/profile/${u.userId}`)} />
+                    ))}
                   </div>
-                </div>
-              ))}
-            </div>
-          ) : !isLoading && query ? (
-            <div className="text-center py-20">
-              <User className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No se encontraron usuarios</p>
-            </div>
-          ) : null}
-        </TabsContent>
+                ) : (
+                  <Empty icon={<User className="h-12 w-12" />} text="No se encontraron usuarios" />
+                )}
+              </TabsContent>
 
-        <TabsContent value="posts" className="mt-6">
-          {postResults.length > 0 ? (
-            <div className="space-y-3">
-              {postResults.map((post) => (
-                <PostCard key={post.id} post={post} />
-              ))}
-            </div>
-          ) : !isLoading && query ? (
-            <div className="text-center py-20">
-              <FileText className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No se encontraron posts</p>
-            </div>
-          ) : null}
-        </TabsContent>
+              {/* Tab: Posts */}
+              <TabsContent value="posts">
+                {results.posts.length > 0 ? (
+                  <div className="space-y-3">
+                    {results.posts.map(post => (
+                      <PostCard key={post.id} post={post} />
+                    ))}
+                  </div>
+                ) : (
+                  <Empty icon={<FileText className="h-12 w-12" />} text="No se encontraron posts" />
+                )}
+              </TabsContent>
 
-        <TabsContent value="hashtags" className="mt-6">
-          {/* Trending si no hay búsqueda */}
-          {!query && trendingHashtags.length > 0 && (
-            <div className="mb-6">
-              <div className="flex items-center gap-2 mb-3">
-                <TrendingUp className="h-4 w-4 text-primary" />
-                <p className="text-sm font-semibold">Tendencias</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {trendingHashtags.map(h => (
-                  <button
-                    key={h.tag}
-                    onClick={() => { setQuery('#' + h.tag); doSearchHashtag(h.tag) }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 hover:bg-primary/20 border border-primary/20 transition-colors"
-                  >
-                    <Hash className="h-3 w-3 text-primary" />
-                    <span className="text-sm text-primary font-medium">{h.tag}</span>
-                    <span className="text-xs text-muted-foreground">{h.usageCount}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
+              {/* Tab: Hashtags */}
+              <TabsContent value="hashtags">
+                {results.hashtags.length > 0 ? (
+                  <div className="space-y-2">
+                    {results.hashtags.map(h => (
+                      <button
+                        key={h.tag}
+                        onClick={() => { setQuery("#" + h.tag); doSearch("#" + h.tag) }}
+                        className="w-full flex items-center gap-3 p-3 bg-card rounded-xl border hover:border-primary/30 transition-colors text-left"
+                      >
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                          <Hash className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold">#{h.tag}</p>
+                          <p className="text-xs text-muted-foreground">{h.usageCount} posts</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <Empty icon={<Hash className="h-12 w-12" />} text="No se encontraron hashtags" />
+                )}
+              </TabsContent>
+            </Tabs>
           )}
-          {hashtagResults.length > 0 && (
-            <div className="space-y-2 mb-4">
-              {hashtagResults.map(h => (
-                <button
-                  key={h.tag}
-                  onClick={() => doSearchHashtag(h.tag)}
-                  className="w-full flex items-center gap-3 p-3 bg-card rounded-xl border hover:border-primary/30 transition-colors text-left"
-                >
-                  <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Hash className="h-4 w-4 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold">#{h.tag}</p>
-                    <p className="text-xs text-muted-foreground">{h.usageCount} posts</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-          {postResults.length > 0 ? (
-            <div className="space-y-3">
-              {postResults.map((post) => (
-                <PostCard key={post.id} post={post} />
-              ))}
-            </div>
-          ) : !isLoading && query ? (
-            <div className="text-center py-20">
-              <Hash className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No se encontraron posts con #{query.replace(/^#/, '')}</p>
-            </div>
-          ) : null}
-        </TabsContent>
-      </Tabs>
+        </>
+      )}
+    </div>
+  )
+}
+
+function UserCard({ user, onClick }: { user: UserProfile; onClick: () => void }) {
+  return (
+    <div
+      onClick={onClick}
+      className="flex items-center gap-4 p-4 bg-card rounded-2xl border hover:border-primary/30 cursor-pointer transition-colors"
+    >
+      <Avatar className="h-12 w-12 shrink-0">
+        <AvatarImage src={user.profilePictureUrl || user.photos?.find(p => p.isPrimary)?.url} />
+        <AvatarFallback>{user.nombres?.[0]}{user.apellidos?.[0]}</AvatarFallback>
+      </Avatar>
+      <div className="flex-1 min-w-0">
+        <p className="font-bold truncate">{user.nombres} {user.apellidos}</p>
+        {user.username && <p className="text-sm text-muted-foreground">@{user.username}</p>}
+        {user.bio && <p className="text-sm text-muted-foreground line-clamp-1">{user.bio}</p>}
+      </div>
+    </div>
+  )
+}
+
+function Empty({ icon, text }: { icon: React.ReactNode; text: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+      {icon}
+      <p className="mt-4 text-sm">{text}</p>
     </div>
   )
 }

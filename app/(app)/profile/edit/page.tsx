@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { api } from "@/lib/api"
@@ -11,16 +11,19 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card } from "@/components/ui/card"
 import { LocationInput } from "@/components/ui/location-input"
-import { ArrowLeft, Loader2, Save, Camera, Crown } from "lucide-react"
+import { ArrowLeft, Loader2, Save, Camera, Crown, Square } from "lucide-react"
 import { toast } from "sonner"
 import { Switch } from "@/components/ui/switch"
-import { VoiceNoteRecorder } from "@/components/ui/voice-note"
+import { VoiceNoteRecorder, type VoiceNoteRecorderHandle } from "@/components/ui/voice-note"
 
 export default function EditProfilePage() {
   const router = useRouter()
   const { user, isLoading: authLoading, refreshProfile, updateUser } = useAuth()
   const [loading, setLoading] = useState(false)
   const [uploadingCover, setUploadingCover] = useState(false)
+  const [isVoiceRecording, setIsVoiceRecording] = useState(false)
+  const voiceRecorderRef = useRef<VoiceNoteRecorderHandle>(null)
+  const isVoiceRecordingRef = useRef(false)
   const [showPremiumBadge, setShowPremiumBadge] = useState(() => {
     if (typeof window === 'undefined') return true
     const userId = localStorage.getItem('sparkd_user_id') || ''
@@ -51,10 +54,15 @@ export default function EditProfilePage() {
     }
   }, [user])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault()
+    e?.stopPropagation()
     if (!user) return
+
+    if (isVoiceRecordingRef.current && voiceRecorderRef.current) {
+      toast.info('Guardando nota de voz...')
+      await voiceRecorderRef.current.stopAndUpload()
+    }
 
     setLoading(true)
     try {
@@ -75,6 +83,7 @@ export default function EditProfilePage() {
       }
       await api.put('/api/profile', body)
       updateUser({ bio: formData.bio || null, url: formData.url || undefined, showPremiumBadge })
+      await refreshProfile()
       toast.success("Perfil actualizado")
       window.location.href = '/profile'
     } catch (error) {
@@ -117,7 +126,7 @@ export default function EditProfilePage() {
       </div>
 
       <Card className="p-6 bg-card border-border">
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={(e) => { e.preventDefault(); handleSubmit() }} className="space-y-6">
           {/* Cover Photo */}
           <div className="space-y-2">
             <Label>Foto de portada</Label>
@@ -238,8 +247,10 @@ export default function EditProfilePage() {
             <Label>Nota de voz</Label>
             <p className="text-xs text-muted-foreground">Graba hasta 30 segundos para presentarte</p>
             <VoiceNoteRecorder
+              ref={voiceRecorderRef}
               currentUrl={user.voiceIntroUrl || user.voiceNoteUrl}
               onSaved={(url) => updateUser({ voiceIntroUrl: url ?? null, voiceNoteUrl: url ?? null })}
+              onRecordingChange={(val) => { isVoiceRecordingRef.current = val; setIsVoiceRecording(val) }}
             />
           </div>
 
@@ -247,8 +258,18 @@ export default function EditProfilePage() {
             <Button type="button" variant="outline" onClick={() => router.back()} className="flex-1">
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading} className="flex-1">
-              {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Guardando...</> : <><Save className="mr-2 h-4 w-4" />Guardar</>}
+            <Button
+              type="button"
+              onClick={() => handleSubmit()}
+              disabled={loading}
+              className="flex-1"
+            >
+              {loading
+                ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Guardando...</>
+                : isVoiceRecording
+                ? <><Square className="mr-2 h-4 w-4" />Detener y guardar</>
+                : <><Save className="mr-2 h-4 w-4" />Guardar</>
+              }
             </Button>
           </div>
         </form>
