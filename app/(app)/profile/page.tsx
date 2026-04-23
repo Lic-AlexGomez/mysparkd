@@ -10,7 +10,7 @@ import { reputationService } from "@/lib/services/reputation"
 import { followService } from "@/lib/services/follow"
 import { bookmarkService } from "@/lib/services/bookmark"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
-import { Pencil, Loader2, Camera, Newspaper, Bookmark, Heart, Crown, MapPin, Globe, Zap, Settings } from "lucide-react"
+import { Pencil, Loader2, Camera, Newspaper, Bookmark, Heart, Crown, MapPin, Globe, Zap, Settings, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { PostCard } from "@/components/feed/post-card"
 import { useRouter } from "next/navigation"
@@ -290,9 +290,10 @@ export default function ProfilePage() {
                       } catch { toast.error('Error al eliminar foto') }
                     }
                   }}
-                  className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs font-medium"
+                  className="absolute top-2 right-2 h-8 w-8 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white hover:bg-destructive"
+                  title="Eliminar foto"
                 >
-                  Eliminar
+                  <Trash2 className="h-4 w-4" />
                 </button>
               </div>
             ))}
