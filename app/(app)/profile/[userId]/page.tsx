@@ -44,6 +44,7 @@ export default function UserProfilePage() {
   const [showReportModal, setShowReportModal] = useState(false)
 
   useEffect(() => {
+    console.log('[follow] effect running:', { user: user?.userId, profile: !!profile, profileVisibility: profile?.visibility })
     if (!user?.userId || !profile) return
     console.log('[follow] checking:', { userId, following: followService.isFollowing(user.userId, userId), pending: followService.isPending(user.userId, userId), visibility: profile.visibility })
     const isFoll = followService.isFollowing(user.userId, userId)
@@ -55,6 +56,7 @@ export default function UserProfilePage() {
   const fetchProfile = useCallback(async () => {
     try {
       const data = await api.get<UserProfile>(`/api/profile/${userId}`)
+      console.log('[profile] fetched:', data.visibility, data)
       setProfile(data)
     } catch {} finally {
       setIsLoading(false)
