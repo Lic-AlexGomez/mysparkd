@@ -57,6 +57,7 @@ export interface UserProfile {
   location?: string
   latitude?: number
   longitude?: number
+  url?: string
   website?: string
   voiceNoteUrl?: string
   voiceIntroUrl?: string
@@ -65,6 +66,7 @@ export interface UserProfile {
   profilePictureUrl?: string
   profileCompleted: boolean
   premium: boolean
+  showPremiumBadge?: boolean
   stripeCustomerId?: string
   stripeSubscriptionId?: string
   subscriptionStatus?: 'ACTIVE' | 'CANCELED' | 'PAST_DUE'
@@ -138,6 +140,7 @@ export interface CreateDateCardRequest {
 }
 
 export interface DateCardInterest {
+  interestId: string
   userId: string
   profilePicture?: string
   profileId?: string
@@ -148,6 +151,17 @@ export interface DateCardInterest {
 export interface MyDateCard {
   dateCardId: string
   title: string
+  message?: string
+  dateTime?: string
+  locationZone?: string
+  category?: DateCategory
+  detail?: string
+  plans?: Plan[]
+  placeTypes?: PlaceType[]
+  status?: DateCardStatus
+  expiresAt?: string
+  createdAt?: string
+  totalInterests?: number
   interests: DateCardInterest[]
 }
 
@@ -409,6 +423,7 @@ export interface Message {
   edited?: boolean
   editedAt?: string
   deletedForEveryone?: boolean
+  system?: boolean
 }
 
 export interface SendMessageRequest {

@@ -126,7 +126,8 @@ export default function UserProfilePage() {
   const followingCount = followService.getFollowingCount(userId)
   const age = getAge(profile.dateOfBirth)
   const compatibility = compatibilityFromUrl ? parseInt(compatibilityFromUrl) : null
-  const profileInterests = profile.interests && profile.interests.length > 0 ? profile.interests : []
+  const isPremium = profile.premium || profile.showPremiumBadge || profile.subscriptionStatus === 'ACTIVE'
+  const profileInterests: any[] = profile.interests || []
 
   return (
     <div className="mx-auto max-w-2xl pb-10">
@@ -178,7 +179,7 @@ export default function UserProfilePage() {
               <AvatarImage src={primaryPhoto?.url} alt={profile.nombres} className="object-cover" />
               <AvatarFallback className="bg-primary/20 text-primary text-2xl">{initials}</AvatarFallback>
             </Avatar>
-            {profile.premium && (
+            {isPremium && (
               <div className="absolute -top-1 -right-1 h-6 w-6 rounded-full bg-yellow-500 flex items-center justify-center shadow-lg">
                 <Crown className="h-3.5 w-3.5 text-black" />
               </div>
@@ -236,7 +237,7 @@ export default function UserProfilePage() {
               {profile.nombres} {profile.apellidos}
               {age && <span className="ml-2 bold font-light text-muted-foreground">{age}</span>}
             </h1>
-            {profile.premium && (
+            {isPremium && (
               <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-500/20 text-yellow-500 border border-yellow-500/30">
                 <Crown className="h-3 w-3" /> Premium
               </span>
@@ -245,12 +246,28 @@ export default function UserProfilePage() {
 
           {profile.username && <p className="text-sm text-muted-foreground mt-0.5">@{profile.username}</p>}
           {profile.bio && <p className="text-sm text-foreground mt-2 leading-relaxed">{profile.bio}</p>}
+<<<<<<< HEAD
           {((profile as any).voiceNoteUrl || (profile as any).voiceIntroUrl) && (
             <div className="mt-2">
               <VoiceNotePlayer url={(profile as any).voiceNoteUrl || (profile as any).voiceIntroUrl} />
+=======
+          {(profile.voiceIntroUrl || (profile as any).voiceNoteUrl) && (
+            <div className="mt-2">
+              <VoiceNotePlayer url={profile.voiceIntroUrl || (profile as any).voiceNoteUrl} />
+>>>>>>> 8ee0f55d3557a80bbb5654038116b73ea24333b0
             </div>
           )}
           {profile.location && profile.location !== "Unknown location" && <p className="text-xs text-muted-foreground mt-1">📍 {profile.location.split(',').length > 2 ? profile.location.split(',').slice(-2).map((p: string) => p.trim()).join(', ') : profile.location}</p>}
+          {(profile.url || profile.website) && (
+            <a
+              href={profile.url || profile.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-xs text-primary hover:underline mt-1"
+            >
+              🔗 {(profile.url || profile.website || '').replace(/^https?:\/\//, '')}
+            </a>
+          )}
 
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             <Badge variant="secondary" className="bg-primary/10 text-primary border-0 text-xs">

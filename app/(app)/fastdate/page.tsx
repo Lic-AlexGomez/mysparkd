@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { fastDateService } from "@/lib/services/fastdate"
+import type { FeedFilter } from "@/lib/services/fastdate"
 import type { DateCard, MyDateCard, SentInterest, DateCategory, Plan, PlaceType } from "@/lib/types"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -14,7 +15,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
-import { Loader2, Plus, MapPin, Calendar, Clock, Heart, Check, X, Zap, ChevronRight, Send } from "lucide-react"
+import { Loader2, Plus, MapPin, Calendar, Clock, Heart, Check, X, Zap, ChevronRight, Send, SlidersHorizontal, ChevronDown, ChevronUp, History } from "lucide-react"
 import { formatDistanceToNow, format } from "date-fns"
 import { es } from "date-fns/locale"
 
@@ -55,6 +56,8 @@ export default function FastDatePage() {
   const [interestMessage, setInterestMessage] = useState("")
   const [sendingInterest, setSendingInterest] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [filter, setFilter] = useState<FeedFilter>({})
+  const [showFilter, setShowFilter] = useState(false)
 
   const [form, setForm] = useState({
     title: "",
@@ -67,16 +70,23 @@ export default function FastDatePage() {
     placeTypes: [] as PlaceType[],
   })
 
-  const fetchFeed = useCallback(async () => {
+  const fetchFeed = useCallback(async (f?: FeedFilter) => {
     try {
-      const data = await fastDateService.getFeed()
+      const data = await fastDateService.getFeed(f ?? filter)
       setFeed(data)
     } catch {
       setFeed([])
     } finally {
       setLoading(false)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const applyFilter = (newFilter: FeedFilter) => {
+    setFilter(newFilter)
+    setShowFilter(false)
+    fetchFeed(newFilter)
+  }
 
   const fetchMine = useCallback(async () => {
     try {
@@ -193,11 +203,89 @@ export default function FastDatePage() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="w-full grid grid-cols-3 mb-4">
-          <TabsTrigger value="feed">Feed</TabsTrigger>
-          <TabsTrigger value="mine">Mis citas</TabsTrigger>
-          <TabsTrigger value="sent">Enviados</TabsTrigger>
-        </TabsList>
+        <div className="flex items-center gap-2 mb-4">
+          <TabsList className="flex-1 grid grid-cols-3">
+            <TabsTrigger value="feed">Feed</TabsTrigger>
+            <TabsTrigger value="mine">Mis citas</TabsTrigger>
+            <TabsTrigger value="sent">Enviados</TabsTrigger>
+          </TabsList>
+          <button
+            onClick={() => setShowFilter(!showFilter)}
+            className={`h-9 w-9 rounded-xl flex items-center justify-center border transition-colors shrink-0 ${
+              Object.keys(filter).length > 0
+                ? 'bg-primary text-black border-primary'
+                : 'border-border text-muted-foreground hover:border-primary/50'
+            }`}
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Panel de filtros */}
+        {showFilter && (
+          <div className="mb-4 p-4 bg-card border border-border rounded-2xl space-y-3">
+            <p className="text-xs font-semibold text-foreground">Filtrar feed</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Distancia máx (km)</label>
+                <Input
+                  type="number"
+                  placeholder="Ej: 10"
+                  value={filter.maxDistanceKm ?? ''}
+                  onChange={e => setFilter(p => ({ ...p, maxDistanceKm: e.target.value ? Number(e.target.value) : undefined }))}
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Compatibilidad mín (%)</label>
+                <Input
+                  type="number"
+                  placeholder="Ej: 50"
+                  value={filter.minCompatibility ?? ''}
+                  onChange={e => setFilter(p => ({ ...p, minCompatibility: e.target.value ? Number(e.target.value) : undefined }))}
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Edad mín</label>
+                <Input
+                  type="number"
+                  placeholder="18"
+                  value={filter.minAge ?? ''}
+                  onChange={e => setFilter(p => ({ ...p, minAge: e.target.value ? Number(e.target.value) : undefined }))}
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Edad máx</label>
+                <Input
+                  type="number"
+                  placeholder="99"
+                  value={filter.maxAge ?? ''}
+                  onChange={e => setFilter(p => ({ ...p, maxAge: e.target.value ? Number(e.target.value) : undefined }))}
+                  className="h-8 text-sm"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={() => applyFilter({})}
+              >
+                Limpiar
+              </Button>
+              <Button
+                size="sm"
+                className="flex-1 bg-gradient-to-r from-primary to-secondary text-black font-bold"
+                onClick={() => applyFilter(filter)}
+              >
+                Aplicar
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* FEED */}
         <TabsContent value="feed" className="space-y-3">
@@ -274,7 +362,7 @@ export default function FastDatePage() {
         </TabsContent>
 
         {/* MIS CITAS */}
-        <TabsContent value="mine" className="space-y-3">
+        <TabsContent value="mine" className="space-y-4">
           {myCards.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <Calendar className="h-12 w-12 text-muted-foreground" />
@@ -283,108 +371,30 @@ export default function FastDatePage() {
                 Crear mi primera cita
               </Button>
             </div>
-          ) : myCards.map(card => (
-            <Card key={card.dateCardId} className="border-border">
-              <CardContent className="p-4">
-                {/* Detalles de la cita */}
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <h3 className="text-sm font-bold text-foreground">{card.title}</h3>
-                  {card.category && (
-                    <Badge className="text-[10px] px-2 py-0 border-0 bg-primary/10 text-primary shrink-0">
-                      {CATEGORY_LABELS[card.category] || card.category}
-                    </Badge>
-                  )}
+          ) : (
+            <>
+              {/* ACTIVAS */}
+              {myCards.filter(c => c.status === 'ACTIVE').length > 0 && (
+                <div className="space-y-3">
+                  {myCards.filter(c => c.status === 'ACTIVE').map(card => (
+                    <MyCardItem key={card.dateCardId} card={card} onRespond={handleRespond} router={router} />
+                  ))}
                 </div>
-                <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mb-2">
-                  {card.dateTime && (
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      {format(new Date(card.dateTime), "d MMM, HH:mm", { locale: es })}
-                    </span>
-                  )}
-                  {card.locationZone && (
-                    <span className="flex items-center gap-1">
-                      <MapPin className="h-3 w-3" />
-                      {card.locationZone}
-                    </span>
-                  )}
-                  {card.expiresAt && (
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      Expira {formatDistanceToNow(new Date(card.expiresAt), { addSuffix: true, locale: es })}
-                    </span>
-                  )}
-                </div>
-                {card.plans && card.plans.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mb-2">
-                    {card.plans.map(p => (
-                      <span key={p} className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                        {PLAN_LABELS[p] || p}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                {card.message && (
-                  <p className="text-xs text-muted-foreground italic mb-2">"{card.message}"</p>
-                )}
+              )}
 
-                {/* Intereses recibidos */}
-                <div className="border-t border-border pt-3 mt-1">
-                  {card.interests.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">Nadie ha mostrado interés aún</p>
-                  ) : (
-                    <div className="space-y-3">
-                      <p className="text-xs font-semibold text-muted-foreground">
-                        {card.interests.length} {card.interests.length === 1 ? "persona interesada" : "personas interesadas"}
-                      </p>
-                      {card.interests.map((interest, i) => (
-                        <div key={i} className="flex items-center gap-3">
-                          <Avatar
-                            className="h-9 w-9 border border-border cursor-pointer shrink-0"
-                            onClick={() => interest.userId && router.push(`/profile/${interest.userId}`)}
-                          >
-                            <AvatarImage src={interest.profilePicture} />
-                            <AvatarFallback className="bg-primary/10 text-primary text-xs">?</AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            {interest.message && (
-                              <p className="text-xs text-muted-foreground line-clamp-1">"{interest.message}"</p>
-                            )}
-                            <Badge
-                              className={`text-[10px] px-2 py-0 border-0 mt-0.5 ${
-                                interest.status === 'ACCEPTED' ? 'bg-green-500/10 text-green-500' :
-                                interest.status === 'REJECTED' ? 'bg-destructive/10 text-destructive' :
-                                'bg-muted text-muted-foreground'
-                              }`}
-                            >
-                              {interest.status === 'ACCEPTED' ? '✓ Aceptado' :
-                               interest.status === 'REJECTED' ? '✗ Rechazado' : 'Pendiente'}
-                            </Badge>
-                          </div>
-                          {interest.status === 'PENDING' && (
-                            <div className="flex gap-1 shrink-0">
-                              <button
-                                onClick={() => handleRespond(interest.interestId, true)}
-                                className="h-8 w-8 rounded-full bg-green-500/10 hover:bg-green-500/20 flex items-center justify-center transition-colors"
-                              >
-                                <Check className="h-4 w-4 text-green-500" />
-                              </button>
-                              <button
-                                onClick={() => handleRespond(interest.interestId, false)}
-                                className="h-8 w-8 rounded-full bg-destructive/10 hover:bg-destructive/20 flex items-center justify-center transition-colors"
-                              >
-                                <X className="h-4 w-4 text-destructive" />
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+              {/* EXPIRADAS */}
+              {myCards.filter(c => c.status !== 'ACTIVE').length > 0 && (
+                <ExpiredSection cards={myCards.filter(c => c.status !== 'ACTIVE')} onRespond={handleRespond} router={router} />
+              )}
+
+              {myCards.filter(c => c.status === 'ACTIVE').length === 0 && myCards.filter(c => c.status !== 'ACTIVE').length === 0 && (
+                <div className="flex flex-col items-center justify-center py-16 gap-3">
+                  <Calendar className="h-12 w-12 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">No has creado citas aún</p>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+              )}
+            </>
+          )}
         </TabsContent>
 
         {/* INTERESES ENVIADOS */}

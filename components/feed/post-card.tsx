@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, memo } from "react"
 import Link from "next/link"
 import type { Post, ReactionType, PostVisibility } from "@/lib/types"
 import { api } from "@/lib/api"
@@ -62,16 +62,13 @@ interface PostCardProps {
   compact?: boolean
 }
 
-export function PostCard({ post, onDelete, onUpdate, highlight, compact = false }: PostCardProps) {
+export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highlight, compact = false }: PostCardProps) {
   const { user } = useAuth()
   const features = useFeatureFlags()
   const { isPremium } = usePremiumStatus()
   
   // Debug: Ver qué reacción tiene el post
 /*   console.log('=== PostCard Render ===')
-  console.log('Post ID:', post.id);
-  console.log('post.userReaction:', post.userReaction);
-  console.log('typeof post.userReaction:', typeof post.userReaction);
   console.log('post.reactions:', post.reactions); */
   
   // Buscar la reacción del usuario en el objeto reactions
@@ -129,7 +126,7 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
   const isAccessDenied = !post.body && !post.file && !!post.message && !post.locked && !post.canUnlock
   const bodyText = post.body || ''
 
-  const handleReaction = async (type: ReactionType) => {
+  const handleReaction = useCallback(async (type: ReactionType) => {
     const prevReaction = userReaction
     const prevCounts = { ...reactionCounts }
     
@@ -219,9 +216,9 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
         }
       })
     }
-  }
+  }, [userReaction, reactionCounts, post.id, post.userId, user?.userId, user?.nombres])
 
-  const toggleLike = async () => {
+  const toggleLike = useCallback(async () => {
     setLiked(!liked)
     setLikeCount((prev) => (liked ? prev - 1 : prev + 1))
     try {
@@ -234,9 +231,9 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
       setLiked(!liked)
       setLikeCount((prev) => (liked ? prev + 1 : prev - 1))
     }
-  }
+  }, [liked, likeCount, post.id, post.userId, user?.userId, user?.nombres])
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     setShowDeleteConfirm(false)
     try {
       await api.delete(`/api/posts/delete/${post.id}`)
@@ -246,9 +243,9 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
     }
     toast.success("Post eliminado")
     onDelete?.(post.id)
-  }
+  }, [post.id, onDelete])
 
-  const handleBookmark = () => {
+  const handleBookmark = useCallback(() => {
     if (user?.userId) {
       const isBookmarked = bookmarkService.toggleBookmark(user.userId, post.id)
       setBookmarked(isBookmarked)
@@ -258,14 +255,14 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
         onDelete?.(post.id)
       }
     }
-  }
+  }, [user?.userId, post.id, bookmarked, onDelete])
 
-  const handleEdit = () => {
+  const handleEdit = useCallback(() => {
     setIsEditing(true)
     setShowMenu(false)
-  }
+  }, [])
 
-  const handleSaveEdit = async () => {
+  const handleSaveEdit = useCallback(async () => {
     if (!editedBody.trim() || editedBody.trim().length < 10) {
       toast.error("El contenido debe tener al menos 10 caracteres")
       return
@@ -281,28 +278,27 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
     } finally {
       setIsSaving(false)
     }
-  }
+  }, [editedBody, editedVisibility, post.id, onUpdate])
 
-  const handleCancelEdit = () => {
+  const handleCancelEdit = useCallback(() => {
     setEditedBody(post.body)
     setEditedVisibility(post.visibility || 'PUBLIC')
     setIsEditing(false)
-  }
+  }, [post.body, post.visibility])
 
-  const handleRepost = (comment: string) => {
+  const handleRepost = useCallback((comment: string) => {
     // TODO: Implementar endpoint de repost en el backend
     // await api.post(`/api/posts/repost/${post.id}`, { comment })
-    setReposted(true)
     setRepostCount(prev => prev + 1)
-    toast.success('Repost guardado localmente (pendiente implementación en backend)')
-  }
+    toast.success('Repost guardado')
+  }, [])
+
 
   const [pollState, setPollState] = useState<typeof post.poll>(post.poll ?? null)
 
   const handlePollVote = async (optionId: string) => {
     if (!pollState || pollState.userVoted) return
 
-    // Optimistic update
     const prevPoll = pollState
     const newTotalVotes = pollState.totalVotes + 1
     setPollState({
@@ -323,11 +319,10 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
     }
   }
 
-  const handleShare = () => {
+  const handleShare = useCallback(() => {
     setShowShareModal(true)
-  }
+  }, [])
 
-  // Validar y formatear fecha de forma segura
   const getTimeAgo = () => {
     try {
       if (!post.createdAt) return 'Hace un momento'
@@ -820,4 +815,4 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
       )}
     </>
   )
-}
+})

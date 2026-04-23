@@ -25,11 +25,12 @@ async function handler(
   if (request.method !== "GET" && request.method !== "HEAD") {
     try {
       if (contentType?.includes("multipart/form-data")) {
-        body = await request.formData()
-        // No poner Content-Type para FormData, el browser lo pone con boundary
+        // Reenviar el body crudo como ArrayBuffer para preservar el boundary original
+        body = await request.arrayBuffer()
+        headers["Content-Type"] = contentType
       } else {
         body = await request.text()
-        headers["Content-Type"] = "application/json"
+        if (body) headers["Content-Type"] = "application/json"
       }
     } catch {
       // no body
@@ -52,12 +53,21 @@ async function handler(
       body: body || undefined,
     })
 
-    console.log(`[proxy] ${request.method} ${targetUrl} → ${response.status}`)
-
     const responseHeaders = new Headers()
     const respContentType = response.headers.get("content-type")
     if (respContentType) {
       responseHeaders.set("content-type", respContentType)
+    }
+
+    // Cache para GETs — reduce llamadas repetidas al backend
+    if (request.method === 'GET' && response.status === 200) {
+      if (endpoint.includes('/profile/')) {
+        responseHeaders.set('Cache-Control', 'private, max-age=30')
+      } else if (endpoint.includes('/notifications') || endpoint.includes('/chat/chats')) {
+        responseHeaders.set('Cache-Control', 'private, max-age=10')
+      } else if (endpoint.includes('/feed') || endpoint.includes('/posts')) {
+        responseHeaders.set('Cache-Control', 'private, max-age=15')
+      }
     }
 
     if (response.status === 204) {

@@ -202,9 +202,10 @@ export default function ProfilePage() {
           <p className="mt-3 text-sm text-foreground leading-relaxed">{user.bio}</p>
         )}
 
-        {(user.voiceNoteUrl || user.voiceIntroUrl) && (
+        {/* Voice note */}
+        {(user.voiceIntroUrl || user.voiceNoteUrl) && (
           <div className="mt-3">
-            <VoiceNotePlayer url={(user.voiceNoteUrl || user.voiceIntroUrl)!} />
+            <VoiceNotePlayer url={(user.voiceIntroUrl || user.voiceNoteUrl)!} />
           </div>
         )}
 
@@ -215,12 +216,12 @@ export default function ProfilePage() {
               <MapPin className="h-3.5 w-3.5" /> {location}
             </div>
           )}
-          {user.website && (
-            <a href={user.website} target="_blank" rel="noopener noreferrer"
+          {user.website || user.url ? (
+            <a href={user.url || user.website} target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-1 text-xs text-primary hover:underline">
-              <Globe className="h-3.5 w-3.5" /> {user.website.replace(/^https?:\/\//, '')}
+              <Globe className="h-3.5 w-3.5" /> {(user.url || user.website || '').replace(/^https?:\/\//, '')}
             </a>
-          )}
+          ) : null}
           
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             {user.sex === "MALE" ? "👨" : "👩"} {user.sex === "MALE" ? "Hombre" : "Mujer"}

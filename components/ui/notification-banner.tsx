@@ -14,6 +14,8 @@ export function NotificationBanner() {
   useEffect(() => {
     if (user && isSupported) {
       const currentPermission = Notification.permission
+      // Solo mostrar si es 'default' (nunca preguntado)
+      // Si es 'denied' o 'granted', no mostrar el banner
       if (currentPermission === "default") {
         const dismissed = localStorage.getItem(`notification-banner-dismissed-${user.userId}`)
         if (!dismissed) {

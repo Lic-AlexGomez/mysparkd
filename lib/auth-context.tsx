@@ -40,7 +40,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchProfile = useCallback(async () => {
     try {
       const profile = await api.get<UserProfile>("/api/profile/me")
-      console.log('profile/me:', profile)
       setUser(profile)
       localStorage.setItem('sparkd_user', JSON.stringify(profile))
     } catch (error) {
@@ -102,10 +101,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await fetchProfile()
   }
 
-  const updateUser = (patch: Partial<UserProfile>) => {
+  const updateUser = (patch: Partial<Record<keyof UserProfile, any>>) => {
     setUser(prev => {
       if (!prev) return prev
-      const updated = { ...prev, ...patch }
+      const updated = { ...prev }
+      for (const key in patch) {
+        (updated as any)[key] = (patch as any)[key]
+      }
       localStorage.setItem('sparkd_user', JSON.stringify(updated))
       return updated
     })
