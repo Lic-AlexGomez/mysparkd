@@ -84,6 +84,10 @@ export default function UserProfilePage() {
   }
 
   const handleMessage = async () => {
+    if (profile.visibility === 'PRIVATE' && !following && !pending) {
+      toast.error("Primero debes seguir a esta cuenta para enviar mensajes")
+      return
+    }
     setIsMessaging(true)
     try {
       const chat = await api.post<Chat>(`/api/chat/open/${userId}`)
@@ -208,24 +212,31 @@ export default function UserProfilePage() {
             {/* Like button */}
             <button
               onClick={handleLike}
-              disabled={isLiking || liked}
+              disabled={isLiking || liked || profile.visibility === 'PRIVATE' && !following && !pending}
               className={`h-9 w-9 rounded-full border flex items-center justify-center transition-all ${
-                liked
-                  ? "bg-secondary/20 border-secondary text-secondary"
-                  : "border-border hover:bg-secondary/10 hover:border-secondary"
+                profile.visibility === 'PRIVATE' && !following && !pending
+                  ? "border-muted text-muted cursor-not-allowed"
+                  : liked
+                    ? "bg-secondary/20 border-secondary text-secondary"
+                    : "border-border hover:bg-secondary/10 hover:border-secondary text-foreground"
               }`}
-              title="Dar like"
+              title={profile.visibility === 'PRIVATE' && !following && !pending ? "Primero debes seguir a esta cuenta" : "Dar like"}
             >
-              <Heart className={`h-4 w-4 ${liked ? "fill-secondary text-secondary" : "text-foreground"}`} />
+              <Heart className={`h-4 w-4 ${liked ? "fill-secondary text-secondary" : "text-inherit"}`} />
             </button>
             
             {/* Message button */}
             <button
               onClick={handleMessage}
-              disabled={isMessaging}
-              className="h-9 w-9 rounded-full border border-border flex items-center justify-center hover:bg-muted transition-colors"
+              disabled={isMessaging || profile.visibility === 'PRIVATE' && !following && !pending}
+              className={`h-9 w-9 rounded-full border flex items-center justify-center transition-colors ${
+                profile.visibility === 'PRIVATE' && !following && !pending
+                  ? "border-muted text-muted cursor-not-allowed"
+                  : "border-border hover:bg-muted text-foreground"
+              }`}
+              title={profile.visibility === 'PRIVATE' && !following && !pending ? "Primero debes seguir a esta cuenta" : "Enviar mensaje"}
             >
-              {isMessaging ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4 text-foreground" />}
+              {isMessaging ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
             </button>
             {/* Follow button */}
             <button
