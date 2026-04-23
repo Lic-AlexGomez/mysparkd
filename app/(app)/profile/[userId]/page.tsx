@@ -44,12 +44,12 @@ export default function UserProfilePage() {
   const [showReportModal, setShowReportModal] = useState(false)
 
   useEffect(() => {
-    if (user?.userId) {
-      setFollowing(followService.isFollowing(user.userId, userId))
-      if (profile?.visibility === 'PRIVATE' && !followService.isFollowing(user.userId, userId)) {
-        setPending(followService.isPending(user.userId, userId))
-      }
-    }
+    if (!user?.userId || !profile) return
+    console.log('[follow] checking:', { userId, following: followService.isFollowing(user.userId, userId), pending: followService.isPending(user.userId, userId), visibility: profile.visibility })
+    const isFoll = followService.isFollowing(user.userId, userId)
+    const isPend = followService.isPending(user.userId, userId)
+    setFollowing(isFoll)
+    setPending(isPend)
   }, [user, userId, profile])
 
   const fetchProfile = useCallback(async () => {
@@ -71,8 +71,9 @@ export default function UserProfilePage() {
       setPending(false)
       toast.success("Dejaste de seguir")
     } else {
-      followService.follow(user.userId, userId)
-      if (profile.visibility === 'PRIVATE') {
+      const isPrivate = profile.visibility === 'PRIVATE'
+      followService.follow(user.userId, userId, isPrivate)
+      if (isPrivate) {
         setPending(true)
         toast.success("Solicitud enviada")
       } else {
