@@ -395,6 +395,7 @@ export interface Chat {
   otherUserId: string
   otherUsername: string
   otherUserPhoto?: string
+  senderProfilePicture?: string
   lastMessage: string | null
   lastMessageAt: string | null
   unread?: number

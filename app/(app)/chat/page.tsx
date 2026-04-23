@@ -75,7 +75,7 @@ export default function ChatListPage() {
       if (raw.length > 0) console.log('[chat] campos del backend:', Object.keys(raw[0]), raw[0])
       const data = raw.map((c: any) => ({
         ...c,
-        otherUserPhoto: c.otherUserPhoto || c.otherUserProfilePicture || c.profilePicture || c.photo || c.avatar || undefined,
+        otherUserPhoto: c.otherUserPhoto || c.senderProfilePicture || c.otherUserProfilePicture || c.profilePicture || c.photo || c.avatar || undefined,
       }))
 
       const sorted = data.sort((a, b) => {
@@ -90,8 +90,13 @@ export default function ChatListPage() {
       refreshPresence(sorted)
 
       // Chats ocultos en paralelo
-      api.get<Chat[]>('/api/chat/chats/hidden')
-        .then(hidden => setHiddenChats(hidden))
+      api.get<any[]>('/api/chat/chats/hidden')
+        .then(hidden => {
+          setHiddenChats(hidden.map(c => ({
+            ...c,
+            otherUserPhoto: c.otherUserPhoto || c.senderProfilePicture || c.otherUserProfilePicture || c.profilePicture || c.photo || c.avatar || undefined,
+          })))
+        })
         .catch(() => {})
     } catch {
       // silent
