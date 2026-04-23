@@ -13,7 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Loader2, MoreHorizontal, MessageCircle, UserPlus, UserCheck, ArrowLeft, Heart, Crown, Sparkles } from "lucide-react"
+import { Loader2, MoreHorizontal, MessageCircle, UserPlus, UserCheck, ArrowLeft, Heart, Crown, Sparkles, Lock } from "lucide-react"
 import { PostCard } from "@/components/feed/post-card"
 import { ReportModal } from "@/components/feed/report-modal"
 import { toast } from "sonner"
@@ -307,54 +307,68 @@ export default function UserProfilePage() {
         </div>
       </div>
 
-      {/* Intereses */}
-      {profileInterests.length > 0 && (
-        <div className="px-4 mt-4">
-          <h2 className="text-sm font-semibold text-foreground mb-3">Intereses</h2>
-          <div className="flex flex-wrap gap-2">
-            {profileInterests.map((interest, index) => {
-              const name = typeof interest === "string" ? interest : interest.name
-              const icon = typeof interest === "object" ? interest.icon : null
-              return (
-                <span
-                  key={index}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20 text-xs font-medium text-foreground hover:from-primary/20 hover:to-secondary/20 transition-colors"
-                >
-                  {icon && <span>{icon}</span>}
-                  {name}
-                </span>
-              )
-            })}
+      {profile.visibility === 'PRIVATE' && !following ? (
+        <div className="flex flex-col items-center justify-center gap-3 py-16 px-4 border-t border-border mt-4">
+          <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+            <Lock className="h-8 w-8 text-muted-foreground" />
           </div>
+          <p className="font-semibold text-lg">Esta cuenta es privada</p>
+          <p className="text-sm text-muted-foreground text-center max-w-[250px]">
+            Sigue a esta cuenta para ver sus fotos, posts y más información.
+          </p>
         </div>
-      )}
-
-      {/* Fotos */}
-      {profile.photos && profile.photos.length > 0 && (
-        <div className="px-4 mt-6">
-          <h2 className="text-sm font-semibold text-foreground mb-3">Fotos</h2>
-          <div className="grid grid-cols-3 gap-1.5">
-            {profile.photos.map((photo) => (
-              <div
-                key={photo.photoId || photo.id}
-                className="aspect-square overflow-hidden rounded-xl cursor-pointer"
-                onClick={() => setViewPhotoUrl(photo.url)}
-              >
-                <img src={photo.url} alt="Foto" className="h-full w-full object-cover hover:scale-105 transition-transform" loading="lazy" />
+      ) : (
+        <>
+          {/* Intereses */}
+          {profileInterests.length > 0 && (
+            <div className="px-4 mt-4">
+              <h2 className="text-sm font-semibold text-foreground mb-3">Intereses</h2>
+              <div className="flex flex-wrap gap-2">
+                {profileInterests.map((interest, index) => {
+                  const name = typeof interest === "string" ? interest : interest.name
+                  const icon = typeof interest === "object" ? interest.icon : null
+                  return (
+                    <span
+                      key={index}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20 text-xs font-medium text-foreground hover:from-primary/20 hover:to-secondary/20 transition-colors"
+                    >
+                      {icon && <span>{icon}</span>}
+                      {name}
+                    </span>
+                  )
+                })}
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+            </div>
+          )}
 
-      {/* Posts */}
-      {profile.posts && profile.posts.length > 0 && (
-        <div className="mt-6 px-4">
-          <h2 className="text-sm font-semibold text-foreground mb-3">Posts</h2>
-          {profile.posts.map((post) => (
-            <PostCard key={post.id} post={post} />
-          ))}
-        </div>
+          {/* Fotos */}
+          {profile.photos && profile.photos.length > 0 && (
+            <div className="px-4 mt-6">
+              <h2 className="text-sm font-semibold text-foreground mb-3">Fotos</h2>
+              <div className="grid grid-cols-3 gap-1.5">
+                {profile.photos.map((photo) => (
+                  <div
+                    key={photo.photoId || photo.id}
+                    className="aspect-square overflow-hidden rounded-xl cursor-pointer"
+                    onClick={() => setViewPhotoUrl(photo.url)}
+                  >
+                    <img src={photo.url} alt="Foto" className="h-full w-full object-cover hover:scale-105 transition-transform" loading="lazy" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Posts */}
+          {profile.posts && profile.posts.length > 0 && (
+            <div className="mt-6 px-4">
+              <h2 className="text-sm font-semibold text-foreground mb-3">Posts</h2>
+              {profile.posts.map((post) => (
+                <PostCard key={post.id} post={post} />
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {/* Photo viewer */}

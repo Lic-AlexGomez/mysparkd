@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card } from "@/components/ui/card"
 import { LocationInput } from "@/components/ui/location-input"
-import { ArrowLeft, Loader2, Save, Camera, Crown, Square } from "lucide-react"
+import { ArrowLeft, Loader2, Save, Camera, Crown, Square, Globe, Lock } from "lucide-react"
 import { toast } from "sonner"
 import { Switch } from "@/components/ui/switch"
 import { VoiceNoteRecorder, type VoiceNoteRecorderHandle } from "@/components/ui/voice-note"
@@ -35,6 +35,7 @@ export default function EditProfilePage() {
     location: "",
     url: "",
     coverPictureUrl: "",
+    visibility: "PUBLIC" as "PUBLIC" | "PRIVATE",
     latitude: undefined as number | undefined,
     longitude: undefined as number | undefined
   })
@@ -47,6 +48,7 @@ export default function EditProfilePage() {
         location: user.location || "",
         url: user.url || user.website || "",
         coverPictureUrl: user.coverPictureUrl || "",
+        visibility: user.visibility || "PUBLIC",
         latitude: user.latitude,
         longitude: user.longitude
       })
@@ -74,6 +76,7 @@ export default function EditProfilePage() {
         telefono: user.telefono,
         bio: formData.bio || null,
         url: formData.url || null,
+        visibility: formData.visibility,
         showPremiumBadge,
       }
       // Solo mandar coords si el usuario seleccionó una ubicación
@@ -82,7 +85,7 @@ export default function EditProfilePage() {
         body.longitude = formData.longitude
       }
       await api.put('/api/profile', body)
-      updateUser({ bio: formData.bio || null, url: formData.url || undefined, showPremiumBadge })
+      updateUser({ bio: formData.bio || null, url: formData.url || undefined, showPremiumBadge, visibility: formData.visibility })
       await refreshProfile()
       toast.success("Perfil actualizado")
       window.location.href = '/profile'
@@ -242,6 +245,20 @@ export default function EditProfilePage() {
               />
             </div>
           )}
+
+          <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-card">
+            <div className="flex items-center gap-2">
+              {formData.visibility === 'PRIVATE' ? <Lock className="h-4 w-4 text-muted-foreground" /> : <Globe className="h-4 w-4 text-primary" />}
+              <div>
+                <p className="text-sm font-semibold text-foreground">Perfil Público</p>
+                <p className="text-xs text-muted-foreground">Tu perfil puede ser visto por todos</p>
+              </div>
+            </div>
+            <Switch
+              checked={formData.visibility === 'PUBLIC'}
+              onCheckedChange={(val) => setFormData({ ...formData, visibility: val ? 'PUBLIC' : 'PRIVATE' })}
+            />
+          </div>
 
           <div className="space-y-2">
             <Label>Nota de voz</Label>

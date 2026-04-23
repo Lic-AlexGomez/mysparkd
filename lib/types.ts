@@ -78,6 +78,7 @@ export interface UserProfile {
   verificationLevel?: number
   interests?: string[] | Interest[]
   compatibilityScore?: number
+  visibility?: 'PUBLIC' | 'PRIVATE'
 }
 
 export interface CreateProfileRequest {
