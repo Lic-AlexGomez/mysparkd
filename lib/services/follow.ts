@@ -66,6 +66,12 @@ class FollowService {
     )
   }
 
+  isPending(followerId: string, followingId: string): boolean {
+    return this.follows.some(
+      f => f.followerId === followerId && f.followingId === followingId && f.status === 'pending'
+    )
+  }
+
   getFollowStatus(followerId: string, followingId: string): 'none' | 'pending' | 'accepted' {
     const follow = this.follows.find(
       f => f.followerId === followerId && f.followingId === followingId

@@ -13,7 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Loader2, MoreHorizontal, MessageCircle, UserPlus, UserCheck, ArrowLeft, Heart, Crown, Sparkles, Lock } from "lucide-react"
+import { Loader2, MoreHorizontal, MessageCircle, UserPlus, UserCheck, ArrowLeft, Heart, Crown, Sparkles, Lock, Clock } from "lucide-react"
 import { PostCard } from "@/components/feed/post-card"
 import { ReportModal } from "@/components/feed/report-modal"
 import { toast } from "sonner"
@@ -36,6 +36,7 @@ export default function UserProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [following, setFollowing] = useState(false)
+  const [pending, setPending] = useState(false)
   const [viewPhotoUrl, setViewPhotoUrl] = useState<string | null>(null)
   const [isMessaging, setIsMessaging] = useState(false)
   const [isLiking, setIsLiking] = useState(false)
@@ -43,8 +44,13 @@ export default function UserProfilePage() {
   const [showReportModal, setShowReportModal] = useState(false)
 
   useEffect(() => {
-    if (user?.userId) setFollowing(followService.isFollowing(user.userId, userId))
-  }, [user, userId])
+    if (user?.userId) {
+      setFollowing(followService.isFollowing(user.userId, userId))
+      if (profile?.visibility === 'PRIVATE' && !followService.isFollowing(user.userId, userId)) {
+        setPending(followService.isPending(user.userId, userId))
+      }
+    }
+  }, [user, userId, profile])
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -59,15 +65,21 @@ export default function UserProfilePage() {
 
   const handleFollow = () => {
     if (!user?.userId) return
-    if (following) {
+    if (following || pending) {
       followService.unfollow(user.userId, userId)
       setFollowing(false)
+      setPending(false)
       toast.success("Dejaste de seguir")
     } else {
       followService.follow(user.userId, userId)
-      setFollowing(true)
+      if (profile.visibility === 'PRIVATE') {
+        setPending(true)
+        toast.success("Solicitud enviada")
+      } else {
+        setFollowing(true)
+        toast.success("Siguiendo")
+      }
       notificationService.create(userId, "follow", `${user.nombres} te ha seguido`, user.userId)
-      toast.success("Siguiendo")
     }
   }
 
@@ -218,13 +230,14 @@ export default function UserProfilePage() {
             {/* Follow button */}
             <button
               onClick={handleFollow}
+              disabled={pending}
               className={`flex items-center gap-1.5 px-4 h-9 rounded-full text-sm font-semibold transition-all ${
-                following
+                (following || pending)
                   ? "border border-border text-foreground hover:bg-muted"
                   : "bg-gradient-to-r from-primary to-secondary text-black"
               }`}
             >
-              {following ? <><UserCheck className="h-4 w-4" /> Siguiendo</> : <><UserPlus className="h-4 w-4" /> Seguir</>}
+              {following ? <><UserCheck className="h-4 w-4" /> Siguiendo</> : pending ? <><Clock className="h-4 w-4" /> Solicitado</> : <><UserPlus className="h-4 w-4" /> Seguir</>}
             </button>
           </div>
 
