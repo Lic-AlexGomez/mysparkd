@@ -44,19 +44,23 @@ export default function UserProfilePage() {
   const [showReportModal, setShowReportModal] = useState(false)
 
   useEffect(() => {
-    console.log('[follow] effect running:', { user: user?.userId, profile: !!profile, profileVisibility: profile?.visibility })
     if (!user?.userId || !profile) return
-    console.log('[follow] checking:', { userId, following: followService.isFollowing(user.userId, userId), pending: followService.isPending(user.userId, userId), visibility: profile.visibility })
-    const isFoll = followService.isFollowing(user.userId, userId)
-    const isPend = followService.isPending(user.userId, userId)
-    setFollowing(isFoll)
-    setPending(isPend)
+    fetchFollowStatus()
   }, [user, userId, profile])
+
+  const fetchFollowStatus = async () => {
+    try {
+      const status = await api.get<{ following: boolean; followedBy: boolean; requestPending: boolean; followBack: boolean }>(`/api/follow/status/${userId}`)
+      setFollowing(status.following)
+      setPending(status.requestPending)
+    } catch (e) {
+      console.error('[follow] error fetching status:', e)
+    }
+  }
 
   const fetchProfile = useCallback(async () => {
     try {
       const data = await api.get<UserProfile>(`/api/profile/${userId}`)
-      console.log('[profile] fetched:', data.visibility, data)
       setProfile(data)
     } catch {} finally {
       setIsLoading(false)
@@ -65,24 +69,31 @@ export default function UserProfilePage() {
 
   useEffect(() => { fetchProfile() }, [fetchProfile])
 
-  const handleFollow = () => {
+  const handleFollow = async () => {
     if (!user?.userId) return
     if (following || pending) {
-      followService.unfollow(user.userId, userId)
-      setFollowing(false)
-      setPending(false)
-      toast.success("Dejaste de seguir")
-    } else {
-      const isPrivate = profile.visibility === 'PRIVATE'
-      followService.follow(user.userId, userId, isPrivate)
-      if (isPrivate) {
-        setPending(true)
-        toast.success("Solicitud enviada")
-      } else {
-        setFollowing(true)
-        toast.success("Siguiendo")
+      try {
+        await api.delete(`/api/follow/${userId}`)
+        setFollowing(false)
+        setPending(false)
+        toast.success("Dejaste de seguir")
+      } catch {
+        toast.error("Error al dejar de seguir")
       }
-      notificationService.create(userId, "follow", `${user.nombres} te ha seguido`, user.userId)
+    } else {
+      try {
+        await api.post(`/api/follow/${userId}`)
+        if (profile.visibility === 'PRIVATE') {
+          setPending(true)
+          toast.success("Solicitud enviada")
+        } else {
+          setFollowing(true)
+          toast.success("Siguiendo")
+        }
+        notificationService.create(userId, "follow", `${user.nombres} te ha seguido`, user.userId)
+      } catch {
+        toast.error("Error al seguir")
+      }
     }
   }
 

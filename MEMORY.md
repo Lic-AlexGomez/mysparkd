@@ -17,16 +17,19 @@
 
 **Tema:** Sistema de Follows con cuentas privadas
 
-**Problema:** Al seguir una cuenta privada, el botón seguía diciendo "Siguiendo" en lugar de "Solicitado"
+**Problema:** 
+1. Al seguir cuenta privada → "Solicitado", pero al refrescar aparecía "Siguiendo"
+2. El frontend usaba localStorage (simulación) en vez del backend real
 
 **Solución implementada:**
-1. Agregado estado `pending` en `[userId]/page.tsx`
-2. Agregado método `isPending()` en `follow.ts`
-3. Botón muestra:
-   - "Seguir" (cuenta pública, no sigues)
-   - "Siguiendo" (ya seguiste)
-   - "Solicitado" (cuenta privada, enviaste solicitud) con ícono 🕒 Clock
-4. Restringido Like y Message para cuentas privadas sin aceptación
+1. `GET /api/follow/status/{userId}` → obtiene estado real del backend
+2. `POST /api/follow/{userId}` → seguir (backend decide pending o accepted)
+3. `DELETE /api/follow/{userId}` → dejar de seguir
+4. Botón muestra:
+   - "Seguir" (no sigues)
+   - "Siguiendo" (ya aceptaron)
+   - "Solicitado" (pendiente de aceptación) con ícono 🕒 Clock
+5. Like y Message bloqueados hasta ser aceptado
 
 ---
 

@@ -379,13 +379,19 @@ export default function ChatRoomPage() {
         await api.delete(`/api/messages/messages/${msgId}/me`)
       }
       setDeletedMessages(prev => new Set(prev).add(msgId))
-    } catch {
+    } catch (e: any) {
+      console.error('[delete] error:', e)
       toast.error('Error al eliminar el mensaje')
     }
     setDeleteConfirmId(null)
   }
 
   const [activeMessageId, setActiveMessageId] = useState<string | null>(null)
+
+  const deleteConfirmMessage = deleteConfirmId 
+    ? messages.find(m => (m.messageId || m.id) === deleteConfirmId) 
+    : null
+  const deleteConfirmIsOwn = deleteConfirmMessage?.senderId === user?.userId
 
   const filteredMessages = useMemo(() => searchQuery
     ? messages.filter(msg => !deletedMessages.has(msg.messageId || msg.id || '') && msg.content.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -840,6 +846,7 @@ export default function ChatRoomPage() {
               const replyMatch = isReply ? msg.content.match(/@reply:([^|]+)\|(.*)/) : null
               const replyToId = replyMatch?.[1]
               const actualContent = replyMatch?.[2] || msg.content
+              const isDeletedContent = actualContent === 'Mensaje eliminado'
               const repliedMsg = replyToId ? messages.find(m => (m.messageId || m.id) === replyToId) : null
               const isAudio = actualContent.startsWith('🎤 ')
               const audioUrl = isAudio ? actualContent.substring(3) : null
@@ -863,7 +870,7 @@ export default function ChatRoomPage() {
                   )}
                 >
                   {/* Botões de ação estilo WhatsApp - aparecem no hover, fora da bolha */}
-                  {!isOwn && (
+                  {!isOwn && !deletedMessages.has(msgId) && !isDeletedContent && (
                     <div className={cn(
                       "flex items-center gap-0.5 transition-opacity order-2 mb-1",
                       activeMessageId === msgId ? "opacity-100" : "opacity-0 group-hover/msg:opacity-100"
@@ -888,6 +895,13 @@ export default function ChatRoomPage() {
                         title="Copiar"
                       >
                         {copiedMessageId === msgId ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+                      </button>
+                      <button
+                        className="h-7 w-7 rounded-full flex items-center justify-center bg-muted/80 hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
+                        onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(msgId) }}
+                        title="Eliminar para mí"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   )}
@@ -1029,7 +1043,7 @@ export default function ChatRoomPage() {
                   )}
 
                   {/* Botões de ação para mensagens próprias */}
-                  {isOwn && (
+                  {isOwn && !deletedMessages.has(msgId) && !isDeletedContent && (
                     <div className={cn(
                       "flex items-center gap-0.5 transition-opacity order-0 mb-1",
                       activeMessageId === msgId ? "opacity-100" : "opacity-0 group-hover/msg:opacity-100"
@@ -1094,12 +1108,14 @@ export default function ChatRoomPage() {
           <div className="w-full max-w-sm bg-card rounded-2xl border border-border overflow-hidden" onClick={e => e.stopPropagation()}>
             <p className="text-sm font-semibold text-center text-foreground px-4 pt-4 pb-2">Eliminar mensaje</p>
             <div className="divide-y divide-border">
-              <button
-                className="w-full px-4 py-3.5 text-sm text-destructive font-medium hover:bg-muted/50 transition-colors text-left"
-                onClick={() => handleDeleteMessage(deleteConfirmId, true)}
-              >
-                Eliminar para todos
-              </button>
+              {deleteConfirmIsOwn && (
+                <button
+                  className="w-full px-4 py-3.5 text-sm text-destructive font-medium hover:bg-muted/50 transition-colors text-left"
+                  onClick={() => handleDeleteMessage(deleteConfirmId, true)}
+                >
+                  Eliminar para todos
+                </button>
+              )}
               <button
                 className="w-full px-4 py-3.5 text-sm text-foreground hover:bg-muted/50 transition-colors text-left"
                 onClick={() => handleDeleteMessage(deleteConfirmId, false)}
