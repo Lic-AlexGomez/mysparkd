@@ -1,3 +1,5 @@
+import { api } from '@/lib/api'
+
 interface Follow {
   followerId: string
   followingId: string
@@ -13,6 +15,7 @@ class FollowService {
   }
 
   private loadFollows() {
+    if (typeof window === 'undefined') return
     const saved = localStorage.getItem('sparkd_follows')
     if (saved) {
       this.follows = JSON.parse(saved)
@@ -20,6 +23,7 @@ class FollowService {
   }
 
   private saveFollows() {
+    if (typeof window === 'undefined') return
     localStorage.setItem('sparkd_follows', JSON.stringify(this.follows))
   }
 
@@ -39,6 +43,10 @@ class FollowService {
     
     this.follows.push(follow)
     this.saveFollows()
+    
+    // Sync con el backend en el fondo
+    api.post(`/api/follow/${followingId}`).catch(e => console.error("Error sync follow:", e))
+    
     return follow
   }
 
@@ -47,6 +55,9 @@ class FollowService {
       f => !(f.followerId === followerId && f.followingId === followingId)
     )
     this.saveFollows()
+    
+    // Sync con el backend en el fondo
+    api.delete(`/api/follow/${followingId}`).catch(e => console.error("Error sync unfollow:", e))
   }
 
   isFollowing(followerId: string, followingId: string): boolean {

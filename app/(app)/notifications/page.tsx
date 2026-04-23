@@ -95,8 +95,12 @@ export default function NotificationsPage() {
   }
 
   const markAsRead = async (id: string) => {
-    // Backend no soporta marcar como leída individualmente
-    fetchNotifications()
+    try {
+      await api.put(`/api/notifications/${id}/read`, {})
+      setNotifications(prev => prev.map(n => n.notificationId === id ? { ...n, read: true } : n))
+    } catch {
+      toast.error("Error al marcar como leída")
+    }
   }
 
   const deleteNotification = async (id: string) => {
