@@ -245,9 +245,9 @@ export default function UserProfilePage() {
 
           {profile.username && <p className="text-sm text-muted-foreground mt-0.5">@{profile.username}</p>}
           {profile.bio && <p className="text-sm text-foreground mt-2 leading-relaxed">{profile.bio}</p>}
-          {(profile as any).voiceNoteUrl && (
+          {((profile as any).voiceNoteUrl || (profile as any).voiceIntroUrl) && (
             <div className="mt-2">
-              <VoiceNotePlayer url={(profile as any).voiceNoteUrl} />
+              <VoiceNotePlayer url={(profile as any).voiceNoteUrl || (profile as any).voiceIntroUrl} />
             </div>
           )}
           {profile.location && profile.location !== "Unknown location" && <p className="text-xs text-muted-foreground mt-1">📍 {profile.location.split(',').length > 2 ? profile.location.split(',').slice(-2).map((p: string) => p.trim()).join(', ') : profile.location}</p>}

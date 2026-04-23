@@ -4,4 +4,4 @@ Disallow: /api/
 Disallow: /settings/
 Disallow: /onboarding/
 
-Sitemap: https://sparkd.app/sitemap.xml
+Sitemap: https://www.mysparkd.com/sitemap.xml

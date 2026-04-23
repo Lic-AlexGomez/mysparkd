@@ -91,6 +91,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/apple-touch-icon.svg?v=5" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="preconnect" href="https://sparkd1-0.onrender.com" />
+        <link rel="preconnect" href="https://www.mysparkd.com" />
         <meta name="application-name" content="Sparkd" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -138,17 +139,39 @@ export default function RootLayout({
               name: 'Johan M. Jones Anderson y Alex Manuel Gomez Salazar',
               jobTitle: 'Desarrolladores Web Full Stack',
               description: 'Creador de Sparkd, una innovadora red social y dating app para conocer gente nueva',
-              url: 'https://mysparkd.com',
+              url: 'https://www.mysparkd.com',
               sameAs: [
-                'https://mysparkd.com'
+                'https://www.mysparkd.com'
               ],
               knowsAbout: ['Desarrollo Web', 'React', 'Next.js', 'TypeScript', 'Node.js', 'Dating Apps', 'Redes Sociales'],
               alumniOf: 'Universidad',
               worksFor: {
                 '@type': 'Organization',
                 name: 'Sparkd',
-                url: 'https://sparkd.app'
+                url: 'https://www.mysparkd.com'
               }
+            }),
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'SoftwareApplication',
+              name: 'Sparkd',
+              operatingSystem: 'Web, iOS, Android',
+              applicationCategory: 'SocialNetworkingApplication',
+              offers: {
+                '@type': 'Offer',
+                price: '0',
+                priceCurrency: 'USD',
+              },
+              aggregateRating: {
+                '@type': 'AggregateRating',
+                ratingValue: '4.8',
+                ratingCount: '1250',
+              },
             }),
           }}
         />

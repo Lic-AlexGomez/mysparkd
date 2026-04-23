@@ -59,6 +59,7 @@ export interface UserProfile {
   longitude?: number
   website?: string
   voiceNoteUrl?: string
+  voiceIntroUrl?: string
   coverPhoto?: string
   coverPictureUrl?: string
   profilePictureUrl?: string

@@ -28,7 +28,19 @@ export function VoiceNotePlayer({ url }: VoiceNotePlayerProps) {
     if (!audio) return
     const onEnd = () => { setPlaying(false); setProgress(0) }
     const onTime = () => setProgress(audio.currentTime)
-    const onMeta = () => setDuration(audio.duration)
+    const onMeta = () => {
+      if (audio.duration === Infinity || isNaN(audio.duration)) {
+        audio.currentTime = 1e101
+        const getDuration = () => {
+          audio.removeEventListener('timeupdate', getDuration)
+          audio.currentTime = 0
+          setDuration(audio.duration)
+        }
+        audio.addEventListener('timeupdate', getDuration)
+      } else {
+        setDuration(audio.duration)
+      }
+    }
     audio.addEventListener('ended', onEnd)
     audio.addEventListener('timeupdate', onTime)
     audio.addEventListener('loadedmetadata', onMeta)
@@ -46,7 +58,12 @@ export function VoiceNotePlayer({ url }: VoiceNotePlayerProps) {
     else { audio.play(); setPlaying(true) }
   }
 
-  const fmt = (s: number) => `${Math.floor(s)}:${String(Math.floor((s % 1) * 60)).padStart(2, '0')}`
+  const fmt = (s: number) => {
+    if (isNaN(s) || !isFinite(s)) return "0:00"
+    const m = Math.floor(s / 60)
+    const secs = Math.floor(s % 60)
+    return `${m}:${secs.toString().padStart(2, '0')}`
+  }
 
   return (
     <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20">
@@ -70,7 +87,7 @@ export function VoiceNotePlayer({ url }: VoiceNotePlayerProps) {
         </div>
         <div className="flex justify-between text-[10px] text-muted-foreground">
           <span>{fmt(progress)}</span>
-          <span>{duration > 0 ? fmt(duration) : `0:${MAX_SECONDS}`}</span>
+          <span>{duration > 0 && isFinite(duration) ? fmt(duration) : `0:${MAX_SECONDS}`}</span>
         </div>
       </div>
       <span className="text-xs text-muted-foreground shrink-0">🎙️</span>

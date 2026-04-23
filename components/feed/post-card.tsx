@@ -602,7 +602,7 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
               >
                 <OptimizedImage
                   src={post.file}
-                  alt="Post media"
+                  alt={post.body ? `Imagen de la publicación de ${post.username}: ${post.body.substring(0, 50)}...` : `Publicación de ${post.username}`}
                   className="max-h-96"
                 />
               </div>
@@ -625,6 +625,7 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
                   <button
                     className="text-muted-foreground hover:text-foreground transition-colors"
                     title="Reaccionar"
+                    aria-label="Reaccionar a esta publicación"
                   >
                     <Heart
                       className={`h-5 w-5 transition-all hover:scale-110 ${
@@ -647,6 +648,7 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
                   onClick={toggleLike}
                   className="text-muted-foreground hover:text-foreground transition-colors"
                   title={liked ? "Quitar like" : "Dar like"}
+                  aria-label={liked ? "Quitar me gusta" : "Dar me gusta"}
                 >
                   <Heart
                     className={`h-5 w-5 transition-all hover:scale-110 ${
@@ -667,6 +669,7 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
                 onClick={() => setShowComments(true)}
                 className="text-muted-foreground hover:text-foreground transition-colors"
                 title="Comentar"
+                aria-label="Ver y escribir comentarios"
               >
                 <MessageCircle className="h-5 w-5 hover:scale-110 transition-all" />
               </button>
@@ -682,6 +685,7 @@ export function PostCard({ post, onDelete, onUpdate, highlight, compact = false 
                 onClick={() => setShowRepostModal(true)}
                 className="text-muted-foreground hover:text-foreground transition-colors"
                 title="Compartir"
+                aria-label="Republicar esta publicación"
               >
                 <Repeat2 className="h-5 w-5 hover:scale-110 transition-all" />
               </button>

@@ -20,7 +20,19 @@ export function AudioMessage({ src, className }: AudioMessageProps) {
     if (!audio) return
 
     const updateTime = () => setCurrentTime(audio.currentTime)
-    const updateDuration = () => setDuration(audio.duration)
+    const updateDuration = () => {
+      if (audio.duration === Infinity || isNaN(audio.duration)) {
+        audio.currentTime = 1e101
+        const getDuration = () => {
+          audio.removeEventListener('timeupdate', getDuration)
+          audio.currentTime = 0
+          setDuration(audio.duration)
+        }
+        audio.addEventListener('timeupdate', getDuration)
+      } else {
+        setDuration(audio.duration)
+      }
+    }
     const handleEnded = () => setIsPlaying(false)
 
     audio.addEventListener('timeupdate', updateTime)
@@ -47,7 +59,7 @@ export function AudioMessage({ src, className }: AudioMessageProps) {
   }
 
   const formatTime = (time: number) => {
-    if (isNaN(time)) return "0:00"
+    if (isNaN(time) || !isFinite(time)) return "0:00"
     const minutes = Math.floor(time / 60)
     const seconds = Math.floor(time % 60)
     return `${minutes}:${seconds.toString().padStart(2, '0')}`
