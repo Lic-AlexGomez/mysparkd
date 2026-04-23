@@ -91,7 +91,7 @@ export function VoiceNotePlayer({ url }: VoiceNotePlayerProps) {
           <span>{duration > 0 && isFinite(duration) ? fmt(duration) : `0:${MAX_SECONDS}`}</span>
         </div>
       </div>
-      <span className="text-xs text-muted-foreground shrink-0">aqui🎙️</span>
+      <span className="text-xs text-muted-foreground shrink-0">🎙️</span>
     </div>
   )
 }
