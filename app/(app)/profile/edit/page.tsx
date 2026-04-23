@@ -247,15 +247,10 @@ export default function EditProfilePage() {
             <Label>Nota de voz</Label>
             <p className="text-xs text-muted-foreground">Graba hasta 30 segundos para presentarte</p>
             <VoiceNoteRecorder
-<<<<<<< HEAD
-              currentUrl={user.voiceNoteUrl || user.voiceIntroUrl}
-              onSaved={(url) => updateUser({ voiceNoteUrl: url ?? undefined, voiceIntroUrl: url ?? undefined })}
-=======
               ref={voiceRecorderRef}
               currentUrl={user.voiceIntroUrl || user.voiceNoteUrl}
               onSaved={(url) => updateUser({ voiceIntroUrl: url ?? null, voiceNoteUrl: url ?? null })}
               onRecordingChange={(val) => { isVoiceRecordingRef.current = val; setIsVoiceRecording(val) }}
->>>>>>> 8ee0f55d3557a80bbb5654038116b73ea24333b0
             />
           </div>
 
