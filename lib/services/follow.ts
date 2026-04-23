@@ -66,6 +66,13 @@ class FollowService {
     )
   }
 
+  getFollowStatus(followerId: string, followingId: string): 'none' | 'pending' | 'accepted' {
+    const follow = this.follows.find(
+      f => f.followerId === followerId && f.followingId === followingId
+    )
+    return follow ? follow.status : 'none'
+  }
+
   getFollowersCount(userId: string): number {
     return this.follows.filter(f => f.followingId === userId && f.status === 'accepted').length
   }
