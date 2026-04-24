@@ -41,18 +41,18 @@ export const fastDateService = {
   },
 
   async sendInterest(dateCardId: string, message?: string): Promise<void> {
-    return api.post('/api/date-interests', { dateCardId, message })
+    return api.post('/api/fast-date/interests/interested', { dateCardId, message })
   },
 
   async respondInterest(interestId: string, accept: boolean): Promise<{ chatId?: string } | null> {
     try {
-      return await api.post<{ chatId?: string }>('/api/date-interests/respond', { interestId, accept })
+      return await api.post<{ chatId?: string }>('/api/fast-date/interests/respond', { interestId, accept })
     } catch {
       return null
     }
   },
 
   async getSentInterests(): Promise<SentInterest[]> {
-    return api.get<SentInterest[]>('/api/date-interests/sent')
+    return api.get<SentInterest[]>('/api/fast-date/interests/mine/sent')
   },
 }

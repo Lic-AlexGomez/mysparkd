@@ -316,6 +316,16 @@ export default function FastDatePage() {
                       <Badge className="text-[10px] px-2 py-0 border-0 bg-primary/10 text-primary">
                         {CATEGORY_LABELS[card.category] || card.category}
                       </Badge>
+                      {(card as any).compatibility > 0 && (
+                        <Badge className="text-[10px] px-2 py-0 border-0 bg-secondary/10 text-secondary">
+                          {(card as any).compatibility}% match
+                        </Badge>
+                      )}
+                      {(card as any).distance > 0 && (
+                        <span className="text-[10px] text-muted-foreground">
+                          {(card as any).distance < 1 ? `${Math.round((card as any).distance * 1000)}m` : `${((card as any).distance).toFixed(1)}km`}
+                        </span>
+                      )}
                     </div>
                     <h3 className="text-sm font-bold text-foreground mt-1">{card.title}</h3>
                     {card.message && (
@@ -377,7 +387,7 @@ export default function FastDatePage() {
               {myCards.filter(c => c.status === 'ACTIVE').length > 0 && (
                 <div className="space-y-3">
                   {myCards.filter(c => c.status === 'ACTIVE').map(card => (
-                    <MyCardItem key={card.dateCardId} card={card} onRespond={handleRespond} router={router} />
+                    <MyCardItem key={card.dateCardId} card={card} onRespond={handleRespond} router={router} onDelete={async (id) => { await fastDateService.delete(id); fetchMine() }} />
                   ))}
                 </div>
               )}
@@ -602,6 +612,120 @@ export default function FastDatePage() {
           )}
         </DialogContent>
       </Dialog>
+    </div>
+  )
+}
+
+// ── MyCardItem ────────────────────────────────────────────────────────────────
+function MyCardItem({ card, onRespond, router, onDelete }: {
+  card: MyDateCard
+  onRespond: (interestId: string, accept: boolean) => void
+  router: ReturnType<typeof useRouter>
+  onDelete?: (id: string) => void
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const pendingInterests = card.interests?.filter((i: any) => i.status === 'PENDING') || []
+
+  return (
+    <Card className="border-border">
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-sm font-bold text-foreground">{card.title}</h3>
+              {card.totalInterests != null && card.totalInterests > 0 && (
+                <Badge className="text-[10px] px-2 py-0 border-0 bg-primary/10 text-primary">
+                  {card.totalInterests} interesado{card.totalInterests > 1 ? 's' : ''}
+                </Badge>
+              )}
+            </div>
+            {card.dateTime && (
+              <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1 flex-wrap">
+                <Calendar className="h-3 w-3" />
+                {format(new Date(card.dateTime), 'd MMM, HH:mm', { locale: es })}
+                {card.locationZone && <><MapPin className="h-3 w-3 ml-1" />{card.locationZone}</>}
+              </p>
+            )}
+          </div>
+          {onDelete && (
+            <button
+              onClick={() => onDelete(card.dateCardId)}
+              className="h-7 w-7 rounded-full hover:bg-destructive/10 flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors shrink-0"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        {pendingInterests.length > 0 && (
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="mt-3 w-full flex items-center justify-between text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
+          >
+            <span>{pendingInterests.length} solicitud{pendingInterests.length > 1 ? 'es' : ''} pendiente{pendingInterests.length > 1 ? 's' : ''}</span>
+            {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
+        )}
+
+        {expanded && pendingInterests.map((interest: any) => (
+          <div key={interest.interestId} className="mt-2 p-3 rounded-xl bg-muted/50 border border-border flex items-center gap-3">
+            <Avatar
+              className="h-9 w-9 shrink-0 cursor-pointer"
+              onClick={() => interest.profileId && router.push(`/profile/${interest.profileId}`)}
+            >
+              <AvatarImage src={interest.profilePicture} />
+              <AvatarFallback className="bg-primary/10 text-primary text-xs">?</AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              {interest.message && (
+                <p className="text-xs text-muted-foreground line-clamp-2">"{interest.message}"</p>
+              )}
+            </div>
+            <div className="flex gap-1.5 shrink-0">
+              <button
+                onClick={() => onRespond(interest.interestId, true)}
+                className="h-8 w-8 rounded-full bg-green-500/10 hover:bg-green-500/20 flex items-center justify-center text-green-500 transition-colors"
+              >
+                <Check className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => onRespond(interest.interestId, false)}
+                className="h-8 w-8 rounded-full bg-destructive/10 hover:bg-destructive/20 flex items-center justify-center text-destructive transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  )
+}
+
+// ── ExpiredSection ────────────────────────────────────────────────────────────
+function ExpiredSection({ cards, onRespond, router }: {
+  cards: MyDateCard[]
+  onRespond: (interestId: string, accept: boolean) => void
+  router: ReturnType<typeof useRouter>
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div>
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors mb-2"
+      >
+        <History className="h-3.5 w-3.5" />
+        {open ? 'Ocultar' : 'Ver'} historial ({cards.length})
+        {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+      </button>
+      {open && (
+        <div className="space-y-2 opacity-60">
+          {cards.map(card => (
+            <MyCardItem key={card.dateCardId} card={card} onRespond={onRespond} router={router} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

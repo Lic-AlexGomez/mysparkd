@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Heart, Send, ChevronDown, ChevronUp, Trash2, MessageCircle } from "lucide-react"
+import { Heart, Send, ChevronDown, ChevronUp, Trash2, MessageCircle, Pencil, Check, X } from "lucide-react"
 import { toast } from "sonner"
 import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
@@ -46,6 +46,8 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
   const [showReplies, setShowReplies] = useState<Record<string, boolean>>({})
   const [canComment, setCanComment] = useState(true)
   const [canCommentReason, setCanCommentReason] = useState<string | null>(null)
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
+  const [editingText, setEditingText] = useState("")
 
   const fetchComments = useCallback(async () => {
     try {
@@ -244,6 +246,18 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
     }
   }
 
+  const handleEditComment = async (commentId: string) => {
+    if (!editingText.trim()) return
+    try {
+      await api.put(`/api/comments/update/${commentId}`, { text: editingText.trim() })
+      setComments(prev => prev.map(c => c.commentsId === commentId ? { ...c, text: editingText.trim() } : c))
+      setEditingCommentId(null)
+      toast.success('Comentario editado')
+    } catch {
+      toast.error('Error al editar comentario')
+    }
+  }
+
   const deleteComment = async (commentId: string) => {
     try {
       await api.delete(`/api/comments/delete/${commentId}`)
@@ -313,22 +327,35 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
                     <div className="flex-1 min-w-0">
                       <div className="bg-muted/50 rounded-2xl px-4 py-3 hover:bg-muted/70 transition-colors">
                         <div className="flex items-center gap-2 mb-1">
-                          <Link
-                            href={`/profile/${comment.userId}`}
-                            className="text-sm font-bold text-foreground hover:underline"
-                          >
+                          <Link href={`/profile/${comment.userId}`} className="text-sm font-bold text-foreground hover:underline">
                             {comment.username}
                           </Link>
                           <span className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(new Date(comment.createdAt), {
-                              addSuffix: true,
-                              locale: es,
-                            })}
+                            {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true, locale: es })}
                           </span>
                         </div>
-                        <p className="text-sm text-foreground leading-relaxed">
-                          {comment.text}
-                        </p>
+                        {editingCommentId === comment.commentsId ? (
+                          <div className="flex gap-2 mt-1">
+                            <Input
+                              value={editingText}
+                              onChange={(e) => setEditingText(e.target.value)}
+                              className="flex-1 h-8 text-sm bg-background border-border"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleEditComment(comment.commentsId) }
+                                if (e.key === 'Escape') setEditingCommentId(null)
+                              }}
+                            />
+                            <button onClick={() => handleEditComment(comment.commentsId)} className="text-primary hover:text-primary/80">
+                              <Check className="h-4 w-4" />
+                            </button>
+                            <button onClick={() => setEditingCommentId(null)} className="text-muted-foreground hover:text-foreground">
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-foreground leading-relaxed">{comment.text}</p>
+                        )}
                       </div>
                       <div className="mt-2 flex items-center gap-4 px-2">
                         {features.multipleReactions ? (
@@ -366,12 +393,20 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
                           Responder
                         </button>
                         {user?.userId === comment.userId && (
-                          <button
-                            onClick={() => deleteComment(comment.commentsId)}
-                            className="text-xs font-medium text-muted-foreground hover:text-destructive transition-colors ml-auto"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          <div className="flex items-center gap-2 ml-auto">
+                            <button
+                              onClick={() => { setEditingCommentId(comment.commentsId); setEditingText(comment.text) }}
+                              className="text-xs font-medium text-muted-foreground hover:text-primary transition-colors"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => deleteComment(comment.commentsId)}
+                              className="text-xs font-medium text-muted-foreground hover:text-destructive transition-colors"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
                         )}
                       </div>
 
