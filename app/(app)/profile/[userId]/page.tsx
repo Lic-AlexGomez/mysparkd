@@ -187,9 +187,9 @@ export default function UserProfilePage() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-card border-border">
               <DropdownMenuItem onClick={() => setShowReportModal(true)} className="cursor-pointer">Reportar</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => {
+              <DropdownMenuItem onClick={async () => {
                 if (!user?.userId) return
-                blockService.blockUser(user.userId, userId)
+                await blockService.blockUser(user.userId, userId)
                 toast.success("Usuario bloqueado")
               }} className="cursor-pointer text-destructive">Bloquear</DropdownMenuItem>
             </DropdownMenuContent>

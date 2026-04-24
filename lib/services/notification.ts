@@ -1,69 +1,88 @@
-interface Notification {
-  id: string
-  userId: string
-  type: 'like' | 'comment' | 'match' | 'message' | 'follow'
-  message: string
+import { api } from '@/lib/api'
+
+export interface Notification {
+  notificationId: string
+  senderId: string
+  senderUsername: string
+  receiverId: string
+  receiverUsername: string
+  title: string
+  data: string
+  targetId?: string
+  targetType?: string
   read: boolean
   createdAt: string
-  relatedUserId?: string
+  senderProfilePicture?: string
 }
 
 class NotificationService {
   private notifications: Notification[] = []
+  private onUpdateCallback: (() => void) | null = null
 
-  constructor() {
-    this.loadNotifications()
+  setOnUpdate(callback: () => void) {
+    this.onUpdateCallback = callback
   }
 
-  private loadNotifications() {
-    const saved = localStorage.getItem('sparkd_notifications')
-    if (saved) {
-      this.notifications = JSON.parse(saved)
+  async fetchNotifications(userId: string): Promise<Notification[]> {
+    try {
+      const data = await api.get<Notification[]>(`/api/notifications/${userId}`)
+      this.notifications = data
+      return this.notifications
+    } catch (e) {
+      console.error('[notifications] error fetching:', e)
+      return this.notifications
     }
   }
 
-  private saveNotifications() {
-    localStorage.setItem('sparkd_notifications', JSON.stringify(this.notifications))
+  async getUnreadCount(userId: string): Promise<number> {
+    try {
+      const count = await api.get<number>(`/api/notifications/${userId}/count`)
+      return count
+    } catch {
+      return this.notifications.filter(n => n.receiverId === userId && !n.read).length
+    }
   }
 
-  create(userId: string, type: Notification['type'], message: string, relatedUserId?: string): Notification {
-    const notification: Notification = {
-      id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      userId,
-      type,
-      message,
-      read: false,
-      createdAt: new Date().toISOString(),
-      relatedUserId,
+  async markAsRead(notificationId: string): Promise<void> {
+    try {
+      await api.put(`/api/notifications/${notificationId}/read`)
+      const notification = this.notifications.find(n => n.notificationId === notificationId)
+      if (notification) {
+        notification.read = true
+        this.onUpdateCallback?.()
+      }
+    } catch (e) {
+      console.error('[notifications] error marking as read:', e)
     }
-    this.notifications.push(notification)
-    this.saveNotifications()
-    return notification
+  }
+
+  async markAllAsRead(userId: string): Promise<void> {
+    for (const notification of this.notifications.filter(n => n.receiverId === userId && !n.read)) {
+      await this.markAsRead(notification.notificationId)
+    }
+  }
+
+  async deleteNotification(notificationId: string): Promise<void> {
+    try {
+      await api.delete(`/api/notifications/${notificationId}`)
+      this.notifications = this.notifications.filter(n => n.notificationId !== notificationId)
+      this.onUpdateCallback?.()
+    } catch (e) {
+      console.error('[notifications] error deleting:', e)
+    }
   }
 
   getNotifications(userId: string): Notification[] {
-    return this.notifications.filter(n => n.userId === userId).sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    )
+    return this.notifications.filter(n => n.receiverId === userId)
   }
 
-  getUnreadCount(userId: string): number {
-    return this.notifications.filter(n => n.userId === userId && !n.read).length
+  getUnreadNotifications(userId: string): Notification[] {
+    return this.notifications.filter(n => n.receiverId === userId && !n.read)
   }
 
-  markAsRead(notificationId: string) {
-    const notification = this.notifications.find(n => n.id === notificationId)
-    if (notification) {
-      notification.read = true
-      this.saveNotifications()
-    }
-  }
-
-  markAllAsRead(userId: string) {
-    this.notifications.forEach(n => {
-      if (n.userId === userId) n.read = true
-    })
-    this.saveNotifications()
+  addLocalNotification(notification: Notification) {
+    this.notifications.unshift(notification)
+    this.onUpdateCallback?.()
   }
 }
 

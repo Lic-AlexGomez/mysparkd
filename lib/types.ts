@@ -460,14 +460,17 @@ export interface SetPreferencesRequest {
 // Notifications
 export interface Notification {
   notificationId: string
-  type: string
-  message: string
-  read: boolean
-  createdAt: string
-  relatedUserId: string
-  relatedUsername: string
+  senderId: string
+  senderUsername: string
+  receiverId: string
+  receiverUsername: string
+  title: string
+  data: string
   targetId?: string
   targetType?: string
+  read: boolean
+  createdAt: string
+  senderProfilePicture?: string
 }
 
 // Subscription

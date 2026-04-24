@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
-import { notificationService } from "@/lib/services/notification"
 import type { Notification } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Bell, Loader2, Trash2, Check } from "lucide-react"
@@ -24,41 +23,10 @@ export default function NotificationsPage() {
   const fetchNotifications = useCallback(async () => {
     if (!user?.userId) return
     try {
-      const data = await api.get<any[]>(
-        `/api/notifications/${user.userId}`
-      )
-      console.log('Notificaciones del backend:', data)
-      const mapped = data.map(n => {
-        console.log('Notificación individual:', n)
-        return {
-          notificationId: n.senderId + n.createdAt,
-          type: n.type || 'like',
-          message: n.data,
-          read: n.read,
-          createdAt: n.createdAt,
-          relatedUserId: n.senderId,
-          relatedUsername: n.senderUsername,
-          targetId: n.targetId || n.postId || n.commentId,
-          targetType: n.targetType
-        }
-      })
-      console.log('Notificaciones mapeadas:', mapped)
-      setNotifications(mapped)
-    } catch (error) {
-      console.log('Error al obtener notificaciones del backend, usando locales:', error)
-      const localNotifs = notificationService.getNotifications(user.userId)
-      console.log('Notificaciones locales:', localNotifs)
-      setNotifications(localNotifs.map(n => ({
-        notificationId: n.id,
-        type: n.type,
-        message: n.message,
-        read: n.read,
-        createdAt: n.createdAt,
-        relatedUserId: n.relatedUserId || '',
-        relatedUsername: '',
-        targetId: n.targetId,
-        targetType: n.targetType
-      })))
+      const data = await api.get<any[]>(`/api/notifications/${user.userId}`)
+      setNotifications(data)
+    } catch {
+      toast.error("Error al cargar notificaciones")
     } finally {
       setIsLoading(false)
     }
@@ -81,14 +49,12 @@ export default function NotificationsPage() {
   const handleNotificationClick = (notification: Notification) => {
     markAsRead(notification.notificationId)
     
-    // Navegar según el tipo de notificación
-    if (notification.type === 'like' || notification.type === 'comment') {
-      // Como el backend no devuelve targetId, ir al feed general
-      router.push('/feed')
-    } else if (notification.type === 'follow') {
-      router.push(`/profile/${notification.relatedUserId}`)
-    } else if (notification.type === 'match') {
-      router.push('/matches')
+    if (notification.targetType === 'USER' && notification.targetId) {
+      router.push(`/profile/${notification.targetId}`)
+    } else if (notification.targetType === 'POST' && notification.targetId) {
+      router.push(`/feed?post=${notification.targetId}`)
+    } else if (notification.senderId) {
+      router.push(`/profile/${notification.senderId}`)
     } else {
       router.push('/feed')
     }
@@ -162,7 +128,7 @@ export default function NotificationsPage() {
                 />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-foreground">{n.message}</p>
+                <p className="text-sm text-foreground">{n.data}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {formatDistanceToNow(new Date(n.createdAt), {
                     addSuffix: true,

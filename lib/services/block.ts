@@ -1,39 +1,67 @@
+import { api } from '@/lib/api'
+
 class BlockService {
   private blockedUsers = new Map<string, Set<string>>()
+  private loaded = false
 
-  constructor() {
-    this.loadBlocks()
-  }
-
-  private loadBlocks() {
-    const saved = localStorage.getItem('sparkd_blocks')
-    if (saved) {
-      const data = JSON.parse(saved)
-      Object.entries(data).forEach(([userId, blockedIds]) => {
-        this.blockedUsers.set(userId, new Set(blockedIds as string[]))
-      })
+  private async loadBlocks(userId: string) {
+    try {
+      const blockedIds = await api.get<string[]>(`/api/matches/${userId}/blocks`)
+      this.blockedUsers.set(userId, new Set(blockedIds))
+    } catch {
+      const saved = localStorage.getItem('sparkd_blocks')
+      if (saved) {
+        const data = JSON.parse(saved)
+        if (data[userId]) {
+          this.blockedUsers.set(userId, new Set(data[userId]))
+        }
+      }
     }
+    this.loaded = true
   }
 
-  private saveBlocks() {
+  private saveBlocks(userId: string) {
+    const blockedIds = Array.from(this.blockedUsers.get(userId) || [])
     const data: Record<string, string[]> = {}
-    this.blockedUsers.forEach((blockedIds, userId) => {
-      data[userId] = Array.from(blockedIds)
-    })
+    data[userId] = blockedIds
     localStorage.setItem('sparkd_blocks', JSON.stringify(data))
   }
 
-  blockUser(blockerId: string, blockedId: string) {
+  async ensureLoaded(userId: string) {
+    if (!this.loaded) {
+      await this.loadBlocks(userId)
+    }
+  }
+
+  async blockUser(blockerId: string, blockedId: string): Promise<boolean> {
+    await this.ensureLoaded(blockerId)
+
+    try {
+      await api.post(`/api/matches/${blockedId}/block`)
+    } catch {
+      return false
+    }
+
     if (!this.blockedUsers.has(blockerId)) {
       this.blockedUsers.set(blockerId, new Set())
     }
     this.blockedUsers.get(blockerId)!.add(blockedId)
-    this.saveBlocks()
+    this.saveBlocks(blockerId)
+    return true
   }
 
-  unblockUser(blockerId: string, blockedId: string) {
+  async unblockUser(blockerId: string, blockedId: string): Promise<boolean> {
+    await this.ensureLoaded(blockerId)
+
+    try {
+      await api.delete(`/api/matches/${blockedId}/block`)
+    } catch {
+      return false
+    }
+
     this.blockedUsers.get(blockerId)?.delete(blockedId)
-    this.saveBlocks()
+    this.saveBlocks(blockerId)
+    return true
   }
 
   isBlocked(userId: string, targetId: string): boolean {
