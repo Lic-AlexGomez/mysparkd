@@ -30,9 +30,10 @@ interface CommentsSheetProps {
   onOpenChange: (open: boolean) => void
   onUpdate?: () => void
   onCommentAdded?: () => void
+  postOwnerId?: string
 }
 
-export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentAdded }: CommentsSheetProps) {
+export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentAdded, postOwnerId }: CommentsSheetProps) {
   const { user } = useAuth()
   const features = useFeatureFlags()
   const [comments, setComments] = useState<CommentType[]>([])
@@ -43,17 +44,21 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
   const [replyText, setReplyText] = useState("")
   const [expandedReplies, setExpandedReplies] = useState<Record<string, CommentReply[]>>({})
   const [showReplies, setShowReplies] = useState<Record<string, boolean>>({})
+  const [canComment, setCanComment] = useState(true)
+  const [canCommentReason, setCanCommentReason] = useState<string | null>(null)
 
   const fetchComments = useCallback(async () => {
     try {
       setLoadingComments(true)
       const data = await api.get<CommentType[]>(`/api/comments/get/${postId}`)
-      
-      // Mostrar comentarios inmediatamente sin likes
       setComments(data.map(c => ({ ...c, liked: false })))
       setLoadingComments(false)
-      
-      // Fetch reaction status en background
+      // check privacy si hay postOwnerId y no es el propio usuario
+      if (postOwnerId && postOwnerId !== user?.userId) {
+        api.get<any>('/api/settings/privacy').then(privacy => {
+          // esto es la privacy del viewer, no del owner — skip
+        }).catch(() => {})
+      }
       Promise.all(
         data.map(async (comment) => {
           try {
@@ -74,7 +79,7 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
       setComments([])
       setLoadingComments(false)
     }
-  }, [postId])
+  }, [postId, postOwnerId, user?.userId])
 
   useEffect(() => {
     if (open) {
@@ -85,6 +90,7 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
 
   const handleSubmitComment = async () => {
     if (!newComment.trim() || !user) return
+    if (!canComment) { toast.error(canCommentReason || 'No puedes comentar'); return }
     setIsLoading(true)
     try {
       await api.post(`/api/comments/${postId}`, { text: newComment.trim() })
@@ -490,8 +496,11 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
           </div>
         </ScrollArea>
 
-        {/* Comment input mejorado */}
+        {/* Comment input */}
         <div className="border-t border-border/50 px-6 py-4 bg-muted/30">
+          {!canComment ? (
+            <p className="text-sm text-muted-foreground text-center py-2">{canCommentReason || 'No puedes comentar en este post'}</p>
+          ) : (
           <div className="flex gap-3 items-center">
             <Avatar className="h-10 w-10 shrink-0 ring-2 ring-border">
               <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20 text-primary text-sm font-semibold">
@@ -517,9 +526,9 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
               className="h-11 w-11 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shrink-0 disabled:opacity-50"
             >
               <Send className="h-5 w-5" />
-              <span className="sr-only">Enviar comentario</span>
             </Button>
           </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

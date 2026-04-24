@@ -8,12 +8,14 @@ import {
   Calendar,
   MessageCircle,
   User,
+  Sparkles,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useUnreadChats } from "@/hooks/use-unread-chats"
 
 const navItems = [
   { href: "/feed", label: "Feed", icon: Newspaper },
+  { href: "/discover", label: "Descubrir", icon: Sparkles },
   { href: "/swipes", label: "Swipes", icon: Zap },
   { href: "/fastdate", label: "Citas", icon: Calendar },
   { href: "/chat", label: "Chat", icon: MessageCircle },

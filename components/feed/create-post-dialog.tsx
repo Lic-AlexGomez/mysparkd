@@ -188,7 +188,7 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
           body: body.trim(),
           question: pollData.question,
           options: pollData.options,
-          expiresAt: expiresAtMs,
+          expiresAt: new Date(expiresAtMs).toISOString(),
         })
         toast.success("Encuesta creada!")
         setBody("")

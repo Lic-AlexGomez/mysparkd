@@ -53,6 +53,27 @@ export default function ChatRoomPage() {
     if (typeof window === 'undefined') return {}
     try { return JSON.parse(localStorage.getItem(`chat_reactions_${chatId}`) || '{}') } catch { return {} }
   })
+
+  // Cargar reactions del backend al recibir mensajes
+  const syncReactionsFromMessages = useCallback((msgs: Message[]) => {
+    const backendReactions: Record<string, string> = {}
+    const reactionToEmoji: Record<string, string> = {
+      'LOVE': '❤️', 'LIKE': '👍', 'LAUGH': '😂', 'WOW': '😮', 'SAD': '😢', 'FIRE': '😡'
+    }
+    msgs.forEach(msg => {
+      const msgId = msg.messageId || msg.id || ''
+      if (msg.reactions && msg.reactions.length > 0) {
+        // mostrar la reaction del otro usuario (no la propia)
+        const otherReaction = msg.reactions.find((r: any) => r.userId !== user?.userId)
+        if (otherReaction) {
+          backendReactions[msgId] = reactionToEmoji[otherReaction.reaction] || ''
+        }
+      }
+    })
+    if (Object.keys(backendReactions).length > 0) {
+      setMessageReactions(prev => ({ ...backendReactions, ...prev }))
+    }
+  }, [user?.userId])
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
   const [editingContent, setEditingContent] = useState("")
@@ -214,7 +235,9 @@ export default function ChatRoomPage() {
           (m.messageId || m.id || '').startsWith('optimistic-') &&
           !serverContents.has(m.content)
         )
-        return [...data, ...pendingOptimistic]
+        const merged = [...data, ...pendingOptimistic]
+        syncReactionsFromMessages(data)
+        return merged
       })
     } catch (error) {
       console.error('[fetchMessages] ERROR:', error)
@@ -311,6 +334,14 @@ export default function ChatRoomPage() {
     }
   }, [isConnected, chatId, sendTyping])
   const handleReaction = async (messageId: string, emoji: string) => {
+    // Mapear emoji a ReactionType del backend
+    const emojiToReaction: Record<string, string> = {
+      '❤️': 'LOVE', '👍': 'LIKE', '😂': 'LAUGH', '😮': 'WOW', '😢': 'SAD', '😡': 'FIRE'
+    }
+    const reactionType = emojiToReaction[emoji]
+    if (!reactionType) return
+
+    // Toggle local optimista
     setMessageReactions(prev => {
       const current = prev[messageId]
       const next = { ...prev, [messageId]: current === emoji ? '' : emoji }
@@ -318,6 +349,13 @@ export default function ChatRoomPage() {
       return next
     })
     setShowReactions(null)
+
+    // Sync con backend
+    try {
+      await api.post(`/api/messages/messages/${messageId}/react?reaction=${reactionType}`)
+    } catch {
+      // silent - la reacción local ya se aplicó
+    }
   }
 
   const handleCopyMessage = async (content: string, messageId: string) => {

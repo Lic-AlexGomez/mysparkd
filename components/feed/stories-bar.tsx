@@ -1,54 +1,84 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Plus } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
-import { useFeatureFlags } from "@/hooks/use-feature-flags"
+import { api } from "@/lib/api"
+import type { StoryGroup } from "@/lib/types"
 
 export function StoriesBar() {
   const router = useRouter()
   const { user } = useAuth()
-  const features = useFeatureFlags()
+  const [groups, setGroups] = useState<StoryGroup[]>([])
 
-  if (!features.storiesPage) {
-    return null
-  }
+  useEffect(() => {
+    api.get<StoryGroup[]>("/api/stories/feed")
+      .then(data => {
+        const safe = Array.isArray(data) ? data : []
+        console.log('[StoriesBar] feed:', safe.map(g => ({ userId: g.userId, username: g.username, stories: g.stories?.length })))
+        console.log('[StoriesBar] myUserId:', user?.userId)
+        setGroups(safe)
+      })
+      .catch((e) => console.error('[StoriesBar] error:', e))
+  }, [user?.userId])
 
-  const stories = [
-    { id: "1", username: "Tu historia", photo: user?.profilePictureUrl || user?.photos?.find(p => p.isPrimary || p.primary)?.url, isOwn: true },
-  ]
-  //BIEN, luego se pueden agregar las historias de amigos aquí
+  // Siempre mostrar el propio usuario primero
+  const ownPhoto = user?.profilePictureUrl || user?.photos?.find((p: any) => p.isPrimary || p.primary)?.url
+  const ownGroup = groups.find(g => g.userId?.toString().toLowerCase() === user?.userId?.toString().toLowerCase())
+  const otherGroups = groups.filter(g => g.userId?.toString().toLowerCase() !== user?.userId?.toString().toLowerCase())
 
   return (
-    <div className=" border-b border-border py-4">
+    <div className="border-b border-border py-4">
       <div className="flex gap-4 overflow-x-auto px-4 scrollbar-hide">
-        {stories.map((story) => (
+
+        {/* Tu historia */}
+        <button
+          onClick={() => router.push('/stories')}
+          className="flex flex-col items-center gap-2 flex-shrink-0"
+        >
+          <div className="relative">
+            <div className={`rounded-full p-0.5 ${ownGroup ? 'bg-gradient-to-tr from-primary to-secondary' : 'bg-muted'}`}>
+              <div className="bg-card rounded-full p-0.5">
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={ownGroup?.stories?.[ownGroup.stories.length - 1]?.mediaUrl || ownPhoto} className="object-cover" />
+                  <AvatarFallback className="bg-primary/10 text-primary">
+                    {user?.nombres?.[0] || '?'}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+            </div>
+            <div className="absolute bottom-0 right-0 h-5 w-5 rounded-full bg-primary flex items-center justify-center border-2 border-card">
+              <Plus className="h-3 w-3 text-primary-foreground" />
+            </div>
+          </div>
+          <span className="text-xs text-foreground font-medium truncate max-w-[70px]">Tu historia</span>
+        </button>
+
+        {/* Stories de otros */}
+        {otherGroups.map((group) => (
           <button
-            key={story.id}
+            key={group.userId}
             onClick={() => router.push('/stories')}
             className="flex flex-col items-center gap-2 flex-shrink-0"
           >
             <div className="relative">
-              <div className={`rounded-full p-0.5 ${story.isOwn ? 'bg-gradient-to-tr from-primary to-secondary' : 'bg-gradient-to-tr from-secondary to-primary'}`}>
+              <div className={`rounded-full p-0.5 ${group.hasUnread ? 'bg-gradient-to-tr from-primary to-secondary' : 'bg-muted'}`}>
                 <div className="bg-card rounded-full p-0.5">
                   <Avatar className="h-16 w-16">
-                    <AvatarImage src={story.photo} />
-                    <AvatarFallback className="bg-primary/10 text-primary">{story.username[0]}</AvatarFallback>
+                    <AvatarImage src={group.profilePictureUrl} />
+                    <AvatarFallback className="bg-primary/10 text-primary">
+                      {group.username?.[0]}
+                    </AvatarFallback>
                   </Avatar>
                 </div>
               </div>
-              {story.isOwn && (
-                <div className="absolute bottom-0 right-0 h-5 w-5 rounded-full bg-primary flex items-center justify-center border-2 border-card">
-                  <Plus className="h-3 w-3 text-primary-foreground" />
-                </div>
-              )}
             </div>
-            <span className="text-xs text-foreground font-medium truncate max-w-[70px]">
-              {story.isOwn ? 'Tu historia' : story.username}
-            </span>
+            <span className="text-xs text-foreground font-medium truncate max-w-[70px]">{group.username}</span>
           </button>
         ))}
+
       </div>
     </div>
   )

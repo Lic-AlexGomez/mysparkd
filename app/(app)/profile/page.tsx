@@ -10,7 +10,7 @@ import { reputationService } from "@/lib/services/reputation"
 import { followService } from "@/lib/services/follow"
 import { bookmarkService } from "@/lib/services/bookmark"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
-import { Pencil, Loader2, Camera, Newspaper, Bookmark, Heart, Crown, MapPin, Globe, Zap, Settings, Trash2 } from "lucide-react"
+import { Pencil, Loader2, Camera, Newspaper, Bookmark, Heart, Crown, MapPin, Globe, Zap, Settings, Trash2, Mic, MicOff } from "lucide-react"
 import { toast } from "sonner"
 import { PostCard } from "@/components/feed/post-card"
 import { useRouter } from "next/navigation"
@@ -59,8 +59,8 @@ export default function ProfilePage() {
   const initials = user ? `${user.nombres?.[0] || ""}${user.apellidos?.[0] || ""}`.toUpperCase() : "?"
   const reputation = user?.reputation || 75
   const reputationColor = reputationService.getReputationColor(reputation)
-  const followersCount = user?.userId ? followService.getFollowersCount(user.userId) : 0
-  const followingCount = user?.userId ? followService.getFollowingCount(user.userId) : 0
+  const followersCount = user?.followersCount ?? (user?.userId ? followService.getFollowersCount(user.userId) : 0)
+  const followingCount = user?.followingCount ?? (user?.userId ? followService.getFollowingCount(user.userId) : 0)
   const savedPostsCount = user?.userId ? bookmarkService.getBookmarkedPosts(user.userId).length : 0
   const location = user?.location && user.location !== "Unknown location"
     ? (user.location.split(',').length > 2 ? user.location.split(',').slice(-2).map(p => p.trim()).join(', ') : user.location)
@@ -204,8 +204,46 @@ export default function ProfilePage() {
 
         {/* Voice note */}
         {(user.voiceIntroUrl || user.voiceNoteUrl) && (
-          <div className="mt-3">
+          <div className="mt-3 flex items-center gap-2">
             <VoiceNotePlayer url={(user.voiceIntroUrl || user.voiceNoteUrl)!} />
+            <button
+              onClick={async () => {
+                try {
+                  await api.delete('/api/profile/delete/voice')
+                  await refreshProfile()
+                  toast.success('Nota de voz eliminada')
+                } catch {
+                  toast.error('Error al eliminar nota de voz')
+                }
+              }}
+              className="h-8 w-8 rounded-full bg-destructive/10 hover:bg-destructive/20 flex items-center justify-center text-destructive shrink-0"
+              title="Eliminar nota de voz"
+            >
+              <MicOff className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+        {!user.voiceIntroUrl && !user.voiceNoteUrl && (
+          <div className="mt-3">
+            <input type="file" accept="audio/*" id="voice-upload" className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0]; if (!file) return
+                const toastId = toast.loading('Subiendo nota de voz...')
+                try {
+                  const fd = new FormData(); fd.append('file', file)
+                  await api.post('/api/profile/voice-note', fd)
+                  await refreshProfile()
+                  toast.dismiss(toastId); toast.success('Nota de voz guardada')
+                } catch { toast.dismiss(toastId); toast.error('Error al subir nota de voz') }
+                e.target.value = ''
+              }}
+            />
+            <button
+              onClick={() => document.getElementById('voice-upload')?.click()}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl border border-dashed border-border hover:border-primary hover:bg-primary/5 transition-all text-muted-foreground hover:text-primary text-xs"
+            >
+              <Mic className="h-4 w-4" /> Agregar nota de voz
+            </button>
           </div>
         )}
 

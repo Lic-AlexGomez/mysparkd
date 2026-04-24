@@ -7,6 +7,11 @@ interface Follow {
   createdAt: string
 }
 
+export interface FollowCounts {
+  followersCount: number
+  followingCount: number
+}
+
 class FollowService {
   private follows: Follow[] = []
 
@@ -17,9 +22,7 @@ class FollowService {
   private loadFollows() {
     if (typeof window === 'undefined') return
     const saved = localStorage.getItem('sparkd_follows')
-    if (saved) {
-      this.follows = JSON.parse(saved)
-    }
+    if (saved) this.follows = JSON.parse(saved)
   }
 
   private saveFollows() {
@@ -31,7 +34,6 @@ class FollowService {
     const existing = this.follows.find(
       f => f.followerId === followerId && f.followingId === followingId
     )
-    
     if (existing) return existing
 
     const follow: Follow = {
@@ -40,13 +42,9 @@ class FollowService {
       status: isPrivate ? 'pending' : 'accepted',
       createdAt: new Date().toISOString(),
     }
-    
     this.follows.push(follow)
     this.saveFollows()
-    
-    // Sync con el backend en el fondo
-    api.post(`/api/follow/${followingId}`).catch(e => console.error("Error sync follow:", e))
-    
+    api.post(`/api/follow/${followingId}`).catch(e => console.error('Error sync follow:', e))
     return follow
   }
 
@@ -55,9 +53,7 @@ class FollowService {
       f => !(f.followerId === followerId && f.followingId === followingId)
     )
     this.saveFollows()
-    
-    // Sync con el backend en el fondo
-    api.delete(`/api/follow/${followingId}`).catch(e => console.error("Error sync unfollow:", e))
+    api.delete(`/api/follow/${followingId}`).catch(e => console.error('Error sync unfollow:', e))
   }
 
   isFollowing(followerId: string, followingId: string): boolean {
@@ -79,12 +75,33 @@ class FollowService {
     return follow ? follow.status : 'none'
   }
 
+  // Conteos locales como fallback
   getFollowersCount(userId: string): number {
     return this.follows.filter(f => f.followingId === userId && f.status === 'accepted').length
   }
 
   getFollowingCount(userId: string): number {
     return this.follows.filter(f => f.followerId === userId && f.status === 'accepted').length
+  }
+
+  // Conteos reales desde el backend
+  async getFollowCounts(userId: string): Promise<FollowCounts> {
+    try {
+      return await api.get<FollowCounts>(`/api/follow/${userId}/counts`)
+    } catch {
+      return {
+        followersCount: this.getFollowersCount(userId),
+        followingCount: this.getFollowingCount(userId),
+      }
+    }
+  }
+
+  async getFollowers(userId: string) {
+    return api.get<any[]>(`/api/follow/${userId}/followers`)
+  }
+
+  async getFollowing(userId: string) {
+    return api.get<any[]>(`/api/follow/${userId}/following`)
   }
 }
 

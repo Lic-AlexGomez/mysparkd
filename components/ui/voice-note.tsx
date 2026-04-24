@@ -27,36 +27,68 @@ export function VoiceNotePlayer({ url }: VoiceNotePlayerProps) {
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
+
+    setDuration(0)
+    setProgress(0)
+    setPlaying(false)
+
     const onEnd = () => { setPlaying(false); setProgress(0) }
-    const onTime = () => setProgress(audio.currentTime)
-    const onMeta = () => {
-      if (audio.duration === Infinity || isNaN(audio.duration)) {
-        audio.currentTime = 1e101
-        const getDuration = () => {
-          audio.removeEventListener('timeupdate', getDuration)
-          audio.currentTime = 0
-          setDuration(audio.duration)
-        }
-        audio.addEventListener('timeupdate', getDuration)
-      } else {
+    const onTime = () => {
+      if (isFinite(audio.currentTime)) setProgress(audio.currentTime)
+    }
+
+    const tryGetDuration = () => {
+      if (isFinite(audio.duration) && audio.duration > 0) {
         setDuration(audio.duration)
+        return true
+      }
+      return false
+    }
+
+    const onMeta = () => {
+      if (!tryGetDuration()) {
+        // webm sin duración en header: cargar todo el audio
+        audio.preload = 'auto'
+        audio.load()
       }
     }
+
+    const onDurationChange = () => { tryGetDuration() }
+
+    const onCanPlayThrough = () => { tryGetDuration() }
+
     audio.addEventListener('ended', onEnd)
     audio.addEventListener('timeupdate', onTime)
     audio.addEventListener('loadedmetadata', onMeta)
+    audio.addEventListener('durationchange', onDurationChange)
+    audio.addEventListener('canplaythrough', onCanPlayThrough)
+
+    // forzar carga
+    audio.load()
+
     return () => {
       audio.removeEventListener('ended', onEnd)
       audio.removeEventListener('timeupdate', onTime)
       audio.removeEventListener('loadedmetadata', onMeta)
+      audio.removeEventListener('durationchange', onDurationChange)
+      audio.removeEventListener('canplaythrough', onCanPlayThrough)
     }
-  }, [])
+  }, [url])
 
   const toggle = () => {
     const audio = audioRef.current
     if (!audio) return
-    if (playing) { audio.pause(); setPlaying(false) }
-    else { audio.play(); setPlaying(true) }
+    if (playing) {
+      audio.pause()
+      setPlaying(false)
+    } else {
+      // Si el seek de duración dejó el audio al final, resetear
+      if (audio.currentTime >= (audio.duration || 0) - 0.1) {
+        audio.currentTime = 0
+      }
+      audio.play()
+      setPlaying(true)
+    }
   }
 
   const fmt = (s: number) => {
@@ -68,7 +100,7 @@ export function VoiceNotePlayer({ url }: VoiceNotePlayerProps) {
 
   return (
     <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20">
-      <audio ref={audioRef} src={url} preload="metadata" />
+      <audio ref={audioRef} src={url} preload="auto" />
       <button
         type="button"
         onClick={toggle}
@@ -86,9 +118,12 @@ export function VoiceNotePlayer({ url }: VoiceNotePlayerProps) {
             style={{ width: duration > 0 ? `${(progress / duration) * 100}%` : '0%' }}
           />
         </div>
-        <div className="flex justify-between text-[10px] text-muted-foreground">
-          <span>{fmt(progress)}</span>
-          <span>{duration > 0 && isFinite(duration) ? fmt(duration) : `0:${MAX_SECONDS}`}</span>
+        <div className="text-[10px] text-muted-foreground text-right">
+          {playing
+            ? `${fmt(progress)} / ${fmt(duration)}`
+            : duration > 0 && isFinite(duration)
+              ? fmt(duration)
+              : '...'}
         </div>
       </div>
       <span className="text-xs text-muted-foreground shrink-0">🎙️</span>

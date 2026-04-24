@@ -2,33 +2,21 @@ import { api } from '@/lib/api'
 
 class BlockService {
   private blockedUsers = new Map<string, Set<string>>()
-  private loaded = false
+  private loaded = new Set<string>()
 
   private async loadBlocks(userId: string) {
     try {
       const blockedIds = await api.get<string[]>(`/api/matches/${userId}/blocks`)
       this.blockedUsers.set(userId, new Set(blockedIds))
     } catch {
-      const saved = localStorage.getItem('sparkd_blocks')
-      if (saved) {
-        const data = JSON.parse(saved)
-        if (data[userId]) {
-          this.blockedUsers.set(userId, new Set(data[userId]))
-        }
-      }
+      // Do not rely on localStorage; fallback to empty set if backend isn't available
+      this.blockedUsers.set(userId, new Set())
     }
-    this.loaded = true
+    this.loaded.add(userId)
   }
 
-  private saveBlocks(userId: string) {
-    const blockedIds = Array.from(this.blockedUsers.get(userId) || [])
-    const data: Record<string, string[]> = {}
-    data[userId] = blockedIds
-    localStorage.setItem('sparkd_blocks', JSON.stringify(data))
-  }
-
-  async ensureLoaded(userId: string) {
-    if (!this.loaded) {
+  private async ensureLoaded(userId: string) {
+    if (!this.loaded.has(userId)) {
       await this.loadBlocks(userId)
     }
   }
@@ -37,7 +25,7 @@ class BlockService {
     await this.ensureLoaded(blockerId)
 
     try {
-      await api.post(`/api/matches/${blockedId}/block`)
+      await api.post(`/api/matches/${blockerId}/block`, { targetUserId: blockedId })
     } catch {
       return false
     }
@@ -46,7 +34,6 @@ class BlockService {
       this.blockedUsers.set(blockerId, new Set())
     }
     this.blockedUsers.get(blockerId)!.add(blockedId)
-    this.saveBlocks(blockerId)
     return true
   }
 
@@ -54,13 +41,12 @@ class BlockService {
     await this.ensureLoaded(blockerId)
 
     try {
-      await api.delete(`/api/matches/${blockedId}/block`)
+      await api.delete(`/api/matches/${blockerId}/block/${blockedId}`)
     } catch {
       return false
     }
 
     this.blockedUsers.get(blockerId)?.delete(blockedId)
-    this.saveBlocks(blockerId)
     return true
   }
 

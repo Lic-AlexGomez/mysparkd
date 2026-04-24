@@ -68,6 +68,20 @@ export function useFeed() {
   const [refreshing, setRefreshing] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
 
+  // Actualizar ubicación en background al cargar el feed
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) return
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        api.post('/api/feed/location', {
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude
+        }).catch(() => {})
+      },
+      () => {} // silent si el usuario deniega
+    )
+  }, [])
+
   const loadPosts = useCallback(async () => {
     // Cancelar request anterior si existe
     abortRef.current?.abort()

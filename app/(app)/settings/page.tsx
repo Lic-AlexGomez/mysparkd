@@ -36,6 +36,10 @@ import {
   Key,
 } from "lucide-react"
 import { usePushNotifications } from "@/hooks/use-push-notifications"
+import { privacyService } from "@/lib/services/privacy"
+import type { PrivacySettings, SparklingListMember } from "@/lib/types"
+import { Shield, Users } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function SettingsPage() {
   const { user, logout, refreshProfile } = useAuth()
@@ -53,6 +57,19 @@ export default function SettingsPage() {
   const [localFeedRadius, setLocalFeedRadius] = useState(50) // Radio en km para feed local
   const [prefLoading, setPrefLoading] = useState(true)
   const [savingPref, setSavingPref] = useState(false)
+
+  // Privacy Settings
+  const [privacySettings, setPrivacySettings] = useState<PrivacySettings>({
+    whoCanSeeMyPosts: 'EVERYONE',
+    whoCanComment: 'EVERYONE',
+    whoCanSendDM: 'EVERYONE',
+    showOnlineStatus: true,
+    showLastSeen: true,
+  })
+  const [privacyLoading, setPrivacyLoading] = useState(true)
+  const [savingPrivacy, setSavingPrivacy] = useState(false)
+  const [sparklingList, setSparklingList] = useState<SparklingListMember[]>([])
+  const [sparklingLoading, setSparklingLoading] = useState(false)
 
   // Change Password
   const [showChangePassword, setShowChangePassword] = useState(false)
@@ -127,9 +144,55 @@ export default function SettingsPage() {
     }
   }, [user])
 
+  const fetchPrivacySettings = useCallback(async () => {
+    try {
+      const data = await privacyService.getSettings()
+      setPrivacySettings(data)
+    } catch {
+      // silent - usar defaults
+    } finally {
+      setPrivacyLoading(false)
+    }
+  }, [])
+
+  const fetchSparklingList = useCallback(async () => {
+    setSparklingLoading(true)
+    try {
+      const data = await privacyService.getSparklingList()
+      setSparklingList(data)
+    } catch {
+      // silent
+    } finally {
+      setSparklingLoading(false)
+    }
+  }, [])
+
+  const savePrivacySettings = async () => {
+    setSavingPrivacy(true)
+    try {
+      await privacyService.updateSettings(privacySettings)
+      toast.success("Privacidad actualizada")
+    } catch {
+      toast.error("Error al guardar privacidad")
+    } finally {
+      setSavingPrivacy(false)
+    }
+  }
+
+  const handleRemoveFromSparklingList = async (memberId: string) => {
+    try {
+      await privacyService.removeFromSparklingList(memberId)
+      setSparklingList(prev => prev.filter(m => m.userId !== memberId))
+      toast.success("Eliminado de Sparkling List")
+    } catch {
+      toast.error("Error al eliminar")
+    }
+  }
+
   useEffect(() => {
     fetchPreferences()
     fetchInterests()
+    fetchPrivacySettings()
     
     // Cargar configuraciones locales
     if (user?.userId) {
@@ -259,6 +322,149 @@ export default function SettingsPage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
       <h1 className="mb-6 text-xl font-bold text-foreground">Configuracion</h1>
+
+      {/* Privacy Settings - Backend */}
+      <Card className="border-border bg-card mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-foreground text-base">
+            <Shield className="h-4 w-4" />
+            Privacidad
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {privacyLoading ? (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-foreground font-medium">¿Quién puede ver mis posts?</Label>
+                </div>
+                <Select
+                  value={privacySettings.whoCanSeeMyPosts}
+                  onValueChange={(v) => setPrivacySettings(p => ({ ...p, whoCanSeeMyPosts: v as any }))}
+                >
+                  <SelectTrigger className="w-36">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="EVERYONE">Todos</SelectItem>
+                    <SelectItem value="FOLLOWERS">Seguidores</SelectItem>
+                    <SelectItem value="NOBODY">Nadie</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-foreground font-medium">¿Quién puede comentar?</Label>
+                </div>
+                <Select
+                  value={privacySettings.whoCanComment}
+                  onValueChange={(v) => setPrivacySettings(p => ({ ...p, whoCanComment: v as any }))}
+                >
+                  <SelectTrigger className="w-36">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="EVERYONE">Todos</SelectItem>
+                    <SelectItem value="FOLLOWERS">Seguidores</SelectItem>
+                    <SelectItem value="NOBODY">Nadie</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-foreground font-medium">¿Quién puede enviarme DMs?</Label>
+                </div>
+                <Select
+                  value={privacySettings.whoCanSendDM}
+                  onValueChange={(v) => setPrivacySettings(p => ({ ...p, whoCanSendDM: v as any }))}
+                >
+                  <SelectTrigger className="w-36">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="EVERYONE">Todos</SelectItem>
+                    <SelectItem value="FOLLOWERS">Seguidores</SelectItem>
+                    <SelectItem value="MATCHES">Matches</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center justify-between p-4 rounded-lg border border-primary/30 bg-card">
+                <div>
+                  <Label className="text-foreground font-medium">Mostrar estado en línea</Label>
+                  <p className="text-xs text-muted-foreground mt-1">Otros pueden ver cuando estás activo</p>
+                </div>
+                <Switch
+                  checked={privacySettings.showOnlineStatus}
+                  onCheckedChange={(v) => setPrivacySettings(p => ({ ...p, showOnlineStatus: v }))}
+                />
+              </div>
+              <div className="flex items-center justify-between p-4 rounded-lg border border-primary/30 bg-card">
+                <div>
+                  <Label className="text-foreground font-medium">Mostrar última vez visto</Label>
+                  <p className="text-xs text-muted-foreground mt-1">Otros pueden ver cuándo estuviste activo</p>
+                </div>
+                <Switch
+                  checked={privacySettings.showLastSeen}
+                  onCheckedChange={(v) => setPrivacySettings(p => ({ ...p, showLastSeen: v }))}
+                />
+              </div>
+              <Button
+                onClick={savePrivacySettings}
+                disabled={savingPrivacy}
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                {savingPrivacy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
+                Guardar privacidad
+              </Button>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Sparkling List */}
+      <Card className="border-border bg-card mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between text-foreground text-base">
+            <span className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Sparkling List
+            </span>
+            <Button size="sm" variant="outline" onClick={fetchSparklingList} disabled={sparklingLoading}>
+              {sparklingLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : "Ver lista"}
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {sparklingList.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Tu lista especial de contactos está vacía. Puedes agregar personas desde su perfil.</p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {sparklingList.map((member) => (
+                <div key={member.userId} className="flex items-center justify-between p-3 rounded-lg border border-border">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold text-primary">
+                      {member.username?.[0]?.toUpperCase()}
+                    </div>
+                    <span className="text-sm font-medium text-foreground">{member.username}</span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleRemoveFromSparklingList(member.userId)}
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Privacy & Mode */}
       <Card className="border-border bg-card mb-6">

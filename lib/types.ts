@@ -74,6 +74,8 @@ export interface UserProfile {
   photos: Photo[]
   posts: Post[]
   totalPosts: number
+  followersCount?: number
+  followingCount?: number
   reputation?: number
   verificationLevel?: number
   interests?: string[] | Interest[]
@@ -306,6 +308,7 @@ export interface Comment {
   liked?: boolean
   reactions?: ReactionSummary
   userReaction?: ReactionType | null
+  profilePictureUrl?: string
 }
 
 export interface CommentReply {
@@ -351,22 +354,37 @@ export interface Match {
 }
 
 // Stories
-export interface Story {
+export interface StoryResponse {
   id: string
   userId: string
   username: string
-  userPhoto?: string
+  profilePictureUrl?: string
   mediaUrl: string
+  mediaType?: string
   caption?: string
+  audience?: StoryAudience
   createdAt: string
   expiresAt: string
   viewCount: number
-  viewed?: boolean
+  hasViewed: boolean
+  myReaction?: ReactionType
 }
+
+export interface StoryGroup {
+  userId: string
+  username: string
+  profilePictureUrl?: string
+  hasUnread: boolean
+  stories: StoryResponse[]
+}
+
+// keep Story as alias for backwards compat
+export type Story = StoryResponse
 
 export interface CreateStoryRequest {
   mediaUrl: string
   caption?: string
+  audience?: StoryAudience
 }
 
 // Groups
@@ -426,6 +444,7 @@ export interface Message {
   editedAt?: string
   deletedForEveryone?: boolean
   system?: boolean
+  reactions?: MessageReaction[]
 }
 
 export interface SendMessageRequest {
@@ -456,6 +475,36 @@ export interface SetPreferencesRequest {
   maxAge: number
   showMe: boolean
 }
+
+// Privacy Settings
+export type PrivacyOption = 'EVERYONE' | 'FOLLOWERS' | 'NOBODY'
+export type DmPrivacyOption = 'EVERYONE' | 'FOLLOWERS' | 'MATCHES'
+
+export interface PrivacySettings {
+  whoCanSeeMyPosts: PrivacyOption
+  whoCanComment: PrivacyOption
+  whoCanSendDM: DmPrivacyOption
+  showOnlineStatus: boolean
+  showLastSeen: boolean
+}
+
+// Sparkling List
+export interface SparklingListMember {
+  userId: string
+  username: string
+  profilePictureUrl?: string
+}
+
+// Message Reactions
+export interface MessageReaction {
+  userId: string
+  username: string
+  profilePictureUrl?: string
+  reaction: ReactionType
+}
+
+// Story Audience
+export type StoryAudience = 'PUBLIC' | 'SPARKLING_LIST'
 
 // Notifications
 export interface Notification {
