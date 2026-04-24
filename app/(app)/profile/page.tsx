@@ -16,6 +16,7 @@ import { PostCard } from "@/components/feed/post-card"
 import { useRouter } from "next/navigation"
 import { uploadToCloudinary } from "@/lib/cloudinary"
 import { VoiceNotePlayer } from "@/components/ui/voice-note"
+import { DialogTitle } from "@/components/ui/dialog"
 
 export default function ProfilePage() {
   const { user, refreshProfile, isLoading } = useAuth()
@@ -328,7 +329,7 @@ export default function ProfilePage() {
                       } catch { toast.error('Error al eliminar foto') }
                     }
                   }}
-                  className="absolute top-2 right-2 h-8 w-8 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white hover:bg-destructive"
+                  className="absolute top-2 right-2 h-8 w-8 rounded-full bg-black/60 flex items-center justify-center text-white hover:bg-destructive transition-opacity opacity-100 lg:opacity-0 lg:group-hover:opacity-100"
                   title="Eliminar foto"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -428,8 +429,9 @@ export default function ProfilePage() {
       {/* ── PHOTO VIEWER ─────────────────────────────────────────────── */}
       <Dialog open={!!viewPhotoUrl} onOpenChange={() => setViewPhotoUrl(null)}>
         <DialogContent className="max-w-3xl p-0 bg-black border-0 [&>button]:hidden">
+          <DialogTitle className="sr-only">Vista de foto</DialogTitle>
           <div className="relative">
-            <img src={viewPhotoUrl || ''} alt="Vista completa" className="w-full h-auto max-h-[90vh] object-contain" />
+            {viewPhotoUrl && <img src={viewPhotoUrl} alt="Vista completa" className="w-full h-auto max-h-[90vh] object-contain" />}
             <button
               onClick={() => setViewPhotoUrl(null)}
               className="absolute top-3 right-3 h-8 w-8 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center text-white"
