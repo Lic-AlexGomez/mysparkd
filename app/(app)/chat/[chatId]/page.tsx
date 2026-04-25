@@ -665,7 +665,7 @@ export default function ChatRoomPage() {
   }
 
   return (
-    <div className="chat-room fixed inset-x-0 bottom-0 top-16 z-10 flex flex-col overflow-hidden bg-background lg:left-20 xl:left-72">
+    <div className="chat-room fixed inset-x-0 bottom-0 top-0 z-10 flex flex-col overflow-hidden bg-background lg:left-20 xl:left-72">
       {/* Chat header */}
       <div className="z-20 flex-shrink-0 flex items-center gap-3 border-b border-primary/20 bg-background/95 backdrop-blur-xl px-4 py-3 shadow-lg shadow-primary/5">
         <Button

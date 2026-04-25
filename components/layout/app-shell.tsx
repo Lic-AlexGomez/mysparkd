@@ -8,6 +8,7 @@ import { SidebarNav } from "./sidebar-nav"
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const isAdminRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/manager')
+  const isChatRoomRoute = pathname.startsWith('/chat/')
 
   if (isAdminRoute) {
     return <>{children}</>
@@ -16,13 +17,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-svh bg-background">
       <SidebarNav />
-      <TopNavbar />
-      <div className="lg:ml-20 xl:ml-72 pt-16">
+      {!isChatRoomRoute && <TopNavbar />}
+      <div className={`lg:ml-20 xl:ml-72 ${isChatRoomRoute ? "pt-0" : "pt-16"}`}>
         <main className="min-h-svh pb-20 lg:pb-6 [&:has(.chat-room)]:pb-0 [&:has(.chat-room)]:min-h-0 [&:has(.chat-room)]:overflow-hidden">
           {children}
         </main>
       </div>
-      <BottomNav />
+      {!isChatRoomRoute && <BottomNav />}
     </div>
   )
 }
