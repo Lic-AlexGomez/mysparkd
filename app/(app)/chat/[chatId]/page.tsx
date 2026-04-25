@@ -11,7 +11,7 @@ import type { Message, Chat } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ArrowLeft, Send, Loader2, MessageCircle, Smile, Image as ImageIcon, X, Mic, Reply, MoreVertical, Copy, Paperclip, Check, Search, Star, Images, Sparkles, Gamepad2, Pencil, Trash2 } from "lucide-react"
+import { ArrowLeft, Send, Loader2, MessageCircle, Smile, Image as ImageIcon, X, Mic, Reply, MoreVertical, Copy, Paperclip, Check, Search, Star, Images, Gamepad2, Pencil, Trash2 } from "lucide-react"
 import dynamic from "next/dynamic"
 import { AudioMessage } from "@/components/audio-message"
 import { GamePanel } from "@/components/chat/game-panel"
@@ -786,7 +786,7 @@ export default function ChatRoomPage() {
             onClick={() => { setShowAI(!showAI); if (!showAI) { setAiSuggestions([]); callAI('suggestions') } }}
             className={cn("text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-xl", showAI && "text-primary bg-primary/10")}
           >
-            <Sparkles className="h-5 w-5" />
+            <Star className="h-5 w-5" />
           </Button>
           <Button variant="ghost" size="icon" onClick={() => setShowGame(!showGame)} className={cn("text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-xl", showGame && "text-primary bg-primary/10")}>
             <Gamepad2 className="h-5 w-5" />
@@ -828,7 +828,7 @@ export default function ChatRoomPage() {
       {showAI && (
         <div className="flex-shrink-0 border-b border-primary/20 bg-background/95 px-4 py-3">
           <div className="flex items-center gap-2 mb-3">
-            <Sparkles className="h-4 w-4 text-primary" />
+            <Star className="h-4 w-4 text-primary" />
             <span className="text-xs font-semibold text-primary">Asistente IA</span>
             <div className="flex gap-1 ml-auto">
               {(['suggestions', 'icebreaker', 'date'] as const).map((t) => (

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
-import { Bell, Zap, LogOut, Settings, User, Crown, Search, Flame, BarChart3, Users, Bookmark, X, CheckCheck, Heart, MessageCircle, UserPlus, Repeat2, AtSign } from "lucide-react"
+import { Bell, Zap, LogOut, Settings, User, Crown, Search, Flame, BarChart3, Users, Bookmark, X, CheckCheck, Heart, MessageCircle, UserPlus, Repeat2, AtSign, LayoutList } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
 import {
@@ -202,7 +202,7 @@ export function TopNavbar() {
           </Link>
         </Button>
         {/* Notifications */}
-        <div className="relative mr-4">
+        <div className="relative mr-1 sm:mr-4">
           <Button
             variant="ghost"
             size="icon"
@@ -223,7 +223,10 @@ export function TopNavbar() {
           </Button>
 
           {showNotifications && (
-            <div className="absolute right-0 top-full z-50 mt-2 w-96 overflow-hidden rounded-2xl border border-border bg-card shadow-2xl shadow-black/20" data-notifications-dropdown>
+            <div
+              className="fixed inset-x-3 top-16 z-50 overflow-hidden rounded-2xl border border-border bg-card shadow-2xl shadow-black/20 max-h-[calc(100vh-5rem)] sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96 sm:max-h-none"
+              data-notifications-dropdown
+            >
               {/* Header */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/80 backdrop-blur-sm">
                 <div className="flex items-center gap-2">
@@ -256,7 +259,7 @@ export function TopNavbar() {
               </div>
 
               {/* Lista */}
-              <div className="max-h-[420px] overflow-y-auto divide-y divide-border/50">
+              <div className="max-h-[calc(100vh-9rem)] overflow-y-auto divide-y divide-border/50 sm:max-h-[420px]">
                 {notifications.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 gap-3">
                     <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
@@ -356,6 +359,13 @@ export function TopNavbar() {
               <DropdownMenuItem asChild>
                 <Link href="/groups" className="flex items-center gap-2 cursor-pointer">
                   <Users className="h-4 w-4" /> Grupos
+                </Link>
+              </DropdownMenuItem>
+            )}
+            {features.trelloPage && (
+              <DropdownMenuItem asChild>
+                <Link href="/trello" className="flex items-center gap-2 cursor-pointer">
+                  <LayoutList className="h-4 w-4" /> Trello
                 </Link>
               </DropdownMenuItem>
             )}

@@ -13,7 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Loader2, MoreHorizontal, MessageCircle, UserPlus, UserCheck, ArrowLeft, Heart, Crown, Sparkles, Trash2, Lock, Clock, Star, X } from "lucide-react"
+import { Loader2, MoreHorizontal, MessageCircle, UserPlus, UserCheck, ArrowLeft, Heart, Crown, Trash2, Lock, Clock, Star, X } from "lucide-react"
 import { PostCard } from "@/components/feed/post-card"
 import { ReportModal } from "@/components/feed/report-modal"
 import { toast } from "sonner"
@@ -375,7 +375,7 @@ export default function UserProfilePage() {
             <div className="mt-3 p-3 rounded-xl bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20">
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-xs font-semibold text-foreground flex items-center gap-1">
-                  <Sparkles className="h-3.5 w-3.5 text-primary" /> Compatibilidad
+                  <Star className="h-3.5 w-3.5 text-primary" /> Compatibilidad
                 </span>
                 <span className="text-sm font-black text-primary">{compatibility}%</span>
               </div>

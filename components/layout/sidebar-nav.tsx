@@ -16,6 +16,7 @@ import {
   Search,
   Users,
   Crown,
+  LayoutList,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
@@ -31,6 +32,7 @@ const navItems = [
   { href: "/matches", label: "Matches", icon: Heart },
   { href: "/chat", label: "Chat", icon: MessageCircle },
   { href: "/groups", label: "Grupos", icon: Users },
+  { href: "/trello", label: "Trello", icon: LayoutList },
   { href: "/profile", label: "Perfil", icon: User },
   { href: "/premium", label: "Premium", icon: Crown },
 ]
@@ -43,6 +45,7 @@ export function SidebarNav() {
   const filteredNavItems = navItems.filter(item => {
     if (item.href === '/search' && !features.searchPage) return false
     if (item.href === '/groups' && !features.groupsPage) return false
+    if (item.href === '/trello' && !features.trelloPage) return false
     return true
   })
 

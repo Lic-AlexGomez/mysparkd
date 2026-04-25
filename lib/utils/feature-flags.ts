@@ -19,6 +19,7 @@ export interface FeatureFlags {
   groupsPage: boolean;
   dashboard: boolean;
   managerPanel: boolean;
+  trelloPage: boolean;
 }
 
 const TEST_USER_EMAILS = ['test1@test.com', 'test1@gmail.com', 'test1@example.com'];
@@ -44,6 +45,8 @@ export function isManager(userEmail?: string | null, username?: string | null, u
 export function getFeatureFlags(userEmail?: string | null, username?: string | null, userId?: string | null): FeatureFlags {
   const isAdmin   = canUseNewFeatures(userEmail, username, userId);
   const isMgr     = isManager(userEmail, username, userId);
+  const normalizedUsername = (username || "").trim().toLowerCase()
+  const isTrelloAllowed = normalizedUsername === "test1"
   return {
     multipleReactions: true,
     shareWithQR: true,
@@ -60,5 +63,6 @@ export function getFeatureFlags(userEmail?: string | null, username?: string | n
     groupsPage: true,
     dashboard:    isAdmin,          // 🔒 Solo admin (test1)
     managerPanel: isMgr || isAdmin, // 🔒 Manager + admin
+    trelloPage: isTrelloAllowed,    // 🔒 Solo login con test1
   };
 }

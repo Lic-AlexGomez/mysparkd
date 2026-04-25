@@ -1,0 +1,483 @@
+﻿{
+    "boardId":  "69b316a06238dae98730288d",
+    "frontCount":  53,
+    "frontCards":  [
+                       {
+                           "id":  "69ed285b6eaea5eedb0a626f",
+                           "name":  "15 Dias free trial",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/i8MxCCi5/124-15-dias-free-trial",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69ec64e6ddeeaa6eda6b590e",
+                           "name":  "ADMIN/ALL/USERS",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/ijL7fBFL/119-admin-all-users",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69db1aeccbdaea919f41bef2",
+                           "name":  "Agregar campos completos a MyDateCardsResponse",
+                           "listName":  "Terminado/ Pendiente revision Frontend",
+                           "url":  "https://trello.com/c/3e0wTJyr/56-agregar-campos-completos-a-mydatecardsresponse",
+                           "labels":  [
+                                          "69b316a06238dae9873029dc"
+                                      ]
+                       },
+                       {
+                           "id":  "69e98d19ded7f7f29e1db811",
+                           "name":  "Agregar contadores de seguidores a UserProfileResponseDTO",
+                           "listName":  "Terminado/ Pendiente revision Frontend",
+                           "url":  "https://trello.com/c/ExUr1HSU/83-agregar-contadores-de-seguidores-a-userprofileresponsedto",
+                           "labels":  [
+                                          "69b316a06238dae9873029dc"
+                                      ]
+                       },
+                       {
+                           "id":  "69bbf0b98ca00f79c8579276",
+                           "name":  "Agregar reacciones en chats",
+                           "listName":  "Terminado/ Pendiente revision Frontend",
+                           "url":  "https://trello.com/c/QVskaxuR/34-agregar-reacciones-en-chats",
+                           "labels":  [
+                                          "69b316a06238dae9873029dc"
+                                      ]
+                       },
+                       {
+                           "id":  "69ec5a38a66848619247d705",
+                           "name":  "BOOKMARKS",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/ICDMCgJx/117-bookmarks",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69eaaec51e9726ab83d8ffe8",
+                           "name":  "Cambios en endpoints existentes",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/DGyhCRX9/105-cambios-en-endpoints-existentes",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69ed12cdb3d16854965abb44",
+                           "name":  "change password ya lo tienes montado, conectar a POST /auth/change-password",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/GNCNzejM/122-change-password-ya-lo-tienes-montado-conectar-a-post-auth-change-password",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69ea9827b82901315109c269",
+                           "name":  "contadores de seguidores, seguidos... Tanto en get me, como en profile.",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/BxHTMQdc/90-contadores-de-seguidores-seguidos-tanto-en-get-me-como-en-profile",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69ea8850d02b7943aea98816",
+                           "name":  "Controlar que el limite de opciones en el poll sea menor o igual a 10",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/4eyU45nl/85-controlar-que-el-limite-de-opciones-en-el-poll-sea-menor-o-igual-a-10",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69c9467de828485931e6945a",
+                           "name":  "Dashboard Mannager",
+                           "listName":  "Terminado/ Pendiente revision Frontend",
+                           "url":  "https://trello.com/c/gW6G4TDC/38-dashboard-mannager",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69e6eae5cfd42c04043b1806",
+                           "name":  "Debo poder eliminar mensajes de otro usuario (Para mi)",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/l3j9EAR8/79-debo-poder-eliminar-mensajes-de-otro-usuario-para-mi",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69d9e62c10efe8995aba75f1",
+                           "name":  "En el perfil pondremos un campo que sea voice note, 30 sec, la persona podia decir algo sobre ella y que cuando alguien entre al perfil le pueda dar play, este debe estar disponible tambien para las cartas de swipe.",
+                           "listName":  "En test/Desarrollando /Frontend",
+                           "url":  "https://trello.com/c/HMZQr1v7/53-en-el-perfil-pondremos-un-campo-que-sea-voice-note-30-sec-la-persona-podia-decir-algo-sobre-ella-y-que-cuando-alguien-entre-al-p",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69e98fb3fae6cf32a9124a12",
+                           "name":  "Endpoints para listar Seguidores, Seguidos y Solicitudes Pendientes",
+                           "listName":  "Terminado/ Pendiente revision Frontend",
+                           "url":  "https://trello.com/c/xlq5VB6R/84-endpoints-para-listar-seguidores-seguidos-y-solicitudes-pendientes",
+                           "labels":  [
+                                          "69b316a06238dae9873029dc"
+                                      ]
+                       },
+                       {
+                           "id":  "69ebf533219e6b5217c34e1c",
+                           "name":  "feed para seguidores GET /api/feed/following",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/6LG1EYoP/112-feed-para-seguidores-get-api-feed-following",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69e6c760e145b917dd119bab",
+                           "name":  "Fix: Incluir notificationId en respuesta de notificaciones",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/uEf06vU1/78-fix-incluir-notificationid-en-respuesta-de-notificaciones",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69dd01decb58b85f60b04726",
+                           "name":  "Formato distinto a mensajes tipo \"system\": true.",
+                           "listName":  "En test/Desarrollando /Frontend",
+                           "url":  "https://trello.com/c/mjx1YFqd/66-formato-distinto-a-mensajes-tipo-system-true",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69db2088cb34ffdd5230bf42",
+                           "name":  "GET /api/admin/users — Listar todos los usuarios",
+                           "listName":  "Terminado/ Pendiente revision Frontend",
+                           "url":  "https://trello.com/c/EpJRlM4I/57-get-api-admin-users-listar-todos-los-usuarios",
+                           "labels":  [
+                                          "69b316a06238dae9873029dc"
+                                      ]
+                       },
+                       {
+                           "id":  "69eaacfb315075b95c14c112",
+                           "name":  "GET /api/settings/privacy",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/L0txa76K/102-get-api-settings-privacy",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69eaaa5d684f08a59fd2497d",
+                           "name":  "GET /api/stories/{storyId}/reactions",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/X7eI1YTb/101-get-api-stories-storyid-reactions",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69eaaa1222d1d7feebbcddb1",
+                           "name":  "GET /api/stories/{storyId}/view-count",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/leITEx6C/99-get-api-stories-storyid-view-count",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69db2a13d4124b327ce740f7",
+                           "name":  "GET /moderator/reports/all — Historial completo de reportes",
+                           "listName":  "Terminado/ Pendiente revision Frontend",
+                           "url":  "https://trello.com/c/bjCHWmGZ/58-get-moderator-reports-all-historial-completo-de-reportes",
+                           "labels":  [
+                                          "69b316a06238dae9873029dc"
+                                      ]
+                       },
+                       {
+                           "id":  "69ebff12130c90b4e53eadb2",
+                           "name":  "Grupos",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/MQCq59xS/113-grupos",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69eabc0fd36fb40b9de39acf",
+                           "name":  "Implementar /api/date-cards/feed con filtros (distancia, intereses, excluir dislikes)",
+                           "listName":  "Terminado/ Pendiente revision Frontend",
+                           "url":  "https://trello.com/c/Sx5dk5KQ/107-implementar-api-date-cards-feed-con-filtros-distancia-intereses-excluir-dislikes",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69df05f286e8eaa97db423da",
+                           "name":  "IMPLEMENTAR ENDPOINT BUSQUEDA INTELIGENTE. ESTE BUSCA POR POST, USUARIOS, HASHTAGS Y CONTENT DEL POST.",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/mChdRxjS/70-implementar-endpoint-busqueda-inteligente-este-busca-por-post-usuarios-hashtags-y-content-del-post",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69d9e2b3b77208399b1e0f6d",
+                           "name":  "Implementar, fast dating.",
+                           "listName":  "En test/Desarrollando /Frontend",
+                           "url":  "https://trello.com/c/ZJoyQVDZ/45-implementar-fast-dating",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69d9e38ea1ec28430c677cd4",
+                           "name":  "location no puede ser muy precisa en el frontend, limitarse a provincia y país",
+                           "listName":  "Terminado",
+                           "url":  "https://trello.com/c/3G2ycfc0/46-location-no-puede-ser-muy-precisa-en-el-frontend-limitarse-a-provincia-y-pa%C3%ADs",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69ea88ef32484ce964db5a02",
+                           "name":  "Manejar excepción cuando el poll haya expirado",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/343gijzA/86-manejar-excepci%C3%B3n-cuando-el-poll-haya-expirado",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69eb0c2154553164993ad1ac",
+                           "name":  "meetUp",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/wVwzVMEE/110-meetup",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69ec5ff8c211b8543c376763",
+                           "name":  "Mensajes fijados en chat privados",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/Rx6R2k5y/118-mensajes-fijados-en-chat-privados",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69ec45f0cca4d414cdb02447",
+                           "name":  "Mensajes fijados en grupos",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/Z24ekXXN/115-mensajes-fijados-en-grupos",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69dda87dd561d45a0b004245",
+                           "name":  "Modifico controller de feed de citas, ahora podremos filtrar por distancia, intereses, excluye cuentas que di dislike en swipe cards.../api/date-cards/feed",
+                           "listName":  "Terminado/ Pendiente revision Frontend",
+                           "url":  "https://trello.com/c/Beerfwpb/67-modifico-controller-de-feed-de-citas-ahora-podremos-filtrar-por-distancia-intereses-excluye-cuentas-que-di-dislike-en-swipe-card",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69df0234f85e9f585ce58a2d",
+                           "name":  "Modifico response del endpoint ver mis cards (Las que postee), ver mas dentro de la tarjeta...",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/9zPQVoEW/69-modifico-response-del-endpoint-ver-mis-cards-las-que-postee-ver-mas-dentro-de-la-tarjeta",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69ea92412e598fb10695f1bb",
+                           "name":  "Modulo Stories",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/PtNsBi7k/88-modulo-stories",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69eabc650e96c6d398bb03e0",
+                           "name":  "Notifications (float), queda a media pantalla. Web Mobile. al dar a todas, entra perfecto.\u0027",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/RqyhTf3r/108-notifications-float-queda-a-media-pantalla-web-mobile-al-dar-a-todas-entra-perfecto",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69ec4e7aedcf5d8f66dda648",
+                           "name":  "Pagination",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/HtZAjUeu/116-pagination",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69ed0fd75001965aad97046c",
+                           "name":  "Pantalla para redirigirlo resetPassword",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/x1llS3Ma/121-pantalla-para-redirigirlo-resetpassword",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69eaaa375cfc495026659653",
+                           "name":  "POST /api/stories/{storyId}/react?reaction=LIKE",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/b8wKt2iA/100-post-api-stories-storyid-reactreactionlike",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69eae31376ca87828b1aede0",
+                           "name":  "Profile voice note permite subir cualquier archivo, no solo voice. Debe ser solo voice",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/11wPOs4e/109-profile-voice-note-permite-subir-cualquier-archivo-no-solo-voice-debe-ser-solo-voice",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69eaad4e033b253f72fde485",
+                           "name":  "PUT /api/settings/privacy",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/NAz87uva/103-put-api-settings-privacy",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69ed0c7b9eb407cf43c2995f",
+                           "name":  "Reportes completos",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/pfnHnlpY/120-reportes-completos",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69b31f9d65111a7b75001ff0",
+                           "name":  "Sistema de Búsqueda Completo",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/7k2I0I2S/4-sistema-de-b%C3%BAsqueda-completo",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69ebeae958e3a79be87bb5f3",
+                           "name":  "Sistema de Repost",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/Bt8WlRbJ/111-sistema-de-repost",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69eaae29a3bce3d60ac9a541",
+                           "name":  "Sparkling list",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/zgJSr7gw/104-sparkling-list",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69ea9fb14c847acb32fb3016",
+                           "name":  "Sparkling list, Tipo Close friend. Historias tendrán privacidad. PUBLIC, SPARKLING LIST",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/Ofh81edh/91-sparkling-list-tipo-close-friend-historias-tendr%C3%A1n-privacidad-public-sparkling-list",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69ea961912e86b905de59338",
+                           "name":  "Ver follows request, acceptados, a quienes sigue el usuario",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/fsvFhDzv/89-ver-follows-request-acceptados-a-quienes-sigue-el-usuario",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69df11c1de6ff8dfd620c461",
+                           "name":  "Verificar que al subir foto no suban datos de location en la foto, ejemplo coordenadas. bloquear por privacidad.",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/0bxMBndA/71-verificar-que-al-subir-foto-no-suban-datos-de-location-en-la-foto-ejemplo-coordenadas-bloquear-por-privacidad",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69ed1591f3736edbadb3c9be",
+                           "name":  "Verification de email al registrarse",
+                           "listName":  "Pendiente de hacer frontend",
+                           "url":  "https://trello.com/c/mhZ8XY06/123-verification-de-email-al-registrarse",
+                           "labels":  [
+                                          "69b316a06238dae9873029da"
+                                      ]
+                       },
+                       {
+                           "id":  "69b322656c7b58cf8d7fc8fe",
+                           "name":  "👥 Grupos - Posts y Roles",
+                           "listName":  "Terminado/ Pendiente revision Frontend",
+                           "url":  "https://trello.com/c/HYZYD1ss/7-%F0%9F%91%A5-grupos-posts-y-roles",
+                           "labels":  [
+                                          "69b316a06238dae9873029dc"
+                                      ]
+                       },
+                       {
+                           "id":  "69b32400aa532d66d7d91f23",
+                           "name":  "💾 Guardados/Bookmarks",
+                           "listName":  "Terminado/ Pendiente revision Frontend",
+                           "url":  "https://trello.com/c/M3jhE5SQ/14-%F0%9F%92%BE-guardados-bookmarks",
+                           "labels":  [
+                                          "69b316a06238dae9873029dc"
+                                      ]
+                       },
+                       {
+                           "id":  "69b32242cb98b9c018e10cb7",
+                           "name":  "📖 Stories - Funcionalidades Adicionales",
+                           "listName":  "Terminado/ Pendiente revision Frontend",
+                           "url":  "https://trello.com/c/tYzh6pHq/6-%F0%9F%93%96-stories-funcionalidades-adicionales",
+                           "labels":  [
+                                          "69b316a06238dae9873029dc"
+                                      ]
+                       },
+                       {
+                           "id":  "69b3241d61cb2bf35d053b23",
+                           "name":  "🔄 Sistema de Repost",
+                           "listName":  "Terminado/ Pendiente revision Frontend",
+                           "url":  "https://trello.com/c/mAqeY9mU/15-%F0%9F%94%84-sistema-de-repost",
+                           "labels":  [
+                                          "69b316a06238dae9873029dc"
+                                      ]
+                       },
+                       {
+                           "id":  "69b323996f531b3e9f142ef3",
+                           "name":  "🔐 Configuración de Privacidad",
+                           "listName":  "Terminado/ Pendiente revision Frontend",
+                           "url":  "https://trello.com/c/kBjL64PD/12-%F0%9F%94%90-configuraci%C3%B3n-de-privacidad",
+                           "labels":  [
+                                          "69b316a06238dae9873029dc"
+                                      ]
+                       }
+                   ]
+}

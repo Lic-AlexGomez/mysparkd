@@ -33,4 +33,3 @@ Necesitamos soporte backend para que el pin sea compartido para todos los miembr
 - Todos los miembros ven la misma lista de fijados.
 - Refrescar sesión mantiene los fijados.
 - Eventos en tiempo real actualizan UI sin recargar.
-

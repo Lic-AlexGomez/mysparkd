@@ -51,6 +51,7 @@ export default function RegisterPage() {
         password,
       })
       toast.success("Cuenta creada. Revisa tu correo para verificar tu cuenta")
+      localStorage.setItem("sparkd_pending_verification_email", email.trim())
       router.push(
         `/verify-email?email=${encodeURIComponent(email.trim())}&username=${encodeURIComponent(username.trim())}`
       )

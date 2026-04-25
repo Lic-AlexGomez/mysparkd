@@ -10,6 +10,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { toast } from "sonner"
 import { CheckCircle2, Loader2, Mail } from "lucide-react"
 import { emailVerificationService } from "@/lib/services/email-verification"
+import { api } from "@/lib/api"
+import type { UserProfile } from "@/lib/types"
 
 function VerifyEmailForm() {
   const router = useRouter()
@@ -17,41 +19,39 @@ function VerifyEmailForm() {
 
   const token = searchParams.get("token") || ""
   const queryEmail = searchParams.get("email") || ""
-  const queryUsername = searchParams.get("username") || ""
 
   const [email, setEmail] = useState(queryEmail)
-  const [username, setUsername] = useState(queryUsername)
   const [code, setCode] = useState("")
   const [isVerifying, setIsVerifying] = useState(false)
   const [isResending, setIsResending] = useState(false)
   const [verified, setVerified] = useState(false)
-  const [tokenAttempted, setTokenAttempted] = useState(false)
+  const [tokenUnsupportedShown, setTokenUnsupportedShown] = useState(false)
 
   const identifierLabel = useMemo(() => {
     if (email) return email
-    if (username) return `@${username}`
     return "tu cuenta"
-  }, [email, username])
+  }, [email])
 
   useEffect(() => {
-    if (!token || tokenAttempted || verified) return
-
-    const run = async () => {
-      setIsVerifying(true)
-      try {
-        await emailVerificationService.verifyByToken(token)
-        setVerified(true)
-        toast.success("Email verificado correctamente")
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : "No se pudo verificar el enlace")
-      } finally {
-        setTokenAttempted(true)
-        setIsVerifying(false)
-      }
+    if (!token || tokenUnsupportedShown) return
+    toast.info("Tu backend verifica por código. Ingresa el código recibido por correo.")
+    if (!email) {
+      // preserve old link compatibility: token may be present without email.
+      setEmail("")
     }
+    setTokenUnsupportedShown(true)
+  }, [token, tokenUnsupportedShown, email])
 
-    void run()
-  }, [token, tokenAttempted, verified])
+  useEffect(() => {
+    if (email) return
+    const saved = localStorage.getItem("sparkd_pending_verification_email")
+    if (saved) setEmail(saved)
+  }, [email])
+
+  useEffect(() => {
+    if (!email.trim()) return
+    localStorage.setItem("sparkd_pending_verification_email", email.trim())
+  }, [email])
 
   const handleVerifyCode = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -59,18 +59,28 @@ function VerifyEmailForm() {
       toast.error("Ingresa el código de verificación")
       return
     }
-    if (!email.trim() && !username.trim()) {
-      toast.error("Ingresa email o usuario")
+    if (!email.trim()) {
+      toast.error("Ingresa tu email")
       return
     }
 
     setIsVerifying(true)
     try {
-      await emailVerificationService.verifyByCode({
+      const response = await emailVerificationService.verifyByCode({
         code,
-        email: email.trim() || undefined,
-        username: username.trim() || undefined,
+        email: email.trim(),
       })
+      if (response?.token) {
+        localStorage.setItem("sparkd_token", response.token)
+        localStorage.removeItem("sparkd_pending_verification_email")
+        try {
+          const profile = await api.get<UserProfile>("/api/profile/me")
+          localStorage.setItem("sparkd_user", JSON.stringify(profile))
+          router.push(profile.profileCompleted ? "/feed" : "/onboarding")
+        } catch {
+          router.push("/onboarding")
+        }
+      }
       setVerified(true)
       toast.success("Email verificado correctamente")
     } catch (error) {
@@ -81,16 +91,15 @@ function VerifyEmailForm() {
   }
 
   const handleResend = async () => {
-    if (!email.trim() && !username.trim()) {
-      toast.error("Ingresa email o usuario para reenviar")
+    if (!email.trim()) {
+      toast.error("Ingresa tu email para reenviar")
       return
     }
 
     setIsResending(true)
     try {
       await emailVerificationService.resend({
-        email: email.trim() || undefined,
-        username: username.trim() || undefined,
+        email: email.trim(),
       })
       toast.success("Te enviamos un nuevo correo de verificación")
     } catch (error) {
@@ -136,18 +145,6 @@ function VerifyEmailForm() {
                   placeholder="tu@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  disabled={isVerifying || isResending}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="username">Usuario (opcional)</Label>
-                <Input
-                  id="username"
-                  type="text"
-                  placeholder="tu_usuario"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
                   disabled={isVerifying || isResending}
                 />
               </div>

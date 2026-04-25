@@ -6,34 +6,21 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { StatCard } from "./shared"
 import { Shield, Ban, Eye, Flag, Loader2, CheckCircle, XCircle } from "lucide-react"
-import { api } from "@/lib/api"
+import { reportService, type ModerationReport } from "@/lib/services/report"
 import { toast } from "sonner"
 
-interface Report {
-  id: string
-  reporterUsername: string
-  reporterId: string
-  reportedUsername: string
-  reportedId: string
-  targetId: string
-  targetType: string
-  reasonName: string
-  description: string
-  status: string
-  createdAt: string
-}
-
 export function AdminModeration() {
-  const [reports, setReports] = useState<Report[]>([])
+  const [reports, setReports] = useState<ModerationReport[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
 
   const fetchReports = async () => {
     try {
-      const data = await api.get<Report[]>('/api/admin/reports')
+      const data = await reportService.listAdminReports()
       setReports(data)
     } catch {
-      // endpoint pendiente
+      // fallback seguro: servicio retorna [] cuando no hay endpoint disponible
+      setReports([])
     } finally {
       setLoading(false)
     }
@@ -44,7 +31,7 @@ export function AdminModeration() {
   const handleResolve = async (reportId: string) => {
     setActionLoading(reportId)
     try {
-      await api.post(`/api/admin/reports/${reportId}/resolve`)
+      await reportService.resolveAdminReport(reportId)
       toast.success("Reporte resuelto — usuario deshabilitado")
       setReports(prev => prev.map(r => r.id === reportId ? { ...r, status: 'ACTION_TAKEN' } : r))
     } catch {
@@ -57,7 +44,7 @@ export function AdminModeration() {
   const handleDismiss = async (reportId: string) => {
     setActionLoading(reportId)
     try {
-      await api.post(`/api/admin/reports/${reportId}/dismiss`)
+      await reportService.dismissAdminReport(reportId)
       toast.success("Reporte descartado")
       setReports(prev => prev.map(r => r.id === reportId ? { ...r, status: 'REJECTED' } : r))
     } catch {

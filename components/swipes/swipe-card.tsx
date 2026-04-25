@@ -4,7 +4,7 @@ import { useState } from "react"
 import { motion, useMotionValue, useTransform, type PanInfo } from "framer-motion"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { reputationService } from "@/lib/services/reputation"
-import { Sparkles } from "lucide-react"
+import { Star } from "lucide-react"
 import Link from "next/link"
 import { VoiceNotePlayer } from "@/components/ui/voice-note"
 
@@ -96,7 +96,7 @@ export function SwipeCard({ user, onSwipe, isTop, compatibility, exitDirection }
         <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
           {compatibility && compatibility > 0 && (
             <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-md rounded-full px-3 py-1.5 border border-white/20">
-              <Sparkles className="h-3.5 w-3.5 text-yellow-400" />
+              <Star className="h-3.5 w-3.5 text-yellow-400" />
               <span className="text-xs font-bold text-white">{compatibility}% match</span>
             </div>
           )}

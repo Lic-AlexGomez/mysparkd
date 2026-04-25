@@ -11,6 +11,7 @@ import { X, Plus, Eye, Heart } from "lucide-react"
 import { toast } from "sonner"
 import { uploadToCloudinary } from "@/lib/cloudinary"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { storyService } from "@/lib/services/story"
 
 interface StoryViewer {
   userId: string
@@ -40,6 +41,10 @@ export default function StoriesPage() {
   const [viewers, setViewers] = useState<StoryViewer[]>([])
   const [reactions, setReactions] = useState<StoryReaction[]>([])
   const [insightsLoading, setInsightsLoading] = useState(false)
+  const [storyViewCounts, setStoryViewCounts] = useState<Record<string, number>>({})
+  const currentGroup = groups[activeGroupIndex]
+  const currentStory: StoryResponse | undefined = currentGroup?.stories[activeStoryIndex]
+  const isOwnStory = currentGroup?.userId?.toString() === user?.userId?.toString()
 
   const reactionEmoji: Record<string, string> = {
     LOVE: '❤️', LIKE: '👍', LAUGH: '😂', WOW: '😮', SAD: '😢', FIRE: '🔥'
@@ -55,6 +60,31 @@ export default function StoriesPage() {
     }
     return () => { if (progressRef.current) clearTimeout(progressRef.current) }
   }, [activeGroupIndex, activeStoryIndex, groups.length, showInsights])
+
+  useEffect(() => {
+    if (!currentStory?.id) return
+
+    let cancelled = false
+    const storyId = currentStory.id
+
+    const loadViewCount = async () => {
+      try {
+        const count = await storyService.getViewCount(storyId)
+        if (!cancelled) {
+          setStoryViewCounts((prev) => ({ ...prev, [storyId]: count }))
+        }
+      } catch {
+        if (!cancelled && typeof currentStory.viewCount === 'number') {
+          setStoryViewCounts((prev) => ({ ...prev, [storyId]: currentStory.viewCount }))
+        }
+      }
+    }
+
+    void loadViewCount()
+    return () => {
+      cancelled = true
+    }
+  }, [currentStory?.id, currentStory?.viewCount])
 
   const fetchFeed = async () => {
     setIsLoading(true)
@@ -162,9 +192,9 @@ export default function StoriesPage() {
     }
   }
 
-  const currentGroup = groups[activeGroupIndex]
-  const currentStory: StoryResponse | undefined = currentGroup?.stories[activeStoryIndex]
-  const isOwnStory = currentGroup?.userId?.toString() === user?.userId?.toString()
+  const currentViewCount = currentStory
+    ? storyViewCounts[currentStory.id] ?? currentStory.viewCount ?? 0
+    : 0
 
   if (isLoading) {
     return (
@@ -204,12 +234,12 @@ export default function StoriesPage() {
                     onClick={() => fetchInsights(currentStory.id)}
                     className="text-white/70 text-xs flex items-center gap-1 hover:text-white transition-colors"
                   >
-                    <Eye className="h-3 w-3" /> {currentStory.viewCount} vistas
+                    <Eye className="h-3 w-3" /> {currentViewCount} vistas
                   </button>
                 )}
                 {!isOwnStory && currentStory?.viewCount !== undefined && (
                   <p className="text-white/70 text-xs flex items-center gap-1">
-                    <Eye className="h-3 w-3" /> {currentStory.viewCount}
+                    <Eye className="h-3 w-3" /> {currentViewCount}
                   </p>
                 )}
               </div>

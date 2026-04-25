@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Zap, Heart, MessageCircle, Users, Shield, Sparkles, ArrowLeft, Code } from "lucide-react"
+import { Zap, Heart, MessageCircle, Users, Shield, Star, ArrowLeft, Code } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export default function AboutPage() {
@@ -131,7 +131,7 @@ export default function AboutPage() {
 
           <div className="p-6 rounded-2xl bg-gradient-to-br from-primary/10 to-secondary/10 border-2 border-primary/30 shadow-[0_0_30px_rgba(139,92,246,0.2)] animate-in fade-in slide-in-from-bottom-4 duration-700 delay-400">
             <h2 className="text-2xl font-bold mb-4 flex items-center gap-2 text-white">
-              <Sparkles className="h-6 w-6 text-primary drop-shadow-[0_0_10px_rgba(139,92,246,0.8)]" />
+              <Star className="h-6 w-6 text-primary drop-shadow-[0_0_10px_rgba(139,92,246,0.8)]" />
               ¿Listo para comenzar?
             </h2>
             <p className="text-gray-300 mb-4">

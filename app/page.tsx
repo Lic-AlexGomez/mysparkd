@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useEffect } from "react"
-import { Zap, Heart, MessageCircle, Users, Sparkles, ArrowRight, Shield, Info } from "lucide-react"
+import { Zap, Heart, MessageCircle, Users, Star, ArrowRight, Shield, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SocialShare } from "@/components/ui/social-share"
 import { SocialFooter } from "@/components/ui/social-footer"
@@ -156,7 +156,7 @@ export default function HomePage() {
               className="w-full sm:w-auto px-6 md:px-8 py-4 md:py-6 text-base md:text-lg font-bold bg-gradient-to-r from-primary to-secondary text-black hover:scale-105 transition-transform shadow-[0_0_30px_rgba(var(--primary),0.5)] hover:shadow-[0_0_50px_rgba(var(--primary),0.8)] border-2 border-primary/50"
               onClick={() => router.push("/register")}
             >
-              <Sparkles className="mr-2 h-5 w-5 md:h-6 md:w-6" />
+              <Star className="mr-2 h-5 w-5 md:h-6 md:w-6" />
               Comenzar Gratis
               <ArrowRight className="ml-2 h-5 w-5 md:h-6 md:w-6" />
             </Button>

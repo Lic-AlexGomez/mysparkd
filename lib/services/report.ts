@@ -29,6 +29,22 @@ export interface ModerationReport {
   createdAt: string
 }
 
+function normalizeReport(report: any): ModerationReport {
+  return {
+    id: String(report?.id ?? report?.reportId ?? report?.moderationReportId ?? ''),
+    reporterUsername: report?.reporterUsername ?? report?.reporter?.username ?? report?.reportedByUsername ?? '',
+    reporterId: String(report?.reporterId ?? report?.reporter?.id ?? report?.reportedById ?? ''),
+    reportedUsername: report?.reportedUsername ?? report?.reportedUser?.username ?? report?.targetUsername ?? '',
+    reportedId: String(report?.reportedId ?? report?.reportedUser?.id ?? report?.targetUserId ?? ''),
+    targetId: String(report?.targetId ?? report?.entityId ?? ''),
+    targetType: String(report?.targetType ?? report?.entityType ?? 'UNKNOWN'),
+    reasonName: report?.reasonName ?? report?.reason?.name ?? report?.reason ?? 'Sin motivo',
+    description: report?.description ?? '',
+    status: String(report?.status ?? 'PENDING'),
+    createdAt: report?.createdAt ?? new Date().toISOString(),
+  }
+}
+
 export const reportService = {
   async getReasons(): Promise<ReportReason[]> {
     return await api.get<ReportReason[]>('/api/reports/reasons')
@@ -39,7 +55,18 @@ export const reportService = {
   },
 
   async listAdminReports(): Promise<ModerationReport[]> {
-    return await api.get<ModerationReport[]>('/api/admin/reports')
+    try {
+      const rows = await api.get<any[]>('/moderator/reports/all')
+      return (Array.isArray(rows) ? rows : []).map(normalizeReport)
+    } catch {
+      // Fallback seguro para entornos donde todavía existe el endpoint legado.
+      try {
+        const legacyRows = await api.get<any[]>('/api/admin/reports')
+        return (Array.isArray(legacyRows) ? legacyRows : []).map(normalizeReport)
+      } catch {
+        return []
+      }
+    }
   },
 
   async resolveAdminReport(reportId: string): Promise<void> {

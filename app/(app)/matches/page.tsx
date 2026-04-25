@@ -22,7 +22,7 @@ import {
   MoreVertical,
   UserX,
   Ban,
-  Sparkles,
+  Star,
   MapPin,
 } from "lucide-react"
 import { toast } from "sonner"
@@ -162,7 +162,7 @@ export default function MatchesPage() {
                       </Avatar>
                       {match.compatibilityScore && match.compatibilityScore > 70 && (
                         <div className="absolute -top-1 -right-1 h-7 w-7 rounded-full bg-gradient-to-br from-secondary to-primary flex items-center justify-center shadow-lg">
-                          <Sparkles className="h-4 w-4 text-black" />
+                          <Star className="h-4 w-4 text-black" />
                         </div>
                       )}
                     </div>

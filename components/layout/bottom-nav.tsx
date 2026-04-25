@@ -10,6 +10,7 @@ import {
   MessageCircle,
   User,
   Users,
+  LayoutList,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useUnreadChats } from "@/hooks/use-unread-chats"
@@ -22,6 +23,7 @@ const navItems = [
   { href: "/events", label: "Eventos", icon: CalendarDays },
   { href: "/fastdate", label: "Citas", icon: Calendar },
   { href: "/chat", label: "Chat", icon: MessageCircle },
+  { href: "/trello", label: "Trello", icon: LayoutList },
   { href: "/profile", label: "Perfil", icon: User },
 ]
 
@@ -32,6 +34,7 @@ export function BottomNav() {
 
   const visibleNavItems = navItems.filter((item) => {
     if (item.href === "/groups" && !features.groupsPage) return false
+    if (item.href === "/trello" && !features.trelloPage) return false
     return true
   })
 

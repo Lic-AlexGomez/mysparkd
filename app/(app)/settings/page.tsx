@@ -27,7 +27,7 @@ import { toast } from "sonner"
 import {
   Loader2,
   SlidersHorizontal,
-  Sparkles,
+  Star,
   Trash2,
   LogOut,
   Check,
@@ -37,6 +37,7 @@ import {
 } from "lucide-react"
 import { usePushNotifications } from "@/hooks/use-push-notifications"
 import { privacyService } from "@/lib/services/privacy"
+import { authService } from "@/lib/services/auth"
 import type { PrivacySettings, SparklingListMember } from "@/lib/types"
 import { Shield, Users } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -293,9 +294,9 @@ export default function SettingsPage() {
     }
     setChangingPassword(true)
     try {
-      await api.post("/api/profile/change-password", {
+      await authService.changePassword({
         currentPassword,
-        newPassword
+        newPassword,
       })
       toast.success("Contraseña actualizada")
       setShowChangePassword(false)
@@ -635,7 +636,7 @@ export default function SettingsPage() {
       <Card className="border-border bg-card mb-6">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-foreground text-base">
-            <Sparkles className="h-4 w-4" />
+            <Star className="h-4 w-4" />
             Mis intereses
           </CardTitle>
         </CardHeader>

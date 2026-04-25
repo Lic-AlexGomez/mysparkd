@@ -6,7 +6,7 @@ import { api } from "@/lib/api"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Heart, X, Sparkles, Eye, User } from "lucide-react"
+import { Loader2, Heart, X, Star, Eye, User } from "lucide-react"
 import { toast } from "sonner"
 
 interface LikedMeProfile {
@@ -147,7 +147,7 @@ export default function LikesPage() {
                     {/* Compatibility badge */}
                     {item.compatibilityScore > 70 && (
                       <div className="absolute top-4 right-4 h-12 w-12 rounded-full bg-gradient-to-br from-secondary to-primary flex items-center justify-center shadow-lg animate-pulse">
-                        <Sparkles className="h-6 w-6 text-black" />
+                        <Star className="h-6 w-6 text-black" />
                       </div>
                     )}
                     

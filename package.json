@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "trello:backend:sync": "powershell -ExecutionPolicy Bypass -File ./scripts/trello-backend-sync.ps1"
   },
   "dependencies": {
     "@cloudinary/react": "^1.14.4",

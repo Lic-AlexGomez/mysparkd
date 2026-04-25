@@ -10,7 +10,7 @@ import { CreatePostDialog } from "@/components/feed/create-post-dialog"
 import { EngagementStats } from "@/components/feed/engagement-stats"
 import { StoriesBar } from "@/components/feed/stories-bar"
 import { SkeletonPost } from "@/components/ui/skeleton-post"
-import { Loader2, Newspaper, Sliders, Sparkles, Users, Search, X, Filter, Image as ImageIcon, Calendar, LayoutGrid, List, MapPin } from "lucide-react"
+import { Loader2, Newspaper, Sliders, Star, Users, Search, X, Filter, Image as ImageIcon, Calendar, LayoutGrid, List, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
@@ -21,6 +21,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/lib/auth-context"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
+import { feedService } from "@/lib/services/feed"
+import type { Post } from "@/lib/types"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 
@@ -89,6 +91,8 @@ export default function FeedPage() {
   const [showSearch, setShowSearch] = useState(false)
   const [filterType, setFilterType] = useState<'all' | 'withImage' | 'withoutImage'>('all')
   const [viewMode, setViewMode] = useState<'card' | 'compact'>('card')
+  const [followingPosts, setFollowingPosts] = useState<Post[]>([])
+  const [followingLoading, setFollowingLoading] = useState(false)
   const [locationError, setLocationError] = useState(() => {
     // Verificar si ya se permitió la ubicación antes
     if (typeof window !== 'undefined') {
@@ -99,6 +103,25 @@ export default function FeedPage() {
   })
   const [isRequestingLocation, setIsRequestingLocation] = useState(false)
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (feedTab !== 'following') return
+
+    const loadFollowingFeed = async () => {
+      setFollowingLoading(true)
+      try {
+        const data = await feedService.getFollowingFeed()
+        setFollowingPosts(data)
+      } catch {
+        setFollowingPosts([])
+        toast.error('No se pudo cargar el feed de seguidos')
+      } finally {
+        setFollowingLoading(false)
+      }
+    }
+
+    void loadFollowingFeed()
+  }, [feedTab])
 
   useEffect(() => {
     setDisplayLocalPosts(posts)
@@ -236,9 +259,7 @@ export default function FeedPage() {
     if (feedTab === 'local') {
       basePosts = Array.isArray(localPosts) ? localPosts : []
     } else if (feedTab === 'following') {
-      // Mostrar solo posts de usuarios que sigues
-      // TODO: Implementar lógica de seguimiento cuando el backend esté listo
-      basePosts = Array.isArray(posts) ? posts.filter(post => post.userId === user?.userId) : []
+      basePosts = Array.isArray(followingPosts) ? followingPosts : []
     } else {
       basePosts = Array.isArray(posts) ? posts : []
     }
@@ -261,7 +282,7 @@ export default function FeedPage() {
     }
 
     return next
-  }, [posts, localPosts, user?.userId, feedTab, displayLocalPosts, searchQuery, filterType])
+  }, [posts, localPosts, followingPosts, feedTab, displayLocalPosts, searchQuery, filterType])
 
   if (loading && posts.length === 0) {
     return (
@@ -273,7 +294,10 @@ export default function FeedPage() {
     )
   }
 
-  const isLoadingFeed = (feedTab === 'local' && localLoading) || (feedTab === 'global' && loading)
+  const isLoadingFeed =
+    (feedTab === 'local' && localLoading) ||
+    (feedTab === 'global' && loading) ||
+    (feedTab === 'following' && followingLoading)
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -333,7 +357,7 @@ export default function FeedPage() {
           <Tabs value={feedTab} onValueChange={(v) => setFeedTab(v as any)} className="flex-1 md:max-w-md">
             <TabsList className="w-full grid grid-cols-3">
               <TabsTrigger value="global" className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 animate-sparkle" />
+                <Star className="h-4 w-4 animate-sparkle" />
                 Global
               </TabsTrigger>
               <TabsTrigger value="local" className="flex items-center gap-2">
