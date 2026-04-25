@@ -92,6 +92,7 @@ export default function ChatRoomPage() {
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([])
   const [aiType, setAiType] = useState<'suggestions' | 'icebreaker' | 'date'>('suggestions')
   const [selectedImageView, setSelectedImageView] = useState<string | null>(null)
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const emojiPickerRef = useRef<HTMLDivElement>(null)
@@ -286,6 +287,54 @@ export default function ChatRoomPage() {
     // Marcar como leído via WebSocket también
     if (isConnected) sendSeen(chatId)
   }, [fetchMessages, fetchChatInfo, chatId])
+
+  // Mantiene el chat ajustado al viewport visible (teclado móvil incluido).
+  useEffect(() => {
+    const vv = window.visualViewport
+    const updateViewport = () => {
+      setViewportHeight(Math.round(vv?.height ?? window.innerHeight))
+    }
+    updateViewport()
+    vv?.addEventListener("resize", updateViewport)
+    vv?.addEventListener("scroll", updateViewport)
+    window.addEventListener("resize", updateViewport)
+    return () => {
+      vv?.removeEventListener("resize", updateViewport)
+      vv?.removeEventListener("scroll", updateViewport)
+      window.removeEventListener("resize", updateViewport)
+    }
+  }, [])
+
+  // Evita que el teclado desplace toda la app en móviles.
+  useEffect(() => {
+    const scrollY = window.scrollY
+    const previousHtmlOverflow = document.documentElement.style.overflow
+    const previousBodyOverflow = document.body.style.overflow
+    const previousBodyPosition = document.body.style.position
+    const previousBodyTop = document.body.style.top
+    const previousBodyLeft = document.body.style.left
+    const previousBodyRight = document.body.style.right
+    const previousBodyWidth = document.body.style.width
+
+    document.documentElement.style.overflow = "hidden"
+    document.body.style.overflow = "hidden"
+    document.body.style.position = "fixed"
+    document.body.style.top = `-${scrollY}px`
+    document.body.style.left = "0"
+    document.body.style.right = "0"
+    document.body.style.width = "100%"
+
+    return () => {
+      document.documentElement.style.overflow = previousHtmlOverflow
+      document.body.style.overflow = previousBodyOverflow
+      document.body.style.position = previousBodyPosition
+      document.body.style.top = previousBodyTop
+      document.body.style.left = previousBodyLeft
+      document.body.style.right = previousBodyRight
+      document.body.style.width = previousBodyWidth
+      window.scrollTo(0, scrollY)
+    }
+  }, [])
 
   const scrollToBottom = useCallback((instant = false) => {
     const el = scrollAreaRef.current
@@ -665,7 +714,10 @@ export default function ChatRoomPage() {
   }
 
   return (
-    <div className="chat-room fixed inset-x-0 bottom-0 top-0 z-10 flex flex-col overflow-hidden bg-background lg:left-20 xl:left-72">
+    <div
+      className="chat-room fixed inset-x-0 top-0 z-10 flex flex-col overflow-hidden bg-background lg:left-20 xl:left-72"
+      style={{ height: viewportHeight ? `${viewportHeight}px` : "100dvh" }}
+    >
       {/* Chat header */}
       <div className="z-20 flex-shrink-0 flex items-center gap-3 border-b border-primary/20 bg-background/95 backdrop-blur-xl px-4 py-3 shadow-lg shadow-primary/5">
         <Button
