@@ -185,6 +185,13 @@ export const eventService = {
   shareAddress: (eventId: string, address: string) =>
     api.post<void>(`/api/events/${eventId}/group/share-address`, { address }),
 
+  // Reuse existing backend upload endpoint for media
+  uploadMedia: async (file: File): Promise<{ mediaUrl: string; mediaPublicId: string }> => {
+    const formData = new FormData()
+    formData.append("file", file)
+    return api.post<{ mediaUrl: string; mediaPublicId: string }>("/api/chat/upload/media", formData)
+  },
+
   // 11) WS topics for convenience
   topics: {
     eventGroup: (eventId: string) => `/topic/event-group/${eventId}`,

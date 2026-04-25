@@ -360,6 +360,11 @@ export function TopNavbar() {
               </DropdownMenuItem>
             )}
             <DropdownMenuItem asChild>
+              <Link href="/events" className="flex items-center gap-2 cursor-pointer">
+                <Flame className="h-4 w-4" /> Eventos
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
               <Link href="/settings" className="flex items-center gap-2 cursor-pointer">
                 <Settings className="h-4 w-4" /> Configuracion
               </Link>
