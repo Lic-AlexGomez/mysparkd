@@ -4,25 +4,11 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Flag, CheckCircle, XCircle, Eye, AlertTriangle, Ban, Clock, Loader2 } from "lucide-react"
-import { api } from "@/lib/api"
+import { Flag, XCircle, Eye, Ban, Clock, Loader2 } from "lucide-react"
+import { reportService, type ModerationReport } from "@/lib/services/report"
 import { toast } from "sonner"
 import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
-
-interface Report {
-  id: string
-  reporterId: string
-  reporterUsername: string
-  reportedId: string
-  reportedUsername: string
-  targetId: string
-  targetType: string
-  reasonName: string
-  description: string
-  status: string
-  createdAt: string
-}
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING:      "bg-rose-500/15 text-rose-500",
@@ -37,7 +23,7 @@ const STATUS_LABELS: Record<string, string> = {
 }
 
 export function ManagerReports() {
-  const [reports, setReports] = useState<Report[]>([])
+  const [reports, setReports] = useState<ModerationReport[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [filter, setFilter] = useState("todos")
@@ -45,11 +31,11 @@ export function ManagerReports() {
 
   const fetchReports = async () => {
     try {
-      const data = await api.get<Report[]>('/moderator/reports')
+      const data = await reportService.listAdminReports()
       setReports(data)
       if (data.length > 0) setSelected(data[0].id)
-    } catch {
-      // silent
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudieron cargar los reportes")
     } finally {
       setLoading(false)
     }
@@ -60,7 +46,7 @@ export function ManagerReports() {
   const handleDisable = async (reportId: string) => {
     setActionLoading(reportId)
     try {
-      await api.post(`/moderator/reports/${reportId}/disable`)
+      await reportService.resolveAdminReport(reportId)
       toast.success("Usuario deshabilitado")
       setReports(prev => prev.map(r => r.id === reportId ? { ...r, status: 'ACTION_TAKEN' } : r))
     } catch (error) {
@@ -73,9 +59,11 @@ export function ManagerReports() {
   const handleDismiss = async (reportId: string) => {
     setActionLoading(reportId)
     try {
-      // No hay endpoint de dismiss, marcamos localmente
+      await reportService.dismissAdminReport(reportId)
       setReports(prev => prev.map(r => r.id === reportId ? { ...r, status: 'REJECTED' } : r))
       toast.success("Reporte descartado")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo descartar el reporte")
     } finally {
       setActionLoading(null)
     }
@@ -247,7 +235,7 @@ export function ManagerReports() {
                       variant="outline"
                       className="w-full text-xs h-8 border-rose-500/30 text-rose-500 hover:bg-rose-500/10"
                       disabled={actionLoading === selectedReport.id}
-                      onClick={() => handleDisable(selectedReport.id, selectedReport.id)}
+                      onClick={() => handleDisable(selectedReport.id)}
                     >
                       {actionLoading === selectedReport.id
                         ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />

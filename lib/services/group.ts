@@ -110,6 +110,12 @@ export const groupService = {
       api.put<GroupMessage>(`/api/groups/${groupId}/messages/${messageId}`, { content }),
     remove: (groupId: string, messageId: string) =>
       api.delete<void>(`/api/groups/${groupId}/messages/${messageId}`),
+    listPinned: (groupId: string) =>
+      api.get<GroupMessage[]>(`/api/groups/${groupId}/pinned-messages`),
+    pin: (groupId: string, messageId: string) =>
+      api.post<void>(`/api/groups/${groupId}/messages/${messageId}/pin`),
+    unpin: (groupId: string, messageId: string) =>
+      api.delete<void>(`/api/groups/${groupId}/messages/${messageId}/pin`),
   },
 
   members: {

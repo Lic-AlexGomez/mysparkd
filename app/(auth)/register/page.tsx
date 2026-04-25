@@ -15,7 +15,7 @@ import { toast } from "sonner"
 import { Loader2, Eye, EyeOff } from "lucide-react"
 
 export default function RegisterPage() {
-  const { register, login, loginWithGoogle } = useAuth()
+  const { register, loginWithGoogle } = useAuth()
   const router = useRouter()
   const [username, setUsername] = useState("")
   const [email, setEmail] = useState("")
@@ -50,10 +50,10 @@ export default function RegisterPage() {
         email: email.trim(),
         password,
       })
-      toast.success("Cuenta creada!")
-      // Login automático después del registro
-      await login({ username: username.trim(), password })
-      router.push("/onboarding")
+      toast.success("Cuenta creada. Revisa tu correo para verificar tu cuenta")
+      router.push(
+        `/verify-email?email=${encodeURIComponent(email.trim())}&username=${encodeURIComponent(username.trim())}`
+      )
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al registrarse")
     } finally {
@@ -194,6 +194,12 @@ export default function RegisterPage() {
           text="Registrarse con Google"
         />
         <div className="mt-4 text-center">
+          <p className="text-xs text-muted-foreground mb-2">
+            ¿Ya tienes código de verificación?{" "}
+            <Link href="/verify-email" className="text-primary hover:text-primary/80 font-medium hover:underline transition-colors">
+              Verificar correo
+            </Link>
+          </p>
           <p className="text-sm text-muted-foreground">
             ¿Ya tienes cuenta?{" "}
             <Link href="/login" className="text-primary hover:text-primary/80 font-semibold hover:underline transition-colors">

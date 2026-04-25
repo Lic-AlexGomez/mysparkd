@@ -1,4 +1,5 @@
 const API_BASE_URL = "/api/proxy"
+const REQUEST_TIMEOUT_MS = 20_000
 
 class ApiError extends Error {
   status: number
@@ -39,10 +40,23 @@ async function request<T>(
     headers["Authorization"] = `Bearer ${token}`
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-  })
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+  let response: Response
+  try {
+    response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers,
+      signal: controller.signal,
+    })
+  } catch (error: any) {
+    if (error?.name === "AbortError") {
+      throw new ApiError("La solicitud tardó demasiado. Intenta nuevamente.", 408)
+    }
+    throw error
+  } finally {
+    clearTimeout(timeout)
+  }
 
   if (response.status === 401) {
     clearAuth()

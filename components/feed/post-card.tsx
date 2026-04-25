@@ -100,12 +100,7 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
   const [reactionCounts, setReactionCounts] = useState(post.reactions || {})
   const [repostCount, setRepostCount] = useState(post.repostCount || 0)
   const [reposted, setReposted] = useState(false)
-  const [bookmarked, setBookmarked] = useState(() => {
-    if (user?.userId) {
-      return bookmarkService.getBookmarkedPosts(user.userId).includes(post.id)
-    }
-    return false
-  })
+  const [bookmarked, setBookmarked] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const [showComments, setShowComments] = useState(false)
   const [showRepostModal, setShowRepostModal] = useState(false)
@@ -245,17 +240,23 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
     onDelete?.(post.id)
   }, [post.id, onDelete])
 
-  const handleBookmark = useCallback(() => {
-    if (user?.userId) {
-      const isBookmarked = bookmarkService.toggleBookmark(user.userId, post.id)
+  const handleBookmark = useCallback(async () => {
+    if (!user?.userId) {
+      toast.error('Inicia sesión para guardar posts')
+      return
+    }
+    try {
+      const isBookmarked = await bookmarkService.toggleBookmark(user.userId, post.id)
       setBookmarked(isBookmarked)
       toast.success(isBookmarked ? 'Post guardado' : 'Post removido')
       setShowMenu(false)
       if (!isBookmarked) {
         onDelete?.(post.id)
       }
+    } catch (error: any) {
+      toast.error(error?.message || 'No se pudo actualizar guardados')
     }
-  }, [user?.userId, post.id, bookmarked, onDelete])
+  }, [user?.userId, post.id, onDelete])
 
   const handleEdit = useCallback(() => {
     setIsEditing(true)
@@ -295,6 +296,28 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
 
 
   const [pollState, setPollState] = useState<typeof post.poll>(post.poll ?? null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    const run = async () => {
+      if (!user?.userId) {
+        if (!cancelled) setBookmarked(false)
+        return
+      }
+      try {
+        const rows = await bookmarkService.list(user.userId)
+        if (!cancelled) setBookmarked(rows.some((item) => item.postId === post.id))
+      } catch {
+        if (!cancelled) setBookmarked(bookmarkService.isBookmarked(user.userId, post.id))
+      }
+    }
+
+    void run()
+    return () => {
+      cancelled = true
+    }
+  }, [user?.userId, post.id])
 
   const handlePollVote = async (optionId: string) => {
     if (!pollState || pollState.userVoted) return

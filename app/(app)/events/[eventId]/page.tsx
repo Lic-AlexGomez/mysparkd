@@ -6,6 +6,8 @@ import { eventService } from "@/lib/services/event"
 import { groupService } from "@/lib/services/group"
 import { useAuth } from "@/lib/auth-context"
 import { useWebSocket } from "@/hooks/use-websocket"
+
+const MAX_VIDEO_DURATION_SECONDS = 180
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -198,6 +200,23 @@ export default function EventDetailPage() {
     setMediaFile(null)
   }
 
+  const getVideoDurationSeconds = (file: File) =>
+    new Promise<number>((resolve, reject) => {
+      const objectUrl = URL.createObjectURL(file)
+      const video = document.createElement("video")
+      video.preload = "metadata"
+      video.onloadedmetadata = () => {
+        const duration = Number(video.duration || 0)
+        URL.revokeObjectURL(objectUrl)
+        resolve(duration)
+      }
+      video.onerror = () => {
+        URL.revokeObjectURL(objectUrl)
+        reject(new Error("No se pudo leer la duración del video"))
+      }
+      video.src = objectUrl
+    })
+
   const handleJoin = async () => {
     setIsJoining(true)
     try {
@@ -225,7 +244,6 @@ export default function EventDetailPage() {
       } = { content }
 
       if (mediaFile) {
-        const uploaded = await eventService.uploadMedia(mediaFile)
         const mime = mediaFile.type || ""
         const mediaType = mime.startsWith("image/")
           ? "IMAGE"
@@ -234,6 +252,17 @@ export default function EventDetailPage() {
             : mime.startsWith("audio/")
               ? "AUDIO"
               : undefined
+
+        if (mediaType === "VIDEO") {
+          const durationSeconds = Math.floor(await getVideoDurationSeconds(mediaFile))
+          if (durationSeconds > MAX_VIDEO_DURATION_SECONDS) {
+            toast.error("El video no puede durar más de 3 minutos")
+            return
+          }
+          payload.durationSeconds = durationSeconds
+        }
+
+        const uploaded = await eventService.uploadMedia(mediaFile)
 
         payload = {
           ...payload,

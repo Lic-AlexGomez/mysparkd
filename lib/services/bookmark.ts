@@ -1,21 +1,44 @@
 import { api } from '@/lib/api'
 
+type RawBookmark = {
+  bookmarkId?: string
+  id?: string
+  postId?: string
+}
+
+export interface BookmarkItem {
+  postId: string
+  bookmarkId: string | null
+}
+
 class BookmarkService {
-  private bookmarks = new Map<string, Set<string>>()
+  private bookmarks = new Map<string, Map<string, string | null>>()
   private loaded = new Set<string>()
 
+  private normalizeBookmarkRows(rows: unknown): BookmarkItem[] {
+    if (!Array.isArray(rows)) return []
+    return rows
+      .map((row) => {
+        if (typeof row === 'string') {
+          return { postId: row, bookmarkId: null }
+        }
+        const r = row as RawBookmark
+        const postId = String(r.postId || '').trim()
+        if (!postId) return null
+        const bookmarkId = r.bookmarkId || r.id || null
+        return { postId, bookmarkId: bookmarkId ? String(bookmarkId) : null }
+      })
+      .filter(Boolean) as BookmarkItem[]
+  }
+
   private async loadBookmarks(userId: string) {
-    try {
-      const data = await api.get<any[]>(`/api/bookmarks/${userId}`)
-      // Normalize to array of postIds
-      const ids = (Array.isArray(data)
-        ? data
-        : []) as any[]
-      const postIds = ids.map((b) => (typeof b === 'string' ? b : b.postId ?? '')).filter((id) => !!id)
-      this.bookmarks.set(userId, new Set(postIds))
-    } catch {
-      this.bookmarks.set(userId, new Set())
+    const rows = await api.get<unknown>(`/api/bookmarks/${userId}`)
+    const normalized = this.normalizeBookmarkRows(rows)
+    const byPost = new Map<string, string | null>()
+    for (const item of normalized) {
+      byPost.set(item.postId, item.bookmarkId)
     }
+    this.bookmarks.set(userId, byPost)
     this.loaded.add(userId)
   }
 
@@ -25,35 +48,26 @@ class BookmarkService {
     }
   }
 
+  async list(userId: string): Promise<BookmarkItem[]> {
+    await this.ensureLoaded(userId)
+    const current = this.bookmarks.get(userId) ?? new Map<string, string | null>()
+    return Array.from(current.entries()).map(([postId, bookmarkId]) => ({ postId, bookmarkId }))
+  }
+
+  async refresh(userId: string) {
+    this.loaded.delete(userId)
+    await this.ensureLoaded(userId)
+  }
+
   async toggleBookmark(userId: string, postId: string): Promise<boolean> {
     await this.ensureLoaded(userId)
-    const current = this.bookmarks.get(userId) ?? new Set<string>()
+    const current = this.bookmarks.get(userId) ?? new Map<string, string | null>()
     if (current.has(postId)) {
-      // Attempt to remove using backend if possible
-      try {
-        // Try to fetch existing bookmarks to find bookmarkId for deletion
-        const data = await api.get<any[]>(`/api/bookmarks/${userId}`)
-        const found = Array.isArray(data) ? data.find((b) => (typeof b === 'string' ? b === postId : b.postId === postId)) : null
-        const bookmarkId = found && (typeof found === 'string' ? found : found.bookmarkId)
-        if (bookmarkId) {
-          await api.delete(`/api/bookmarks/${bookmarkId}`)
-        }
-      } catch {
-        // ignore if endpoint not available
-      }
-      current.delete(postId)
-      this.bookmarks.set(userId, current)
+      await this.removeBookmark(userId, postId)
       return false
-    } else {
-      try {
-        await api.post('/api/bookmarks', { userId, postId })
-      } catch {
-        // ignore
-      }
-      current.add(postId)
-      this.bookmarks.set(userId, current)
-      return true
     }
+    await this.addBookmark(userId, postId)
+    return true
   }
 
   isBookmarked(userId: string, postId: string): boolean {
@@ -61,7 +75,38 @@ class BookmarkService {
   }
 
   getBookmarkedPosts(userId: string): string[] {
-    return Array.from(this.bookmarks.get(userId) ?? [])
+    return Array.from(this.bookmarks.get(userId)?.keys() ?? [])
+  }
+
+  private async addBookmark(userId: string, postId: string) {
+    const response = await api.post<RawBookmark>('/api/bookmarks', { userId, postId })
+    const bookmarkId = response?.bookmarkId || response?.id || null
+    const current = this.bookmarks.get(userId) ?? new Map<string, string | null>()
+    current.set(postId, bookmarkId ? String(bookmarkId) : null)
+    this.bookmarks.set(userId, current)
+  }
+
+  private async removeBookmark(userId: string, postId: string) {
+    const current = this.bookmarks.get(userId) ?? new Map<string, string | null>()
+    let bookmarkId = current.get(postId) || null
+
+    if (!bookmarkId) {
+      await this.refresh(userId)
+      bookmarkId = this.bookmarks.get(userId)?.get(postId) || null
+    }
+
+    if (bookmarkId) {
+      try {
+        await api.delete(`/api/bookmarks/${bookmarkId}`)
+      } catch {
+        await api.delete(`/api/bookmarks/post/${postId}`)
+      }
+    } else {
+      await api.delete(`/api/bookmarks/post/${postId}`)
+    }
+
+    current.delete(postId)
+    this.bookmarks.set(userId, current)
   }
 }
 

@@ -1,4 +1,12 @@
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "https://sparkd1-0.onrender.com"
+const normalizeBackend = (raw: string) =>
+  raw.replace(/\/api\/?$/, "").replace(/\/$/, "")
+
+const PRIMARY_BACKEND_URL = normalizeBackend(
+  process.env.NEXT_PUBLIC_API_URL || "https://sparkd1-0.onrender.com"
+)
+const EVENTS_READONLY_BACKEND_URL = normalizeBackend(
+  process.env.NEXT_PUBLIC_READONLY_EVENTS_API_URL || PRIMARY_BACKEND_URL
+)
 
 async function handler(
   request: Request,
@@ -8,9 +16,18 @@ async function handler(
   const { path } = params
   const endpoint = `/${path.join("/")}`
 
+  // Rule:
+  // - GET /api/events... -> readonly events backend
+  // - Any non-GET method (POST/PUT/PATCH/DELETE) -> primary backend
+  const isEventsPath = endpoint.startsWith("/api/events")
+  const useReadonlyEventsBackend = request.method === "GET" && isEventsPath
+  const selectedBackend = useReadonlyEventsBackend
+    ? EVENTS_READONLY_BACKEND_URL
+    : PRIMARY_BACKEND_URL
+
   const url = new URL(request.url)
   const queryString = url.search
-  const targetUrl = `${BACKEND_URL}${endpoint}${queryString}`
+  const targetUrl = `${selectedBackend}${endpoint}${queryString}`
 
   const headers: Record<string, string> = {
     "Accept": "*/*"

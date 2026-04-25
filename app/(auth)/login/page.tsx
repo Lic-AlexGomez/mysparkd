@@ -44,8 +44,20 @@ export default function LoginPage() {
         router.push("/onboarding")
       }
     } catch (err) {
+      const message = err instanceof Error ? err.message : "Error al iniciar sesion"
+      const msgLower = message.toLowerCase()
+      if (
+        msgLower.includes("verify") ||
+        msgLower.includes("verific") ||
+        msgLower.includes("not verified") ||
+        msgLower.includes("email")
+      ) {
+        toast.error(message)
+        router.push(`/verify-email?username=${encodeURIComponent(username.trim())}`)
+        return
+      }
       toast.error(
-        err instanceof Error ? err.message : "Error al iniciar sesion"
+        message
       )
     } finally {
       setIsLoading(false)
@@ -167,6 +179,12 @@ export default function LoginPage() {
         />
         
         <div className="mt-4 text-center">
+          <p className="text-xs text-muted-foreground mb-2">
+            ¿No has verificado tu correo?{" "}
+            <Link href="/verify-email" className="text-primary hover:text-primary/80 font-medium hover:underline transition-colors">
+              Verificar ahora
+            </Link>
+          </p>
           <p className="text-sm text-muted-foreground">
             ¿No tienes cuenta?{" "}
             <Link href="/register" className="text-primary hover:text-primary/80 font-semibold hover:underline transition-colors">

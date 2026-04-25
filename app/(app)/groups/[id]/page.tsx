@@ -61,6 +61,7 @@ export default function GroupDetailPage() {
   const [deactivatingInviteId, setDeactivatingInviteId] = useState<string | null>(null)
   const [copyingInviteId, setCopyingInviteId] = useState<string | null>(null)
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
+  const [pinUpdatingMessageId, setPinUpdatingMessageId] = useState<string | null>(null)
   const [editingContent, setEditingContent] = useState("")
   const [settingsWhoCanTalk, setSettingsWhoCanTalk] = useState<"ALL" | "MODS_AND_ADMINS" | "ONLY_ADMIN">("ALL")
   const [inviteRole, setInviteRole] = useState<"MODERATOR" | "GUEST">("GUEST")
@@ -85,8 +86,6 @@ export default function GroupDetailPage() {
   const canModerate = Boolean(isModerator)
   const currentUserId = user?.userId
   const { subscribeToGroup } = useWebSocket(user?.userId, {})
-
-  const pinnedStorageKey = `sparkd_group_pins_${groupId}`
 
   const normalizeMessageId = (msg: Partial<GroupMessage>) =>
     (msg.id || (msg as any).messageId || "").toString()
@@ -160,6 +159,11 @@ export default function GroupDetailPage() {
       setSettingsWhoCanTalk((g.whoCanTalk as any) || "ALL")
       setMessages(dedupeMessages(ms))
       setMembers(mb)
+      const pinnedMessages = await groupService.messages.listPinned(groupId).catch(() => [])
+      const pinnedMessageIds = pinnedMessages
+        .map((m) => normalizeMessageId(m))
+        .filter(Boolean)
+      setPinnedIds(pinnedMessageIds)
       if (g.myRole === "ADMIN" || g.myRole === "MODERATOR") {
         const links = await groupService.inviteLinks.list(groupId).catch(() => [])
         setInviteLinks(links)
@@ -224,16 +228,6 @@ export default function GroupDetailPage() {
   }, [memberSuggestions, activeSuggestionIndex])
 
   useEffect(() => {
-    if (!groupId) return
-    const raw = localStorage.getItem(pinnedStorageKey)
-    setPinnedIds(raw ? JSON.parse(raw) : [])
-  }, [groupId])
-
-  useEffect(() => {
-    localStorage.setItem(pinnedStorageKey, JSON.stringify(pinnedIds))
-  }, [pinnedIds, pinnedStorageKey])
-
-  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages.length])
 
@@ -248,6 +242,19 @@ export default function GroupDetailPage() {
             m.id === event.messageId ? { ...m, deleted: true, content: null } : m
           )
         )
+        setPinnedIds((prev) => prev.filter((id) => id !== String(event.messageId)))
+        return
+      }
+
+      if (event?.type === "MESSAGE_PINNED" && event?.messageId) {
+        const messageId = String(event.messageId)
+        setPinnedIds((prev) => (prev.includes(messageId) ? prev : [messageId, ...prev]))
+        return
+      }
+
+      if (event?.type === "MESSAGE_UNPINNED" && event?.messageId) {
+        const messageId = String(event.messageId)
+        setPinnedIds((prev) => prev.filter((id) => id !== messageId))
         return
       }
 
@@ -508,10 +515,23 @@ export default function GroupDetailPage() {
     }
   }
 
-  const togglePin = (messageId: string) => {
-    setPinnedIds((prev) =>
-      prev.includes(messageId) ? prev.filter((id) => id !== messageId) : [messageId, ...prev]
-    )
+  const togglePin = async (messageId: string) => {
+    if (!canModerate) return
+    const isPinned = pinnedIds.includes(messageId)
+    setPinUpdatingMessageId(messageId)
+    try {
+      if (isPinned) {
+        await groupService.messages.unpin(groupId, messageId)
+        setPinnedIds((prev) => prev.filter((id) => id !== messageId))
+      } else {
+        await groupService.messages.pin(groupId, messageId)
+        setPinnedIds((prev) => (prev.includes(messageId) ? prev : [messageId, ...prev]))
+      }
+    } catch (error: any) {
+      toast.error(error?.message || "No se pudo actualizar mensaje fijado")
+    } finally {
+      setPinUpdatingMessageId(null)
+    }
   }
 
   const renderedMessages = useMemo(() => dedupeMessages(messages), [messages])
@@ -761,9 +781,16 @@ export default function GroupDetailPage() {
                                   {deletingMessageId === msg.id ? "Eliminando..." : "Eliminar"}
                                 </DropdownMenuItem>
                               )}
-                              <DropdownMenuItem onClick={() => togglePin(msg.id)}>
+                              <DropdownMenuItem
+                                disabled={pinUpdatingMessageId === msg.id}
+                                onClick={() => void togglePin(msg.id)}
+                              >
                                 <Pin className="h-4 w-4 mr-2" />
-                                {pinnedIds.includes(msg.id) ? "Desfijar" : "Fijar"}
+                                {pinUpdatingMessageId === msg.id
+                                  ? "Actualizando..."
+                                  : pinnedIds.includes(msg.id)
+                                    ? "Desfijar"
+                                    : "Fijar"}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>

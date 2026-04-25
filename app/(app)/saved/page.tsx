@@ -18,9 +18,28 @@ export default function SavedPostsPage() {
       if (!user?.userId) return
       
       try {
+        await bookmarkService.refresh(user.userId)
         const bookmarkedIds = bookmarkService.getBookmarkedPosts(user.userId)
+        if (bookmarkedIds.length === 0) {
+          setPosts([])
+          return
+        }
+
+        try {
+          const backendRows = await api.get<any[]>(`/api/bookmarks/${user.userId}/posts`)
+          const normalized = (Array.isArray(backendRows) ? backendRows : [])
+            .map((row) => (row?.post ? row.post : row))
+            .filter((row) => row?.id)
+          if (normalized.length > 0) {
+            setPosts(normalized as Post[])
+            return
+          }
+        } catch {
+          // Fallback to filtering feed response when dedicated endpoint is unavailable.
+        }
+
         const allPosts = await api.get<Post[]>("/api/posts/feed")
-        const savedPosts = allPosts.filter(p => bookmarkedIds.includes(p.id))
+        const savedPosts = allPosts.filter((p) => bookmarkedIds.includes(p.id))
         setPosts(savedPosts)
       } catch {
         setPosts([])
