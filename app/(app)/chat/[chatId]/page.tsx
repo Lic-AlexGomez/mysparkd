@@ -287,6 +287,15 @@ export default function ChatRoomPage() {
     if (isConnected) sendSeen(chatId)
   }, [fetchMessages, fetchChatInfo, chatId])
 
+  // Evita que el navegador desplace toda la página al enfocar el input en móvil.
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [])
+
   const scrollToBottom = useCallback((instant = false) => {
     const el = scrollAreaRef.current
     if (!el) return
@@ -665,9 +674,9 @@ export default function ChatRoomPage() {
   }
 
   return (
-    <div className="chat-room flex flex-col fixed inset-0 top-16 lg:left-20 xl:left-72 bg-background" style={{ zIndex: 10 }}>
+    <div className="chat-room flex h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-background">
       {/* Chat header */}
-      <div className="flex-shrink-0 flex items-center gap-3 border-b border-primary/20 bg-background/95 backdrop-blur-xl px-4 py-3 shadow-lg shadow-primary/5">
+      <div className="sticky top-0 z-20 flex-shrink-0 flex items-center gap-3 border-b border-primary/20 bg-background/95 backdrop-blur-xl px-4 py-3 shadow-lg shadow-primary/5">
         <Button
           variant="ghost"
           size="icon"
@@ -842,7 +851,7 @@ export default function ChatRoomPage() {
       {/* Messages */}
       <div
         ref={scrollAreaRef}
-        className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4"
+        className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-4 py-4"
       >
         <div className="flex flex-col gap-3">
           {filteredMessages.length === 0 ? (
