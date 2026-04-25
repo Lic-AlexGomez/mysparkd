@@ -1,7 +1,160 @@
-import type { Post, UserProfile } from '../types'
+import type { Post, UserProfile } from "../types"
+import { api } from "@/lib/api"
+
+export interface HashtagResult {
+  tag: string
+  usageCount: number
+}
+
+export interface PagedResponse<T> {
+  content: T[]
+  totalPages: number
+  number: number
+}
+
+const normalizePaged = <T>(payload: any): PagedResponse<T> => {
+  if (Array.isArray(payload)) {
+    return {
+      content: payload as T[],
+      totalPages: 1,
+      number: 0,
+    }
+  }
+  return {
+    content: Array.isArray(payload?.content) ? payload.content : [],
+    totalPages: typeof payload?.totalPages === "number" ? payload.totalPages : 1,
+    number: typeof payload?.number === "number" ? payload.number : 0,
+  }
+}
+
+const normalizeHashtags = (rows: any[]): HashtagResult[] =>
+  rows
+    .map((h: any) => ({
+      tag: String(h?.tag || h?.name || "").replace(/^#/, ""),
+      usageCount: Number(h?.usageCount || h?.count || h?.postsCount || 0),
+    }))
+    .filter((h) => Boolean(h.tag))
 
 export const searchService = {
-  searchUsers(
+  async searchUsers(query: string, page = 0, size = 10): Promise<PagedResponse<UserProfile>> {
+    const q = query.trim()
+    if (!q) return { content: [], totalPages: 1, number: 0 }
+
+    try {
+      const data = await api.get<any>(
+        `/api/search/users?query=${encodeURIComponent(q)}&page=${page}&size=${size}`
+      )
+      return normalizePaged<UserProfile>(data)
+    } catch {
+      // Fallback compatible con backend legado.
+      try {
+        const res = await api.get<any>(`/api/search/autocomplete?q=${encodeURIComponent("@" + q)}`)
+        const users = Array.isArray(res?.users) ? res.users : []
+        return {
+          content: users as UserProfile[],
+          totalPages: 1,
+          number: 0,
+        }
+      } catch {
+        return { content: [], totalPages: 1, number: 0 }
+      }
+    }
+  },
+
+  async searchPosts(query: string, page = 0, size = 10): Promise<PagedResponse<Post>> {
+    const q = query.trim()
+    if (!q) return { content: [], totalPages: 1, number: 0 }
+
+    try {
+      const data = await api.get<any>(
+        `/api/search/posts?query=${encodeURIComponent(q)}&page=${page}&size=${size}`
+      )
+      return normalizePaged<Post>(data)
+    } catch {
+      // Fallback: endpoint general.
+      try {
+        const res = await api.get<any>(`/api/search/general?query=${encodeURIComponent(q)}`)
+        const posts = Array.isArray(res?.posts) ? res.posts : []
+        return {
+          content: posts as Post[],
+          totalPages: 1,
+          number: 0,
+        }
+      } catch {
+        return { content: [], totalPages: 1, number: 0 }
+      }
+    }
+  },
+
+  async searchHashtags(query: string): Promise<HashtagResult[]> {
+    const q = query.trim().replace(/^#/, "")
+    if (!q) return []
+
+    try {
+      const data = await api.get<any[]>(`/api/search/hashtags?query=${encodeURIComponent(q)}`)
+      return normalizeHashtags(Array.isArray(data) ? data : [])
+    } catch {
+      try {
+        const res = await api.get<any>(`/api/search/general?query=${encodeURIComponent(q)}`)
+        return normalizeHashtags(Array.isArray(res?.hashtags) ? res.hashtags : [])
+      } catch {
+        return []
+      }
+    }
+  },
+
+  async getTrendingHashtags(limit = 10): Promise<HashtagResult[]> {
+    try {
+      const data = await api.get<any[]>(`/api/hashtags/trending?limit=${limit}`)
+      return normalizeHashtags(Array.isArray(data) ? data : [])
+    } catch {
+      try {
+        const data = await api.get<any[]>(`/api/search/hashtags/trending?limit=${limit}`)
+        return normalizeHashtags(Array.isArray(data) ? data : [])
+      } catch {
+        return []
+      }
+    }
+  },
+
+  async getPostsByHashtag(tag: string, page = 0, size = 20): Promise<PagedResponse<Post>> {
+    const cleanTag = tag.trim().replace(/^#/, "")
+    if (!cleanTag) return { content: [], totalPages: 1, number: 0 }
+
+    try {
+      const data = await api.get<any>(
+        `/api/hashtags/${encodeURIComponent(cleanTag)}/posts?page=${page}&size=${size}`
+      )
+      return normalizePaged<Post>(data)
+    } catch {
+      try {
+        const data = await api.get<any>(
+          `/api/search/hashtags/${encodeURIComponent(cleanTag)}/posts?page=${page}&size=${size}`
+        )
+        return normalizePaged<Post>(data)
+      } catch {
+        return { content: [], totalPages: 1, number: 0 }
+      }
+    }
+  },
+
+  async autocomplete(query: string): Promise<{ users: UserProfile[]; posts: Post[]; hashtags: HashtagResult[] }> {
+    const q = query.trim()
+    if (q.length < 2) return { users: [], posts: [], hashtags: [] }
+    try {
+      const data = await api.get<any>(`/api/search/autocomplete?q=${encodeURIComponent(q)}`)
+      return {
+        users: Array.isArray(data?.users) ? data.users : [],
+        posts: Array.isArray(data?.posts) ? data.posts : [],
+        hashtags: normalizeHashtags(Array.isArray(data?.hashtags) ? data.hashtags : []),
+      }
+    } catch {
+      return { users: [], posts: [], hashtags: [] }
+    }
+  },
+
+  // Helpers legacy (local filtering)
+  searchUsersLocally(
     users: UserProfile[],
     query: string,
     filters?: {
@@ -32,7 +185,7 @@ export const searchService = {
     return results
   },
 
-  searchPosts(posts: Post[], query: string): Post[] {
+  searchPostsLocally(posts: Post[], query: string): Post[] {
     return posts.filter(post => 
       post.body.toLowerCase().includes(query.toLowerCase()) ||
       post.username.toLowerCase().includes(query.toLowerCase())

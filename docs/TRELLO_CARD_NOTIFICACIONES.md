@@ -383,3 +383,33 @@ toast.info(notification.message, {
 - [ ] Hay paginación para muchas notificaciones
 - [ ] (Opcional) Notificaciones llegan en tiempo real
 - [ ] (Opcional) Push notifications en móvil
+
+---
+
+## 🚨 HOTFIX URGENTE: Incluir `notificationId` en respuesta
+
+### Problema
+El endpoint `GET /api/notifications/{userId}` no devuelve `notificationId`.  
+El frontend queda usando un ID falso (`senderId + createdAt`) y fallan con 400:
+- `PUT /api/notifications/{notificationId}/read`
+- `DELETE /api/notifications/{notificationId}`
+
+### Cambios requeridos
+
+#### Archivo: `NotificationsResponseDTO.java`
+- Descomentar `private UUID notificationId`
+- Descomentar `getNotificationId()`
+- Descomentar `setNotificationId()`
+- Agregar `notificationId` como primer parametro del constructor
+
+#### Archivo: `NotificationsService.java` (metodo `getNotificationsForUser`)
+- Descomentar la linea:
+  ```java
+  // dto.setNotificationId(notification.getNotificationId());
+  ```
+
+### Criterio de aceptacion del hotfix
+- [ ] `GET /api/notifications/{userId}` retorna `notificationId` por cada item
+- [ ] Frontend usa el `notificationId` real para marcar leida/eliminar
+- [ ] `PUT /api/notifications/{notificationId}/read` responde 200
+- [ ] `DELETE /api/notifications/{notificationId}` responde 200/204

@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { api } from "@/lib/api"
 import type { UserProfile, Post } from "@/lib/types"
+import { searchService, type HashtagResult } from "@/lib/services/search"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -11,15 +11,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Search, Loader2, User, Hash, FileText, TrendingUp, X } from "lucide-react"
 import { PostCard } from "@/components/feed/post-card"
 
-interface Hashtag {
-  tag: string
-  usageCount: number
-}
-
 interface SearchResults {
   users: UserProfile[]
   posts: Post[]
-  hashtags: Hashtag[]
+  hashtags: HashtagResult[]
 }
 
 export default function SearchPage() {
@@ -29,15 +24,20 @@ export default function SearchPage() {
   const [query, setQuery] = useState(searchParams.get("q") || "")
   const [activeTab, setActiveTab] = useState<"all" | "users" | "posts" | "hashtags">("all")
   const [results, setResults] = useState<SearchResults>({ users: [], posts: [], hashtags: [] })
-  const [trendingHashtags, setTrendingHashtags] = useState<Hashtag[]>([])
+  const [trendingHashtags, setTrendingHashtags] = useState<HashtagResult[]>([])
   const [autocomplete, setAutocomplete] = useState<SearchResults | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
+  const [usersPage, setUsersPage] = useState(0)
+  const [postsPage, setPostsPage] = useState(0)
+  const [canLoadMoreUsers, setCanLoadMoreUsers] = useState(false)
+  const [canLoadMorePosts, setCanLoadMorePosts] = useState(false)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    api.get<Hashtag[]>("/api/search/hashtags/trending?limit=10")
+    searchService.getTrendingHashtags(10)
       .then(setTrendingHashtags)
       .catch(() => {})
   }, [])
@@ -54,34 +54,42 @@ export default function SearchPage() {
     setIsLoading(true)
     setHasSearched(true)
     setAutocomplete(null)
+    setUsersPage(0)
+    setPostsPage(0)
+    setCanLoadMoreUsers(false)
+    setCanLoadMorePosts(false)
 
     try {
       // Búsqueda inteligente: detectar tipo por prefijo o buscar todo
       if (trimmed.startsWith("@")) {
-        const res = await api.get<any>(`/api/search/autocomplete?q=${encodeURIComponent(trimmed)}`)
-        setResults({ users: res.users || [], posts: [], hashtags: [] })
+        const userQuery = trimmed.slice(1)
+        const usersRes = await searchService.searchUsers(userQuery, 0, 12)
+        setResults({ users: usersRes.content || [], posts: [], hashtags: [] })
+        setCanLoadMoreUsers(usersRes.number < usersRes.totalPages - 1)
         setActiveTab("users")
       } else if (trimmed.startsWith("#")) {
-        const tag = trimmed.slice(1)
+        const tag = trimmed.slice(1).trim()
         const [posts, hashtags] = await Promise.all([
-          api.get<any>(`/api/search/hashtags/${encodeURIComponent(tag)}/posts?page=0&size=20`)
-            .then(r => Array.isArray(r) ? r : r.content || [])
-            .catch(() => []),
-          api.get<Hashtag[]>(`/api/search/hashtags?query=${encodeURIComponent(tag)}`).catch(() => [])
+          searchService.getPostsByHashtag(tag, 0, 12),
+          searchService.searchHashtags(tag),
         ])
-        setResults({ users: [], posts, hashtags })
+        setResults({ users: [], posts: posts.content || [], hashtags })
+        setCanLoadMorePosts(posts.number < posts.totalPages - 1)
         setActiveTab("hashtags")
       } else {
         // Búsqueda general: usuarios + posts + hashtags en paralelo
-        const [general, users] = await Promise.all([
-          api.get<any>(`/api/search/general?query=${encodeURIComponent(trimmed)}`).catch(() => ({ posts: [], hashtags: [] })),
-          api.get<any>(`/api/search/autocomplete?q=${encodeURIComponent("@" + trimmed)}`).then(r => r.users || []).catch(() => [])
+        const [usersRes, postsRes, hashtagsRes] = await Promise.all([
+          searchService.searchUsers(trimmed, 0, 6),
+          searchService.searchPosts(trimmed, 0, 6),
+          searchService.searchHashtags(trimmed),
         ])
         setResults({
-          users: users,
-          posts: general.posts || [],
-          hashtags: general.hashtags || [],
+          users: usersRes.content || [],
+          posts: postsRes.content || [],
+          hashtags: hashtagsRes || [],
         })
+        setCanLoadMoreUsers(usersRes.number < usersRes.totalPages - 1)
+        setCanLoadMorePosts(postsRes.number < postsRes.totalPages - 1)
         setActiveTab("all")
       }
     } catch {
@@ -97,7 +105,7 @@ export default function SearchPage() {
     if (val.length >= 2) {
       debounceRef.current = setTimeout(async () => {
         try {
-          const res = await api.get<any>(`/api/search/autocomplete?q=${encodeURIComponent(val)}`)
+          const res = await searchService.autocomplete(val)
           const hasResults = (res.users?.length || 0) + (res.hashtags?.length || 0) + (res.posts?.length || 0) > 0
           setAutocomplete(hasResults ? res : null)
         } catch {}
@@ -117,7 +125,43 @@ export default function SearchPage() {
     setAutocomplete(null)
     setHasSearched(false)
     setResults({ users: [], posts: [], hashtags: [] })
+    setUsersPage(0)
+    setPostsPage(0)
+    setCanLoadMoreUsers(false)
+    setCanLoadMorePosts(false)
     inputRef.current?.focus()
+  }
+
+  const handleLoadMoreUsers = async () => {
+    if (isLoadingMore || !canLoadMoreUsers) return
+    setIsLoadingMore(true)
+    try {
+      const q = query.trim().replace(/^@/, "")
+      const nextPage = usersPage + 1
+      const res = await searchService.searchUsers(q, nextPage, 12)
+      setResults((prev) => ({ ...prev, users: [...prev.users, ...(res.content || [])] }))
+      setUsersPage(nextPage)
+      setCanLoadMoreUsers(res.number < res.totalPages - 1)
+    } finally {
+      setIsLoadingMore(false)
+    }
+  }
+
+  const handleLoadMorePosts = async () => {
+    if (isLoadingMore || !canLoadMorePosts) return
+    setIsLoadingMore(true)
+    try {
+      const nextPage = postsPage + 1
+      const trimmed = query.trim()
+      const postRes = trimmed.startsWith("#")
+        ? await searchService.getPostsByHashtag(trimmed.slice(1), nextPage, 12)
+        : await searchService.searchPosts(trimmed, nextPage, 12)
+      setResults((prev) => ({ ...prev, posts: [...prev.posts, ...(postRes.content || [])] }))
+      setPostsPage(nextPage)
+      setCanLoadMorePosts(postRes.number < postRes.totalPages - 1)
+    } finally {
+      setIsLoadingMore(false)
+    }
   }
 
   const totalResults = results.users.length + results.posts.length + results.hashtags.length
@@ -275,6 +319,12 @@ export default function SearchPage() {
                           Ver los {results.users.length} usuarios →
                         </button>
                       )}
+                      {canLoadMoreUsers && (
+                        <Button variant="outline" size="sm" onClick={handleLoadMoreUsers} disabled={isLoadingMore} className="mt-2">
+                          {isLoadingMore ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                          Cargar más usuarios
+                        </Button>
+                      )}
                     </div>
                   </section>
                 )}
@@ -308,6 +358,12 @@ export default function SearchPage() {
                           Ver los {results.posts.length} posts →
                         </button>
                       )}
+                      {canLoadMorePosts && (
+                        <Button variant="outline" size="sm" onClick={handleLoadMorePosts} disabled={isLoadingMore} className="mt-2">
+                          {isLoadingMore ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                          Cargar más posts
+                        </Button>
+                      )}
                     </div>
                   </section>
                 )}
@@ -320,6 +376,12 @@ export default function SearchPage() {
                     {results.users.map(u => (
                       <UserCard key={u.userId} user={u} onClick={() => router.push(`/profile/${u.userId}`)} />
                     ))}
+                    {canLoadMoreUsers && (
+                      <Button variant="outline" className="w-full mt-2" onClick={handleLoadMoreUsers} disabled={isLoadingMore}>
+                        {isLoadingMore ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                        Cargar más usuarios
+                      </Button>
+                    )}
                   </div>
                 ) : (
                   <Empty icon={<User className="h-12 w-12" />} text="No se encontraron usuarios" />
@@ -333,6 +395,12 @@ export default function SearchPage() {
                     {results.posts.map(post => (
                       <PostCard key={post.id} post={post} />
                     ))}
+                    {canLoadMorePosts && (
+                      <Button variant="outline" className="w-full mt-2" onClick={handleLoadMorePosts} disabled={isLoadingMore}>
+                        {isLoadingMore ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                        Cargar más posts
+                      </Button>
+                    )}
                   </div>
                 ) : (
                   <Empty icon={<FileText className="h-12 w-12" />} text="No se encontraron posts" />
