@@ -287,15 +287,6 @@ export default function ChatRoomPage() {
     if (isConnected) sendSeen(chatId)
   }, [fetchMessages, fetchChatInfo, chatId])
 
-  // Evita que el navegador desplace toda la página al enfocar el input en móvil.
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = "hidden"
-    return () => {
-      document.body.style.overflow = previousOverflow
-    }
-  }, [])
-
   const scrollToBottom = useCallback((instant = false) => {
     const el = scrollAreaRef.current
     if (!el) return
@@ -674,9 +665,9 @@ export default function ChatRoomPage() {
   }
 
   return (
-    <div className="chat-room flex h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-background">
+    <div className="chat-room fixed inset-x-0 bottom-0 top-16 z-10 flex flex-col overflow-hidden bg-background lg:left-20 xl:left-72">
       {/* Chat header */}
-      <div className="sticky top-0 z-20 flex-shrink-0 flex items-center gap-3 border-b border-primary/20 bg-background/95 backdrop-blur-xl px-4 py-3 shadow-lg shadow-primary/5">
+      <div className="z-20 flex-shrink-0 flex items-center gap-3 border-b border-primary/20 bg-background/95 backdrop-blur-xl px-4 py-3 shadow-lg shadow-primary/5">
         <Button
           variant="ghost"
           size="icon"
