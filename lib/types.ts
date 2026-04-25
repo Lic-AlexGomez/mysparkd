@@ -387,6 +387,147 @@ export interface CreateStoryRequest {
   audience?: StoryAudience
 }
 
+// Events
+export type EventRole = 'ADMIN' | 'MODERATOR' | 'GUEST'
+export type EventStatus = 'OPEN' | 'FULL' | 'CANCELLED' | 'FINISHED' | 'EXPIRED'
+export type EventCategory = 'PARTY' | 'DINNER' | 'CONCERT' | 'SPORTS' | 'NETWORKING' | 'OUTDOOR' | 'GROUP_DATE' | 'CULTURAL' | 'OTHER'
+export type EventGroupInviteRequestStatus = 'PENDING_INTERNAL' | 'PENDING_ADMIN' | 'APPROVED' | 'REJECTED' | 'CANCELLED'
+export type EventGroupInviteRequestMemberStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED'
+
+export interface Event {
+  eventId: string
+  title: string
+  description?: string
+  category?: EventCategory
+  status?: EventStatus
+  free?: boolean
+  minAge?: number
+  maxAge?: number
+  latitude?: number
+  longitude?: number
+  maxGuests?: number
+  currentApprovedCount?: number
+  startsAt?: string
+  endsAt?: string
+  createdAt?: string
+}
+
+export interface EventFilters {
+  category?: EventCategory
+  free?: boolean
+  minAge?: number
+  maxAge?: number
+  lat?: number
+  lng?: number
+  radiusKm?: number
+}
+
+export type EventGroupMediaType = 'IMAGE' | 'VIDEO' | 'AUDIO' | 'FILE'
+
+export interface EventGroupReaction {
+  userId: string
+  username: string
+  profilePictureUrl?: string | null
+  reaction: ReactionType
+}
+
+export interface EventPollOption {
+  id: string
+  optionText: string
+  voteCount: number
+  votedByMe: boolean
+}
+
+export interface EventPoll {
+  id: string
+  groupId: string
+  question: string
+  expiresAt?: string | null
+  createdAt: string
+  expired: boolean
+  options: EventPollOption[]
+}
+
+export interface EventGroupMessage {
+  id: string
+  groupId: string
+  senderId?: string | null
+  senderUsername?: string
+  senderProfilePictureUrl?: string | null
+  content?: string | null
+  sentAt: string
+  editedAt?: string | null
+  deleted: boolean
+  system: boolean
+  mediaType?: EventGroupMediaType | null
+  mediaUrl?: string | null
+  durationSeconds?: number | null
+  pollId?: string | null
+  poll?: EventPoll | null
+  reactions?: EventGroupReaction[]
+}
+
+export interface EventParticipant {
+  userId: string
+  username: string
+  profilePictureUrl?: string | null
+  role: EventRole
+  joinedAt?: string
+}
+
+export interface EventGroupMember extends EventParticipant {
+  mutedUntil?: string | null
+}
+
+export interface EventGroupInviteLink {
+  inviteId: string
+  token: string
+  targetRole: Extract<EventRole, 'MODERATOR' | 'GUEST'>
+  expiresAt?: string | null
+  maxUses: number
+  usedCount: number
+}
+
+export interface EventGroupJoinRequestMember {
+  userId: string
+  username: string
+  profilePictureUrl?: string | null
+  status: EventGroupInviteRequestMemberStatus
+  respondedAt?: string | null
+}
+
+export interface EventGroupJoinRequest {
+  id: string
+  eventId: string
+  eventTitle: string
+  inviterId: string
+  inviterUsername: string
+  inviterProfilePictureUrl?: string | null
+  status: EventGroupInviteRequestStatus
+  createdAt: string
+  members: EventGroupJoinRequestMember[]
+}
+
+export interface EventGroupSettings {
+  slowMode?: boolean
+  adminOnlyMode?: boolean
+}
+
+export interface EventCapacityUpdate {
+  type: 'CAPACITY_UPDATE'
+  eventId: string
+  currentApprovedCount: number
+  maxGuests: number
+  status: Extract<EventStatus, 'OPEN' | 'FULL'>
+}
+
+export type EventGroupSocketPayload =
+  | EventGroupMessage
+  | { type: 'MESSAGE_DELETED'; messageId: string; groupId: string }
+  | { type: 'SETTINGS_UPDATED'; slowMode: boolean; adminOnlyMode: boolean }
+  | { type: 'MEMBER_KICKED'; userId: string; groupId: string }
+  | { type: 'POLL_UPDATED'; groupId: string; poll: EventPoll }
+
 // Groups
 export type GroupRole = 'ADMIN' | 'MODERATOR' | 'GUEST'
 export type GroupFeedVisibility = 'GLOBAL' | 'LOCAL' | 'FOLLOWERS_ONLY' | 'GROUPS_ONLY'

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
 import { Client } from '@stomp/stompjs'
 import SockJS from 'sockjs-client'
-import type { Message } from '@/lib/types'
+import type { EventCapacityUpdate, EventGroupSocketPayload, Message } from '@/lib/types'
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://sparkd1-0.onrender.com'
 const PRESENCE_PING_INTERVAL = 30_000
@@ -110,6 +110,8 @@ export interface WebSocketCallbacks {
   onPollState?: (poll: any) => void
   onMessageEdited?: (message: Message) => void
   onMessageDeleted?: (messageId: string) => void
+  onEventGroup?: (payload: EventGroupSocketPayload) => void
+  onEventCapacity?: (payload: EventCapacityUpdate) => void
 }
 
 export function useWebSocket(userId: string | undefined, callbacks: WebSocketCallbacks | ((message: Message) => void)) {
@@ -281,6 +283,62 @@ export function useWebSocket(userId: string | undefined, callbacks: WebSocketCal
     }
   }, [])
 
+  const subscribeToEventGroup = useCallback((eventId: string, onUpdate: (event: EventGroupSocketPayload) => void) => {
+    let sub: { unsubscribe: () => void } | null = null
+    const trySubscribe = () => {
+      if (!sharedClient?.active || !sharedConnected) return
+      if (sub) return
+      sub = sharedClient.subscribe(`/topic/event-group/${eventId}`, (frame) => {
+        try {
+          onUpdate(JSON.parse(frame.body) as EventGroupSocketPayload)
+        } catch {
+          // Keep event subscriber resilient to malformed payloads.
+        }
+      })
+    }
+
+    trySubscribe()
+
+    const onConnect = (connected: boolean) => {
+      if (connected) trySubscribe()
+    }
+    connectedListeners.add(onConnect)
+
+    return () => {
+      connectedListeners.delete(onConnect)
+      sub?.unsubscribe()
+      sub = null
+    }
+  }, [])
+
+  const subscribeToEventCapacity = useCallback((eventId: string, onUpdate: (event: EventCapacityUpdate) => void) => {
+    let sub: { unsubscribe: () => void } | null = null
+    const trySubscribe = () => {
+      if (!sharedClient?.active || !sharedConnected) return
+      if (sub) return
+      sub = sharedClient.subscribe(`/topic/event/${eventId}/capacity`, (frame) => {
+        try {
+          onUpdate(JSON.parse(frame.body) as EventCapacityUpdate)
+        } catch {
+          // Keep capacity subscriber resilient to malformed payloads.
+        }
+      })
+    }
+
+    trySubscribe()
+
+    const onConnect = (connected: boolean) => {
+      if (connected) trySubscribe()
+    }
+    connectedListeners.add(onConnect)
+
+    return () => {
+      connectedListeners.delete(onConnect)
+      sub?.unsubscribe()
+      sub = null
+    }
+  }, [])
+
   return {
     sendMessage,
     sendTyping,
@@ -288,6 +346,8 @@ export function useWebSocket(userId: string | undefined, callbacks: WebSocketCal
     sendPollVote,
     subscribeToPoll,
     subscribeToGroup,
+    subscribeToEventGroup,
+    subscribeToEventCapacity,
     isConnected,
     client: { current: sharedClient },
   }
