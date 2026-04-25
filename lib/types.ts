@@ -388,12 +388,26 @@ export interface CreateStoryRequest {
 }
 
 // Groups
+export type GroupRole = 'ADMIN' | 'MODERATOR' | 'GUEST'
+export type GroupFeedVisibility = 'GLOBAL' | 'LOCAL' | 'FOLLOWERS_ONLY' | 'GROUPS_ONLY'
+export type GroupTalkPermission = 'ALL' | 'MODS_AND_ADMINS' | 'ONLY_ADMIN'
+
 export interface Group {
   id: string
   name: string
-  description: string
+  description?: string
   coverPhoto?: string
-  privacy: 'PUBLIC' | 'PRIVATE'
+  coverPhotoUrl?: string
+  privacy?: 'PUBLIC' | 'PRIVATE'
+  isPublic?: boolean
+  feedVisibility?: GroupFeedVisibility
+  whoCanTalk?: GroupTalkPermission
+  creatorId?: string
+  creatorUsername?: string
+  creatorProfilePictureUrl?: string
+  myRole?: GroupRole | null
+  category?: string
+  topics?: string[]
   memberCount: number
   createdAt: string
   isAdmin?: boolean
@@ -402,9 +416,43 @@ export interface Group {
 
 export interface CreateGroupRequest {
   name: string
-  description: string
-  privacy: 'PUBLIC' | 'PRIVATE'
-  coverPhoto?: string
+  description?: string
+  feedVisibility: GroupFeedVisibility
+  whoCanTalk?: GroupTalkPermission
+  isPublic?: boolean
+  category?: string
+  topics?: string[]
+}
+
+export interface GroupMember {
+  userId: string
+  username: string
+  profilePictureUrl?: string
+  role: GroupRole
+  joinedAt: string
+  muted: boolean
+}
+
+export interface GroupMessage {
+  id: string
+  groupId: string
+  senderId?: string
+  senderUsername?: string
+  senderProfilePictureUrl?: string
+  content?: string | null
+  sentAt: string
+  editedAt?: string | null
+  deleted: boolean
+  system: boolean
+}
+
+export interface GroupInviteLink {
+  inviteId: string
+  token: string
+  targetRole: 'MODERATOR' | 'GUEST'
+  expiresAt?: string | null
+  maxUses: number
+  usedCount: number
 }
 
 // Chat

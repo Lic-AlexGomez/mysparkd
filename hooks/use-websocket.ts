@@ -34,12 +34,22 @@ function ensureConnected(userId: string) {
     onConnect: () => {
       notifyConnected(true)
 
+      const publishPresencePing = () => {
+        // Guard against reconnect windows where socket is active but STOMP isn't fully ready.
+        if (!client.active || !sharedConnected) return
+        try {
+          client.publish({ destination: '/app/presence.ping', body: '' })
+        } catch {
+          // Ignore transient publish errors during reconnect.
+        }
+      }
+
       setTimeout(() => {
-        if (client.active) client.publish({ destination: '/app/presence.ping', body: '' })
+        publishPresencePing()
       }, 500)
 
       pingInterval = setInterval(() => {
-        if (client.active) client.publish({ destination: '/app/presence.ping', body: '' })
+        publishPresencePing()
       }, PRESENCE_PING_INTERVAL)
     },
 
@@ -49,7 +59,16 @@ function ensureConnected(userId: string) {
     },
 
     onStompError: (frame) => console.error('[WS] STOMP error:', frame),
-    onWebSocketError: (event) => console.error('[WS] WebSocket error:', event),
+    onWebSocketError: (event) => {
+      // SockJS can emit an empty object during transient reconnects; avoid noisy logs.
+      const hasUsefulPayload =
+        !!event && (Object.keys(event as Record<string, unknown>).length > 0)
+      if (hasUsefulPayload) {
+        console.error('[WS] WebSocket error:', event)
+      } else if (process.env.NODE_ENV === 'development') {
+        console.warn('[WS] WebSocket transient reconnect')
+      }
+    },
   })
 
   client.activate()
@@ -232,12 +251,43 @@ export function useWebSocket(userId: string | undefined, callbacks: WebSocketCal
     return () => sub.unsubscribe()
   }, [])
 
+  const subscribeToGroup = useCallback((groupId: string, onUpdate: (event: any) => void) => {
+    let sub: { unsubscribe: () => void } | null = null
+    const trySubscribe = () => {
+      if (!sharedClient?.active || !sharedConnected) return
+      if (sub) return
+      sub = sharedClient.subscribe(`/topic/group/${groupId}`, (frame) => {
+        try {
+          onUpdate(JSON.parse(frame.body))
+        } catch {
+          // Keep the subscriber resilient to malformed payloads.
+        }
+      })
+    }
+
+    // Attempt immediate subscribe when already connected.
+    trySubscribe()
+
+    // If not connected yet, subscribe as soon as connection is ready.
+    const onConnect = (connected: boolean) => {
+      if (connected) trySubscribe()
+    }
+    connectedListeners.add(onConnect)
+
+    return () => {
+      connectedListeners.delete(onConnect)
+      sub?.unsubscribe()
+      sub = null
+    }
+  }, [])
+
   return {
     sendMessage,
     sendTyping,
     sendSeen,
     sendPollVote,
     subscribeToPoll,
+    subscribeToGroup,
     isConnected,
     client: { current: sharedClient },
   }
