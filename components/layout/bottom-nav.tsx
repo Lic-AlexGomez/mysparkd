@@ -8,7 +8,6 @@ import {
   Calendar,
   MessageCircle,
   User,
-  Sparkles,
   Users,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -17,7 +16,6 @@ import { useFeatureFlags } from "@/hooks/use-feature-flags"
 
 const navItems = [
   { href: "/feed", label: "Feed", icon: Newspaper },
-  { href: "/discover", label: "Descubrir", icon: Sparkles },
   { href: "/groups", label: "Grupos", icon: Users },
   { href: "/swipes", label: "Swipes", icon: Zap },
   { href: "/fastdate", label: "Citas", icon: Calendar },

@@ -15,7 +15,6 @@ import {
   Search,
   Users,
   Crown,
-  Sparkles,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
@@ -24,7 +23,6 @@ import { useUnreadChats } from "@/hooks/use-unread-chats"
 const navItems = [
   { href: "/feed", label: "Feed", icon: Newspaper },
   // { href: "/search", label: "Buscar", icon: Search },
-  { href: "/discover", label: "Descubrir", icon: Sparkles },
   { href: "/swipes", label: "Swipes", icon: Zap },
   { href: "/fastdate", label: "Fast Date", icon: Calendar },
   { href: "/likes", label: "Likes", icon: ThumbsUp },
