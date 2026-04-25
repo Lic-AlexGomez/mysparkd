@@ -153,14 +153,31 @@ export default function GroupsPage() {
   }
 
   const handleJoinByToken = async () => {
-    const token = joinToken.trim()
+    const raw = joinToken.trim()
+    const extractToken = (value: string) => {
+      if (!value) return ""
+      try {
+        const url = new URL(value)
+        const queryToken = url.searchParams.get("token")
+        if (queryToken) return queryToken
+
+        const parts = url.pathname.split("/").filter(Boolean)
+        const joinIndex = parts.findIndex((p) => p.toLowerCase() === "join")
+        if (joinIndex >= 0 && parts[joinIndex + 1]) return parts[joinIndex + 1]
+      } catch {
+        // Not a URL; fallback to raw token-like input.
+      }
+      return value
+    }
+
+    const token = extractToken(raw)
     if (!token) return
     try {
       const group = await groupService.joinByToken(token)
       toast.success("Te uniste por invitación")
       router.push(`/groups/${group.id}`)
     } catch (error: any) {
-      toast.error(error?.message || "Token inválido o expirado")
+      toast.error(error?.message || "Invitación inválida o expirada")
     }
   }
 
@@ -270,14 +287,17 @@ export default function GroupsPage() {
             <Link2 className="h-4 w-4" />
             Unirse por invitación
           </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Pega el enlace de invitación que te compartieron y te unimos automáticamente.
+          </p>
         </CardHeader>
         <CardContent className="flex flex-col gap-2 sm:flex-row">
           <Input
             value={joinToken}
             onChange={(e) => setJoinToken(e.target.value)}
-            placeholder="Pega aquí el token del link"
+            placeholder="Pega aquí el link de invitación o el código"
           />
-          <Button onClick={handleJoinByToken} className="w-full sm:w-auto">Unirme</Button>
+          <Button onClick={handleJoinByToken} className="w-full sm:w-auto">Unirme al grupo</Button>
         </CardContent>
       </Card>
 
