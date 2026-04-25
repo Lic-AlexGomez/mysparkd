@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { useSearchParams } from "next/navigation"
 import { useFeed } from "@/hooks/use-feed"
 import { useLocalFeed } from "@/hooks/use-local-feed"
@@ -51,7 +51,7 @@ export default function FeedPage() {
     }
   }, [user?.userId])
   
-  const { posts, sortMode, loading, onRefresh, changeSortMode } = useFeed()
+  const { posts, sortMode, loading, loadingMore, hasMore, onRefresh, changeSortMode, loadMore } = useFeed()
   const { posts: localPosts, loading: localLoading, locationEnabled, refresh: refreshLocalFeed } = useLocalFeed(localFeedRadius)
   const [displayLocalPosts, setDisplayLocalPosts] = useState(posts)
   const [scrollToPostId, setScrollToPostId] = useState<string | null>(null)
@@ -98,10 +98,29 @@ export default function FeedPage() {
     return false
   })
   const [isRequestingLocation, setIsRequestingLocation] = useState(false)
+  const loadMoreRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     setDisplayLocalPosts(posts)
   }, [posts])
+
+  useEffect(() => {
+    if (feedTab !== 'global' || !hasMore) return
+    const target = loadMoreRef.current
+    if (!target) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          void loadMore()
+        }
+      },
+      { rootMargin: '500px 0px' }
+    )
+
+    observer.observe(target)
+    return () => observer.disconnect()
+  }, [feedTab, hasMore, loadMore])
 
   // Solicitar ubicación cuando se cambia al tab local
   useEffect(() => {
@@ -211,42 +230,38 @@ export default function FeedPage() {
     setDisplayLocalPosts((prev) => prev.filter((p) => p.id !== postId))
   }
 
-  // Filtrar posts según búsqueda y filtros
-  let basePosts = posts
-  
-  // Seleccionar posts según la pestaña
-  if (feedTab === 'local') {
-    basePosts = Array.isArray(localPosts) ? localPosts : []
-  } else if (feedTab === 'following') {
-    // Mostrar solo posts de usuarios que sigues
-    // TODO: Implementar lógica de seguimiento cuando el backend esté listo
-    basePosts = Array.isArray(posts) ? posts.filter(post => post.userId === user?.userId) : []
-  } else {
-    basePosts = Array.isArray(posts) ? posts : []
-  }
-  
-  const displayPosts = displayLocalPosts.length > 0 && feedTab === 'global' ? displayLocalPosts : basePosts
-  
-  // Asegurar que displayPosts sea siempre un array
-  const safePosts = Array.isArray(displayPosts) ? displayPosts : []
-  
-  // Filtrar por pestaña
-  let filteredPosts = safePosts
-  
-  // Búsqueda
-  if (searchQuery) {
-    filteredPosts = filteredPosts.filter(post => 
-      post.body.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.username.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  }
-  
-  // Filtro por tipo
-  if (filterType === 'withImage') {
-    filteredPosts = filteredPosts.filter(post => post.file)
-  } else if (filterType === 'withoutImage') {
-    filteredPosts = filteredPosts.filter(post => !post.file)
-  }
+  const filteredPosts = useMemo(() => {
+    let basePosts = posts
+
+    if (feedTab === 'local') {
+      basePosts = Array.isArray(localPosts) ? localPosts : []
+    } else if (feedTab === 'following') {
+      // Mostrar solo posts de usuarios que sigues
+      // TODO: Implementar lógica de seguimiento cuando el backend esté listo
+      basePosts = Array.isArray(posts) ? posts.filter(post => post.userId === user?.userId) : []
+    } else {
+      basePosts = Array.isArray(posts) ? posts : []
+    }
+
+    const displayPosts = displayLocalPosts.length > 0 && feedTab === 'global' ? displayLocalPosts : basePosts
+    let next = Array.isArray(displayPosts) ? displayPosts : []
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase()
+      next = next.filter(post =>
+        (post.body || "").toLowerCase().includes(q) ||
+        post.username.toLowerCase().includes(q)
+      )
+    }
+
+    if (filterType === 'withImage') {
+      next = next.filter(post => post.file)
+    } else if (filterType === 'withoutImage') {
+      next = next.filter(post => !post.file)
+    }
+
+    return next
+  }, [posts, localPosts, user?.userId, feedTab, displayLocalPosts, searchQuery, filterType])
 
   if (loading && posts.length === 0) {
     return (
@@ -498,6 +513,20 @@ export default function FeedPage() {
               compact={viewMode === 'compact'}
             />
           ))}
+          {feedTab === 'global' && hasMore && (
+            <div ref={loadMoreRef} className="py-6 flex justify-center">
+              {loadingMore ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Cargando más posts...
+                </div>
+              ) : (
+                <Button variant="ghost" size="sm" onClick={() => void loadMore()}>
+                  Cargar más
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       )}
 

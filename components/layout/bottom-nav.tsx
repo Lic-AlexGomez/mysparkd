@@ -9,13 +9,16 @@ import {
   MessageCircle,
   User,
   Sparkles,
+  Users,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useUnreadChats } from "@/hooks/use-unread-chats"
+import { useFeatureFlags } from "@/hooks/use-feature-flags"
 
 const navItems = [
   { href: "/feed", label: "Feed", icon: Newspaper },
   { href: "/discover", label: "Descubrir", icon: Sparkles },
+  { href: "/groups", label: "Grupos", icon: Users },
   { href: "/swipes", label: "Swipes", icon: Zap },
   { href: "/fastdate", label: "Citas", icon: Calendar },
   { href: "/chat", label: "Chat", icon: MessageCircle },
@@ -25,13 +28,19 @@ const navItems = [
 export function BottomNav() {
   const pathname = usePathname()
   const unreadChats = useUnreadChats()
+  const features = useFeatureFlags()
+
+  const visibleNavItems = navItems.filter((item) => {
+    if (item.href === "/groups" && !features.groupsPage) return false
+    return true
+  })
 
   if (pathname.startsWith('/chat/')) return null
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur-md lg:hidden">
       <div className="flex items-center justify-around py-2">
-        {navItems.map((item) => {
+        {visibleNavItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
           const showBadge = item.href === '/chat' && unreadChats > 0
           return (
@@ -39,9 +48,10 @@ export function BottomNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center gap-0.5 px-3 py-1.5 text-xs transition-colors",
+                "flex flex-col items-center gap-0.5 px-1.5 sm:px-2.5 py-1.5 text-[10px] sm:text-xs transition-colors",
                 isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
               )}
+              aria-label={item.label}
             >
               <div className="relative">
                 <item.icon className={cn("h-5 w-5", isActive && "fill-primary/20")} />
@@ -51,7 +61,7 @@ export function BottomNav() {
                   </span>
                 )}
               </div>
-              <span>{item.label}</span>
+              <span className="hidden sm:inline">{item.label}</span>
             </Link>
           )
         })}

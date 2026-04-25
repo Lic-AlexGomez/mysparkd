@@ -1,11 +1,24 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { api } from '@/lib/api'
 import { feedService } from '@/lib/services/feed'
 import type { Post } from '@/lib/types'
 
 type SortMode = 'chronological' | 'relevant' | 'compatible' | 'top'
+const FEED_PAGE_SIZE = 12
+
+type PaginatedFeedResponse = {
+  content?: any[]
+  last?: boolean
+  totalPages?: number
+}
+
+type PrefetchedPage = {
+  page: number
+  posts: Post[]
+  hasMore: boolean
+}
 
 function normalizePost(post: any): Post {
   const reactionsObj: Record<string, any> = {}
@@ -62,11 +75,90 @@ function normalizePost(post: any): Post {
 }
 
 export function useFeed() {
-  const [posts, setPosts] = useState<Post[]>([])
+  const [allPosts, setAllPosts] = useState<Post[]>([])
+  const [visibleCount, setVisibleCount] = useState(FEED_PAGE_SIZE)
+  const [useServerPagination, setUseServerPagination] = useState(false)
+  const [page, setPage] = useState(0)
+  const [hasMore, setHasMore] = useState(false)
   const [sortMode, setSortMode] = useState<SortMode>('chronological')
   const [loading, setLoading] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
+  const prefetchedPageRef = useRef<PrefetchedPage | null>(null)
+  const prefetchPromiseRef = useRef<Promise<void> | null>(null)
+  const prefetchEpochRef = useRef(0)
+
+  const normalizeFeedItems = useCallback((items: any[]) => {
+    return items
+      .map(normalizePost)
+      .filter(p => !(p.message && !p.body && !p.file))
+  }, [])
+
+  const mergeUniquePosts = useCallback((current: Post[], incoming: Post[]) => {
+    const seen = new Set(current.map((p) => p.id))
+    const merged = [...current]
+    for (const p of incoming) {
+      if (!seen.has(p.id)) {
+        seen.add(p.id)
+        merged.push(p)
+      }
+    }
+    return merged
+  }, [])
+
+  const fetchServerPage = useCallback(async (targetPage: number) => {
+    const data = await api.get<any[] | PaginatedFeedResponse>(`/api/feed/feed?page=${targetPage}&size=${FEED_PAGE_SIZE}`)
+
+    if (Array.isArray(data)) {
+      return {
+        posts: normalizeFeedItems(data),
+        hasMore: false,
+        isPaginated: false,
+      }
+    }
+
+    const rows = Array.isArray(data?.content) ? data.content : []
+    const totalPages = typeof data?.totalPages === 'number' ? data.totalPages : undefined
+    const last = typeof data?.last === 'boolean'
+      ? data.last
+      : (typeof totalPages === 'number' ? targetPage >= totalPages - 1 : rows.length < FEED_PAGE_SIZE)
+
+    return {
+      posts: normalizeFeedItems(rows),
+      hasMore: !last,
+      isPaginated: true,
+    }
+  }, [normalizeFeedItems])
+
+  const prefetchServerPage = useCallback(async (targetPage: number, epoch: number) => {
+    if (prefetchedPageRef.current?.page === targetPage) return
+    if (prefetchPromiseRef.current) {
+      await prefetchPromiseRef.current
+      if (prefetchedPageRef.current?.page === targetPage) return
+    }
+
+    const task = (async () => {
+      try {
+        const response = await fetchServerPage(targetPage)
+        if (epoch !== prefetchEpochRef.current) return
+        if (!response.isPaginated) return
+
+        prefetchedPageRef.current = {
+          page: targetPage,
+          posts: feedService.sortPosts(response.posts, sortMode),
+          hasMore: response.hasMore,
+        }
+      } catch {
+        // Ignore prefetch errors; regular loadMore will handle fallback.
+      } finally {
+        prefetchPromiseRef.current = null
+      }
+    })()
+
+    prefetchPromiseRef.current = task
+    await task
+  }, [fetchServerPage, sortMode])
 
   // Actualizar ubicación en background al cargar el feed
   useEffect(() => {
@@ -86,20 +178,93 @@ export function useFeed() {
     // Cancelar request anterior si existe
     abortRef.current?.abort()
     abortRef.current = new AbortController()
+    prefetchEpochRef.current += 1
+    const epoch = prefetchEpochRef.current
+    prefetchedPageRef.current = null
+    prefetchPromiseRef.current = null
 
     try {
       setLoading(true)
-      const data = await api.get<any[]>('/api/feed/feed')
-      const normalized = data
-        .map(normalizePost)
-        .filter(p => !(p.message && !p.body && !p.file))
-      setPosts(feedService.sortPosts(normalized, sortMode))
+      const firstPage = await fetchServerPage(0)
+      const sortedFirst = feedService.sortPosts(firstPage.posts, sortMode)
+
+      if (firstPage.isPaginated) {
+        setUseServerPagination(true)
+        setAllPosts(sortedFirst)
+        setPage(0)
+        setHasMore(firstPage.hasMore)
+        setVisibleCount(FEED_PAGE_SIZE)
+        if (firstPage.hasMore) {
+          void prefetchServerPage(1, epoch)
+        }
+        return
+      }
+
+      // Fallback: backend sin paginación. Mostramos incrementalmente en frontend.
+      const sortedAll = feedService.sortPosts(firstPage.posts, sortMode)
+      setUseServerPagination(false)
+      setAllPosts(sortedAll)
+      setVisibleCount(FEED_PAGE_SIZE)
+      setPage(0)
+      setHasMore(sortedAll.length > FEED_PAGE_SIZE)
     } catch (error: any) {
-      if (error?.name !== 'AbortError') setPosts([])
+      if (error?.name !== 'AbortError') {
+        setAllPosts([])
+        setVisibleCount(FEED_PAGE_SIZE)
+        setPage(0)
+        setHasMore(false)
+        prefetchedPageRef.current = null
+        prefetchPromiseRef.current = null
+      }
     } finally {
       setLoading(false)
     }
-  }, [sortMode])
+  }, [sortMode, fetchServerPage, prefetchServerPage])
+
+  const loadMore = useCallback(async () => {
+    if (loading || loadingMore || !hasMore) return
+
+    if (!useServerPagination) {
+      setVisibleCount((prev) => {
+        const next = Math.min(prev + FEED_PAGE_SIZE, allPosts.length)
+        if (next >= allPosts.length) setHasMore(false)
+        return next
+      })
+      return
+    }
+
+    try {
+      setLoadingMore(true)
+      const nextPage = page + 1
+      const epoch = prefetchEpochRef.current
+
+      if (prefetchPromiseRef.current) {
+        await prefetchPromiseRef.current
+      }
+
+      let nextChunk = prefetchedPageRef.current
+      if (!nextChunk || nextChunk.page !== nextPage) {
+        const response = await fetchServerPage(nextPage)
+        nextChunk = {
+          page: nextPage,
+          posts: feedService.sortPosts(response.posts, sortMode),
+          hasMore: response.hasMore,
+        }
+      }
+
+      setAllPosts((prev) => feedService.sortPosts(mergeUniquePosts(prev, nextChunk.posts), sortMode))
+      setPage(nextPage)
+      setHasMore(nextChunk.hasMore)
+      prefetchedPageRef.current = null
+      if (nextChunk.hasMore) {
+        void prefetchServerPage(nextPage + 1, epoch)
+      }
+    } catch {
+      setHasMore(false)
+    } finally {
+      setLoadingMore(false)
+    }
+  }, [loading, loadingMore, hasMore, useServerPagination, allPosts.length, page, fetchServerPage, sortMode, mergeUniquePosts, prefetchServerPage])
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true)
@@ -109,7 +274,7 @@ export function useFeed() {
 
   const changeSortMode = useCallback((mode: SortMode) => {
     setSortMode(mode)
-    setPosts(prev => feedService.sortPosts(prev, mode))
+    setAllPosts(prev => feedService.sortPosts(prev, mode))
   }, [])
 
   useEffect(() => {
@@ -117,5 +282,10 @@ export function useFeed() {
     return () => abortRef.current?.abort()
   }, [loadPosts])
 
-  return { posts, sortMode, loading, refreshing, onRefresh, changeSortMode }
+  const posts = useMemo(() => {
+    if (useServerPagination) return allPosts
+    return allPosts.slice(0, visibleCount)
+  }, [useServerPagination, allPosts, visibleCount])
+
+  return { posts, sortMode, loading, loadingMore, hasMore, refreshing, onRefresh, changeSortMode, loadMore }
 }
