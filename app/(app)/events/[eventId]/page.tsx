@@ -49,6 +49,8 @@ export default function EventDetailPage() {
   const [pollQuestion, setPollQuestion] = useState("")
   const [pollOptions, setPollOptions] = useState("")
   const [mediaFile, setMediaFile] = useState<File | null>(null)
+  const [shareAddressText, setShareAddressText] = useState("")
+  const [isSharingAddress, setIsSharingAddress] = useState(false)
   const [inviteeQuery, setInviteeQuery] = useState("")
   const [inviteeSuggestions, setInviteeSuggestions] = useState<Array<{ userId: string; username: string; fullName?: string; photo?: string }>>([])
   const [selectedInvitees, setSelectedInvitees] = useState<Array<{ userId: string; username: string; fullName?: string; photo?: string }>>([])
@@ -464,6 +466,24 @@ export default function EventDetailPage() {
     }
   }
 
+  const handleShareAddress = async () => {
+    const address = shareAddressText.trim()
+    if (!address) {
+      toast.error("Ingresa una dirección")
+      return
+    }
+    setIsSharingAddress(true)
+    try {
+      await eventService.shareAddress(eventId, address)
+      toast.success("Dirección compartida en el chat del evento")
+      setShareAddressText("")
+    } catch (error: any) {
+      toast.error(error?.message || "No se pudo compartir la dirección")
+    } finally {
+      setIsSharingAddress(false)
+    }
+  }
+
   useEffect(() => {
     let cancelled = false
     const run = async () => {
@@ -876,6 +896,23 @@ export default function EventDetailPage() {
                       </div>
                     ))}
                   </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader><CardTitle className="text-base">Compartir dirección del evento</CardTitle></CardHeader>
+                <CardContent className="space-y-2">
+                  <Input
+                    value={shareAddressText}
+                    onChange={(e) => setShareAddressText(e.target.value)}
+                    placeholder="Ej: Calle 123 #45-67, Bogotá"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Solo ADMIN. El backend valida que coincida con la dirección oficial del evento.
+                  </p>
+                  <Button onClick={handleShareAddress} disabled={isSharingAddress || !shareAddressText.trim()}>
+                    {isSharingAddress ? "Compartiendo..." : "Compartir en chat"}
+                  </Button>
                 </CardContent>
               </Card>
             </>
