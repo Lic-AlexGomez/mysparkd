@@ -177,16 +177,16 @@ export default function GroupsPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6">
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Grupos</h1>
           <p className="text-muted-foreground">Únete a comunidades con tus intereses</p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-primary text-primary-foreground">
+            <Button className="w-full bg-primary text-primary-foreground sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
-              Crear Grupo.
+              Crear grupo
             </Button>
           </DialogTrigger>
           <DialogContent className="bg-card border-border">
@@ -271,26 +271,26 @@ export default function GroupsPage() {
             Unirse por invitación
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex gap-2">
+        <CardContent className="flex flex-col gap-2 sm:flex-row">
           <Input
             value={joinToken}
             onChange={(e) => setJoinToken(e.target.value)}
             placeholder="Pega aquí el token del link"
           />
-          <Button onClick={handleJoinByToken}>Unirme</Button>
+          <Button onClick={handleJoinByToken} className="w-full sm:w-auto">Unirme</Button>
         </CardContent>
       </Card>
 
       {/* Trending Groups */}
       <div className="mb-6">
-        <div className="flex items-center justify-between gap-3 mb-3">
+        <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-primary" />
             Descubrir Grupos
           </h2>
-          <div className="flex items-center gap-2">
+          <div className="grid w-full grid-cols-1 gap-2 sm:w-auto sm:grid-cols-2 lg:grid-cols-[180px_220px_220px_auto]">
             <Select value={discoverFeed} onValueChange={setDiscoverFeed}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Feed" />
               </SelectTrigger>
               <SelectContent>
@@ -304,7 +304,7 @@ export default function GroupsPage() {
               value={discoverCategory}
               onValueChange={setDiscoverCategory}
             >
-              <SelectTrigger className="w-[220px]">
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Filtrar categoría" />
               </SelectTrigger>
               <SelectContent>
@@ -318,13 +318,14 @@ export default function GroupsPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar por nombre/tema"
-              className="w-[220px]"
+              className="w-full"
             />
             <Button
               variant="outline"
               size="icon"
               onClick={() => loadGroups(discoverCategory, discoverFeed)}
               disabled={isLoading}
+              className="w-full sm:w-10"
             >
               <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             </Button>
@@ -355,7 +356,7 @@ export default function GroupsPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Users className="h-4 w-4" />
                     <span>{group.memberCount.toLocaleString()} miembros</span>
@@ -367,6 +368,7 @@ export default function GroupsPage() {
                   ) : (
                     <Button
                       size="sm"
+                      className="w-full sm:w-auto"
                       onClick={(e) => {
                         e.stopPropagation()
                         handleJoin(group.id)

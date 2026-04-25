@@ -31,7 +31,6 @@ export default function SwipesPage() {
       const response = await api.get<any>("/api/discover?page=0&size=20")
       const discoverProfiles = response.content || []
       const mapped = discoverProfiles
-        .filter((item: any) => !swipedIds.has(item.profile.userId))
         .map((item: any) => ({
           userId: item.profile.userId,
           nombres: item.profile.nombres,
@@ -51,7 +50,7 @@ export default function SwipesPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [swipedIds])
+  }, [])
 
   const fetchRemainingSwipes = useCallback(async () => {
     if (!user?.userId || isPremium) { setRemainingSwipes(null); return }
@@ -98,8 +97,10 @@ export default function SwipesPage() {
       }
     }
 
-    setTimeout(() => setSwipeDirection(null), 300)
-    setCurrentIndex(prev => prev + 1)
+    setTimeout(() => {
+      setCurrentIndex(prev => prev + 1)
+      setSwipeDirection(null)
+    }, 200)
   }
 
   if (isLoading) {
@@ -210,7 +211,7 @@ export default function SwipesPage() {
               </button>
             </div>
           ) : (
-            <AnimatePresence>
+            <AnimatePresence initial={false} mode="wait">
               {nextProfile && (
                 <SwipeCard
                   key={nextProfile.userId}
@@ -218,6 +219,7 @@ export default function SwipesPage() {
                   onSwipe={() => {}}
                   isTop={false}
                   compatibility={nextProfile.compatibilityScore}
+                  exitDirection={null}
                 />
               )}
               {currentProfile && (
@@ -227,6 +229,7 @@ export default function SwipesPage() {
                   onSwipe={handleSwipe}
                   isTop={true}
                   compatibility={currentProfile.compatibilityScore}
+                  exitDirection={swipeDirection}
                 />
               )}
             </AnimatePresence>

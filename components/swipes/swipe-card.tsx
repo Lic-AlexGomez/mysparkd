@@ -24,6 +24,7 @@ interface SwipeCardProps {
   onSwipe: (direction: "left" | "right") => void
   isTop: boolean
   compatibility?: number
+  exitDirection?: "left" | "right" | null
 }
 
 function getAge(dateOfBirth?: string): number | null {
@@ -32,7 +33,7 @@ function getAge(dateOfBirth?: string): number | null {
   return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25))
 }
 
-export function SwipeCard({ user, onSwipe, isTop, compatibility }: SwipeCardProps) {
+export function SwipeCard({ user, onSwipe, isTop, compatibility, exitDirection }: SwipeCardProps) {
   const [showInfo, setShowInfo] = useState(false)
   const x = useMotionValue(0)
   const rotate = useTransform(x, [-200, 200], [-18, 18])
@@ -53,14 +54,19 @@ export function SwipeCard({ user, onSwipe, isTop, compatibility }: SwipeCardProp
 
   return (
     <motion.div
-      className="absolute inset-0 cursor-grab active:cursor-grabbing select-none"
+      className={`absolute inset-0 select-none ${isTop ? "cursor-grab active:cursor-grabbing" : "pointer-events-none"}`}
       style={{ x, rotate, scale: cardScale, zIndex: isTop ? 10 : 0 }}
       drag={isTop && !showInfo ? "x" : false}
       dragConstraints={{ left: 0, right: 0 }}
       dragElastic={0.6}
       onDragEnd={handleDragEnd}
       animate={isTop ? {} : { scale: 0.93, y: 14 }}
-      exit={{ x: 600, opacity: 0, transition: { duration: 0.2 } }}
+      exit={isTop ? {
+        x: exitDirection === "left" ? -520 : 520,
+        rotate: exitDirection === "left" ? -16 : 16,
+        opacity: 0,
+        transition: { duration: 0.2 },
+      } : undefined}
       transition={{ type: "spring", stiffness: 400, damping: 35 }}
     >
       <div className="relative h-full w-full overflow-hidden rounded-3xl shadow-2xl bg-card">

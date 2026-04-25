@@ -549,17 +549,17 @@ export default function GroupDetailPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-6">
+    <div className="mx-auto max-w-2xl px-3 py-4 sm:px-4 sm:py-6">
       <div className="mb-6">
         <Button variant="ghost" size="icon" onClick={() => router.back()} className="mb-4">
           <ArrowLeft className="h-5 w-5" />
         </Button>
         
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-foreground">{group.name}</h1>
             <p className="text-muted-foreground mt-1">{group.description || "Sin descripción"}</p>
-            <div className="flex items-center gap-4 mt-3">
+            <div className="mt-3 flex flex-wrap items-center gap-2 sm:gap-4">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Users className="h-4 w-4" />
                 <span>{group.memberCount.toLocaleString()} miembros</span>
@@ -584,6 +584,7 @@ export default function GroupDetailPage() {
               size="sm"
               onClick={handleDeleteGroup}
               disabled={isDeleting}
+              className="w-full sm:w-auto"
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Eliminar grupo
@@ -593,7 +594,7 @@ export default function GroupDetailPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full grid grid-cols-2">
+        <TabsList className={`w-full grid ${features.groupRoles ? "grid-cols-2" : "grid-cols-1"}`}>
           <TabsTrigger value="messages">Chat</TabsTrigger>
           {features.groupRoles && (
             <TabsTrigger value="members">Miembros</TabsTrigger>
@@ -636,7 +637,7 @@ export default function GroupDetailPage() {
               <p className="text-sm text-muted-foreground mt-2">Sé el primero en escribir</p>
             </div>
           ) : (
-            <ScrollArea className="h-[420px] rounded-lg border border-border">
+            <ScrollArea className="h-[56vh] sm:h-[420px] rounded-lg border border-border">
               <div className="space-y-3 p-3">
                 {renderedMessages.map((msg, idx) => {
                   const isMine = msg.senderId === currentUserId
@@ -786,7 +787,7 @@ export default function GroupDetailPage() {
                 <Settings className="h-4 w-4" />
                 Configuración del grupo
               </p>
-              <div className="grid md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">Quién puede hablar</p>
                   <Select value={settingsWhoCanTalk} onValueChange={(v: any) => setSettingsWhoCanTalk(v)}>
@@ -801,7 +802,7 @@ export default function GroupDetailPage() {
                   </Select>
                 </div>
                 <div className="flex items-end">
-                  <Button onClick={handleSaveSettings} disabled={isSavingSettings}>
+                  <Button onClick={handleSaveSettings} disabled={isSavingSettings} className="w-full md:w-auto">
                     Guardar settings
                   </Button>
                 </div>
@@ -812,7 +813,7 @@ export default function GroupDetailPage() {
           {isAdmin && (
             <div className="mb-6 space-y-4 rounded-xl border border-border p-4 bg-card">
               <p className="text-sm font-semibold">Agregar miembro directo</p>
-              <div className="grid md:grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
                 <Input
                   value={newMemberId}
                   onChange={(e) => setNewMemberId(e.target.value)}
@@ -865,7 +866,7 @@ export default function GroupDetailPage() {
                     <SelectItem value="MODERATOR">MODERATOR</SelectItem>
                   </SelectContent>
                 </Select>
-                <Button onClick={handleAddMember} disabled={isAddingMember}>
+                <Button onClick={handleAddMember} disabled={isAddingMember} className="w-full md:w-auto">
                   {isAddingMember ? "Agregando..." : "Agregar"}
                 </Button>
               </div>
@@ -878,7 +879,7 @@ export default function GroupDetailPage() {
                 <Link2 className="h-4 w-4" />
                 Links de invitación
               </p>
-              <div className="grid md:grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
                 <Select value={inviteRole} onValueChange={(v: any) => setInviteRole(v)}>
                   <SelectTrigger>
                     <SelectValue />
@@ -893,7 +894,7 @@ export default function GroupDetailPage() {
                   onChange={(e) => setInviteMaxUses(e.target.value)}
                   placeholder="max uses (0 = ilimitado)"
                 />
-                <Button onClick={handleCreateInvite} disabled={isCreatingInvite}>
+                <Button onClick={handleCreateInvite} disabled={isCreatingInvite} className="w-full md:w-auto">
                   {isCreatingInvite ? "Creando..." : "Crear link"}
                 </Button>
               </div>
@@ -902,18 +903,19 @@ export default function GroupDetailPage() {
                   <p className="text-xs text-muted-foreground">No hay links activos.</p>
                 ) : (
                   inviteLinks.map((link) => (
-                    <div key={link.inviteId} className="flex items-center justify-between gap-3 rounded border border-border p-2">
+                    <div key={link.inviteId} className="flex flex-col gap-2 rounded border border-border p-2 sm:flex-row sm:items-center sm:justify-between">
                       <div className="text-xs">
                         <p className="font-mono">{link.token}</p>
                         <p className="text-muted-foreground">
                           {link.targetRole} · {link.usedCount}/{link.maxUses === 0 ? "∞" : link.maxUses}
                         </p>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <Button
                           size="sm"
                           variant="outline"
                           disabled={copyingInviteId === link.inviteId}
+                          className="w-full sm:w-auto"
                           onClick={async () => {
                             setCopyingInviteId(link.inviteId)
                             try {
@@ -931,6 +933,7 @@ export default function GroupDetailPage() {
                             size="sm"
                             variant="destructive"
                             disabled={deactivatingInviteId === link.inviteId}
+                            className="w-full sm:w-auto"
                             onClick={() => handleDeactivateInvite(link.inviteId)}
                           >
                             {deactivatingInviteId === link.inviteId ? "Desactivando..." : "Desactivar"}
@@ -948,7 +951,7 @@ export default function GroupDetailPage() {
             {members.map((member) => (
               <div
                 key={member.userId}
-                className="flex items-center justify-between p-4 bg-card rounded-lg border border-border"
+                className="flex flex-col items-start gap-3 rounded-lg border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10">
@@ -980,12 +983,13 @@ export default function GroupDetailPage() {
                 </div>
 
                 {canModerate && member.role !== 'ADMIN' && (
-                  <div className="flex gap-2">
+                  <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
                     {isAdmin && member.role === 'GUEST' && (
                       <Button
                         size="sm"
                         variant="outline"
                         disabled={roleUpdatingUserId === member.userId}
+                        className="w-full sm:w-auto"
                         onClick={() => handleChangeRole(member.userId, 'MODERATOR')}
                       >
                         <UserPlus className="h-3.5 w-3.5 mr-1" />
@@ -997,6 +1001,7 @@ export default function GroupDetailPage() {
                         size="sm"
                         variant="outline"
                         disabled={roleUpdatingUserId === member.userId}
+                        className="w-full sm:w-auto"
                         onClick={() => handleChangeRole(member.userId, 'GUEST')}
                       >
                         <UserMinus className="h-3.5 w-3.5 mr-1" />
@@ -1007,6 +1012,7 @@ export default function GroupDetailPage() {
                       size="sm"
                       variant="outline"
                       disabled={muteUpdatingUserId === member.userId}
+                      className="w-full sm:w-auto"
                       onClick={() => handleMuteToggle(member)}
                     >
                       {member.muted ? <Volume2 className="h-3.5 w-3.5 mr-1" /> : <VolumeX className="h-3.5 w-3.5 mr-1" />}
@@ -1017,6 +1023,7 @@ export default function GroupDetailPage() {
                         size="sm"
                         variant="destructive"
                         disabled={removingMemberUserId === member.userId}
+                        className="w-full sm:w-auto"
                         onClick={() => handleRemoveMember(member.userId)}
                       >
                         {removingMemberUserId === member.userId ? "Removiendo..." : "Remover"}
