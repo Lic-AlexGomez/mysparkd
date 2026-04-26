@@ -1,7 +1,10 @@
 import { api } from "@/lib/api"
 
+import type { AccountType } from "@/lib/types"
+
 type VerifyEmailResponse = {
   token: string
+  accountType?: AccountType | string
 }
 
 type VerifyEmailCodeInput = {

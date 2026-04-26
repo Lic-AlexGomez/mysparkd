@@ -3,8 +3,10 @@
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
-import { api } from "@/lib/api"
-import type { UserProfile } from "@/lib/types"
+import { api, ApiError } from "@/lib/api"
+import { profileService } from "@/lib/services/profile"
+import { toBackendAccountType } from "@/lib/account-type"
+import type { UpdateProfileRequest } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -29,6 +31,8 @@ export default function EditProfilePage() {
     const userId = localStorage.getItem('sparkd_user_id') || ''
     return localStorage.getItem(`sparkd_show_premium_${userId}`) !== 'false'
   })
+  const [usernameError, setUsernameError] = useState<string | null>(null)
+
   const [formData, setFormData] = useState({
     username: "",
     bio: "",
@@ -56,6 +60,16 @@ export default function EditProfilePage() {
     }
   }, [user])
 
+  const validateUsername = (raw: string): string | null => {
+    const u = raw.trim()
+    if (u.length < 3) return "Mínimo 3 caracteres"
+    if (u.length > 30) return "Máximo 30 caracteres"
+    if (!/^[a-zA-Z0-9._]+$/.test(u)) {
+      return "Solo letras, números, punto y guion bajo"
+    }
+    return null
+  }
+
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault()
     e?.stopPropagation()
@@ -66,14 +80,33 @@ export default function EditProfilePage() {
       await voiceRecorderRef.current.stopAndUpload()
     }
 
+    const uErr = validateUsername(formData.username)
+    if (uErr) {
+      setUsernameError(uErr)
+      toast.error(uErr)
+      return
+    }
+    setUsernameError(null)
+
     setLoading(true)
     try {
-      const body: any = {
+      const at = user.accountType
+      const accountType = toBackendAccountType(
+        at != null && String(at).trim() !== ""
+          ? String(at).trim()
+          : user.premium
+            ? "BOTH"
+            : "SOCIAL"
+      )
+
+      const body: UpdateProfileRequest = {
         nombres: user.nombres,
         apellidos: user.apellidos,
+        username: formData.username.trim(),
+        accountType,
         sex: user.sex,
         dateOfBirth: user.dateOfBirth,
-        telefono: user.telefono,
+        telefono: user.telefono || "",
         bio: formData.bio || null,
         url: formData.url || null,
         visibility: formData.visibility,
@@ -84,13 +117,40 @@ export default function EditProfilePage() {
         body.latitude = formData.latitude
         body.longitude = formData.longitude
       }
-      await api.put('/api/profile', body)
-      updateUser({ bio: formData.bio || null, url: formData.url || undefined, showPremiumBadge, visibility: formData.visibility })
+      await profileService.updateMyProfile(body)
+      updateUser({
+        username: formData.username.trim(),
+        accountType,
+        bio: formData.bio || null,
+        url: formData.url || undefined,
+        showPremiumBadge,
+        visibility: formData.visibility,
+      })
       await refreshProfile()
       toast.success("Perfil actualizado")
-      window.location.href = '/profile'
+      router.push("/profile")
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Error al actualizar perfil")
+      if (error instanceof ApiError) {
+        if (error.status === 409) {
+          toast.error(
+            error.message || "Este nombre de usuario ya está en uso"
+          )
+        } else if (error.status === 403) {
+          // Backend usa 403 (p. ej. PlanLimitException) si el @ ya existe
+          toast.error(
+            error.message || "No se pudo usar este nombre de usuario"
+          )
+        } else if (error.status === 400) {
+          const msg = [error.message, error.details].filter(Boolean).join(" — ")
+          toast.error(msg || "Datos de perfil no válidos")
+        } else {
+          toast.error(error.message || "Error al actualizar perfil")
+        }
+      } else {
+        toast.error(
+          error instanceof Error ? error.message : "Error al actualizar perfil"
+        )
+      }
     } finally {
       setLoading(false)
     }
@@ -174,15 +234,25 @@ export default function EditProfilePage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
+            <Label htmlFor="username">Nombre de usuario</Label>
             <Input
               id="username"
               value={formData.username}
-              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-              placeholder="tu_username"
+              onChange={(e) => {
+                setFormData({ ...formData, username: e.target.value })
+                setUsernameError(null)
+              }}
+              placeholder="tu_usuario"
               maxLength={30}
+              className={usernameError ? "border-destructive" : undefined}
+              aria-invalid={!!usernameError}
             />
-            <p className="text-xs text-muted-foreground">Mínimo 3 caracteres</p>
+            <p className="text-xs text-muted-foreground">
+              3–30 caracteres: letras, números, punto y guion bajo
+            </p>
+            {usernameError ? (
+              <p className="text-xs text-destructive">{usernameError}</p>
+            ) : null}
           </div>
 
           <div className="space-y-2">

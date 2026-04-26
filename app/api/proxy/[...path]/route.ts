@@ -14,7 +14,7 @@ async function handler(
 ) {
   const params = await Promise.resolve(context.params)
   const { path } = params
-  const endpoint = `/${path.join("/")}`
+  let endpoint = `/${path.join("/")}`
 
   // Rule:
   // - GET /api/events... -> readonly events backend
@@ -26,7 +26,27 @@ async function handler(
     : PRIMARY_BACKEND_URL
 
   const url = new URL(request.url)
-  const queryString = url.search
+  const searchParams = new URLSearchParams(url.search)
+
+  // Backend: list is GET /api/bookmarks?page&size (user from JWT). Older clients called
+  // GET /api/bookmarks/{userId} (see git history on lib/services/bookmark.ts). Remap so
+  // stale bundles or extensions still get a valid list response.
+  if (request.method === "GET") {
+    const trimmed = endpoint.replace(/\/+$/, "") || "/"
+    const legacy = trimmed.match(/^\/api\/bookmarks\/([^/]+)$/i)
+    const segment = legacy?.[1]
+    if (
+      segment &&
+      segment.toLowerCase() !== "toggle" &&
+      segment.toLowerCase() !== "post"
+    ) {
+      endpoint = "/api/bookmarks"
+      if (!searchParams.has("page")) searchParams.set("page", "0")
+      if (!searchParams.has("size")) searchParams.set("size", "20")
+    }
+  }
+
+  const queryString = searchParams.toString() ? `?${searchParams.toString()}` : ""
   const targetUrl = `${selectedBackend}${endpoint}${queryString}`
 
   const headers: Record<string, string> = {
@@ -78,7 +98,10 @@ async function handler(
 
     // Cache para GETs — reduce llamadas repetidas al backend
     if (request.method === 'GET' && response.status === 200) {
-      if (endpoint.includes('/profile/')) {
+      // Mi perfil debe ser siempre fresco (p. ej. tras PUT username); el caché hacía
+      // que refreshProfile siguiera leyendo el handle anterior.
+      const isMyProfile = endpoint === "/api/profile/me" || endpoint.endsWith("/api/profile/me")
+      if (endpoint.includes("/profile/") && !isMyProfile) {
         responseHeaders.set('Cache-Control', 'private, max-age=30')
       } else if (endpoint.includes('/notifications') || endpoint.includes('/chat/chats')) {
         responseHeaders.set('Cache-Control', 'private, max-age=10')

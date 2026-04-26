@@ -27,6 +27,7 @@ import {
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { useManagerReportsPendingCount } from "@/hooks/use-manager-reports-pending-count"
 
 type Role = "admin" | "manager"
 
@@ -56,7 +57,7 @@ const ALL_SECTIONS: Section[] = [
   { id: "m-activity",   label: "Actividad",        icon: Activity,        group: "manager" },
   { id: "m-users",      label: "Usuarios",         icon: Users,           group: "manager" },
   { id: "m-content",    label: "Contenido",        icon: FileText,        group: "manager" },
-  { id: "m-reports",    label: "Reportes",         icon: Flag,            group: "manager", badge: 7 },
+  { id: "m-reports",    label: "Reportes",         icon: Flag,            group: "manager" },
   { id: "m-messages",   label: "Mensajes",         icon: MessageCircle,   group: "manager" },
 ]
 
@@ -67,6 +68,7 @@ interface AdminPanelProps {
 export function AdminPanel({ role }: AdminPanelProps) {
   const { user } = useAuth()
   const router = useRouter()
+  const { count: pendingReportsCount, refresh: refreshPendingReports } = useManagerReportsPendingCount()
   const sections = role === "admin"
     ? ALL_SECTIONS
     : ALL_SECTIONS.filter(s => s.group === "manager")
@@ -128,7 +130,14 @@ export function AdminPanel({ role }: AdminPanelProps) {
                 Manager
               </p>
               {managerSections.map(s => (
-                <NavButton key={s.id} section={s} active={active} isAdmin={isAdmin} onSelect={(id) => { setActive(id); setSidebarOpen(false) }} />
+                <NavButton
+                  key={s.id}
+                  section={s}
+                  active={active}
+                  isAdmin={isAdmin}
+                  pendingReportsOverride={s.id === "m-reports" ? pendingReportsCount : undefined}
+                  onSelect={(id) => { setActive(id); setSidebarOpen(false) }}
+                />
               ))}
             </>
           )}
@@ -203,7 +212,7 @@ export function AdminPanel({ role }: AdminPanelProps) {
           {active === "m-activity"    && <ManagerActivity />}
           {active === "m-users"       && <ManagerUsers />}
           {active === "m-content"     && <ManagerContent />}
-          {active === "m-reports"     && <ManagerReports />}
+          {active === "m-reports"     && <ManagerReports onReportsMutated={() => void refreshPendingReports()} />}
           {active === "m-messages"    && <ManagerMessages />}
         </main>
       </div>
@@ -211,13 +220,23 @@ export function AdminPanel({ role }: AdminPanelProps) {
   )
 }
 
-function NavButton({ section, active, isAdmin, onSelect }: {
+function NavButton({ section, active, isAdmin, onSelect, pendingReportsOverride }: {
   section: Section
   active: string
   isAdmin: boolean
   onSelect: (id: string) => void
+  /** Reportes row: live PENDING count from API (0 = hide badge). */
+  pendingReportsOverride?: number
 }) {
   const isActive = active === section.id
+  const badge =
+    pendingReportsOverride !== undefined
+      ? pendingReportsOverride > 0
+        ? pendingReportsOverride
+        : null
+      : section.badge != null && section.badge > 0
+        ? section.badge
+        : null
   return (
     <button
       onClick={() => onSelect(section.id)}
@@ -232,9 +251,9 @@ function NavButton({ section, active, isAdmin, onSelect }: {
     >
       <section.icon className="h-4 w-4 shrink-0" />
       <span className="flex-1 text-left">{section.label}</span>
-      {section.badge && (
-        <Badge className="text-[10px] border-0 bg-rose-500 text-white h-4 min-w-4 px-1">
-          {section.badge}
+      {badge != null && (
+        <Badge className="text-[10px] border-0 bg-rose-500 text-white h-4 min-w-4 px-1 tabular-nums">
+          {badge > 99 ? "99+" : badge}
         </Badge>
       )}
     </button>

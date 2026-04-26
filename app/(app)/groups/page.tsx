@@ -108,14 +108,20 @@ export default function GroupsPage() {
       toast.error("El nombre es requerido")
       return
     }
-    const normalizedTopics = topics
+    const rawTopics = topics
       .split(",")
       .map((t) => t.trim())
       .filter(Boolean)
-    if (normalizedTopics.length > 10) {
+    if (rawTopics.length > 10) {
       toast.error("Máximo 10 temas")
       return
     }
+    const tooLong = rawTopics.find((t) => t.length > 50)
+    if (tooLong) {
+      toast.error("Cada tema puede tener como máximo 50 caracteres")
+      return
+    }
+    const normalizedTopics = rawTopics
 
     setIsCreating(true)
     try {
@@ -243,7 +249,7 @@ export default function GroupsPage() {
                 </Select>
               </div>
               <div>
-                <label className="text-sm font-medium">Temas (coma separada, máx. 10)</label>
+                <label className="text-sm font-medium">Temas (coma separada, máx. 10, 50 caracteres c/u)</label>
                 <Input
                   value={topics}
                   onChange={(e) => setTopics(e.target.value)}

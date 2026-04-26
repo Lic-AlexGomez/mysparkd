@@ -1,6 +1,7 @@
 const API_BASE_URL = "/api/proxy"
 const REQUEST_TIMEOUT_MS = 20_000
 
+/** Incluye `message` del cuerpo JSON (p. ej. límite 429) y `status` HTTP. */
 class ApiError extends Error {
   status: number
   details?: string
@@ -21,6 +22,7 @@ function clearAuth() {
   if (typeof window === "undefined") return
   localStorage.removeItem("sparkd_token")
   localStorage.removeItem("sparkd_user_id")
+  localStorage.removeItem("sparkd_login_account_type")
   window.location.href = "/login"
 }
 
@@ -97,7 +99,12 @@ async function request<T>(
 }
 
 export const api = {
-  get: <T>(endpoint: string) => request<T>(endpoint, { method: "GET" }),
+  get: <T>(endpoint: string) =>
+    request<T>(endpoint, {
+      method: "GET",
+      // Refuerzo: el proxy ya no cachea /me; el cliente tampoco reutiliza respuestas viejas.
+      ...(endpoint.includes("/api/profile/me") ? { cache: "no-store" as RequestCache } : {}),
+    }),
 
   post: <T>(endpoint: string, body?: unknown) =>
     request<T>(endpoint, {

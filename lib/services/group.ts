@@ -6,9 +6,14 @@ import type {
   GroupInviteLink,
   GroupMember,
   GroupMessage,
+  GroupMessageMediaType,
   GroupRole,
   GroupTalkPermission,
 } from "@/lib/types"
+
+// Sparkd GroupController exposes group chat as GET/POST `/api/groups/{id}/messages` (ChatGroupMessage).
+// There is no separate `/api/groups/{id}/posts` for feed-style posts; profile posts are not group-scoped.
+// TODO(frontend): if the backend later adds group-linked posts, add `groupService.posts` here and a UI tab.
 
 export const groupService = {
   searchUsersByInput: async (input: string): Promise<Array<{ userId: string; username: string; fullName?: string; photo?: string }>> => {
@@ -104,8 +109,16 @@ export const groupService = {
   messages: {
     list: (groupId: string) =>
       api.get<GroupMessage[]>(`/api/groups/${groupId}/messages`),
-    send: (groupId: string, content: string) =>
-      api.post<GroupMessage>(`/api/groups/${groupId}/messages`, { content }),
+    send: (
+      groupId: string,
+      body: {
+        content?: string
+        mediaType?: GroupMessageMediaType
+        mediaUrl?: string
+        mediaPublicId?: string
+        durationSeconds?: number
+      }
+    ) => api.post<GroupMessage>(`/api/groups/${groupId}/messages`, body),
     edit: (groupId: string, messageId: string, content: string) =>
       api.put<GroupMessage>(`/api/groups/${groupId}/messages/${messageId}`, { content }),
     remove: (groupId: string, messageId: string) =>

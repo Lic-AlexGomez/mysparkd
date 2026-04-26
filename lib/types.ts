@@ -2,14 +2,20 @@
 export type Sex = "MALE" | "FEMALE"
 export type SwipeType = "LIKE" | "DISLIKE"
 
+/** Modo de producto: enum backend `AccountType` (no confundir con `user.premium`). */
+export type AccountType = "DATING" | "SOCIAL" | "BOTH"
+
 // Auth
 export interface LoginRequest {
   username: string
   password: string
 }
 
+/** Auth endpoints (`/auth/login`, `/auth/google`, verify-email, etc.) may include plan/mode. */
 export interface LoginResponse {
   token: string
+  accountType?: AccountType | string
+  userId?: string
 }
 
 export interface RegisterRequest {
@@ -45,9 +51,15 @@ export interface Photo {
   createdAt?: string | null
 }
 
+/** Perfil autenticado (alias útil en estado de auth). */
+export type User = UserProfile
+
 export interface UserProfile {
   userId: string
   username?: string
+  /** Correo de la cuenta; puede venir en GET /api/profile/me según backend. */
+  email?: string | null
+  accountType?: AccountType | string
   nombres: string
   apellidos: string
   telefono: string
@@ -88,8 +100,10 @@ export interface CreateProfileRequest {
   apellidos: string
   sex: Sex
   dateOfBirth: string
-  telefono: string
+  telefono?: string
   bio?: string
+  /** Modo producto al crear perfil (p. ej. `DATING` desde onboarding). */
+  accountType?: AccountType | string
   latitude?: number
   longitude?: number
 }
@@ -97,10 +111,15 @@ export interface CreateProfileRequest {
 export interface UpdateProfileRequest {
   nombres: string
   apellidos: string
+  username: string
+  accountType?: AccountType | string
   sex: Sex
   dateOfBirth: string
   telefono: string
-  bio?: string
+  bio?: string | null
+  url?: string | null
+  visibility?: "PUBLIC" | "PRIVATE"
+  showPremiumBadge?: boolean
   location?: string
   latitude?: number
   longitude?: number
@@ -337,6 +356,10 @@ export interface SwipeRequest {
 export interface SwipeResponse {
   match: boolean
   message: string
+  /** Complementario: si el backend no lo envía, el cliente sigue restando en local. */
+  swipesRemaining?: number
+  /** Si el usuario autenticado es premium, el backend puede omitir límites. */
+  premium?: boolean
 }
 
 // Matches
@@ -576,6 +599,8 @@ export interface GroupMember {
   muted: boolean
 }
 
+export type GroupMessageMediaType = "IMAGE" | "VIDEO" | "AUDIO" | "FILE"
+
 export interface GroupMessage {
   id: string
   groupId: string
@@ -587,6 +612,9 @@ export interface GroupMessage {
   editedAt?: string | null
   deleted: boolean
   system: boolean
+  mediaType?: GroupMessageMediaType | null
+  mediaUrl?: string | null
+  durationSeconds?: number | null
 }
 
 export interface GroupInviteLink {
@@ -728,7 +756,7 @@ export interface UserSubscription {
 // Auth state
 export interface AuthState {
   token: string | null
-  user: UserProfile | null
+  user: User | null
   isAuthenticated: boolean
   isLoading: boolean
 }

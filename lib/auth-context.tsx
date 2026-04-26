@@ -10,6 +10,7 @@ import {
 } from "react"
 import { api } from "@/lib/api"
 import type {
+  User,
   UserProfile,
   LoginRequest,
   LoginResponse,
@@ -17,9 +18,35 @@ import type {
   RegisterResponse,
 } from "@/lib/types"
 
+/** Si el login envía `accountType` y `/api/profile/me` aún no lo refleja, se fusiona hasta el próximo GET. */
+export const SPARKD_LOGIN_ACCOUNT_TYPE_KEY = "sparkd_login_account_type"
+
+export function mergeProfileWithStashedLoginAccountType(profile: UserProfile): UserProfile {
+  if (typeof window === "undefined") return profile
+  const stash = localStorage.getItem(SPARKD_LOGIN_ACCOUNT_TYPE_KEY)
+  if (stash && !profile.accountType) {
+    return { ...profile, accountType: stash }
+  }
+  return profile
+}
+
+export function stashLoginAccountType(accountType: string | undefined) {
+  if (typeof window === "undefined") return
+  if (accountType) {
+    localStorage.setItem(SPARKD_LOGIN_ACCOUNT_TYPE_KEY, accountType)
+  }
+}
+
+export function clearStashedLoginAccountTypeIfSynced(profile: UserProfile) {
+  if (typeof window === "undefined") return
+  if (profile.accountType) {
+    localStorage.removeItem(SPARKD_LOGIN_ACCOUNT_TYPE_KEY)
+  }
+}
+
 interface AuthContextType {
   token: string | null
-  user: UserProfile | null
+  user: User | null
   isAuthenticated: boolean
   isLoading: boolean
   login: (data: LoginRequest) => Promise<void>
@@ -34,18 +61,23 @@ const AuthContext = createContext<AuthContextType | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null)
-  const [user, setUser] = useState<UserProfile | null>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   const fetchProfile = useCallback(async () => {
     try {
-      const profile = await api.get<UserProfile>("/api/profile/me")
+      let profile = await api.get<UserProfile>("/api/profile/me")
+      profile = mergeProfileWithStashedLoginAccountType(profile)
+      clearStashedLoginAccountTypeIfSynced(profile)
       setUser(profile)
-      localStorage.setItem('sparkd_user', JSON.stringify(profile))
+      localStorage.setItem("sparkd_user", JSON.stringify(profile))
     } catch (error) {
-      const savedUser = localStorage.getItem('sparkd_user')
+      const savedUser = localStorage.getItem("sparkd_user")
       if (savedUser) {
-        setUser(JSON.parse(savedUser))
+        let parsed = JSON.parse(savedUser) as UserProfile
+        parsed = mergeProfileWithStashedLoginAccountType(parsed)
+        setUser(parsed)
+        localStorage.setItem("sparkd_user", JSON.stringify(parsed))
       } else {
         setUser(null)
       }
@@ -59,7 +91,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (storedToken) {
       setToken(storedToken)
       if (storedUser) {
-        setUser(JSON.parse(storedUser))
+        let u = JSON.parse(storedUser) as UserProfile
+        u = mergeProfileWithStashedLoginAccountType(u)
+        setUser(u)
       }
       fetchProfile().finally(() => {
         setIsLoading(false)
@@ -73,6 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const response = await api.post<LoginResponse>("/auth/login", data)
     localStorage.setItem("sparkd_token", response.token)
     localStorage.setItem("sparkd_username", data.username)
+    stashLoginAccountType(response.accountType)
     setToken(response.token)
     await fetchProfile()
   }
@@ -80,6 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginWithGoogle = async (idToken: string) => {
     const response = await api.post<LoginResponse>("/auth/google", { token: idToken })
     localStorage.setItem("sparkd_token", response.token)
+    stashLoginAccountType(response.accountType)
     setToken(response.token)
     await fetchProfile()
   }
@@ -92,6 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("sparkd_token")
     localStorage.removeItem("sparkd_user_id")
     localStorage.removeItem("sparkd_username")
+    localStorage.removeItem(SPARKD_LOGIN_ACCOUNT_TYPE_KEY)
     setToken(null)
     setUser(null)
     window.location.href = "/login"
@@ -101,7 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await fetchProfile()
   }
 
-  const updateUser = (patch: Partial<Record<keyof UserProfile, any>>) => {
+  const updateUser = (patch: Partial<Record<keyof User, any>>) => {
     setUser(prev => {
       if (!prev) return prev
       const updated = { ...prev }

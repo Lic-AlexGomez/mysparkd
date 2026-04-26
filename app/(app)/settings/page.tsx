@@ -2,9 +2,16 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { api } from "@/lib/api"
+import { api, ApiError } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
-import type { UserPreferences, Interest, Sex } from "@/lib/types"
+import type {
+  AccountType,
+  Interest,
+  Sex,
+  UpdateProfileRequest,
+  UserPreferences,
+} from "@/lib/types"
+import { profileService } from "@/lib/services/profile"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -34,13 +41,49 @@ import {
   X,
   Bell,
   Key,
+  Mail,
 } from "lucide-react"
 import { usePushNotifications } from "@/hooks/use-push-notifications"
 import { privacyService } from "@/lib/services/privacy"
 import { authService } from "@/lib/services/auth"
+import { normalizeEmailValue } from "@/lib/email-utils"
 import type { PrivacySettings, SparklingListMember } from "@/lib/types"
 import { Shield, Users } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
+/** Valores UI de la sección Experiencia (Ajustes). */
+type ExperienceObjective = "social" | "connection" | "both"
+
+/** Alineado con enum backend: SOCIAL | DATING | BOTH. */
+function experienceObjectiveToAccountType(
+  objective: ExperienceObjective
+): AccountType {
+  if (objective === "social") return "SOCIAL"
+  if (objective === "connection") return "DATING"
+  return "BOTH"
+}
+
+/** Estado inicial del selector a partir del perfil y ajustes locales. */
+function objectiveFromAccountTypeAndLocal(
+  accountType: string | undefined,
+  localObjective: string | undefined
+): ExperienceObjective {
+  const at = String(accountType ?? "").toUpperCase()
+  if (at === "SOCIAL" || at === "FREE") return "social"
+  if (at === "DATING") {
+    if (localObjective === "connection" || localObjective === "both") {
+      return localObjective
+    }
+    return "both"
+  }
+  if (at === "BOTH" || at === "PREMIUM") {
+    if (localObjective === "connection" || localObjective === "both") {
+      return localObjective
+    }
+    return "both"
+  }
+  return "social"
+}
 
 export default function SettingsPage() {
   const { user, logout, refreshProfile } = useAuth()
@@ -54,10 +97,11 @@ export default function SettingsPage() {
   const [showMe, setShowMe] = useState(true)
   const [isPrivate, setIsPrivate] = useState(false)
   const [connectionMode, setConnectionMode] = useState(true)
-  const [objective, setObjective] = useState('both')
+  const [objective, setObjective] = useState<ExperienceObjective>("both")
   const [localFeedRadius, setLocalFeedRadius] = useState(50) // Radio en km para feed local
   const [prefLoading, setPrefLoading] = useState(true)
   const [savingPref, setSavingPref] = useState(false)
+  const [savingExperience, setSavingExperience] = useState(false)
 
   // Privacy Settings
   const [privacySettings, setPrivacySettings] = useState<PrivacySettings>({
@@ -72,6 +116,17 @@ export default function SettingsPage() {
   const [sparklingList, setSparklingList] = useState<SparklingListMember[]>([])
   const [sparklingLoading, setSparklingLoading] = useState(false)
 
+  const PENDING_EMAIL_CHANGE_KEY = "sparkd_pending_email_change_v1"
+
+  // Change email
+  const [showChangeEmail, setShowChangeEmail] = useState(false)
+  const [newEmail, setNewEmail] = useState("")
+  const [confirmNewEmail, setConfirmNewEmail] = useState("")
+  const [changingEmail, setChangingEmail] = useState(false)
+  const [emailChangeCodePending, setEmailChangeCodePending] = useState(false)
+  const [emailChangeCode, setEmailChangeCode] = useState("")
+  const [verifyingEmailCode, setVerifyingEmailCode] = useState(false)
+
   // Change Password
   const [showChangePassword, setShowChangePassword] = useState(false)
   const [currentPassword, setCurrentPassword] = useState("")
@@ -83,6 +138,13 @@ export default function SettingsPage() {
   const [allInterests, setAllInterests] = useState<Interest[]>([])
   const [myInterests, setMyInterests] = useState<Interest[]>([])
   const [interestsLoading, setInterestsLoading] = useState(true)
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    if (localStorage.getItem(PENDING_EMAIL_CHANGE_KEY) === "1") {
+      setEmailChangeCodePending(true)
+    }
+  }, [])
 
   const fetchPreferences = useCallback(async () => {
     try {
@@ -194,19 +256,86 @@ export default function SettingsPage() {
     fetchPreferences()
     fetchInterests()
     fetchPrivacySettings()
-    
-    // Cargar configuraciones locales
-    if (user?.userId) {
-      const saved = localStorage.getItem(`sparkd_settings_${user.userId}`)
-      if (saved) {
-        const settings = JSON.parse(saved)
-        setIsPrivate(settings.isPrivate ?? false)
-        setConnectionMode(settings.connectionMode ?? true)
-        setObjective(settings.objective ?? 'both')
-        setLocalFeedRadius(settings.localFeedRadius ?? 50)
-      }
+  }, [fetchPreferences, fetchInterests, fetchPrivacySettings])
+
+  useEffect(() => {
+    if (!user?.userId) return
+    const saved = localStorage.getItem(`sparkd_settings_${user.userId}`)
+    const settings = saved ? JSON.parse(saved) : {}
+    setIsPrivate(settings.isPrivate ?? false)
+    setConnectionMode(settings.connectionMode ?? true)
+    setLocalFeedRadius(settings.localFeedRadius ?? 50)
+    setObjective(
+      objectiveFromAccountTypeAndLocal(
+        user.accountType,
+        settings.objective
+      )
+    )
+  }, [user?.userId, user?.accountType])
+
+  const saveExperience = async () => {
+    if (!user) {
+      toast.error("Inicia sesión para guardar")
+      return
     }
-  }, [fetchPreferences, fetchInterests, user])
+    if (!(user.username ?? "").trim()) {
+      toast.error(
+        "Añade un nombre de usuario en Editar perfil antes de guardar la experiencia."
+      )
+      return
+    }
+    setSavingExperience(true)
+    try {
+      const nextAccountType = experienceObjectiveToAccountType(objective)
+      const body: UpdateProfileRequest = {
+        nombres: user.nombres,
+        apellidos: user.apellidos,
+        username: (user.username ?? "").trim(),
+        accountType: nextAccountType,
+        sex: user.sex,
+        dateOfBirth: user.dateOfBirth,
+        telefono: user.telefono || "",
+        bio: user.bio ?? null,
+        url: user.url ?? user.website ?? null,
+        visibility: user.visibility,
+        showPremiumBadge: user.showPremiumBadge,
+      }
+      if (user.latitude != null && user.longitude != null) {
+        body.latitude = user.latitude
+        body.longitude = user.longitude
+      }
+      if (user.location) body.location = user.location
+
+      await profileService.updateMyProfile(body)
+      await refreshProfile()
+
+      const key = `sparkd_settings_${user.userId}`
+      const prev = localStorage.getItem(key)
+      const rest = prev ? JSON.parse(prev) : {}
+      localStorage.setItem(
+        key,
+        JSON.stringify({
+          ...rest,
+          isPrivate,
+          connectionMode,
+          objective,
+          localFeedRadius,
+        })
+      )
+
+      toast.success("Experiencia guardada")
+    } catch (err) {
+      if (err instanceof ApiError) {
+        toast.error(err.message)
+      } else {
+        toast.error(
+          err instanceof Error ? err.message : "Error al guardar experiencia"
+        )
+      }
+    } finally {
+      setSavingExperience(false)
+    }
+  }
 
   const savePreferences = async () => {
     setSavingPref(true)
@@ -276,6 +405,76 @@ export default function SettingsPage() {
           await refreshProfile()
         }
       }
+    }
+  }
+
+  const handleChangeEmail = async () => {
+    if (!newEmail.trim() || !confirmNewEmail.trim()) {
+      toast.error("Escribe y confirma el nuevo correo")
+      return
+    }
+    const next = normalizeEmailValue(newEmail)
+    const again = normalizeEmailValue(confirmNewEmail)
+    if (next !== again) {
+      toast.error("Los correos no coinciden. Revisa mayúsculas, espacios o copia el mismo texto en ambos campos.")
+      return
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(next)) {
+      toast.error("Ingresa un correo válido")
+      return
+    }
+    const current = (user?.email || "").trim().toLowerCase()
+    if (current && next === current) {
+      toast.error("El nuevo correo es igual al actual")
+      return
+    }
+    setChangingEmail(true)
+    try {
+      await authService.requestEmailChange(next)
+      localStorage.setItem(PENDING_EMAIL_CHANGE_KEY, "1")
+      setEmailChangeCodePending(true)
+      setEmailChangeCode("")
+      toast.success(
+        "Código enviado al nuevo correo. Baja un poco e introdúcelo en el campo de verificación de esta misma pantalla (Configuración → Cuenta)."
+      )
+      setShowChangeEmail(false)
+      setNewEmail("")
+      setConfirmNewEmail("")
+      await refreshProfile()
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Error al solicitar el cambio de correo"
+      )
+    } finally {
+      setChangingEmail(false)
+    }
+  }
+
+  const clearEmailChangePending = () => {
+    localStorage.removeItem(PENDING_EMAIL_CHANGE_KEY)
+    setEmailChangeCodePending(false)
+    setEmailChangeCode("")
+  }
+
+  const handleVerifyEmailCode = async () => {
+    const c = emailChangeCode.trim()
+    if (!c) {
+      toast.error("Escribe el código que recibiste")
+      return
+    }
+    setVerifyingEmailCode(true)
+    try {
+      await authService.verifyEmailChange(c)
+      clearEmailChangePending()
+      await refreshProfile()
+      toast.success("Correo actualizado correctamente")
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Código incorrecto o expirado"
+      )
+    } finally {
+      setVerifyingEmailCode(false)
     }
   }
 
@@ -518,18 +717,22 @@ export default function SettingsPage() {
           <div className="p-4 rounded-lg border border-primary/30 bg-card">
             <Label className="text-foreground font-medium mb-3 block">Experiencia</Label>
             <div className="flex flex-col gap-2">
-              {[
-                { id: 'social', label: '🤝 Social', desc: 'Solo red social' },
-                { id: 'connection', label: '💫 Conexión', desc: 'Solo dating/matching' },
-                { id: 'both', label: '⚡ Ambos', desc: 'Experiencia completa' },
-              ].map((exp) => (
+              {(
+                [
+                  { id: "social" as const, label: "🤝 Social", desc: "Solo red social" },
+                  { id: "connection" as const, label: "💫 Conexión", desc: "Solo dating/matching" },
+                  { id: "both" as const, label: "⚡ Ambos", desc: "Experiencia completa" },
+                ] as const
+              ).map((exp) => (
                 <button
                   key={exp.id}
+                  type="button"
+                  disabled={savingExperience}
                   onClick={() => setObjective(exp.id)}
                   className={`flex items-center justify-between p-3 rounded-lg transition-colors ${
                     objective === exp.id
-                      ? 'bg-primary/10 border border-primary'
-                      : 'bg-muted border border-transparent hover:bg-muted/80'
+                      ? "bg-primary/10 border border-primary"
+                      : "bg-muted border border-transparent hover:bg-muted/80"
                   }`}
                 >
                   <div className="text-left">
@@ -540,6 +743,19 @@ export default function SettingsPage() {
                 </button>
               ))}
             </div>
+            <Button
+              type="button"
+              onClick={saveExperience}
+              disabled={savingExperience || !user}
+              className="mt-3 w-full bg-primary text-primary-foreground hover:bg-primary/90 sm:w-auto"
+            >
+              {savingExperience ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Check className="mr-2 h-4 w-4" />
+              )}
+              Guardar experiencia
+            </Button>
           </div>
           <div className="p-4 rounded-lg border border-primary/30 bg-card">
             <Label className="text-foreground font-medium mb-3 block">Radio de Feed Local</Label>
@@ -716,6 +932,149 @@ export default function SettingsPage() {
           <CardTitle className="text-foreground text-base">Cuenta</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
+          <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
+            <div className="flex items-center gap-2 text-foreground">
+              <Mail className="h-4 w-4 shrink-0" />
+              <span className="text-sm font-semibold">Cambiar correo</span>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-foreground text-sm">Correo actual</Label>
+              <Input
+                readOnly
+                value={user?.email?.trim() ?? ""}
+                placeholder="No figura en tu perfil"
+                className="bg-muted/50 border-border text-foreground"
+              />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowChangeEmail((v) => !v)
+                setNewEmail("")
+                setConfirmNewEmail("")
+              }}
+              className="w-full justify-start border-border text-foreground hover:bg-muted"
+            >
+              <Mail className="mr-2 h-4 w-4" />
+              {showChangeEmail ? "Ocultar formulario" : "Actualizar correo electrónico"}
+            </Button>
+            {showChangeEmail && (
+              <div className="space-y-3 pt-1 border-t border-border">
+                <div className="flex flex-col gap-2">
+                  <Label className="text-foreground text-sm">Nuevo correo</Label>
+                  <Input
+                    type="email"
+                    autoComplete="off"
+                    name="new-email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    onBlur={() => setNewEmail((s) => s.trim())}
+                    placeholder="nuevo@correo.com"
+                    className="bg-background border-border"
+                    disabled={changingEmail}
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label className="text-foreground text-sm">Confirmar nuevo correo</Label>
+                  <Input
+                    type="email"
+                    autoComplete="off"
+                    name="confirm-new-email"
+                    value={confirmNewEmail}
+                    onChange={(e) => setConfirmNewEmail(e.target.value)}
+                    onBlur={() => setConfirmNewEmail((s) => s.trim())}
+                    placeholder="Vuelve a escribir el mismo correo"
+                    className="bg-background border-border"
+                    disabled={changingEmail}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Te enviaremos un código al nuevo correo para que confirmes el cambio.
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    onClick={handleChangeEmail}
+                    disabled={changingEmail}
+                    className="flex-1 bg-primary text-primary-foreground"
+                  >
+                    {changingEmail ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Guardar nuevo correo"
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowChangeEmail(false)
+                      setNewEmail("")
+                      setConfirmNewEmail("")
+                    }}
+                    disabled={changingEmail}
+                    className="border-border"
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {emailChangeCodePending && (
+              <div className="space-y-2 border-t border-border pt-3 mt-1">
+                <div className="flex items-center gap-2 text-foreground">
+                  <Check className="h-4 w-4 shrink-0" />
+                  <span className="text-sm font-semibold">Paso 2: confirmar con el código</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  En el <strong>correo nuevo</strong> (revisa spam) te enviamos un código. Cópialo aquí y pulsa
+                  confirmar. Es en esta misma página, sección Cuenta.
+                </p>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                  <div className="flex-1">
+                    <Label className="text-foreground text-sm">Código de verificación</Label>
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      name="email-change-code"
+                      value={emailChangeCode}
+                      onChange={(e) => setEmailChangeCode(e.target.value.replace(/\s/g, ""))}
+                      placeholder="P.ej. 123456"
+                      className="bg-background border-border"
+                      disabled={verifyingEmailCode}
+                    />
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <Button
+                      type="button"
+                      onClick={handleVerifyEmailCode}
+                      disabled={verifyingEmailCode}
+                      className="bg-primary text-primary-foreground"
+                    >
+                      {verifyingEmailCode ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        "Confirmar correo"
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={clearEmailChangePending}
+                      disabled={verifyingEmailCode}
+                      className="text-muted-foreground"
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           <Button
             variant="outline"
             onClick={() => setShowChangePassword(!showChangePassword)}

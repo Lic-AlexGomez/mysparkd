@@ -97,10 +97,15 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
   useEffect(() => {
     setCommentsCount(post.commentsCount)
   }, [post.commentsCount])
+
   const [userReaction, setUserReaction] = useState<ReactionType | null>(initialUserReaction)
   const [reactionCounts, setReactionCounts] = useState(post.reactions || {})
   const [repostCount, setRepostCount] = useState(post.repostCount || 0)
   const [reposted, setReposted] = useState(post.repostedByCurrentUser || false)
+
+  useEffect(() => {
+    setRepostCount(post.repostCount || 0)
+  }, [post.repostCount])
   const [bookmarked, setBookmarked] = useState(Boolean(post.saved))
   const [isBookmarkPending, setIsBookmarkPending] = useState(false)
   const [isRepostPending, setIsRepostPending] = useState(false)

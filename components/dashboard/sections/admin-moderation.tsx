@@ -12,15 +12,20 @@ import { toast } from "sonner"
 export function AdminModeration() {
   const [reports, setReports] = useState<ModerationReport[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
 
   const fetchReports = async () => {
+    setLoading(true)
+    setLoadError(null)
     try {
       const data = await reportService.listAdminReports()
       setReports(data)
-    } catch {
-      // fallback seguro: servicio retorna [] cuando no hay endpoint disponible
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "No se pudieron cargar los reportes"
+      setLoadError(message)
       setReports([])
+      toast.error(message)
     } finally {
       setLoading(false)
     }
@@ -92,9 +97,19 @@ export function AdminModeration() {
             <div className="flex justify-center py-8">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
+          ) : loadError ? (
+            <div className="text-center py-8 px-4 space-y-2">
+              <p className="text-sm text-muted-foreground">No se pudieron cargar los reportes</p>
+              <p className="text-xs text-muted-foreground">{loadError}</p>
+              <Button size="sm" variant="secondary" className="mt-2" onClick={() => void fetchReports()}>
+                Reintentar
+              </Button>
+            </div>
           ) : pending.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">
-              {reports.length === 0 ? "Endpoint pendiente de implementación en el backend" : "No hay reportes pendientes"}
+              {reports.length === 0
+                ? "No hay reportes en el servidor. La cola de pendientes está vacía."
+                : "No hay reportes pendientes"}
             </p>
           ) : (
             <>

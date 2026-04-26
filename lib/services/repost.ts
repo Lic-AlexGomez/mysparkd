@@ -1,3 +1,13 @@
+/**
+ * Cliente del “sistema de repost” (backend vía `lib/api` → `/api/proxy/...` → `NEXT_PUBLIC_API_URL`).
+ *
+ * Endpoints esperados en el backend:
+ * - POST   `/api/posts/{postId}/repost` — cuerpo opcional, p. ej. `{ comment?: string }`
+ * - DELETE `/api/posts/{postId}/repost`
+ * - GET    `/api/posts/{postId}/reposts` — lista de quien reposteó (no hay pantalla admin en este repo;
+ *   aquí se usa sobre todo para `hasReposted` / caché en `PostCard`. Si el listado es solo para
+ *   operadores, puede consumirse desde herramientas externas o una futura ruta admin.)
+ */
 import { api } from "@/lib/api"
 
 export interface RepostItem {
@@ -18,9 +28,22 @@ type RepostCacheEntry = {
 class RepostService {
   private cache = new Map<string, RepostCacheEntry>()
 
+  /** Acepta array JSON o envoltorios habituales (`content`, `data`, `reposts`, `items`). */
+  private unwrapListPayload(payload: unknown): unknown[] {
+    if (Array.isArray(payload)) return payload
+    if (payload && typeof payload === "object") {
+      const o = payload as Record<string, unknown>
+      for (const key of ["content", "data", "reposts", "items"] as const) {
+        const v = o[key]
+        if (Array.isArray(v)) return v
+      }
+    }
+    return []
+  }
+
   private toArray(payload: unknown): RepostItem[] {
-    if (!Array.isArray(payload)) return []
-    return payload
+    const rows = this.unwrapListPayload(payload)
+    return rows
       .map((item) => {
         if (!item || typeof item !== "object") return null
         const row = item as Partial<RepostItem>

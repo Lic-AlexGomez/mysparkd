@@ -2,18 +2,21 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { api } from "@/lib/api"
+import { api, ApiError } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
 import { usePremiumStatus } from "@/hooks/use-premium-status"
 import type { UserProfile, SwipeResponse } from "@/lib/types"
 import { SwipeCard } from "@/components/swipes/swipe-card"
 import { MatchModal } from "@/components/swipes/match-modal"
-import { X, Heart, Loader2, Zap, Crown, AlertCircle, RefreshCw } from "lucide-react"
+import { X, Heart, Loader2, Zap, Crown, RefreshCw } from "lucide-react"
 import { AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 
 const DISCOVER_PAGE_SIZE = 20
+/** Alineado con backend free tier (mensaje 429). */
+const FREE_DAILY_SWIPE_CAP = 30
 
 export default function SwipesPage() {
   const { user } = useAuth()
@@ -46,7 +49,8 @@ export default function SwipesPage() {
       posts: item.profile.posts || [],
       totalPosts: item.profile.totalPosts || 0,
       compatibilityScore: item.compatibilityScore || 0,
-    }))
+      premium: false,
+    })) as UserProfile[]
   }, [])
 
   const fetchProfiles = useCallback(async (reset = false) => {
@@ -96,12 +100,24 @@ export default function SwipesPage() {
   }, [discoverPage, hasMoreProfiles, isFetchingMore, mapProfiles, swipedIds])
 
   const fetchRemainingSwipes = useCallback(async () => {
-    if (!user?.userId || isPremium) { setRemainingSwipes(null); return }
+    if (!user?.userId) return
+    if (isPremium) {
+      setRemainingSwipes(null)
+      setSwipeLimitReached(false)
+      return
+    }
     try {
-      const data = await api.get<{ remainingSwipes: number }>(`/api/swipes/remaining/${user.userId}`)
-      setRemainingSwipes(data.remainingSwipes)
-      setSwipeLimitReached(data.remainingSwipes === 0)
-    } catch {}
+      const data = await api.get<{ remainingSwipes?: number; swipesRemaining?: number }>(
+        `/api/swipes/remaining/${user.userId}`,
+      )
+      const raw = data.swipesRemaining ?? data.remainingSwipes
+      if (typeof raw === "number") {
+        setRemainingSwipes(raw)
+        setSwipeLimitReached(raw === 0)
+      }
+    } catch {
+      // Sin contador: el POST de swipe o un 429 actualizará estado
+    }
   }, [user?.userId, isPremium])
 
   useEffect(() => {
@@ -115,6 +131,9 @@ export default function SwipesPage() {
       void fetchProfiles(false)
     }
   }, [currentIndex, profiles.length, isLoading, hasMoreProfiles, fetchProfiles])
+
+  const swipesUiLocked =
+    !isPremium && (swipeLimitReached || (typeof remainingSwipes === "number" && remainingSwipes <= 0))
 
   const handleSwipe = useCallback(async (direction: "left" | "right") => {
     const currentProfile = profiles[currentIndex]
@@ -134,30 +153,49 @@ export default function SwipesPage() {
         targetUserId: currentProfile.userId,
         type,
       })
+      if (response.premium) {
+        setRemainingSwipes(null)
+        setSwipeLimitReached(false)
+      } else if (typeof response.swipesRemaining === "number") {
+        setRemainingSwipes(response.swipesRemaining)
+        setSwipeLimitReached(response.swipesRemaining === 0)
+      } else if (!isPremium && remainingSwipes !== null) {
+        const next = Math.max(0, remainingSwipes - 1)
+        setRemainingSwipes(next)
+        setSwipeLimitReached(next === 0)
+      } else if (!isPremium && remainingSwipes === null) {
+        void fetchRemainingSwipes()
+      }
       if (response.match) {
         setMatchedUser({ id: currentProfile.userId, name: `${currentProfile.nombres} ${currentProfile.apellidos}` })
         setShowMatch(true)
       }
-      setSwipedIds(prev => new Set(prev).add(currentProfile.userId))
-      if (!isPremium && remainingSwipes !== null) {
-        setRemainingSwipes(prev => prev !== null ? prev - 1 : null)
-      }
+      setSwipedIds((prev) => new Set(prev).add(currentProfile.userId))
       if (typeof navigator !== "undefined" && "vibrate" in navigator) {
         navigator.vibrate(10)
       }
-    } catch (error: any) {
-      if (error.message?.includes('Límite') || error.message?.includes('limit')) {
+    } catch (error) {
+      if (error instanceof ApiError && (error.status === 429 || error.status === 403)) {
         setSwipeLimitReached(true)
-        fetchRemainingSwipes()
+        void fetchRemainingSwipes()
+        toast.error(
+          error.message ||
+            `Límite diario de swipes alcanzado (${FREE_DAILY_SWIPE_CAP}). Mejora a premium.`,
+        )
+        shouldAdvance = false
       } else {
         shouldAdvance = false
-        toast.error("No se pudo registrar el swipe")
+        const msg =
+          error instanceof ApiError
+            ? error.message
+            : "No se pudo registrar el swipe"
+        toast.error(msg)
       }
     }
 
     setTimeout(() => {
       if (shouldAdvance) {
-        setCurrentIndex(prev => prev + 1)
+        setCurrentIndex((prev) => prev + 1)
       }
       setSwipeDirection(null)
       setIsSwiping(false)
@@ -166,7 +204,7 @@ export default function SwipesPage() {
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (swipeLimitReached || isSwiping) return
+      if (swipesUiLocked || isSwiping) return
       if (e.key === "ArrowLeft") {
         e.preventDefault()
         void handleSwipe("left")
@@ -178,7 +216,7 @@ export default function SwipesPage() {
 
     window.addEventListener("keydown", onKeyDown)
     return () => window.removeEventListener("keydown", onKeyDown)
-  }, [handleSwipe, swipeLimitReached, isSwiping])
+  }, [handleSwipe, swipesUiLocked, isSwiping])
 
   if (isLoading) {
     return (
@@ -205,9 +243,16 @@ export default function SwipesPage() {
 
         {/* Header */}
         <div className="mb-3 text-center">
-          <h1 className="text-2xl font-black bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent">
-            Swipes
-          </h1>
+          <div className="flex flex-col items-center gap-1.5 sm:flex-row sm:justify-center sm:gap-3">
+            <h1 className="text-2xl font-black bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent">
+              Swipes
+            </h1>
+            {!isPremium && remainingSwipes !== null && !swipeLimitReached && (
+              <Badge variant="secondary" className="text-[10px] font-bold tabular-nums px-2.5 py-0.5">
+                {remainingSwipes} / {FREE_DAILY_SWIPE_CAP} hoy
+              </Badge>
+            )}
+          </div>
           {!noMoreProfiles && (
             <p className="text-xs text-muted-foreground">
               {Math.max(0, profiles.length - currentIndex)} personas por ver · {seenCount} vistas
@@ -227,7 +272,7 @@ export default function SwipesPage() {
                 Swipes hoy
               </span>
               <span className={`text-xs font-bold ${remainingSwipes <= 3 ? 'text-destructive' : 'text-primary'}`}>
-                {remainingSwipes}/10
+                {remainingSwipes}/{FREE_DAILY_SWIPE_CAP}
               </span>
             </div>
             <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
@@ -237,7 +282,7 @@ export default function SwipesPage() {
                     ? 'bg-destructive'
                     : 'bg-gradient-to-r from-primary to-secondary'
                 }`}
-                style={{ width: `${(remainingSwipes / 10) * 100}%` }}
+                style={{ width: `${Math.min(100, (remainingSwipes / FREE_DAILY_SWIPE_CAP) * 100)}%` }}
               />
             </div>
             {remainingSwipes <= 3 && remainingSwipes > 0 && (
@@ -251,27 +296,24 @@ export default function SwipesPage() {
           </div>
         )}
 
-        {/* Limit reached */}
-        {swipeLimitReached && (
-          <div className="mb-3 p-3 bg-destructive/10 border border-destructive/20 rounded-2xl">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-semibold text-foreground">Límite alcanzado</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Vuelve mañana o hazte Premium</p>
-                <button
-                  onClick={() => router.push('/premium')}
-                  className="mt-2 px-3 py-1.5 text-xs font-bold rounded-lg bg-gradient-to-r from-primary to-secondary text-black flex items-center gap-1"
-                >
-                  <Crown className="h-3 w-3" /> Premium
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Card stack */}
         <div className="relative w-full" style={{ height: '380px' }}>
+          {swipesUiLocked && !noMoreProfiles && (
+            <div className="absolute inset-0 z-30 flex flex-col items-center justify-end rounded-3xl border border-destructive/20 bg-background/85 backdrop-blur-sm p-4 pb-8 text-center">
+              <p className="text-sm font-semibold text-foreground">Sin swipes hoy</p>
+              <p className="text-xs text-muted-foreground mt-1 max-w-[240px]">
+                Límite de {FREE_DAILY_SWIPE_CAP} al día. Mejora a Premium o vuelve mañana.
+              </p>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => router.push("/premium")}
+                className="mt-3 bg-gradient-to-r from-primary to-secondary text-black font-bold"
+              >
+                <Crown className="h-3.5 w-3.5 mr-1" /> Ver Premium
+              </Button>
+            </div>
+          )}
           {noMoreProfiles ? (
             <div className="flex h-full flex-col items-center justify-center gap-5 rounded-3xl bg-gradient-to-br from-card to-muted/30 border border-primary/10">
               {hasMoreProfiles || isFetchingMore ? (
@@ -323,6 +365,7 @@ export default function SwipesPage() {
                   isTop={true}
                   compatibility={currentProfile.compatibilityScore}
                   exitDirection={swipeDirection}
+                  swipeEnabled={!swipesUiLocked}
                 />
               )}
             </AnimatePresence>
@@ -330,11 +373,11 @@ export default function SwipesPage() {
         </div>
 
         {/* Action buttons */}
-        {!noMoreProfiles && !swipeLimitReached && (
+        {!noMoreProfiles && !swipesUiLocked && (
           <div className="mt-5 flex items-center justify-between px-8">
             <button
               onClick={() => void handleSwipe("left")}
-              disabled={isSwiping}
+              disabled={isSwiping || swipesUiLocked}
               className="group h-12 w-12 rounded-full bg-card border-2 border-destructive/30 hover:border-destructive hover:bg-destructive/10 transition-all duration-200 hover:scale-110 shadow-lg flex items-center justify-center disabled:opacity-50 disabled:hover:scale-100"
             >
               <X className="h-6 w-6 text-destructive" />
@@ -342,7 +385,7 @@ export default function SwipesPage() {
 
             <button
               onClick={() => void handleSwipe("right")}
-              disabled={isSwiping}
+              disabled={isSwiping || swipesUiLocked}
               className="h-14 w-14 rounded-full bg-gradient-to-br from-primary to-secondary shadow-xl shadow-primary/40 hover:scale-110 transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:hover:scale-100"
             >
               <Heart className="h-8 w-8 text-black fill-black" />
@@ -358,7 +401,7 @@ export default function SwipesPage() {
           </div>
         )}
 
-        {!noMoreProfiles && !swipeLimitReached && (
+        {!noMoreProfiles && !swipesUiLocked && (
           <p className="mt-2 text-center text-xs text-muted-foreground">
             Desliza para pasar/like o usa los botones
           </p>

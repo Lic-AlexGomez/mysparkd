@@ -34,7 +34,7 @@ import {
   UserPlus,
 } from "lucide-react"
 import { toast } from "sonner"
-import type { Group, GroupInviteLink, GroupMember, GroupMessage } from "@/lib/types"
+import type { Group, GroupInviteLink, GroupMember, GroupMessage, GroupMessageMediaType } from "@/lib/types"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
 import { groupService } from "@/lib/services/group"
 import { useAuth } from "@/lib/auth-context"
@@ -47,6 +47,9 @@ export default function GroupDetailPage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState("messages")
   const [messageContent, setMessageContent] = useState("")
+  const [outgoingMediaType, setOutgoingMediaType] = useState<"" | GroupMessageMediaType>("")
+  const [outgoingMediaUrl, setOutgoingMediaUrl] = useState("")
+  const [outgoingVideoDurationSec, setOutgoingVideoDurationSec] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isSending, setIsSending] = useState(false)
@@ -85,6 +88,27 @@ export default function GroupDetailPage() {
   const isModerator = group?.myRole === "MODERATOR" || isAdmin
   const canModerate = Boolean(isModerator)
   const currentUserId = user?.userId
+  const myMember = useMemo(
+    () => (currentUserId ? members.find((m) => m.userId === currentUserId) : undefined),
+    [members, currentUserId]
+  )
+  const isMuted = Boolean(myMember?.muted)
+  const canSendInChat = useMemo(() => {
+    if (!group) return false
+    if (isMuted) return false
+    const w = group.whoCanTalk || "ALL"
+    const role = group.myRole
+    if (w === "ALL") return true
+    if (w === "MODS_AND_ADMINS") return role === "MODERATOR" || role === "ADMIN"
+    if (w === "ONLY_ADMIN") return role === "ADMIN"
+    return true
+  }, [group, isMuted])
+  const whoCanTalkHint = useMemo(() => {
+    const w = group?.whoCanTalk || "ALL"
+    if (w === "ALL") return "Cualquier miembro puede escribir en el chat."
+    if (w === "MODS_AND_ADMINS") return "Solo moderadores y administradores pueden escribir en el chat."
+    return "Solo el administrador puede escribir en el chat."
+  }, [group?.whoCanTalk])
   const { subscribeToGroup } = useWebSocket(user?.userId, {})
 
   const normalizeMessageId = (msg: Partial<GroupMessage>) =>
@@ -272,15 +296,49 @@ export default function GroupDetailPage() {
   }, [groupId, user?.userId, subscribeToGroup])
 
   const handleSendMessage = async () => {
-    if (!messageContent.trim()) {
-      toast.error("Escribe algo")
+    const text = messageContent.trim()
+    const hasMediaPair = Boolean(outgoingMediaType && outgoingMediaUrl.trim())
+    if (!text && !hasMediaPair) {
+      toast.error("Escribe un mensaje o completa URL y tipo de media")
       return
+    }
+    if (outgoingMediaType && !outgoingMediaUrl.trim()) {
+      toast.error("Falta la URL del archivo")
+      return
+    }
+    if (!outgoingMediaType && outgoingMediaUrl.trim()) {
+      toast.error("Selecciona un tipo de media o borra la URL")
+      return
+    }
+    if (outgoingMediaType === "VIDEO") {
+      const d = parseInt(outgoingVideoDurationSec, 10)
+      if (!Number.isFinite(d) || d < 0 || d > 180) {
+        toast.error("Para video indica la duración en segundos (0–180)")
+        return
+      }
     }
     setIsSending(true)
     try {
-      const created = await groupService.messages.send(groupId, messageContent.trim())
+      const body: {
+        content?: string
+        mediaType?: GroupMessageMediaType
+        mediaUrl?: string
+        durationSeconds?: number
+      } = {}
+      if (text) body.content = text
+      if (hasMediaPair && outgoingMediaType) {
+        body.mediaType = outgoingMediaType
+        body.mediaUrl = outgoingMediaUrl.trim()
+        if (outgoingMediaType === "VIDEO") {
+          body.durationSeconds = parseInt(outgoingVideoDurationSec, 10)
+        }
+      }
+      const created = await groupService.messages.send(groupId, body)
       setMessages((prev) => dedupeMessages(upsertIncomingMessage(prev, created)))
       setMessageContent("")
+      setOutgoingMediaType("")
+      setOutgoingMediaUrl("")
+      setOutgoingVideoDurationSec("")
     } catch (error: any) {
       toast.error(error?.message || "No se pudo enviar")
     } finally {
@@ -614,14 +672,22 @@ export default function GroupDetailPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className={`w-full grid ${features.groupRoles ? "grid-cols-2" : "grid-cols-1"}`}>
+        <TabsList
+          className={`w-full grid ${features.groupRoles ? "grid-cols-3" : "grid-cols-2"}`}
+        >
           <TabsTrigger value="messages">Chat</TabsTrigger>
-          {features.groupRoles && (
-            <TabsTrigger value="members">Miembros</TabsTrigger>
-          )}
+          <TabsTrigger value="summary">Resumen</TabsTrigger>
+          {features.groupRoles && <TabsTrigger value="members">Miembros</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="messages" className="mt-6">
+          {!canSendInChat && (
+            <div className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
+              {isMuted
+                ? "Estás silenciado en este grupo: no puedes enviar mensajes."
+                : whoCanTalkHint}
+            </div>
+          )}
           {pinnedMessages.length > 0 && (
             <div className="mb-4 space-y-2">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Mensajes fijados</p>
@@ -644,8 +710,62 @@ export default function GroupDetailPage() {
               placeholder="Escribe un mensaje al grupo..."
               className="min-h-24 resize-none"
               maxLength={4000}
+              disabled={!canSendInChat}
             />
-            <Button onClick={handleSendMessage} className="w-full" disabled={!messageContent.trim() || isSending}>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:items-end">
+              <div className="sm:col-span-1">
+                <p className="text-xs text-muted-foreground mb-1">Media (opcional)</p>
+                <Select
+                  value={outgoingMediaType || "NONE"}
+                  onValueChange={(v) =>
+                    setOutgoingMediaType(v === "NONE" ? "" : (v as GroupMessageMediaType))
+                  }
+                  disabled={!canSendInChat}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sin archivo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NONE">Sin archivo</SelectItem>
+                    <SelectItem value="IMAGE">Imagen (URL)</SelectItem>
+                    <SelectItem value="VIDEO">Video (URL)</SelectItem>
+                    <SelectItem value="AUDIO">Audio (URL)</SelectItem>
+                    <SelectItem value="FILE">Archivo (URL)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="sm:col-span-2">
+                <p className="text-xs text-muted-foreground mb-1">URL pública (p. ej. Cloudinary)</p>
+                <Input
+                  value={outgoingMediaUrl}
+                  onChange={(e) => setOutgoingMediaUrl(e.target.value)}
+                  placeholder="https://..."
+                  disabled={!canSendInChat}
+                />
+              </div>
+            </div>
+            {outgoingMediaType === "VIDEO" && (
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Duración video (seg, máx. 180)</p>
+                <Input
+                  type="number"
+                  min={0}
+                  max={180}
+                  value={outgoingVideoDurationSec}
+                  onChange={(e) => setOutgoingVideoDurationSec(e.target.value)}
+                  disabled={!canSendInChat}
+                />
+              </div>
+            )}
+            <Button
+              onClick={handleSendMessage}
+              className="w-full"
+              disabled={
+                isSending ||
+                !canSendInChat ||
+                (!messageContent.trim() && !(outgoingMediaType && outgoingMediaUrl.trim()))
+              }
+            >
               <Send className="h-4 w-4 mr-2" />
               {isSending ? "Enviando..." : "Enviar"}
             </Button>
@@ -755,13 +875,54 @@ export default function GroupDetailPage() {
                             <p className="text-sm text-foreground">
                               {msg.deleted ? "Mensaje eliminado" : (msg.content || "")}
                             </p>
+                            {!msg.deleted && msg.mediaUrl && (
+                              <div className="mt-2 space-y-2">
+                                {msg.mediaType === "IMAGE" && (
+                                  <img
+                                    src={msg.mediaUrl}
+                                    alt=""
+                                    className="max-h-60 w-full rounded-md object-contain"
+                                  />
+                                )}
+                                {msg.mediaType === "VIDEO" && (
+                                  <video
+                                    src={msg.mediaUrl}
+                                    className="max-h-60 w-full rounded-md"
+                                    controls
+                                  />
+                                )}
+                                {msg.mediaType === "AUDIO" && (
+                                  <audio src={msg.mediaUrl} className="w-full" controls />
+                                )}
+                                {msg.mediaType === "FILE" && (
+                                  <a
+                                    href={msg.mediaUrl}
+                                    className="text-sm text-primary underline"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                  >
+                                    Abrir archivo
+                                  </a>
+                                )}
+                                {!msg.mediaType && (
+                                  <a
+                                    href={msg.mediaUrl}
+                                    className="text-sm text-primary underline"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                  >
+                                    Abrir enlace
+                                  </a>
+                                )}
+                              </div>
+                            )}
                             <p className="text-[10px] text-muted-foreground mt-1 text-right">
                               {formatCompactTime(msg.sentAt)}
                             </p>
                           </div>
                           )}
                         </div>
-                        {!msg.deleted && canModerate && (
+                        {!msg.deleted && (canModerate || canEditMessage(msg) || canDeleteMessage(msg)) && (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -781,17 +942,19 @@ export default function GroupDetailPage() {
                                   {deletingMessageId === msg.id ? "Eliminando..." : "Eliminar"}
                                 </DropdownMenuItem>
                               )}
-                              <DropdownMenuItem
-                                disabled={pinUpdatingMessageId === msg.id}
-                                onClick={() => void togglePin(msg.id)}
-                              >
-                                <Pin className="h-4 w-4 mr-2" />
-                                {pinUpdatingMessageId === msg.id
-                                  ? "Actualizando..."
-                                  : pinnedIds.includes(msg.id)
-                                    ? "Desfijar"
-                                    : "Fijar"}
-                              </DropdownMenuItem>
+                              {canModerate && (
+                                <DropdownMenuItem
+                                  disabled={pinUpdatingMessageId === msg.id}
+                                  onClick={() => void togglePin(msg.id)}
+                                >
+                                  <Pin className="h-4 w-4 mr-2" />
+                                  {pinUpdatingMessageId === msg.id
+                                    ? "Actualizando..."
+                                    : pinnedIds.includes(msg.id)
+                                      ? "Desfijar"
+                                      : "Fijar"}
+                                </DropdownMenuItem>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         )}
@@ -804,6 +967,46 @@ export default function GroupDetailPage() {
               </div>
             </ScrollArea>
           )}
+        </TabsContent>
+
+        <TabsContent value="summary" className="mt-6 space-y-4">
+          <div className="rounded-xl border border-border bg-card p-4">
+            <p className="text-sm font-semibold mb-2">Categoría y temas</p>
+            {group.category ? (
+              <p className="text-sm text-muted-foreground">
+                Categoría: <span className="text-foreground font-medium">{group.category}</span>
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">Sin categoría.</p>
+            )}
+            {group.topics && group.topics.length > 0 ? (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {group.topics.map((t) => (
+                  <Badge key={t} variant="secondary" className="text-xs font-normal">
+                    {t}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground mt-2">Sin temas listados.</p>
+            )}
+          </div>
+          <div className="rounded-xl border border-border bg-card p-4">
+            <p className="text-sm font-semibold mb-2">Reglas de participación (chat)</p>
+            <p className="text-sm text-muted-foreground">{whoCanTalkHint}</p>
+            <p className="text-xs text-muted-foreground mt-3">
+              Configuración actual: <span className="font-mono">{group.whoCanTalk || "ALL"}</span>
+            </p>
+          </div>
+          <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+            <p className="text-sm font-semibold text-amber-900 dark:text-amber-100 mb-1">Publicaciones (feed)</p>
+            <p className="text-sm text-muted-foreground">
+              En el backend Sparkd no hay un endpoint de &quot;posts&quot; por grupo: el módulo usa mensajes de chat
+              (<code className="rounded bg-muted px-1">/api/groups/:id/messages</code>) y los posts de perfil viven en
+              <code className="ml-1 rounded bg-muted px-1">/api/posts</code>. El contenido del grupo se gestiona en la
+              pestaña Chat.
+            </p>
+          </div>
         </TabsContent>
 
         {features.groupRoles && (
@@ -975,7 +1178,13 @@ export default function GroupDetailPage() {
           )}
 
           <div className="space-y-3">
-            {members.map((member) => (
+            {members.map((member) => {
+              const isRowSelf = Boolean(currentUserId && member.userId === currentUserId)
+              const canModerateThisRow =
+                canModerate && member.role !== "ADMIN" && !isRowSelf
+              const canMuteThisMember =
+                canModerateThisRow && (isAdmin || member.role !== "MODERATOR")
+              return (
               <div
                 key={member.userId}
                 className="flex flex-col items-start gap-3 rounded-lg border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
@@ -985,7 +1194,10 @@ export default function GroupDetailPage() {
                     <AvatarFallback>{member.username[0].toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-semibold text-foreground">{member.username}</p>
+                    <p className="font-semibold text-foreground">
+                      {member.username}
+                      {isRowSelf && <span className="text-xs font-normal text-muted-foreground"> (tú)</span>}
+                    </p>
                     <div className="flex items-center gap-2 mt-1">
                       {member.role === 'ADMIN' && (
                         <Badge className="bg-primary/10 text-primary border-0 text-xs">
@@ -1009,7 +1221,7 @@ export default function GroupDetailPage() {
                   </div>
                 </div>
 
-                {canModerate && member.role !== 'ADMIN' && (
+                {canModerateThisRow && (
                   <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
                     {isAdmin && member.role === 'GUEST' && (
                       <Button
@@ -1035,6 +1247,7 @@ export default function GroupDetailPage() {
                         {roleUpdatingUserId === member.userId ? "Guardando..." : "Quitar MOD"}
                       </Button>
                     )}
+                    {canMuteThisMember && (
                     <Button
                       size="sm"
                       variant="outline"
@@ -1045,7 +1258,8 @@ export default function GroupDetailPage() {
                       {member.muted ? <Volume2 className="h-3.5 w-3.5 mr-1" /> : <VolumeX className="h-3.5 w-3.5 mr-1" />}
                       {muteUpdatingUserId === member.userId ? "Guardando..." : member.muted ? "Quitar mute" : "Silenciar"}
                     </Button>
-                    {isAdmin && (
+                    )}
+                    {isAdmin && member.role !== "ADMIN" && (
                       <Button
                         size="sm"
                         variant="destructive"
@@ -1059,7 +1273,8 @@ export default function GroupDetailPage() {
                   </div>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         </TabsContent>
         )}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
-import { api } from "@/lib/api"
+import { api, ApiError } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
 import { followService } from "@/lib/services/follow"
 import { blockService } from "@/lib/services/block"
@@ -188,8 +188,15 @@ export default function UserProfilePage() {
       } else {
         toast.success("¡Like enviado!")
       }
-    } catch {
-      toast.error("Error al enviar like")
+    } catch (error) {
+      if (error instanceof ApiError && (error.status === 429 || error.status === 403)) {
+        toast.error(
+          error.message ||
+            "Límite diario de swipes alcanzado. Mejora a premium.",
+        )
+      } else {
+        toast.error("Error al enviar like")
+      }
     } finally {
       setIsLiking(false)
     }

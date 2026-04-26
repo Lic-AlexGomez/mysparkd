@@ -12,6 +12,11 @@ import { CheckCircle2, Loader2, Mail } from "lucide-react"
 import { emailVerificationService } from "@/lib/services/email-verification"
 import { api } from "@/lib/api"
 import type { UserProfile } from "@/lib/types"
+import {
+  stashLoginAccountType,
+  mergeProfileWithStashedLoginAccountType,
+  clearStashedLoginAccountTypeIfSynced,
+} from "@/lib/auth-context"
 
 function VerifyEmailForm() {
   const router = useRouter()
@@ -73,8 +78,11 @@ function VerifyEmailForm() {
       if (response?.token) {
         localStorage.setItem("sparkd_token", response.token)
         localStorage.removeItem("sparkd_pending_verification_email")
+        stashLoginAccountType(response.accountType)
         try {
-          const profile = await api.get<UserProfile>("/api/profile/me")
+          let profile = await api.get<UserProfile>("/api/profile/me")
+          profile = mergeProfileWithStashedLoginAccountType(profile)
+          clearStashedLoginAccountTypeIfSynced(profile)
           localStorage.setItem("sparkd_user", JSON.stringify(profile))
           router.push(profile.profileCompleted ? "/feed" : "/onboarding")
         } catch {

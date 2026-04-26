@@ -10,19 +10,21 @@ import { ManagerActivity } from "./sections/manager-activity"
 import { Users, FileText, Flag, MessageCircle, Activity, Zap, Menu, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
+import { useManagerReportsPendingCount } from "@/hooks/use-manager-reports-pending-count"
 
 const SECTIONS = [
-  { id: "activity",  label: "Actividad",  icon: Activity,      badge: null },
-  { id: "users",     label: "Usuarios",   icon: Users,         badge: null },
-  { id: "content",   label: "Contenido",  icon: FileText,      badge: null },
-  { id: "reports",   label: "Reportes",   icon: Flag,          badge: 7 },
-  { id: "messages",  label: "Mensajes",   icon: MessageCircle, badge: null },
-]
+  { id: "activity",  label: "Actividad",  icon: Activity,      showPendingBadge: false },
+  { id: "users",     label: "Usuarios",   icon: Users,         showPendingBadge: false },
+  { id: "content",   label: "Contenido",  icon: FileText,      showPendingBadge: false },
+  { id: "reports",   label: "Reportes",   icon: Flag,          showPendingBadge: true },
+  { id: "messages",  label: "Mensajes",   icon: MessageCircle, showPendingBadge: false },
+] as const
 
 export function ManagerPanel() {
   const { user } = useAuth()
   const [active, setActive] = useState("activity")
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { count: pendingReportsCount, refresh: refreshPendingReports } = useManagerReportsPendingCount()
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -59,9 +61,9 @@ export function ManagerPanel() {
             >
               <s.icon className="h-4 w-4 shrink-0" />
               <span className="flex-1 text-left">{s.label}</span>
-              {s.badge && (
-                <Badge className="text-[10px] border-0 bg-rose-500 text-white h-4 min-w-4 px-1">
-                  {s.badge}
+              {s.showPendingBadge && pendingReportsCount > 0 && (
+                <Badge className="text-[10px] border-0 bg-rose-500 text-white h-4 min-w-4 px-1 tabular-nums">
+                  {pendingReportsCount > 99 ? "99+" : pendingReportsCount}
                 </Badge>
               )}
             </button>
@@ -115,7 +117,7 @@ export function ManagerPanel() {
           {active === "activity" && <ManagerActivity />}
           {active === "users"    && <ManagerUsers />}
           {active === "content"  && <ManagerContent />}
-          {active === "reports"  && <ManagerReports />}
+          {active === "reports"  && <ManagerReports onReportsMutated={() => void refreshPendingReports()} />}
           {active === "messages" && <ManagerMessages />}
         </main>
       </div>

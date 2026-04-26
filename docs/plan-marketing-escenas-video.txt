@@ -1,0 +1,232 @@
+================================================================================
+  SPARKD — Plan de marketing con escenas videográficas (guion por producto)
+  Uso: brief para producción, RRSS, paid media y gente de marketing
+  Fecha: abril 2026
+================================================================================
+
+0. NARRATIVA GLOBAL (marca y promesa)
+--------------------------------------------------------------------------------
+  Mensaje rector: "Tu vida social y tus citas, en un solo lugar — sin fricción."
+  Tono: cercano, moderno, seguro, con energía (no tóxico ni aspiracional imposible).
+  Paleta sugerida en vídeo: claros, contrastes vivos, rostros diversos, entornos reales
+  (café, calle, parque, gimnasio, casa) + UI de app en overlay limpio y legible.
+
+  CTA transversal: descarga, regístrate, o "empieza a [swipear / unirte / publicar]".
+  Duración orientativa de piezas: 6–15 s (snack), 30–45 s (medio), 60–90 s (hero).
+
+
+================================================================================
+1. MEETUP (eventos, quedadas, gente con plan)
+================================================================================
+
+  Objetivo de marketing: posicionar la app como lugar donde los planes nacen y se
+  confirman (no solo chat infinito).
+
+  Audiencia: 22–40 años, que salen poco o quieren ampliar círculo; también quienes
+  organizan actividades (correr, cine, afterwork).
+
+  Mensaje clave: "Crea o únete a un plan; chatea con el grupo; llega sabiendo qué
+  esperar."
+
+  --- ESCENA 1.1 (Hook 0:00–0:04) — "Sábado sin plan"
+  Visual: mano cogiendo el móvil, pantalla inicio, scroll rápido a sección de eventos
+  o lista de quedadas.
+  Voz en off: "¿Nadie escribe? Listo, hoy tú pones el plan."
+  On-screen: texto "Meetup" + icono de calendario.
+
+  --- ESCENA 1.2 (0:04–0:10) — Creación del evento
+  Visual: en app, título, fecha, lugar, cupos; al publicar, animación sutil "Publicado".
+  Detalle: mostrar ficha con dirección y hora.
+  Voz: "Citas el lugar, la hora y el chiste — quien quiera, se apunta."
+
+  --- ESCENA 1.3 (0:10–0:18) — Asistentes y chat del evento
+  Visual: contador "te uniste / van 5"; mini chat del evento; notificación.
+  Voz: "Hablan todos en un solo hilo. Sin grupos de WhatsApp infinitos."
+
+  --- ESCENA 1.4 (0:18–0:25) — Momento real
+  Visual: corte a plano exterior: 3–4 personas saludando frente a un bar / parque
+  (actores diversos, ambiente cálido).
+  Voz: "Así pasa de pantalla a calle. Eso es un meetup."
+  CTA: "Crea o únete hoy" + logo.
+
+  Variación B2B / creators: corte largo 45 s: entrevistador pide a la gente "última vez
+  que alguien propuso un plan" → frustración → resolución con la app.
+
+
+================================================================================
+2. FAST DATE (citas exprés, límite de tiempo, propuesta)
+================================================================================
+
+  Objetivo: vender "decisión rápida" y baja carga emocional frente a la coordinación
+  eterna; ideal para gente con poco tiempo.
+
+  Audiencia: 25–38 años, agenda cargada, anti conversaciones que no llevan a nada
+  concreto.
+
+  Mensaje clave: "Propón una cita con categoría, lugar y ventana. Si hay match de
+  interés, se concreta — sin tiritar una semana."
+
+  --- ESCENA 2.1 (0:00–0:04) — Reloj
+  Visual: reloj / timeline animado, UI de fast date con categorías (café, cena, etc.).
+  SFX: tic suave, no agresivo.
+  Voz: "Te gusta, pero nunca quedan. Aquí pones fecha y tono de la salida."
+
+  --- ESCENA 2.2 (0:04–0:12) — Ficha de cita
+  Visual: rellenar título, mensaje, ventana de tiempo, tipo de sitio; mapa o hint de
+  zona.
+  On-screen: "Fast date" + badge de categoría.
+
+  --- ESCENA 2.3 (0:12–0:20) — "Interés" o respuesta
+  Visual: otra persona recibe la propuesta, pulsa aceptar o propone variante; toast de
+  confirmación.
+  Voz: "Si encaja, avanzan. Si no, nadie se queda a medias con mil chats."
+
+  --- ESCENA 2.4 (0:20–0:28) — Transición a salida
+  Visual: manos chocando cafés, conversación (sin audio de diálogo o con música).
+  CTA: "Pásalo a cita" + enlace a descarga.
+
+  Nota legal/compliance: evitar prometer resultados; sí prometer "flujo de propuesta
+  clara y límite de intención".
+
+
+================================================================================
+3. FEED (contenido, descubrimiento, comunidad)
+================================================================================
+
+  Objetivo: posicionar el feed como ventana a la vida de la gente (no solo caras en
+  grid: historias, actualidad, intereses).
+
+  Audiencia: usuarios de redes clásicos que buscan "algo más" que likes vacíos; grupos
+  de interés.
+
+  Mensaje clave: "Mira, guarda, comenta, descubre. Tu feed, tu ritmo — Para ti o
+  Siguiendo."
+
+  --- ESCENA 3.1 (0:00–0:04) — Scroll satisfactorio
+  Visual: mano haciendo scroll; posts variados: foto comida, evento, tip corto, carrusel
+  mínimo.
+  SFX: whoosh breve, música house suave o indie.
+
+  --- ESCENA 3.2 (0:04–0:10) — Interacción
+  Visual: like, comentario burbuja, guardar post (bookmark); UI legible, sin texto ilegible.
+  Voz: "Lo que te engancha, te lo quedas. Lo demás, pasa de largo como en la vida real."
+
+  --- ESCENA 3.3 (0:10–0:18) — "Para ti" / "Siguiendo"
+  Visual: conmutar pestañas; contraste: recomendado vs. gente a la que sigues.
+  Voz: "Dos modos. Descubres o te quedas con tu tribu."
+
+  --- ESCENA 3.4 (0:18–0:25) — Cierre humano
+  Visual: cámara selfie natural (no falsa), risa, mostrar móvil con feed real (mock
+  aprobado legalmente).
+  CTA: "Entra al feed" + hashtag de campaña (definir en marca).
+
+
+================================================================================
+4. GRUPOS (tribu, intereses, chat de grupo, propósito)
+================================================================================
+
+  Objetivo: reducir la sensación de "app de citas sola" y reforzar comunidad: hobby,
+  deporte, idiomas, networking.
+
+  Audiencia: 20–45 años, ya usan grupos de Facebook/Telegram pero quieren orden y
+  perfiles reales.
+
+  Mensaje clave: "Crea o únete a un grupo. Misma afinidad, chat compartido, eventos
+  propios del grupo si existen (según producto)."
+
+  --- ESCENA 4.1 (0:00–0:04) — "¿Y si fuera un club?"
+  Visual: cámara fija, mesa con laptop + móvil; título de grupo y avatar en grid
+  mínimo.
+  Voz: "No hace falta el grupo de WhatsApp de 300 mensajes. Aquí, tema y gente con filtro."
+
+  --- ESCENA 4.2 (0:04–0:12) — Explorar / unirse
+  Visual: búsqueda o recomendación "Grupos", card con descripción, botón "Unirse" o
+  solicitar acceso; animación "miembro".
+  On-screen: reglas o tema (breve, legible).
+
+  --- ESCENA 4.3 (0:12–0:20) — Chat de grupo
+  Visual: hilo, media compartida (si el producto lo muestra), reacción; sin saturar.
+  Voz: "Escribís los que tocan el tema. Punto."
+
+  --- ESCENA 4.4 (0:20–0:28) — Encuentro IRL
+  Visual: fútbol 5, idiomas en cafetería, o networking con chapas de nombre; risas.
+  CTA: "Tu grupo, en Sparkd" + store badges.
+
+
+================================================================================
+5. SWIPES (matching, límite diario, premium, honestidad)
+================================================================================
+
+  Objetivo: vender mecánica clara, diversión, y transparencia de límites (sin sonar
+  castigador: sonar a juego y control).
+
+  Audiencia: 20–40 años, familiarizados con Tinder etc.; ojo con saturación: diferenciar
+  por tono cálido y por features cruzados (perfil, feed, grupos).
+
+  Mensaje clave: "Desliza con intención. Si hay match, abrimos el siguiente paso. Si
+  tocó límite, lo decimos con claridad — y opción premium clara, sin truco."
+
+  --- ESCENA 5.1 (0:00–0:04) — Tarjeta
+  Visual: mano, tarjeta de perfil, foto agradable, pequeña bio, gesto de "like" y "nope"
+  (iconografía explícita).
+  SFX: clack suave al pasar ficha.
+  Voz: "Poca pose. Mucha decisión: sí, no, siguiente."
+
+  --- ESCENA 5.2 (0:04–0:10) — Match
+  Visual: match overlay (animación, confetti sutil, no cutre); notificación; mini preview
+  de chat.
+  Voz: "Match: dos síes. Ahora, conversación, sin humo."
+
+  --- ESCENA 5.3 (0:10–0:16) — Límites (honestidad)
+  Visual: contador "te quedan X hoy" o modal de límite; no dramatizar: tipografía
+  clara, botón "entendido" y puente a premium.
+  Voz: "El juego tiene ritmo. Subes de plan si quieres más sin sorpresas raras en la
+  letra chica — revisar copy con legal."
+  (Ajustar afirmación a lo que el producto ofrece realmente: swipe/día, likes, etc.)
+
+  --- ESCENA 5.4 (0:16–0:24) — Vida real
+  Visual: "antes del café" (dos personas, mesa, taza); saludo.
+  CTA: "Tira la ficha" + descarga.
+
+  Nota: evitar lenguaje agresivo o erótico explícito en paid si la plataforma lo restringe;
+  mantener sugerente pero PG-13 según reglas de cada red.
+
+
+================================================================================
+6. CIERRE: CAMPAÑA INTEGRADA (cómo encajar los módulos)
+================================================================================
+
+  Hero 60–90 s (sugerencia de estructura):
+    - 0:00–0:10 Hook problema ("planes que no pasan de grupo de chat").
+    - 0:10–0:30 Feed + Swipe (diversión + conexión).
+    - 0:30–0:50 Fast date + Meetup (acción, calle, calendario).
+    - 0:50–1:10 Grupos (pertenencia, tribu, risa).
+    - 1:10–1:20 CTA, logo, app stores.
+
+  Anuncios 6 s (uno por vertical): solo hook + logo + módulo + CTA: texto arriba fijo
+  ("Meetup", "Swipes", etc.).
+
+  Entregables para marketing (checklist):
+    - Guion por escena (este documento) + aprobación producto legal.
+    - Storyboard o moodboard por escena.
+    - Mockups de UI en 9:16 y 16:9.
+    - 3 size packs de subcopy: corto, medio, copy largo.
+    - Tabla "no decir" (promesas no cubiertas por el producto) — rellenar con Legal.
+
+
+================================================================================
+7. MÉTRICAS (orientativas, a completar con marketing)
+================================================================================
+
+  Funnel: impresión → CTA click → registro completo → activación (primer swipe, primer
+  post, primer grupo, primer evento) → ret D1/D7.
+  Cohortes: por módulo de campaña (UTM: meetup, fastdate, feed, groups, swipes).
+  Cualitativo: entrevistas "¿qué entendiste en el primer 5s?" (control de claridad de
+  mensaje).
+
+
+================================================================================
+  Fin del documento — ajustar textos a versión de app y a normativa de publicidad
+  y privacidad vigentes. Sparkd: nombre de ejemplo; reemplazar si la marca comercial
+  difiere.
+================================================================================

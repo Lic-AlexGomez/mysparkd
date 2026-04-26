@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { api } from "@/lib/api"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { api, ApiError } from "@/lib/api"
+import { useAuth } from "@/lib/auth-context"
+import { usePremiumStatus } from "@/hooks/use-premium-status"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Heart, X, Star, Eye, User } from "lucide-react"
+import { Loader2, Heart, X, Star, Eye, User, Lock, Crown } from "lucide-react"
 import { toast } from "sonner"
 
 interface LikedMeProfile {
@@ -21,27 +22,81 @@ interface LikedMeProfile {
   compatibilityScore: number
 }
 
+function LikesPaywall({ backendMessage }: { backendMessage?: string | null }) {
+  const router = useRouter()
+  return (
+    <div className="flex flex-col items-center justify-center gap-4 py-20 px-6 min-h-[50vh]">
+      <div className="relative">
+        <div className="absolute inset-0 blur-3xl bg-amber-500/20 rounded-full" />
+        <div className="relative h-20 w-20 rounded-full border border-amber-500/30 bg-card flex items-center justify-center">
+          <Lock className="h-9 w-9 text-amber-500" />
+        </div>
+      </div>
+      <h2 className="text-xl font-bold text-center">Quién te dio like es Premium</h2>
+      <p className="text-sm text-muted-foreground text-center max-w-sm">
+        {backendMessage ||
+          "Los usuarios free no pueden ver la lista. Los likes siguen contando: hazte Premium para ver nombres y perfiles."}
+      </p>
+      <Button
+        onClick={() => router.push("/premium")}
+        className="mt-2 bg-gradient-to-r from-primary to-secondary text-black font-bold px-8 py-6 rounded-2xl shadow-lg"
+      >
+        <Crown className="h-4 w-4 mr-2" />
+        Desbloquear con Premium
+      </Button>
+    </div>
+  )
+}
+
 export default function LikesPage() {
   const router = useRouter()
+  const { user, isLoading: authLoading } = useAuth()
+  const { isPremium, isLoading: subLoading } = usePremiumStatus()
   const [profiles, setProfiles] = useState<LikedMeProfile[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [apiGated, setApiGated] = useState(false)
+  const [apiGateMessage, setApiGateMessage] = useState<string | null>(null)
+
+  const canSeeLikes = useMemo(
+    () => Boolean(user?.premium || isPremium),
+    [user?.premium, isPremium],
+  )
+  const gatingLoading = authLoading || subLoading
 
   const fetchLikes = useCallback(async () => {
+    if (!canSeeLikes) return
+    setIsLoading(true)
+    setApiGated(false)
+    setApiGateMessage(null)
     try {
       const data = await api.get<LikedMeProfile[]>("/api/swipes/liked-me")
-      console.log('Likes data:', data)
-      setProfiles(data)
+      setProfiles(Array.isArray(data) ? data : [])
     } catch (error) {
-      console.error('Error fetching likes:', error)
       setProfiles([])
+      if (error instanceof ApiError && (error.status === 403 || error.status === 402)) {
+        setApiGated(true)
+        setApiGateMessage(error.message)
+        return
+      }
+      if (error instanceof ApiError) {
+        toast.error(error.message || "No se pudo cargar la lista")
+      } else {
+        toast.error("No se pudo cargar la lista")
+      }
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [canSeeLikes])
 
   useEffect(() => {
-    fetchLikes()
-  }, [fetchLikes])
+    if (gatingLoading) return
+    if (!canSeeLikes) {
+      setIsLoading(false)
+      setProfiles([])
+      return
+    }
+    void fetchLikes()
+  }, [gatingLoading, canSeeLikes, fetchLikes])
 
   const handleSwipe = async (userId: string, type: "LIKE" | "DISLIKE") => {
     try {
@@ -49,15 +104,21 @@ export default function LikesPage() {
         targetUserId: userId,
         type,
       })
-      
-      setProfiles(prev => prev.filter(p => p.profile.userId !== userId))
-      
+
+      setProfiles((prev) => prev.filter((p) => p.profile.userId !== userId))
+
       if (type === "LIKE") {
         toast.success("¡Match realizado!")
       }
     } catch (error) {
-      console.error('Error en swipe:', error)
-      toast.error("Error al procesar")
+      if (error instanceof ApiError && error.status === 429) {
+        toast.error(
+          error.message ||
+            "Límite diario de swipes alcanzado. Mejora a premium.",
+        )
+        return
+      }
+      toast.error(error instanceof ApiError ? error.message : "Error al procesar")
     }
   }
 
@@ -72,6 +133,25 @@ export default function LikesPage() {
     return age
   }
 
+  if (gatingLoading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (!canSeeLikes) {
+    return (
+      <div className="flex justify-center min-h-screen bg-gradient-to-b from-background to-muted/20">
+        <div className="w-full max-w-[680px]">
+          <LikesPageHeader count={0} showCount={false} />
+          <LikesPaywall />
+        </div>
+      </div>
+    )
+  }
+
   if (isLoading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
@@ -80,19 +160,21 @@ export default function LikesPage() {
     )
   }
 
+  if (apiGated) {
+    return (
+      <div className="flex justify-center min-h-screen bg-gradient-to-b from-background to-muted/20">
+        <div className="w-full max-w-[680px]">
+          <LikesPageHeader count={0} showCount={false} />
+          <LikesPaywall backendMessage={apiGateMessage} />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex justify-center min-h-screen bg-gradient-to-b from-background to-muted/20">
       <div className="w-full max-w-[680px]">
-        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-xl border-b border-primary/20 shadow-lg shadow-primary/5">
-          <div className="px-6 py-4">
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent">
-              Les gustas
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {profiles.length} {profiles.length === 1 ? 'persona' : 'personas'} te dieron like
-            </p>
-          </div>
-        </div>
+        <LikesPageHeader count={profiles.length} showCount />
 
         {profiles.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-4 py-20 px-6">
@@ -117,17 +199,12 @@ export default function LikesPage() {
               const profile = item.profile
               const age = calculateAge(profile.dateOfBirth)
               const mainPhoto = profile.photos?.[0]?.url
-              
-              console.log('Profile:', profile.userId)
-              console.log('Photos array:', profile.photos)
-              console.log('Main photo:', mainPhoto)
 
               return (
                 <div
                   key={profile.userId}
                   className="relative overflow-hidden rounded-3xl border-2 border-primary/20 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/20 transition-all duration-300 group bg-gradient-to-br from-card to-muted/20"
                 >
-                  {/* Background image */}
                   <div className="relative h-80 overflow-hidden">
                     {mainPhoto ? (
                       <img
@@ -140,18 +217,15 @@ export default function LikesPage() {
                         <User className="h-32 w-32 text-primary/40" />
                       </div>
                     )}
-                    
-                    {/* Gradient overlay */}
+
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                    
-                    {/* Compatibility badge */}
+
                     {item.compatibilityScore > 70 && (
                       <div className="absolute top-4 right-4 h-12 w-12 rounded-full bg-gradient-to-br from-secondary to-primary flex items-center justify-center shadow-lg animate-pulse">
                         <Star className="h-6 w-6 text-black" />
                       </div>
                     )}
-                    
-                    {/* Info overlay */}
+
                     <div className="absolute bottom-0 left-0 right-0 p-5">
                       <div className="flex items-end justify-between mb-3">
                         <div>
@@ -165,8 +239,7 @@ export default function LikesPage() {
                           {item.compatibilityScore}%
                         </Badge>
                       </div>
-                      
-                      {/* Action buttons */}
+
                       <div className="flex gap-2">
                         <Button
                           onClick={() => handleSwipe(profile.userId, "DISLIKE")}
@@ -196,6 +269,23 @@ export default function LikesPage() {
               )
             })}
           </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function LikesPageHeader({ count, showCount }: { count: number; showCount: boolean }) {
+  return (
+    <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-xl border-b border-primary/20 shadow-lg shadow-primary/5">
+      <div className="px-6 py-4">
+        <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent">
+          Les gustas
+        </h1>
+        {showCount && (
+          <p className="text-sm text-muted-foreground mt-1">
+            {count} {count === 1 ? "persona" : "personas"} te dieron like
+          </p>
         )}
       </div>
     </div>

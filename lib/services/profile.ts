@@ -1,5 +1,6 @@
 import { api } from '../api'
-import type { AdminStats, UserGrowth } from '../types'
+import { toBackendAccountType } from '../account-type'
+import type { AdminStats, UpdateProfileRequest, UserGrowth } from '../types'
 
 export const profileService = {
   async getProfile(userId: string) {
@@ -18,7 +19,13 @@ export const profileService = {
     } catch {
       return null
     }
-  }
+  },
+
+  /** PUT /api/profile — cuerpo completo según contrato backend (username, accountType, etc.). */
+  async updateMyProfile(body: UpdateProfileRequest): Promise<void> {
+    const accountType = toBackendAccountType(body.accountType)
+    await api.put("/api/profile", { ...body, accountType })
+  },
 }
 
 export const adminService = {

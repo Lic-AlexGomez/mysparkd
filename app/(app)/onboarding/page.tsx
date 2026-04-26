@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { api } from "@/lib/api"
-import type { Interest, Sex } from "@/lib/types"
+import type { AccountType, CreateProfileRequest, Interest, Sex } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -89,12 +89,19 @@ export default function OnboardingPage() {
         }
       }
 
-      const body: any = {
+      const accountTypeByAppMode: Record<typeof appMode, AccountType> = {
+        SOCIAL: "SOCIAL",
+        DATING: "DATING",
+        BOTH: "BOTH",
+      }
+
+      const body: CreateProfileRequest = {
         nombres: nombres.trim(),
         apellidos: apellidos.trim(),
         sex,
         dateOfBirth,
-        telefono: telefono.trim() || undefined,
+        ...(telefono.trim() ? { telefono: telefono.trim() } : {}),
+        accountType: accountTypeByAppMode[appMode],
       }
       if (location) {
         body.latitude = location.latitude

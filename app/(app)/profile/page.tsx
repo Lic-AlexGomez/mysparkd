@@ -233,21 +233,16 @@ export default function ProfilePage() {
         )}
         {!user.voiceIntroUrl && !user.voiceNoteUrl && (
           <div className="mt-3 space-y-2">
-            <div className="rounded-xl border border-dashed border-border bg-muted/20 p-3">
-              <p className="text-xs text-muted-foreground mb-2">
-                Presentación en audio: primero graba con el micrófono, o elige un archivo.
-              </p>
-              <VoiceNoteRecorder
-                currentUrl={null}
-                onSaved={(url) => {
-                  updateUser({
-                    voiceIntroUrl: url ?? null,
-                    voiceNoteUrl: url ?? null,
-                  })
-                  void refreshProfile()
-                }}
-              />
-            </div>
+            <VoiceNoteRecorder
+              currentUrl={null}
+              onSaved={(url) => {
+                updateUser({
+                  voiceIntroUrl: url ?? null,
+                  voiceNoteUrl: url ?? null,
+                })
+                void refreshProfile()
+              }}
+            />
             <div className="flex items-center pl-0.5">
               <input
                 type="file"

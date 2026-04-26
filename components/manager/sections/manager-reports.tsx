@@ -22,20 +22,33 @@ const STATUS_LABELS: Record<string, string> = {
   REJECTED:     "descartado",
 }
 
-export function ManagerReports() {
+type ManagerReportsProps = {
+  /** Sidebar badge: refresh pending count after list changes (resolve/dismiss). */
+  onReportsMutated?: () => void
+}
+
+export function ManagerReports({ onReportsMutated }: ManagerReportsProps) {
   const [reports, setReports] = useState<ModerationReport[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [filter, setFilter] = useState("todos")
   const [selected, setSelected] = useState<string | null>(null)
 
   const fetchReports = async () => {
+    setLoading(true)
+    setLoadError(null)
     try {
       const data = await reportService.listAdminReports()
       setReports(data)
       if (data.length > 0) setSelected(data[0].id)
+      else setSelected(null)
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudieron cargar los reportes")
+      const message = error instanceof Error ? error.message : "No se pudieron cargar los reportes"
+      setLoadError(message)
+      setReports([])
+      setSelected(null)
+      toast.error(message)
     } finally {
       setLoading(false)
     }
@@ -49,6 +62,7 @@ export function ManagerReports() {
       await reportService.resolveAdminReport(reportId)
       toast.success("Usuario deshabilitado")
       setReports(prev => prev.map(r => r.id === reportId ? { ...r, status: 'ACTION_TAKEN' } : r))
+      onReportsMutated?.()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Error al deshabilitar usuario")
     } finally {
@@ -62,6 +76,7 @@ export function ManagerReports() {
       await reportService.dismissAdminReport(reportId)
       setReports(prev => prev.map(r => r.id === reportId ? { ...r, status: 'REJECTED' } : r))
       toast.success("Reporte descartado")
+      onReportsMutated?.()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo descartar el reporte")
     } finally {
@@ -99,11 +114,19 @@ export function ManagerReports() {
     </div>
   )
 
-  if (reports.length === 0) return (
-    <div className="flex flex-col items-center justify-center py-16 gap-3">
-      <Flag className="h-12 w-12 text-muted-foreground" />
-      <p className="text-sm text-muted-foreground">No hay reportes pendientes</p>
-      <p className="text-xs text-muted-foreground">Los reportes de usuarios aparecerán aquí</p>
+  if (loadError) return (
+    <div className="flex flex-col items-center justify-center py-16 gap-4 px-4 text-center">
+      <Flag className="h-10 w-10 text-muted-foreground" />
+      <div className="space-y-1 max-w-md">
+        <p className="text-sm font-medium text-foreground">No se pudieron cargar los reportes</p>
+        <p className="text-xs text-muted-foreground">{loadError}</p>
+        <p className="text-xs text-muted-foreground">
+          Comprueba tu conexión y que tengas permisos de moderador. Si el problema continúa, el backend puede no exponer aún los listados.
+        </p>
+      </div>
+      <Button size="sm" variant="secondary" onClick={() => void fetchReports()}>
+        Reintentar
+      </Button>
     </div>
   )
 
@@ -138,6 +161,15 @@ export function ManagerReports() {
         <Card className="border-border lg:col-span-2">
           <CardContent className="p-0">
             <div className="divide-y divide-border max-h-[520px] overflow-y-auto">
+              {reports.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-14 px-6 gap-2 text-center">
+                  <Flag className="h-10 w-10 text-muted-foreground/80" />
+                  <p className="text-sm text-muted-foreground font-medium">Cola de moderación vacía</p>
+                  <p className="text-xs text-muted-foreground max-w-sm">
+                    No hay reportes en el servidor en este momento. Cuando un usuario reporte un perfil, publicación o mensaje, aparecerá aquí con su estado (pendiente, resuelto o descartado).
+                  </p>
+                </div>
+              )}
               {filtered.map(r => (
                 <div
                   key={r.id}
@@ -168,7 +200,7 @@ export function ManagerReports() {
                   </div>
                 </div>
               ))}
-              {filtered.length === 0 && (
+              {reports.length > 0 && filtered.length === 0 && (
                 <div className="p-8 text-center text-xs text-muted-foreground">
                   No hay reportes en esta categoría
                 </div>

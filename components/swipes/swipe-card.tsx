@@ -7,13 +7,14 @@ import { reputationService } from "@/lib/services/reputation"
 import { Star } from "lucide-react"
 import Link from "next/link"
 import { VoiceNotePlayer } from "@/components/ui/voice-note"
+import type { Photo } from "@/lib/types"
 
 interface SwipeCardProps {
   user: {
     userId: string
     nombres: string
     apellidos: string
-    photos: { url: string; isPrimary: boolean }[]
+    photos: Photo[]
     reputation?: number
     interests?: string[]
     bio?: string
@@ -25,6 +26,8 @@ interface SwipeCardProps {
   isTop: boolean
   compatibility?: number
   exitDirection?: "left" | "right" | null
+  /** false: sin arrastre ni swipe (límite alcanzado, etc.) */
+  swipeEnabled?: boolean
 }
 
 function getAge(dateOfBirth?: string): number | null {
@@ -33,7 +36,7 @@ function getAge(dateOfBirth?: string): number | null {
   return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25))
 }
 
-export function SwipeCard({ user, onSwipe, isTop, compatibility, exitDirection }: SwipeCardProps) {
+export function SwipeCard({ user, onSwipe, isTop, compatibility, exitDirection, swipeEnabled = true }: SwipeCardProps) {
   const [showInfo, setShowInfo] = useState(false)
   const x = useMotionValue(0)
   const rotate = useTransform(x, [-200, 200], [-18, 18])
@@ -47,16 +50,18 @@ export function SwipeCard({ user, onSwipe, isTop, compatibility, exitDirection }
   const age = getAge(user.dateOfBirth)
 
   const handleDragEnd = (_: unknown, info: PanInfo) => {
-    if (showInfo) return
+    if (!swipeEnabled || showInfo) return
     if (info.offset.x > 100) onSwipe("right")
     else if (info.offset.x < -100) onSwipe("left")
   }
 
   return (
     <motion.div
-      className={`absolute inset-0 select-none ${isTop ? "cursor-grab active:cursor-grabbing" : "pointer-events-none"}`}
+      className={`absolute inset-0 select-none ${
+        isTop ? (swipeEnabled ? "cursor-grab active:cursor-grabbing" : "cursor-default") : "pointer-events-none"
+      }`}
       style={{ x, rotate, scale: cardScale, zIndex: isTop ? 10 : 0 }}
-      drag={isTop && !showInfo ? "x" : false}
+      drag={isTop && swipeEnabled && !showInfo ? "x" : false}
       dragConstraints={{ left: 0, right: 0 }}
       dragElastic={0.6}
       onDragEnd={handleDragEnd}
