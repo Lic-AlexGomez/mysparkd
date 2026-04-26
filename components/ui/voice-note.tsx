@@ -15,7 +15,140 @@ interface VoiceNoteRecorderProps {
   onRecordingChange?: (isRecording: boolean) => void
 }
 
-const MAX_SECONDS = 30
+/** Máxima duración de nota de voz (grabación y subida de archivo). */
+export const MAX_VOICE_NOTE_SECONDS = 30
+
+/** Límite razonable para clips de voz (alineado con notas cortas; el backend puede imponer otro tope) */
+export const VOICE_NOTE_MAX_FILE_BYTES = 5 * 1024 * 1024
+
+const VOICE_FILE_NAME_EXT = /\.(webm|m4a|mp3|mpeg|mpga|ogg|opus|aac|wav|flac|3gp|oga)$/i
+
+function isAllowedAudioMimeType(type: string): boolean {
+  if (!type) return false
+  if (type.startsWith("audio/")) return true
+  if (type === "application/ogg") return true
+  return false
+}
+
+/**
+ * Valida un archivo elegido en file input antes de subir (tipo MIME, extensión y tamaño).
+ * La grabación con MediaRecorder siempre genera `audio/*`; sigue siendo válida.
+ */
+export function validateVoiceNoteFile(
+  file: File,
+  maxBytes: number = VOICE_NOTE_MAX_FILE_BYTES
+): { ok: true } | { ok: false; message: string } {
+  if (file.size > maxBytes) {
+    const mb = maxBytes / (1024 * 1024)
+    return {
+      ok: false,
+      message: `El archivo supera el tamaño máximo (${mb} MB). Prueba con un audio más corto o de menor calidad.`,
+    }
+  }
+  if (file.type && file.type.startsWith("video/")) {
+    return { ok: false, message: "Solo se permiten archivos de audio, no vídeo." }
+  }
+  if (file.type && file.type !== "application/octet-stream") {
+    if (isAllowedAudioMimeType(file.type)) return { ok: true }
+    return { ok: false, message: "Solo se permiten archivos de audio (voz o música en formato de audio)." }
+  }
+  if (VOICE_FILE_NAME_EXT.test(file.name)) return { ok: true }
+  return {
+    ok: false,
+    message: "No se pudo verificar el audio. Usa un archivo .webm, .m4a, .mp3, .ogg u otro formato de audio común.",
+  }
+}
+
+/** Mensaje cuando el audio supera el máximo de segundos (grabación y subida). */
+export function voiceNoteDurationExceededMessage(
+  maxSeconds: number = MAX_VOICE_NOTE_SECONDS
+): string {
+  return `El audio no puede superar ${maxSeconds} segundos.`
+}
+
+/**
+ * Obtiene la duración en segundos de un archivo de audio (object URL + elemento Audio).
+ * Incluye workaround para WebM sin metadatos de duración (p. ej. Chrome / MediaRecorder).
+ */
+export function getAudioDurationSeconds(file: File): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file)
+    const audio = document.createElement("audio")
+    audio.preload = "metadata"
+    let settled = false
+    let seekFallbackStarted = false
+    let timeoutId: ReturnType<typeof setTimeout> | undefined
+
+    const cleanup = () => {
+      if (timeoutId !== undefined) clearTimeout(timeoutId)
+      URL.revokeObjectURL(objectUrl)
+      audio.removeAttribute("src")
+    }
+
+    const resolveOnce = (seconds: number) => {
+      if (settled) return
+      settled = true
+      cleanup()
+      resolve(seconds)
+    }
+
+    const rejectOnce = (message: string) => {
+      if (settled) return
+      settled = true
+      cleanup()
+      reject(new Error(message))
+    }
+
+    const tryInfinityWorkaround = () => {
+      if (seekFallbackStarted || settled) return
+      seekFallbackStarted = true
+      const onTimeUpdate = () => {
+        audio.removeEventListener("timeupdate", onTimeUpdate)
+        const d = audio.duration
+        try {
+          audio.currentTime = 0
+        } catch {
+          /* ignore */
+        }
+        if (isFinite(d) && d > 0) {
+          resolveOnce(d)
+        } else {
+          rejectOnce("No se pudo determinar la duración del audio")
+        }
+      }
+      audio.addEventListener("timeupdate", onTimeUpdate)
+      try {
+        audio.currentTime = 1e101
+      } catch {
+        seekFallbackStarted = false
+        audio.removeEventListener("timeupdate", onTimeUpdate)
+        rejectOnce("No se pudo leer la duración del audio")
+      }
+    }
+
+    const tryReadDuration = () => {
+      if (settled) return
+      const d = audio.duration
+      if (isFinite(d) && d > 0) {
+        resolveOnce(d)
+        return
+      }
+      if (d === Infinity) {
+        tryInfinityWorkaround()
+      }
+    }
+
+    timeoutId = setTimeout(() => {
+      rejectOnce("Tiempo de espera al leer la duración del audio")
+    }, 15_000)
+
+    audio.addEventListener("loadedmetadata", tryReadDuration)
+    audio.addEventListener("durationchange", tryReadDuration)
+    audio.addEventListener("canplaythrough", tryReadDuration)
+    audio.addEventListener("error", () => rejectOnce("No se pudo leer el audio"), { once: true })
+    audio.src = objectUrl
+  })
+}
 
 // ── Player ────────────────────────────────────────────────────────────────────
 export function VoiceNotePlayer({ url }: VoiceNotePlayerProps) {
@@ -105,6 +238,7 @@ export function VoiceNotePlayer({ url }: VoiceNotePlayerProps) {
         type="button"
         onClick={toggle}
         className="h-9 w-9 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center shrink-0 shadow-md"
+        aria-label={playing ? "Pausar reproducción" : "Reproducir nota de voz"}
       >
         {playing
           ? <Pause className="h-4 w-4 text-black" />
@@ -208,9 +342,9 @@ export const VoiceNoteRecorder = forwardRef<VoiceNoteRecorderHandle, VoiceNoteRe
 
       timerRef.current = setInterval(() => {
         setSeconds(prev => {
-          if (prev >= MAX_SECONDS - 1) {
+          if (prev >= MAX_VOICE_NOTE_SECONDS - 1) {
             stopRecording()
-            return MAX_SECONDS
+            return MAX_VOICE_NOTE_SECONDS
           }
           return prev + 1
         })
@@ -233,6 +367,27 @@ export const VoiceNoteRecorder = forwardRef<VoiceNoteRecorderHandle, VoiceNoteRe
     try {
       const mimeType = blob.type || `audio/${ext}`
       const file = new File([blob], `voice-note-${Date.now()}.${ext}`, { type: mimeType })
+      const check = validateVoiceNoteFile(file)
+      if (!check.ok) {
+        URL.revokeObjectURL(localUrl)
+        toast.error(check.message)
+        setPreviewUrl(null)
+        return
+      }
+      try {
+        const durationSec = await getAudioDurationSeconds(file)
+        if (durationSec > MAX_VOICE_NOTE_SECONDS) {
+          URL.revokeObjectURL(localUrl)
+          toast.error(voiceNoteDurationExceededMessage())
+          setPreviewUrl(null)
+          return
+        }
+      } catch (e) {
+        URL.revokeObjectURL(localUrl)
+        toast.error(e instanceof Error ? e.message : "No se pudo leer la duración del audio")
+        setPreviewUrl(null)
+        return
+      }
       const formData = new FormData()
       formData.append('file', file)
 
@@ -289,6 +444,7 @@ export const VoiceNoteRecorder = forwardRef<VoiceNoteRecorderHandle, VoiceNoteRe
             type="button"
             onClick={handleDelete}
             className="h-9 w-9 rounded-full bg-destructive/10 hover:bg-destructive/20 flex items-center justify-center transition-colors shrink-0"
+            aria-label="Eliminar nota de voz"
           >
             <Trash2 className="h-4 w-4 text-destructive" />
           </button>
@@ -306,22 +462,23 @@ export const VoiceNoteRecorder = forwardRef<VoiceNoteRecorderHandle, VoiceNoteRe
         <div className="flex items-center gap-3">
           {recording ? (
             <>
-              <div className="flex items-center gap-2 flex-1">
+              <div className="flex items-center gap-2 flex-1" role="status" aria-live="polite">
                 <div className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
                 <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                   <div
                     className="h-full bg-destructive rounded-full transition-all duration-1000"
-                    style={{ width: `${(seconds / MAX_SECONDS) * 100}%` }}
+                    style={{ width: `${(seconds / MAX_VOICE_NOTE_SECONDS) * 100}%` }}
                   />
                 </div>
                 <span className="text-xs text-destructive font-mono shrink-0">
-                  {seconds}s / {MAX_SECONDS}s
+                  {seconds}s / {MAX_VOICE_NOTE_SECONDS}s
                 </span>
               </div>
               <button
                 type="button"
                 onClick={stopRecording}
                 className="h-9 w-9 rounded-full bg-destructive flex items-center justify-center shrink-0"
+                aria-label="Detener y subir la grabación"
               >
                 <Square className="h-4 w-4 text-white" />
               </button>
@@ -331,9 +488,10 @@ export const VoiceNoteRecorder = forwardRef<VoiceNoteRecorderHandle, VoiceNoteRe
               type="button"
               onClick={startRecording}
               className="flex items-center gap-2 px-4 py-2 rounded-full border border-primary/30 hover:bg-primary/10 transition-colors text-sm text-foreground"
+              aria-label={`Grabar con el micrófono, máximo ${MAX_VOICE_NOTE_SECONDS} segundos`}
             >
-              <Mic className="h-4 w-4 text-primary" />
-              Grabar nota de voz (máx. {MAX_SECONDS}s)
+              <Mic className="h-4 w-4 text-primary" aria-hidden />
+              Grabar con el micrófono (máx. {MAX_VOICE_NOTE_SECONDS}s)
             </button>
           )}
         </div>
@@ -345,7 +503,7 @@ export const VoiceNoteRecorder = forwardRef<VoiceNoteRecorderHandle, VoiceNoteRe
           onClick={handleDelete}
           className="text-xs text-muted-foreground hover:text-destructive transition-colors"
         >
-          Grabar de nuevo
+          Volver a grabar
         </button>
       )}
     </div>

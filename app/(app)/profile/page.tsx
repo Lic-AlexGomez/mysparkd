@@ -10,16 +10,23 @@ import { reputationService } from "@/lib/services/reputation"
 import { followService } from "@/lib/services/follow"
 import { bookmarkService } from "@/lib/services/bookmark"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
-import { Pencil, Loader2, Camera, Newspaper, Bookmark, Heart, Crown, MapPin, Globe, Zap, Settings, Trash2, Mic, MicOff } from "lucide-react"
+import { Pencil, Loader2, Camera, Newspaper, Bookmark, Heart, Crown, MapPin, Globe, Zap, Settings, Trash2, MicOff, Paperclip } from "lucide-react"
 import { toast } from "sonner"
 import { PostCard } from "@/components/feed/post-card"
 import { useRouter } from "next/navigation"
 import { uploadToCloudinary } from "@/lib/cloudinary"
-import { VoiceNotePlayer } from "@/components/ui/voice-note"
+import {
+  VoiceNotePlayer,
+  validateVoiceNoteFile,
+  getAudioDurationSeconds,
+  voiceNoteDurationExceededMessage,
+  MAX_VOICE_NOTE_SECONDS,
+  VoiceNoteRecorder,
+} from "@/components/ui/voice-note"
 import { DialogTitle } from "@/components/ui/dialog"
 
 export default function ProfilePage() {
-  const { user, refreshProfile, isLoading } = useAuth()
+  const { user, refreshProfile, updateUser, isLoading } = useAuth()
   const router = useRouter()
 
   const [coverPhoto, setCoverPhoto] = useState<string | null>(null)
@@ -225,26 +232,73 @@ export default function ProfilePage() {
           </div>
         )}
         {!user.voiceIntroUrl && !user.voiceNoteUrl && (
-          <div className="mt-3">
-            <input type="file" accept="audio/*" id="voice-upload" className="hidden"
-              onChange={async (e) => {
-                const file = e.target.files?.[0]; if (!file) return
-                const toastId = toast.loading('Subiendo nota de voz...')
-                try {
-                  const fd = new FormData(); fd.append('file', file)
-                  await api.post('/api/profile/voice-note', fd)
-                  await refreshProfile()
-                  toast.dismiss(toastId); toast.success('Nota de voz guardada')
-                } catch { toast.dismiss(toastId); toast.error('Error al subir nota de voz') }
-                e.target.value = ''
-              }}
-            />
-            <button
-              onClick={() => document.getElementById('voice-upload')?.click()}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl border border-dashed border-border hover:border-primary hover:bg-primary/5 transition-all text-muted-foreground hover:text-primary text-xs"
-            >
-              <Mic className="h-4 w-4" /> Agregar nota de voz
-            </button>
+          <div className="mt-3 space-y-2">
+            <div className="rounded-xl border border-dashed border-border bg-muted/20 p-3">
+              <p className="text-xs text-muted-foreground mb-2">
+                Presentación en audio: primero graba con el micrófono, o elige un archivo.
+              </p>
+              <VoiceNoteRecorder
+                currentUrl={null}
+                onSaved={(url) => {
+                  updateUser({
+                    voiceIntroUrl: url ?? null,
+                    voiceNoteUrl: url ?? null,
+                  })
+                  void refreshProfile()
+                }}
+              />
+            </div>
+            <div className="flex items-center pl-0.5">
+              <input
+                type="file"
+                id="voice-profile-audio-input"
+                className="sr-only"
+                accept="audio/*,.webm,.m4a,.mp3,.ogg,.opus,.aac,.wav,.flac,.mp4,.3gp"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0]
+                  e.target.value = ""
+                  if (!file) return
+                  const check = validateVoiceNoteFile(file)
+                  if (!check.ok) {
+                    toast.error(check.message)
+                    return
+                  }
+                  let durationSec: number
+                  try {
+                    durationSec = await getAudioDurationSeconds(file)
+                  } catch (err) {
+                    toast.error(
+                      err instanceof Error ? err.message : "No se pudo leer la duración del audio"
+                    )
+                    return
+                  }
+                  if (durationSec > MAX_VOICE_NOTE_SECONDS) {
+                    toast.error(voiceNoteDurationExceededMessage())
+                    return
+                  }
+                  const toastId = toast.loading('Subiendo nota de voz...')
+                  try {
+                    const fd = new FormData()
+                    fd.append('file', file)
+                    await api.post('/api/profile/voice-note', fd)
+                    await refreshProfile()
+                    toast.dismiss(toastId)
+                    toast.success('Nota de voz guardada')
+                  } catch {
+                    toast.dismiss(toastId)
+                    toast.error('Error al subir nota de voz')
+                  }
+                }}
+              />
+              <label
+                htmlFor="voice-profile-audio-input"
+                className="inline-flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground/90 transition-colors hover:text-foreground"
+              >
+                <Paperclip className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                <span>Subir audio</span>
+                <span className="sr-only"> desde el dispositivo, máximo {MAX_VOICE_NOTE_SECONDS} segundos</span>
+              </label>
+            </div>
           </div>
         )}
 

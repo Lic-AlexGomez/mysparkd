@@ -11,7 +11,7 @@ import type { Message, Chat } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ArrowLeft, Send, Loader2, MessageCircle, Smile, Image as ImageIcon, X, Mic, Reply, MoreVertical, Copy, Paperclip, Check, Search, Star, Images, Gamepad2, Pencil, Trash2 } from "lucide-react"
+import { ArrowLeft, Send, Loader2, MessageCircle, Smile, Image as ImageIcon, X, Mic, Reply, MoreVertical, Copy, Paperclip, Check, Search, Star, Images, Gamepad2, Pencil, Trash2, Pin } from "lucide-react"
 import dynamic from "next/dynamic"
 import { AudioMessage } from "@/components/audio-message"
 import { GamePanel } from "@/components/chat/game-panel"
@@ -22,6 +22,27 @@ import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
+import { privateChatPinnedService } from "@/lib/services/private-chat-pinned"
+
+function pinnedSnippet(msg: Message): string {
+  const raw = msg.content?.startsWith("@reply:")
+    ? (msg.content.match(/@reply:[^|]+\|(.*)/)?.[1] ?? msg.content)
+    : (msg.content ?? "")
+  if (!raw?.trim()) {
+    if (msg.media?.mediaUrl || msg.mediaType === "IMAGE") return "📷 Imagen"
+    if (msg.mediaType === "VIDEO") return "🎬 Vídeo"
+    if (msg.mediaType === "AUDIO") return "🎤 Audio"
+    return "Mensaje"
+  }
+  return raw.length > 100 ? `${raw.slice(0, 97)}…` : raw
+}
+
+function pinnedAuthorLabel(msg: Message, selfId: string | undefined, otherName: string | undefined): string {
+  const sid = msg.senderId?.toString ? msg.senderId.toString() : String(msg.senderId)
+  const my = selfId?.toString ? selfId.toString() : String(selfId)
+  if (sid === my) return "Tú"
+  return otherName || "Usuario"
+}
 
 export default function ChatRoomPage() {
   const params = useParams()
@@ -93,6 +114,9 @@ export default function ChatRoomPage() {
   const [aiType, setAiType] = useState<'suggestions' | 'icebreaker' | 'date'>('suggestions')
   const [selectedImageView, setSelectedImageView] = useState<string | null>(null)
   const [viewportHeight, setViewportHeight] = useState<number | null>(null)
+  const [pinnedMessages, setPinnedMessages] = useState<Message[]>([])
+  const [pinUpdatingId, setPinUpdatingId] = useState<string | null>(null)
+  const [activeMessageId, setActiveMessageId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const emojiPickerRef = useRef<HTMLDivElement>(null)
@@ -215,6 +239,35 @@ export default function ChatRoomPage() {
     onMessageDeleted: (messageId: any) => {
       const id = typeof messageId === 'string' ? messageId : String(messageId)
       setDeletedMessages(prev => new Set(prev).add(id))
+      setPinnedMessages((prev) => prev.filter((m) => (m.messageId || m.id) !== id))
+    },
+    onMessagePinned: (event: any) => {
+      if (!event?.type) return
+      if (event.type === "MESSAGE_PINNED" && event.message) {
+        const raw = event.message as Message
+        const mid = String(raw.messageId || raw.id || "")
+        if (!mid) return
+        const mChat = String(raw.chatId ?? "")
+        if (mChat && mChat !== chatIdRef.current) return
+        const normalized: Message = { ...raw, messageId: mid, id: mid, chatId: raw.chatId }
+        setPinnedMessages((prev) => {
+          if (prev.some((p) => (p.messageId || p.id) === mid)) {
+            return prev.map((p) => ((p.messageId || p.id) === mid ? { ...p, ...normalized } : p))
+          }
+          return [normalized, ...prev]
+        })
+        setMessages((prev) => {
+          if (!prev.some((x) => (x.messageId || x.id) === mid)) return prev
+          return prev.map((x) => ((x.messageId || x.id) === mid ? { ...x, ...normalized, pinnedAt: normalized.pinnedAt } : x))
+        })
+        return
+      }
+      if (event.type === "MESSAGE_UNPINNED" && event.messageId) {
+        const eChat = event.chatId != null ? String(event.chatId) : ""
+        if (eChat && eChat !== chatIdRef.current) return
+        const id = String(event.messageId)
+        setPinnedMessages((prev) => prev.filter((m) => (m.messageId || m.id) !== id))
+      }
     },
   })
 
@@ -280,13 +333,67 @@ export default function ChatRoomPage() {
     }
   }, [chatId])
 
+  const loadPinnedMessages = useCallback(async () => {
+    try {
+      const data = await privateChatPinnedService.list(chatId)
+      setPinnedMessages(data)
+    } catch {
+      // list endpoint opcional: no bloquear el chat
+    }
+  }, [chatId])
+
+  const scrollToPinnedInThread = useCallback((messageId: string) => {
+    const el = document.getElementById(`chat-msg-${messageId}`)
+    el?.scrollIntoView({ behavior: "smooth", block: "center" })
+    el?.classList.add("ring-2", "ring-primary/40", "rounded-2xl", "transition-shadow")
+    window.setTimeout(() => {
+      el?.classList.remove("ring-2", "ring-primary/40", "rounded-2xl", "transition-shadow")
+    }, 2000)
+  }, [])
+
+  const handlePinToggle = useCallback(
+    async (msg: Message) => {
+      const id = String(msg.messageId || msg.id || "")
+      if (!id) return
+      const isPinned = pinnedMessages.some((p) => (p.messageId || p.id) === id)
+      setPinUpdatingId(id)
+      try {
+        if (isPinned) {
+          await privateChatPinnedService.unpin(id)
+          setPinnedMessages((prev) => prev.filter((m) => (m.messageId || m.id) !== id))
+          setMessages((prev) =>
+            prev.map((m) => ((m.messageId || m.id) === id ? { ...m, pinnedAt: null } : m))
+          )
+        } else {
+          const updated = await privateChatPinnedService.pin(id)
+          const mid = String(updated.messageId || updated.id || id)
+          setPinnedMessages((prev) => {
+            const next = prev.filter((m) => (m.messageId || m.id) !== mid)
+            return [{ ...updated, messageId: mid, id: mid }, ...next]
+          })
+          setMessages((prev) =>
+            prev.map((m) => ((m.messageId || m.id) === mid ? { ...m, ...updated, pinnedAt: updated.pinnedAt } : m))
+          )
+        }
+      } catch (e: unknown) {
+        const err = e as { message?: string }
+        toast.error(err?.message || "No se pudo actualizar el mensaje fijado")
+        void loadPinnedMessages()
+      } finally {
+        setPinUpdatingId(null)
+      }
+    },
+    [pinnedMessages, loadPinnedMessages]
+  )
+
   useEffect(() => {
     fetchMessages()
     fetchChatInfo()
+    void loadPinnedMessages()
     chatService.markChatAsRead(chatId).catch(() => {})
     // Marcar como leído via WebSocket también
     if (isConnected) sendSeen(chatId)
-  }, [fetchMessages, fetchChatInfo, chatId])
+  }, [fetchMessages, fetchChatInfo, loadPinnedMessages, chatId])
 
   // Mantiene el chat ajustado al viewport visible (teclado móvil incluido).
   useEffect(() => {
@@ -473,8 +580,6 @@ export default function ChatRoomPage() {
     setDeleteConfirmId(null)
   }
 
-  const [activeMessageId, setActiveMessageId] = useState<string | null>(null)
-
   const deleteConfirmMessage = deleteConfirmId 
     ? messages.find(m => (m.messageId || m.id) === deleteConfirmId) 
     : null
@@ -489,6 +594,11 @@ export default function ChatRoomPage() {
     const content = msg.content.startsWith('@reply:') ? msg.content.split('|')[1] : msg.content
     return content?.startsWith('http') && (content.includes('cloudinary.com') || content.match(/\.(jpg|jpeg|png|gif|webp)$/i))
   }), [messages])
+
+  const pinnedIdSet = useMemo(
+    () => new Set(pinnedMessages.map((m) => String(m.messageId || m.id || "")).filter(Boolean)),
+    [pinnedMessages]
+  )
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -877,6 +987,56 @@ export default function ChatRoomPage() {
         </div>
       )}
 
+      {pinnedMessages.length > 0 && (
+        <div className="flex-shrink-0 border-b border-primary/20 bg-primary/5 px-3 py-2 max-h-32 overflow-y-auto">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">Fijados</p>
+          <div className="flex flex-col gap-1.5">
+            {pinnedMessages.map((pm) => {
+              const pId = String(pm.messageId || pm.id || "")
+              if (!pId) return null
+              const inThread = messages.some((m) => (m.messageId || m.id) === pId)
+              return (
+                <div
+                  key={pId}
+                  className="flex items-center gap-2 rounded-lg border border-primary/20 bg-background/90 px-2 py-1.5"
+                >
+                  <Pin className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] text-muted-foreground">
+                      {pinnedAuthorLabel(pm, user?.userId, chatInfo?.otherUsername)}
+                    </p>
+                    <p className="text-xs line-clamp-2 break-words">{pinnedSnippet(pm)}</p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-0.5">
+                    {inThread && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-[11px]"
+                        onClick={() => scrollToPinnedInThread(pId)}
+                      >
+                        Ir
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-[11px] text-muted-foreground"
+                      disabled={pinUpdatingId === pId}
+                      onClick={() => void handlePinToggle(pm)}
+                    >
+                      {pinUpdatingId === pId ? "…" : "Desfijar"}
+                    </Button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       {selectedImageView && (
         <div className="fixed  inset-0 z-50 bg-black/90 flex items-center justify-center" onClick={() => setSelectedImageView(null)}>
           <img src={selectedImageView} alt="Full" className="p-2 max-w-[90%] max-h-[90%] object-contain" />
@@ -952,6 +1112,7 @@ export default function ChatRoomPage() {
               
               return (
                 <div
+                  id={`chat-msg-${msgId}`}
                   key={msgId}
                   className={cn(
                     "flex group/msg items-end gap-1 relative",
@@ -985,6 +1146,17 @@ export default function ChatRoomPage() {
                         title="Copiar"
                       >
                         {copiedMessageId === msgId ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+                      </button>
+                      <button
+                        className={cn(
+                          "h-7 w-7 rounded-full flex items-center justify-center bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors",
+                          pinnedIdSet.has(msgId) && "text-primary"
+                        )}
+                        onClick={(e) => { e.stopPropagation(); void handlePinToggle(msg) }}
+                        title={pinnedIdSet.has(msgId) ? "Desfijar" : "Fijar"}
+                        disabled={pinUpdatingId === msgId}
+                      >
+                        <Pin className={cn("h-3.5 w-3.5", pinnedIdSet.has(msgId) && "fill-primary/30")} />
                       </button>
                       <button
                         className="h-7 w-7 rounded-full flex items-center justify-center bg-muted/80 hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
@@ -1168,6 +1340,17 @@ export default function ChatRoomPage() {
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
                       )}
+                      <button
+                        className={cn(
+                          "h-7 w-7 rounded-full flex items-center justify-center bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors",
+                          pinnedIdSet.has(msgId) && "text-primary"
+                        )}
+                        onClick={(e) => { e.stopPropagation(); void handlePinToggle(msg) }}
+                        title={pinnedIdSet.has(msgId) ? "Desfijar" : "Fijar"}
+                        disabled={pinUpdatingId === msgId}
+                      >
+                        <Pin className={cn("h-3.5 w-3.5", pinnedIdSet.has(msgId) && "fill-primary/30")} />
+                      </button>
                       <button
                         className="h-7 w-7 rounded-full flex items-center justify-center bg-muted/80 hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
                         onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(msgId) }}
