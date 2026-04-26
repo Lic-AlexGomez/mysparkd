@@ -1,12 +1,13 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { api } from '@/lib/api'
-import { feedService } from '@/lib/services/feed'
+import { api, ApiError } from '@/lib/api'
+import { feedService, FEED_PAGE_SIZE } from '@/lib/services/feed'
 import type { Post } from '@/lib/types'
 
 type SortMode = 'chronological' | 'relevant' | 'compatible' | 'top'
-const FEED_PAGE_SIZE = 12
+
+let foryouFallbackWarned = false
 
 type PaginatedFeedResponse = {
   content?: any[]
@@ -109,29 +110,63 @@ export function useFeed() {
     return merged
   }, [])
 
-  const fetchServerPage = useCallback(async (targetPage: number) => {
-    const data = await api.get<any[] | PaginatedFeedResponse>(`/api/feed/feed?page=${targetPage}&size=${FEED_PAGE_SIZE}`)
-
-    if (Array.isArray(data)) {
-      return {
-        posts: normalizeFeedItems(data),
-        hasMore: false,
-        isPaginated: false,
+  const parseFeedPagePayload = useCallback(
+    (data: any[] | PaginatedFeedResponse, targetPage: number) => {
+      if (Array.isArray(data)) {
+        return {
+          posts: normalizeFeedItems(data),
+          hasMore: false,
+          isPaginated: false,
+        }
       }
-    }
 
-    const rows = Array.isArray(data?.content) ? data.content : []
-    const totalPages = typeof data?.totalPages === 'number' ? data.totalPages : undefined
-    const last = typeof data?.last === 'boolean'
-      ? data.last
-      : (typeof totalPages === 'number' ? targetPage >= totalPages - 1 : rows.length < FEED_PAGE_SIZE)
+      const rows = Array.isArray(data?.content) ? data.content : []
+      const totalPages = typeof data?.totalPages === 'number' ? data.totalPages : undefined
+      const last =
+        typeof data?.last === 'boolean'
+          ? data.last
+          : typeof totalPages === 'number'
+            ? targetPage >= totalPages - 1
+            : rows.length < FEED_PAGE_SIZE
 
-    return {
-      posts: normalizeFeedItems(rows),
-      hasMore: !last,
-      isPaginated: true,
-    }
-  }, [normalizeFeedItems])
+      return {
+        posts: normalizeFeedItems(rows),
+        hasMore: !last,
+        isPaginated: true,
+      }
+    },
+    [normalizeFeedItems]
+  )
+
+  const fetchFeedPathPage = useCallback(
+    async (path: string, targetPage: number) => {
+      const data = await api.get<any[] | PaginatedFeedResponse>(
+        `${path}?page=${targetPage}&size=${FEED_PAGE_SIZE}`
+      )
+      return parseFeedPagePayload(data, targetPage)
+    },
+    [parseFeedPagePayload]
+  )
+
+  const fetchServerPage = useCallback(
+    async (targetPage: number) => {
+      try {
+        return await fetchFeedPathPage('/api/feed/foryou', targetPage)
+      } catch (error: unknown) {
+        const fallback =
+          error instanceof ApiError && error.status === 404
+        if (!fallback) throw error
+        if (!foryouFallbackWarned) {
+          foryouFallbackWarned = true
+          console.warn(
+            '[useFeed] GET /api/feed/foryou no disponible (404); usando /api/feed/feed.'
+          )
+        }
+        return fetchFeedPathPage('/api/feed/feed', targetPage)
+      }
+    },
+    [fetchFeedPathPage]
+  )
 
   const prefetchServerPage = useCallback(async (targetPage: number, epoch: number) => {
     if (prefetchedPageRef.current?.page === targetPage) return

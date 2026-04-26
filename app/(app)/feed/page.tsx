@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useMemo } from "react"
+import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import { useFeed } from "@/hooks/use-feed"
 import { useLocalFeed } from "@/hooks/use-local-feed"
@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/lib/auth-context"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
-import { feedService } from "@/lib/services/feed"
+import { feedService, FEED_PAGE_SIZE } from "@/lib/services/feed"
 import type { Post } from "@/lib/types"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
@@ -93,6 +93,10 @@ export default function FeedPage() {
   const [viewMode, setViewMode] = useState<'card' | 'compact'>('card')
   const [followingPosts, setFollowingPosts] = useState<Post[]>([])
   const [followingLoading, setFollowingLoading] = useState(false)
+  const [followingLoadingMore, setFollowingLoadingMore] = useState(false)
+  const [followingPage, setFollowingPage] = useState(0)
+  const [followingHasMore, setFollowingHasMore] = useState(false)
+  const [followingUseServerPagination, setFollowingUseServerPagination] = useState(false)
   const [locationError, setLocationError] = useState(() => {
     // Verificar si ya se permitió la ubicación antes
     if (typeof window !== 'undefined') {
@@ -103,17 +107,30 @@ export default function FeedPage() {
   })
   const [isRequestingLocation, setIsRequestingLocation] = useState(false)
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
+  const followingLoadMoreRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     if (feedTab !== 'following') return
 
     const loadFollowingFeed = async () => {
       setFollowingLoading(true)
+      setFollowingPage(0)
       try {
-        const data = await feedService.getFollowingFeed()
-        setFollowingPosts(data)
+        const res = await feedService.getFollowingPage(0, FEED_PAGE_SIZE)
+        setFollowingPosts(res.posts)
+        setFollowingHasMore(res.hasMore)
+        setFollowingUseServerPagination(res.isPaginated)
+        if (process.env.NODE_ENV === "development") {
+          const authorIds = new Set(res.posts.map((p) => p.userId))
+          console.debug(
+            "[feed] following first page",
+            { count: res.posts.length, authorCount: authorIds.size, isPaginated: res.isPaginated, hasMore: res.hasMore }
+          )
+        }
       } catch {
         setFollowingPosts([])
+        setFollowingHasMore(false)
+        setFollowingUseServerPagination(false)
         toast.error('No se pudo cargar el feed de seguidos')
       } finally {
         setFollowingLoading(false)
@@ -122,6 +139,46 @@ export default function FeedPage() {
 
     void loadFollowingFeed()
   }, [feedTab])
+
+  const loadFollowingMore = useCallback(async () => {
+    if (
+      followingLoading ||
+      followingLoadingMore ||
+      !followingHasMore ||
+      !followingUseServerPagination
+    ) {
+      return
+    }
+    try {
+      setFollowingLoadingMore(true)
+      const nextPage = followingPage + 1
+      const res = await feedService.getFollowingPage(nextPage, FEED_PAGE_SIZE)
+      setFollowingPosts((prev) => {
+        const seen = new Set(prev.map((p) => p.id))
+        const merged = [...prev]
+        for (const p of res.posts) {
+          if (!seen.has(p.id)) {
+            seen.add(p.id)
+            merged.push(p)
+          }
+        }
+        return merged
+      })
+      setFollowingPage(nextPage)
+      setFollowingHasMore(res.hasMore)
+    } catch {
+      setFollowingHasMore(false)
+      toast.error('No se pudo cargar más publicaciones')
+    } finally {
+      setFollowingLoadingMore(false)
+    }
+  }, [
+    followingLoading,
+    followingLoadingMore,
+    followingHasMore,
+    followingUseServerPagination,
+    followingPage,
+  ])
 
   useEffect(() => {
     setDisplayLocalPosts(posts)
@@ -144,6 +201,24 @@ export default function FeedPage() {
     observer.observe(target)
     return () => observer.disconnect()
   }, [feedTab, hasMore, loadMore])
+
+  useEffect(() => {
+    if (feedTab !== 'following' || !followingHasMore || !followingUseServerPagination) return
+    const target = followingLoadMoreRef.current
+    if (!target) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          void loadFollowingMore()
+        }
+      },
+      { rootMargin: '500px 0px' }
+    )
+
+    observer.observe(target)
+    return () => observer.disconnect()
+  }, [feedTab, followingHasMore, followingUseServerPagination, loadFollowingMore])
 
   // Solicitar ubicación cuando se cambia al tab local
   useEffect(() => {
@@ -251,21 +326,22 @@ export default function FeedPage() {
 
   const handleDelete = (postId: string) => {
     setDisplayLocalPosts((prev) => prev.filter((p) => p.id !== postId))
+    setFollowingPosts((prev) => prev.filter((p) => p.id !== postId))
   }
 
   const filteredPosts = useMemo(() => {
-    let basePosts = posts
-
+    // Tab data sources must not mix: "Siguiendo" = followingPosts only; "Para ti" can use
+    // displayLocalPosts for delete sync; "Local" = localPosts.
+    let list: Post[] = []
     if (feedTab === 'local') {
-      basePosts = Array.isArray(localPosts) ? localPosts : []
+      list = Array.isArray(localPosts) ? localPosts : []
     } else if (feedTab === 'following') {
-      basePosts = Array.isArray(followingPosts) ? followingPosts : []
+      list = Array.isArray(followingPosts) ? followingPosts : []
     } else {
-      basePosts = Array.isArray(posts) ? posts : []
+      const baseGlobal = Array.isArray(posts) ? posts : []
+      list = displayLocalPosts.length > 0 ? displayLocalPosts : baseGlobal
     }
-
-    const displayPosts = displayLocalPosts.length > 0 && feedTab === 'global' ? displayLocalPosts : basePosts
-    let next = Array.isArray(displayPosts) ? displayPosts : []
+    let next = list
 
     if (searchQuery) {
       const q = searchQuery.toLowerCase()
@@ -358,7 +434,7 @@ export default function FeedPage() {
             <TabsList className="w-full grid grid-cols-3">
               <TabsTrigger value="global" className="flex items-center gap-2">
                 <Star className="h-4 w-4 animate-sparkle" />
-                Global
+                Para ti
               </TabsTrigger>
               <TabsTrigger value="local" className="flex items-center gap-2">
                 <Newspaper className="h-4 w-4" />
@@ -551,6 +627,23 @@ export default function FeedPage() {
               )}
             </div>
           )}
+          {feedTab === 'following' &&
+            followingHasMore &&
+            followingUseServerPagination &&
+            filteredPosts.length > 0 && (
+              <div ref={followingLoadMoreRef} className="py-6 flex justify-center">
+                {followingLoadingMore ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Cargando más posts...
+                  </div>
+                ) : (
+                  <Button variant="ghost" size="sm" onClick={() => void loadFollowingMore()}>
+                    Cargar más
+                  </Button>
+                )}
+              </div>
+            )}
         </div>
       )}
 

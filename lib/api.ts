@@ -3,9 +3,11 @@ const REQUEST_TIMEOUT_MS = 20_000
 
 class ApiError extends Error {
   status: number
-  constructor(message: string, status: number) {
+  details?: string
+  constructor(message: string, status: number, details?: string) {
     super(message)
     this.status = status
+    this.details = details
     this.name = "ApiError"
   }
 }
@@ -69,9 +71,13 @@ async function request<T>(
 
   if (!response.ok) {
     let message = "Error del servidor"
+    let details: string | undefined
     try {
       const errorData = await response.json()
       message = errorData.message || errorData.error || message
+      if (typeof errorData.details === "string" && errorData.details) {
+        details = errorData.details
+      }
     } catch {
       try {
         message = await response.text()
@@ -79,7 +85,7 @@ async function request<T>(
         // keep default
       }
     }
-    throw new ApiError(message, response.status)
+    throw new ApiError(message, response.status, details)
   }
 
   const contentType = response.headers.get("content-type")

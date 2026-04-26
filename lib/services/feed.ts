@@ -1,7 +1,15 @@
 import { api } from '../api'
 import type { Post } from '../types'
 
+export const FEED_PAGE_SIZE = 12
+
 type SortMode = 'chronological' | 'relevant' | 'compatible' | 'top'
+
+type PaginatedFollowingResponse = {
+  content?: any[]
+  last?: boolean
+  totalPages?: number
+}
 
 function normalizePost(post: any): Post {
   const reactionsObj: Record<string, any> = {}
@@ -48,13 +56,60 @@ function normalizePost(post: any): Post {
   } as Post
 }
 
+function filterDisplayable(post: Post) {
+  return !(post.message && !post.body && !post.file)
+}
+
+function extractFollowingRows(data: any): any[] {
+  if (Array.isArray(data)) return data
+  if (Array.isArray(data?.content)) return data.content
+  if (Array.isArray(data?.posts)) return data.posts
+  if (Array.isArray(data?.data)) return data.data
+  return []
+}
+
+function parseFollowingPage(
+  data: any[] | PaginatedFollowingResponse,
+  targetPage: number,
+  pageSize: number
+): { posts: Post[]; hasMore: boolean; isPaginated: boolean } {
+  if (Array.isArray(data)) {
+    const posts = data.map(normalizePost).filter(filterDisplayable)
+    return { posts, hasMore: false, isPaginated: false }
+  }
+
+  const rows = extractFollowingRows(data)
+  const totalPages = typeof data?.totalPages === 'number' ? data.totalPages : undefined
+  const last =
+    typeof data?.last === 'boolean'
+      ? data.last
+      : typeof totalPages === 'number'
+        ? targetPage >= totalPages - 1
+        : rows.length < pageSize
+
+  const posts = rows.map(normalizePost).filter(filterDisplayable)
+  return {
+    posts,
+    hasMore: !last,
+    isPaginated: true,
+  }
+}
+
 export const feedService = {
+  async getFollowingPage(
+    page: number,
+    size: number = FEED_PAGE_SIZE
+  ): Promise<{ posts: Post[]; hasMore: boolean; isPaginated: boolean }> {
+    const data = await api.get<any[] | PaginatedFollowingResponse>(
+      `/api/feed/following?page=${page}&size=${size}`
+    )
+    return parseFollowingPage(data, page, size)
+  },
+
+  /** Primera página; preferir `getFollowingPage` para paginación. */
   async getFollowingFeed(): Promise<Post[]> {
-    const data = await api.get<any[]>('/api/feed/following')
-    const rows = Array.isArray(data) ? data : []
-    return rows
-      .map(normalizePost)
-      .filter((post) => !(post.message && !post.body && !post.file))
+    const { posts } = await this.getFollowingPage(0, FEED_PAGE_SIZE)
+    return posts
   },
 
   sortPosts(posts: Post[], mode: SortMode, currentUserId?: string): Post[] {

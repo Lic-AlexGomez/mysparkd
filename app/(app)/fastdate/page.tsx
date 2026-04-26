@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { fastDateService } from "@/lib/services/fastdate"
 import type { FeedFilter } from "@/lib/services/fastdate"
+import { handleDateCardLimitError } from "@/lib/errors/date-card-limits"
 import type { DateCard, MyDateCard, SentInterest, DateCategory, Plan, PlaceType } from "@/lib/types"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -74,7 +75,8 @@ export default function FastDatePage() {
     try {
       const data = await fastDateService.getFeed(f ?? filter)
       setFeed(data)
-    } catch {
+    } catch (error) {
+      handleDateCardLimitError(error)
       setFeed([])
     } finally {
       setLoading(false)
@@ -96,7 +98,9 @@ export default function FastDatePage() {
       ])
       setMyCards(cards)
       setSentInterests(sent)
-    } catch {}
+    } catch (error) {
+      handleDateCardLimitError(error)
+    }
   }, [])
 
   useEffect(() => {
@@ -122,7 +126,9 @@ export default function FastDatePage() {
       fetchFeed()
       fetchMine()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Error al crear cita")
+      if (!handleDateCardLimitError(error)) {
+        toast.error(error instanceof Error ? error.message : "Error al crear cita")
+      }
     } finally {
       setCreating(false)
     }
@@ -139,7 +145,9 @@ export default function FastDatePage() {
       await fetchMine()
       setTab("sent")
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Error al enviar interés")
+      if (!handleDateCardLimitError(error)) {
+        toast.error(error instanceof Error ? error.message : "Error al enviar interés")
+      }
     } finally {
       setSendingInterest(false)
     }
@@ -161,7 +169,9 @@ export default function FastDatePage() {
         await fetchMine()
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Error")
+      if (!handleDateCardLimitError(error)) {
+        toast.error(error instanceof Error ? error.message : "Error")
+      }
     }
   }
 
@@ -387,7 +397,22 @@ export default function FastDatePage() {
               {myCards.filter(c => c.status === 'ACTIVE').length > 0 && (
                 <div className="space-y-3">
                   {myCards.filter(c => c.status === 'ACTIVE').map(card => (
-                    <MyCardItem key={card.dateCardId} card={card} onRespond={handleRespond} router={router} onDelete={async (id) => { await fastDateService.delete(id); fetchMine() }} />
+                    <MyCardItem
+                    key={card.dateCardId}
+                    card={card}
+                    onRespond={handleRespond}
+                    router={router}
+                    onDelete={async (id) => {
+                      try {
+                        await fastDateService.delete(id)
+                        await fetchMine()
+                      } catch (error) {
+                        if (!handleDateCardLimitError(error)) {
+                          toast.error(error instanceof Error ? error.message : "No se pudo eliminar la cita")
+                        }
+                      }
+                    }}
+                  />
                   ))}
                 </div>
               )}

@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useId, useRef } from "react"
 import { api } from "@/lib/api"
 import type { Notification } from "@/lib/types"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
@@ -28,6 +28,18 @@ export function TopNavbar() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [showNotifications, setShowNotifications] = useState(false)
+  const notificationsPanelId = useId()
+  const notificationsTitleId = useId()
+  const notificationsPanelRef = useRef<HTMLDivElement>(null)
+  const [isNarrowViewport, setIsNarrowViewport] = useState(false)
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)")
+    const sync = () => setIsNarrowViewport(mq.matches)
+    sync()
+    mq.addEventListener("change", sync)
+    return () => mq.removeEventListener("change", sync)
+  }, [])
 
   const fetchNotifications = useCallback(async () => {
     if (!user?.userId) return
@@ -74,19 +86,49 @@ export function TopNavbar() {
 
   useEffect(() => {
     if (!showNotifications) return
-    
+
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement
       if (!target.closest('[data-notifications-dropdown]') && !target.closest('[data-notifications-button]')) {
         setShowNotifications(false)
       }
     }
-    
+
     setTimeout(() => {
-      document.addEventListener('click', handleClickOutside)
+      document.addEventListener("click", handleClickOutside)
     }, 0)
-    
-    return () => document.removeEventListener('click', handleClickOutside)
+
+    return () => document.removeEventListener("click", handleClickOutside)
+  }, [showNotifications])
+
+  useEffect(() => {
+    if (!showNotifications) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowNotifications(false)
+    }
+    document.addEventListener("keydown", onKey)
+    return () => document.removeEventListener("keydown", onKey)
+  }, [showNotifications])
+
+  useEffect(() => {
+    if (!showNotifications) return
+    if (!window.matchMedia("(max-width: 767px)").matches) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [showNotifications])
+
+  useEffect(() => {
+    if (!showNotifications) return
+    if (!window.matchMedia("(max-width: 767px)").matches) return
+    const el = notificationsPanelRef.current
+    if (!el) return
+    const t = requestAnimationFrame(() => {
+      el.focus()
+    })
+    return () => cancelAnimationFrame(t)
   }, [showNotifications])
 
   const markAsRead = async (notificationId: string) => {
@@ -208,10 +250,13 @@ export function TopNavbar() {
             size="icon"
             className="relative text-muted-foreground hover:text-foreground"
             onClick={() => {
-              if (pathname === '/notifications') return
+              if (pathname === "/notifications") return
               setShowNotifications(!showNotifications)
             }}
             data-notifications-button
+            aria-haspopup="dialog"
+            aria-expanded={showNotifications}
+            aria-controls={showNotifications ? notificationsPanelId : undefined}
           >
             <Bell className="h-5 w-5" />
             {unreadCount > 0 && (
@@ -223,15 +268,30 @@ export function TopNavbar() {
           </Button>
 
           {showNotifications && (
-            <div
-              className="fixed inset-x-3 top-16 z-50 overflow-hidden rounded-2xl border border-border bg-card shadow-2xl shadow-black/20 max-h-[calc(100vh-5rem)] sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96 sm:max-h-none"
-              data-notifications-dropdown
-            >
+            <>
+              <div
+                className="fixed top-16 left-0 right-0 bottom-0 z-[35] bg-black/45 backdrop-blur-sm md:hidden"
+                aria-hidden
+                data-notifications-backdrop
+                onClick={() => setShowNotifications(false)}
+              />
+              <div
+                id={notificationsPanelId}
+                ref={notificationsPanelRef}
+                role="dialog"
+                aria-modal={isNarrowViewport}
+                aria-labelledby={notificationsTitleId}
+                tabIndex={-1}
+                className="fixed left-0 right-0 top-16 z-50 flex max-h-[min(85dvh,calc(100dvh-4.5rem))] flex-col overflow-hidden border-x border-b border-border bg-card px-2 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] shadow-2xl shadow-black/25 outline-none [padding-left:max(0.5rem,env(safe-area-inset-left,0px))] [padding-right:max(0.5rem,env(safe-area-inset-right,0px))] rounded-b-2xl sm:px-3 md:absolute md:left-auto md:right-0 md:top-full md:z-50 md:mt-2 md:max-h-none md:w-96 md:rounded-2xl md:border md:px-0 md:pb-0 md:pt-0"
+                data-notifications-dropdown
+              >
               {/* Header */}
-              <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/80 backdrop-blur-sm">
+              <div className="flex shrink-0 items-center justify-between border-b border-border bg-card/80 px-3 py-3 backdrop-blur-sm md:px-4">
                 <div className="flex items-center gap-2">
-                  <Bell className="h-4 w-4 text-primary" />
-                  <h3 className="font-semibold text-foreground text-sm">Notificaciones</h3>
+                  <Bell className="h-4 w-4 text-primary" aria-hidden />
+                  <h3 id={notificationsTitleId} className="font-semibold text-foreground text-sm">
+                    Notificaciones
+                  </h3>
                   {unreadCount > 0 && (
                     <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-black px-1">
                       {unreadCount}
@@ -259,7 +319,7 @@ export function TopNavbar() {
               </div>
 
               {/* Lista */}
-              <div className="max-h-[calc(100vh-9rem)] overflow-y-auto divide-y divide-border/50 sm:max-h-[420px]">
+              <div className="min-h-0 flex-1 divide-y divide-border/50 overflow-y-auto overscroll-contain md:max-h-[420px]">
                 {notifications.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 gap-3">
                     <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
@@ -303,7 +363,8 @@ export function TopNavbar() {
                   ))
                 )}
               </div>
-            </div>
+              </div>
+            </>
           )}
         </div>
 
