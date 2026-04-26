@@ -110,6 +110,7 @@ export interface WebSocketCallbacks {
   onPollState?: (poll: any) => void
   onMessageEdited?: (message: Message) => void
   onMessageDeleted?: (messageId: string) => void
+  onMessagePinned?: (event: unknown) => void
   onEventGroup?: (payload: EventGroupSocketPayload) => void
   onEventCapacity?: (payload: EventCapacityUpdate) => void
 }
@@ -170,6 +171,9 @@ export function useWebSocket(userId: string | undefined, callbacks: WebSocketCal
       }),
       client.subscribe('/user/queue/message-deleted', (frame) => {
         callbacksRef.current.onMessageDeleted?.(JSON.parse(frame.body) as string)
+      }),
+      client.subscribe('/user/queue/message-pinned', (frame) => {
+        callbacksRef.current.onMessagePinned?.(JSON.parse(frame.body))
       }),
     )
   }, [])

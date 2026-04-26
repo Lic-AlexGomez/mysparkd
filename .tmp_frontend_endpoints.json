@@ -1,0 +1,1114 @@
+[
+  {
+    "file": "C:\\v0-social\\hooks\\use-feed.ts",
+    "path": "/api/feed/feed?page="
+  },
+  {
+    "file": "C:\\v0-social\\hooks\\use-feed.ts",
+    "path": "/api/feed/location"
+  },
+  {
+    "file": "C:\\v0-social\\hooks\\use-premium-status.ts",
+    "path": "/api/user-subscription/status"
+  },
+  {
+    "file": "C:\\v0-social\\hooks\\use-push-notifications.ts",
+    "path": "/api/device-tokens"
+  },
+  {
+    "file": "C:\\v0-social\\hooks\\use-unread-chats.ts",
+    "path": "/api/chat/chats"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\api.ts",
+    "path": "/api/proxy"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\examples\\backend-photo-endpoint.ts",
+    "path": "/api/photos/upload"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\examples\\backend-photo-endpoint.ts",
+    "path": "/api/photos/upload"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\block.ts",
+    "path": "/api/matches/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\block.ts",
+    "path": "/api/matches/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\block.ts",
+    "path": "/api/matches/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\bookmark.ts",
+    "path": "/api/bookmarks/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\bookmark.ts",
+    "path": "/api/bookmarks"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\bookmark.ts",
+    "path": "/api/bookmarks/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\bookmark.ts",
+    "path": "/api/bookmarks/post/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\bookmark.ts",
+    "path": "/api/bookmarks/post/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\chat.ts",
+    "path": "/api/chat/chats"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\chat.ts",
+    "path": "/api/chat/open/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\chat.ts",
+    "path": "/api/chat/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\chat.ts",
+    "path": "/api/chat/send"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\chat.ts",
+    "path": "/api/chat/chats/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\chat.ts",
+    "path": "/api/chat/chats/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\chat.ts",
+    "path": "/api/chat/chats/close"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\chat.ts",
+    "path": "/api/chat/upload/media"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/events"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/events"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/events/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/events/me/created"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/events/me/participating"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/events/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/events/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/events/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/events/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/events/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/events/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/events/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/events/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/events/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/events/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/events/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/events/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/events/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/likes/toggle"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/likes/status/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/reports"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/events/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/events/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/events/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/group-join-requests/join-by-link"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/events/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/events/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/events/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/events/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/events/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/events/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/events/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/events/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/group-join-requests/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/group-join-requests/me"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/events/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/events/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/events/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/events/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "path": "/api/chat/upload/media"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\fastdate.ts",
+    "path": "/api/date-cards/feed"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\fastdate.ts",
+    "path": "/api/date-cards/create"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\fastdate.ts",
+    "path": "/api/date-cards/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\fastdate.ts",
+    "path": "/api/date-cards/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\fastdate.ts",
+    "path": "/api/date-cards/mine"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\fastdate.ts",
+    "path": "/api/fast-date/interests/interested"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\fastdate.ts",
+    "path": "/api/fast-date/interests/respond"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\fastdate.ts",
+    "path": "/api/fast-date/interests/mine/sent"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\feed.ts",
+    "path": "/api/feed/following"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\follow.ts",
+    "path": "/api/follow/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\follow.ts",
+    "path": "/api/follow/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\follow.ts",
+    "path": "/api/follow/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\follow.ts",
+    "path": "/api/follow/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\follow.ts",
+    "path": "/api/follow/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "path": "/api/search/autocomplete?q="
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "path": "/api/search/autocomplete?q="
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "path": "/api/search/users?query="
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "path": "/api/search/general?query="
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "path": "/api/groups"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "path": "/api/groups"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "path": "/api/groups/discover"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "path": "/api/groups/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "path": "/api/groups/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "path": "/api/groups/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "path": "/api/groups/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "path": "/api/groups/join/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "path": "/api/groups/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "path": "/api/groups/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "path": "/api/groups/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "path": "/api/groups/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "path": "/api/groups/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "path": "/api/groups/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "path": "/api/groups/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "path": "/api/groups/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "path": "/api/groups/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "path": "/api/groups/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "path": "/api/groups/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "path": "/api/groups/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "path": "/api/groups/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "path": "/api/groups/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "path": "/api/groups/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "path": "/api/groups/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "path": "/api/groups/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\location.ts",
+    "path": "/api/feed/location"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\location.ts",
+    "path": "/api/feed/local?radiusKm="
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\notification.ts",
+    "path": "/api/notifications/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\notification.ts",
+    "path": "/api/notifications/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\notification.ts",
+    "path": "/api/notifications/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\notification.ts",
+    "path": "/api/notifications/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\privacy.ts",
+    "path": "/api/settings/privacy"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\privacy.ts",
+    "path": "/api/settings/privacy"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\privacy.ts",
+    "path": "/api/settings/sparkling-list"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\privacy.ts",
+    "path": "/api/settings/sparkling-list/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\privacy.ts",
+    "path": "/api/settings/sparkling-list/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\profile.ts",
+    "path": "/api/profile/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\profile.ts",
+    "path": "/api/profile/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\reaction.ts",
+    "path": "/api/likes/toggle?targetId="
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\reaction.ts",
+    "path": "/api/likes/toggle"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\reaction.ts",
+    "path": "/api/likes/toggle?targetId="
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\reaction.ts",
+    "path": "/api/likes/status/{targetId}"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\reaction.ts",
+    "path": "/api/likes/status/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\reaction.ts",
+    "path": "/api/likes/status/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\reaction.ts",
+    "path": "/api/likes/users/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\report.ts",
+    "path": "/api/reports/reasons"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\report.ts",
+    "path": "/api/reports"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\report.ts",
+    "path": "/api/admin/reports"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\report.ts",
+    "path": "/api/admin/reports/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\report.ts",
+    "path": "/api/admin/reports/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\search.ts",
+    "path": "/api/search/users?query="
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\search.ts",
+    "path": "/api/search/autocomplete?q="
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\search.ts",
+    "path": "/api/search/posts?query="
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\search.ts",
+    "path": "/api/search/general?query="
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\search.ts",
+    "path": "/api/search/hashtags?query="
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\search.ts",
+    "path": "/api/search/general?query="
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\search.ts",
+    "path": "/api/hashtags/trending?limit="
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\search.ts",
+    "path": "/api/search/hashtags/trending?limit="
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\search.ts",
+    "path": "/api/hashtags/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\search.ts",
+    "path": "/api/search/hashtags/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\search.ts",
+    "path": "/api/search/autocomplete?q="
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\story.ts",
+    "path": "/api/stories/feed"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\story.ts",
+    "path": "/api/stories/user/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\story.ts",
+    "path": "/api/stories/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\trello.ts",
+    "path": "/api/trello/"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\utils\\notifications.ts",
+    "path": "/api/notifications/create"
+  },
+  {
+    "file": "C:\\v0-social\\app\\api\\webhook\\route.ts",
+    "path": "/api/subscription/webhook"
+  },
+  {
+    "file": "C:\\v0-social\\app\\api\\proxy\\[...path]\\route.ts",
+    "path": "/api/events..."
+  },
+  {
+    "file": "C:\\v0-social\\app\\api\\proxy\\[...path]\\route.ts",
+    "path": "/api/events"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\auth-context.tsx",
+    "path": "/api/profile/me"
+  },
+  {
+    "file": "C:\\v0-social\\components\\chat\\game-panel.tsx",
+    "path": "/api/ai"
+  },
+  {
+    "file": "C:\\v0-social\\components\\feed\\comments-sheet.tsx",
+    "path": "/api/comments/get/"
+  },
+  {
+    "file": "C:\\v0-social\\components\\feed\\comments-sheet.tsx",
+    "path": "/api/settings/privacy"
+  },
+  {
+    "file": "C:\\v0-social\\components\\feed\\comments-sheet.tsx",
+    "path": "/api/likes/status/"
+  },
+  {
+    "file": "C:\\v0-social\\components\\feed\\comments-sheet.tsx",
+    "path": "/api/comments/"
+  },
+  {
+    "file": "C:\\v0-social\\components\\feed\\comments-sheet.tsx",
+    "path": "/api/comments/reply/"
+  },
+  {
+    "file": "C:\\v0-social\\components\\feed\\comments-sheet.tsx",
+    "path": "/api/comments/getcommentReply/"
+  },
+  {
+    "file": "C:\\v0-social\\components\\feed\\comments-sheet.tsx",
+    "path": "/api/likes/status/"
+  },
+  {
+    "file": "C:\\v0-social\\components\\feed\\comments-sheet.tsx",
+    "path": "/api/likes/toggle?targetId="
+  },
+  {
+    "file": "C:\\v0-social\\components\\feed\\comments-sheet.tsx",
+    "path": "/api/comments/update/"
+  },
+  {
+    "file": "C:\\v0-social\\components\\feed\\comments-sheet.tsx",
+    "path": "/api/comments/delete/"
+  },
+  {
+    "file": "C:\\v0-social\\components\\feed\\create-post-dialog.tsx",
+    "path": "/api/polls"
+  },
+  {
+    "file": "C:\\v0-social\\components\\feed\\create-post-dialog.tsx",
+    "path": "/api/polls"
+  },
+  {
+    "file": "C:\\v0-social\\components\\feed\\create-post-dialog.tsx",
+    "path": "/api/proxy/api/posts/new"
+  },
+  {
+    "file": "C:\\v0-social\\components\\feed\\post-card.tsx",
+    "path": "/api/likes/toggle?targetId="
+  },
+  {
+    "file": "C:\\v0-social\\components\\feed\\post-card.tsx",
+    "path": "/api/posts/delete/"
+  },
+  {
+    "file": "C:\\v0-social\\components\\feed\\post-card.tsx",
+    "path": "/api/posts/update/"
+  },
+  {
+    "file": "C:\\v0-social\\components\\feed\\post-card.tsx",
+    "path": "/api/posts/repost/"
+  },
+  {
+    "file": "C:\\v0-social\\components\\feed\\post-card.tsx",
+    "path": "/api/polls/vote/"
+  },
+  {
+    "file": "C:\\v0-social\\components\\feed\\stories-bar.tsx",
+    "path": "/api/stories/feed"
+  },
+  {
+    "file": "C:\\v0-social\\components\\feed\\unlock-post-modal.tsx",
+    "path": "/api/posts/"
+  },
+  {
+    "file": "C:\\v0-social\\components\\layout\\top-navbar.tsx",
+    "path": "/api/notifications/"
+  },
+  {
+    "file": "C:\\v0-social\\components\\layout\\top-navbar.tsx",
+    "path": "/api/notifications/"
+  },
+  {
+    "file": "C:\\v0-social\\components\\layout\\top-navbar.tsx",
+    "path": "/api/notifications/"
+  },
+  {
+    "file": "C:\\v0-social\\components\\layout\\top-navbar.tsx",
+    "path": "/api/notifications/"
+  },
+  {
+    "file": "C:\\v0-social\\components\\swipes\\match-modal.tsx",
+    "path": "/api/chat/open/"
+  },
+  {
+    "file": "C:\\v0-social\\components\\ui\\voice-note.tsx",
+    "path": "/api/proxy/api/profile/voice-note"
+  },
+  {
+    "file": "C:\\v0-social\\components\\ui\\voice-note.tsx",
+    "path": "/api/profile/me"
+  },
+  {
+    "file": "C:\\v0-social\\components\\ui\\voice-note.tsx",
+    "path": "/api/profile/delete/voice"
+  },
+  {
+    "file": "C:\\v0-social\\components\\dashboard\\sections\\admin-auditlog.tsx",
+    "path": "/api/polls"
+  },
+  {
+    "file": "C:\\v0-social\\components\\dashboard\\sections\\admin-system.tsx",
+    "path": "/api/polls"
+  },
+  {
+    "file": "C:\\v0-social\\components\\dashboard\\sections\\admin-system.tsx",
+    "path": "/api/feed"
+  },
+  {
+    "file": "C:\\v0-social\\components\\dashboard\\sections\\admin-system.tsx",
+    "path": "/api/posts/new"
+  },
+  {
+    "file": "C:\\v0-social\\components\\dashboard\\sections\\admin-system.tsx",
+    "path": "/api/feed"
+  },
+  {
+    "file": "C:\\v0-social\\components\\dashboard\\sections\\admin-system.tsx",
+    "path": "/api/swipes"
+  },
+  {
+    "file": "C:\\v0-social\\components\\dashboard\\sections\\admin-system.tsx",
+    "path": "/api/chat"
+  },
+  {
+    "file": "C:\\v0-social\\components\\dashboard\\sections\\admin-system.tsx",
+    "path": "/api/posts"
+  },
+  {
+    "file": "C:\\v0-social\\components\\dashboard\\sections\\admin-system.tsx",
+    "path": "/api/polls"
+  },
+  {
+    "file": "C:\\v0-social\\components\\dashboard\\sections\\admin-system.tsx",
+    "path": "/api/profile"
+  },
+  {
+    "file": "C:\\v0-social\\components\\dashboard\\sections\\admin-system.tsx",
+    "path": "/api/notifications"
+  },
+  {
+    "file": "C:\\v0-social\\components\\dashboard\\sections\\admin-users.tsx",
+    "path": "/api/admin/users"
+  },
+  {
+    "file": "C:\\v0-social\\components\\dashboard\\sections\\admin-users.tsx",
+    "path": "/api/admin/users/"
+  },
+  {
+    "file": "C:\\v0-social\\components\\dashboard\\sections\\admin-users.tsx",
+    "path": "/api/administrator/user-roles/assign"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(auth)\\login\\page.tsx",
+    "path": "/api/profile/me"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(auth)\\login\\page.tsx",
+    "path": "/api/profile/me"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(auth)\\register\\page.tsx",
+    "path": "/api/profile/me"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(auth)\\verify-email\\page.tsx",
+    "path": "/api/profile/me"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\chat\\page.tsx",
+    "path": "/api/presence/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\chat\\page.tsx",
+    "path": "/api/chat/chats/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\chat\\page.tsx",
+    "path": "/api/chat/chats/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\chat\\page.tsx",
+    "path": "/api/chat/chats/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\chat\\page.tsx",
+    "path": "/api/chat/chats/hidden"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\likes\\page.tsx",
+    "path": "/api/swipes/liked-me"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\likes\\page.tsx",
+    "path": "/api/swipes/perform/swipe"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\matches\\page.tsx",
+    "path": "/api/matches/my/matches"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\matches\\page.tsx",
+    "path": "/api/profile/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\matches\\page.tsx",
+    "path": "/api/chat/open/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\matches\\page.tsx",
+    "path": "/api/matches/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\matches\\page.tsx",
+    "path": "/api/matches/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\notifications\\page.tsx",
+    "path": "/api/notifications/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\notifications\\page.tsx",
+    "path": "/api/follow/requests"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\notifications\\page.tsx",
+    "path": "/api/follow/accept/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\notifications\\page.tsx",
+    "path": "/api/follow/reject/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\notifications\\page.tsx",
+    "path": "/api/notifications/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\notifications\\page.tsx",
+    "path": "/api/notifications/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\onboarding\\page.tsx",
+    "path": "/api/interests/all/interest"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\onboarding\\page.tsx",
+    "path": "/api/profile/me"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\onboarding\\page.tsx",
+    "path": "/api/profile"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\onboarding\\page.tsx",
+    "path": "/api/interests/me"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\onboarding\\page.tsx",
+    "path": "/api/interests/add/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\onboarding\\page.tsx",
+    "path": "/api/preferences/set/preferences"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\premium\\page.tsx",
+    "path": "/api/user-subscription/status"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\premium\\page.tsx",
+    "path": "/api/subscription/checkout"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\profile\\page.tsx",
+    "path": "/api/photos/reorder"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\profile\\page.tsx",
+    "path": "/api/photos/cover-picture"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\profile\\page.tsx",
+    "path": "/api/photos/profile-picture"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\profile\\page.tsx",
+    "path": "/api/profile/delete/voice"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\profile\\page.tsx",
+    "path": "/api/profile/voice-note"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\profile\\page.tsx",
+    "path": "/api/photos/delete/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\profile\\page.tsx",
+    "path": "/api/photos/add"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\profile\\page.tsx",
+    "path": "/api/photos/add"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\saved\\page.tsx",
+    "path": "/api/bookmarks/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\saved\\page.tsx",
+    "path": "/api/posts/feed"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\settings\\page.tsx",
+    "path": "/api/preferences/get/my/preferences"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\settings\\page.tsx",
+    "path": "/api/interests/all/interest"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\settings\\page.tsx",
+    "path": "/api/interests/me"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\settings\\page.tsx",
+    "path": "/api/preferences/set/preferences"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\settings\\page.tsx",
+    "path": "/api/interests/remove/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\settings\\page.tsx",
+    "path": "/api/interests/add/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\settings\\page.tsx",
+    "path": "/api/profile"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\stories\\page.tsx",
+    "path": "/api/stories/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\stories\\page.tsx",
+    "path": "/api/stories/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\stories\\page.tsx",
+    "path": "/api/stories/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\stories\\page.tsx",
+    "path": "/api/stories/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\stories\\page.tsx",
+    "path": "/api/stories/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\stories\\page.tsx",
+    "path": "/api/stories"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\swipes\\page.tsx",
+    "path": "/api/discover?page="
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\swipes\\page.tsx",
+    "path": "/api/swipes/remaining/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\swipes\\page.tsx",
+    "path": "/api/swipes/perform/swipe"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\profile\\edit\\page.tsx",
+    "path": "/api/profile"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\profile\\edit\\page.tsx",
+    "path": "/api/photos/cover-picture"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\profile\\[userId]\\page.tsx",
+    "path": "/api/follow/status/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\profile\\[userId]\\page.tsx",
+    "path": "/api/profile/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\profile\\[userId]\\page.tsx",
+    "path": "/api/follow/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\profile\\[userId]\\page.tsx",
+    "path": "/api/follow/follower/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\profile\\[userId]\\page.tsx",
+    "path": "/api/follow/cancel/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\profile\\[userId]\\page.tsx",
+    "path": "/api/follow/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\profile\\[userId]\\page.tsx",
+    "path": "/api/follow/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\profile\\[userId]\\page.tsx",
+    "path": "/api/chat/open/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\profile\\[userId]\\page.tsx",
+    "path": "/api/swipes/perform/swipe"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\profile\\[userId]\\page.tsx",
+    "path": "/api/profile/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\date-cards\\feed\\page.tsx",
+    "path": "/api/date-cards/feed"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\chat\\[chatId]\\page.tsx",
+    "path": "/api/presence/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\chat\\[chatId]\\page.tsx",
+    "path": "/api/messages/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\chat\\[chatId]\\page.tsx",
+    "path": "/api/chat/chats"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\chat\\[chatId]\\page.tsx",
+    "path": "/api/profile/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\chat\\[chatId]\\page.tsx",
+    "path": "/api/presence/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\chat\\[chatId]\\page.tsx",
+    "path": "/api/messages/messages/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\chat\\[chatId]\\page.tsx",
+    "path": "/api/messages/messages/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\chat\\[chatId]\\page.tsx",
+    "path": "/api/messages/messages/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\chat\\[chatId]\\page.tsx",
+    "path": "/api/messages/messages/"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\chat\\[chatId]\\page.tsx",
+    "path": "/api/ai"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\chat\\[chatId]\\page.tsx",
+    "path": "/api/proxy/api/chat/upload/media"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\chat\\[chatId]\\page.tsx",
+    "path": "/api/chat/send"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\chat\\[chatId]\\page.tsx",
+    "path": "/api/chat/send"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\chat\\[chatId]\\page.tsx",
+    "path": "/api/chat/send"
+  }
+]

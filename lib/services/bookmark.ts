@@ -1,112 +1,124 @@
-import { api } from '@/lib/api'
+import { api } from "@/lib/api"
+import type { Post } from "@/lib/types"
 
-type RawBookmark = {
-  bookmarkId?: string
-  id?: string
+type BookmarkToggleResponse = {
   postId?: string
+  saved?: boolean
+}
+
+type PageResponse<T> = {
+  content?: T[]
+  number?: number
+  size?: number
+  totalElements?: number
+  totalPages?: number
+  last?: boolean
 }
 
 export interface BookmarkItem {
   postId: string
-  bookmarkId: string | null
+  bookmarkId: null
+}
+
+export interface SavedPostsPage {
+  content: Post[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+  last: boolean
 }
 
 class BookmarkService {
-  private bookmarks = new Map<string, Map<string, string | null>>()
-  private loaded = new Set<string>()
+  private savedPostIds = new Set<string>()
 
-  private normalizeBookmarkRows(rows: unknown): BookmarkItem[] {
-    if (!Array.isArray(rows)) return []
-    return rows
-      .map((row) => {
-        if (typeof row === 'string') {
-          return { postId: row, bookmarkId: null }
-        }
-        const r = row as RawBookmark
-        const postId = String(r.postId || '').trim()
-        if (!postId) return null
-        const bookmarkId = r.bookmarkId || r.id || null
-        return { postId, bookmarkId: bookmarkId ? String(bookmarkId) : null }
-      })
-      .filter(Boolean) as BookmarkItem[]
+  private resolvePostId(userIdOrPostId: string, maybePostId?: string): string {
+    return (maybePostId ?? userIdOrPostId).trim()
   }
 
-  private async loadBookmarks(userId: string) {
-    const rows = await api.get<unknown>(`/api/bookmarks/${userId}`)
-    const normalized = this.normalizeBookmarkRows(rows)
-    const byPost = new Map<string, string | null>()
-    for (const item of normalized) {
-      byPost.set(item.postId, item.bookmarkId)
+  private setSaved(postId: string, saved: boolean) {
+    if (saved) {
+      this.savedPostIds.add(postId)
+      return
     }
-    this.bookmarks.set(userId, byPost)
-    this.loaded.add(userId)
+    this.savedPostIds.delete(postId)
   }
 
-  private async ensureLoaded(userId: string) {
-    if (!this.loaded.has(userId)) {
-      await this.loadBookmarks(userId)
-    }
-  }
+  private normalizePageResponse(response: unknown, page: number, size: number): SavedPostsPage {
+    const raw = (response ?? {}) as PageResponse<Post> | Post[]
+    const content = Array.isArray(raw)
+      ? raw
+      : Array.isArray(raw.content)
+        ? raw.content
+        : []
+    const normalizedContent = content.map((post) => ({ ...post, saved: true }))
 
-  async list(userId: string): Promise<BookmarkItem[]> {
-    await this.ensureLoaded(userId)
-    const current = this.bookmarks.get(userId) ?? new Map<string, string | null>()
-    return Array.from(current.entries()).map(([postId, bookmarkId]) => ({ postId, bookmarkId }))
-  }
-
-  async refresh(userId: string) {
-    this.loaded.delete(userId)
-    await this.ensureLoaded(userId)
-  }
-
-  async toggleBookmark(userId: string, postId: string): Promise<boolean> {
-    await this.ensureLoaded(userId)
-    const current = this.bookmarks.get(userId) ?? new Map<string, string | null>()
-    if (current.has(postId)) {
-      await this.removeBookmark(userId, postId)
-      return false
-    }
-    await this.addBookmark(userId, postId)
-    return true
-  }
-
-  isBookmarked(userId: string, postId: string): boolean {
-    return this.bookmarks.get(userId)?.has(postId) ?? false
-  }
-
-  getBookmarkedPosts(userId: string): string[] {
-    return Array.from(this.bookmarks.get(userId)?.keys() ?? [])
-  }
-
-  private async addBookmark(userId: string, postId: string) {
-    const response = await api.post<RawBookmark>('/api/bookmarks', { userId, postId })
-    const bookmarkId = response?.bookmarkId || response?.id || null
-    const current = this.bookmarks.get(userId) ?? new Map<string, string | null>()
-    current.set(postId, bookmarkId ? String(bookmarkId) : null)
-    this.bookmarks.set(userId, current)
-  }
-
-  private async removeBookmark(userId: string, postId: string) {
-    const current = this.bookmarks.get(userId) ?? new Map<string, string | null>()
-    let bookmarkId = current.get(postId) || null
-
-    if (!bookmarkId) {
-      await this.refresh(userId)
-      bookmarkId = this.bookmarks.get(userId)?.get(postId) || null
+    for (const post of normalizedContent) {
+      if (post?.id) this.savedPostIds.add(post.id)
     }
 
-    if (bookmarkId) {
-      try {
-        await api.delete(`/api/bookmarks/${bookmarkId}`)
-      } catch {
-        await api.delete(`/api/bookmarks/post/${postId}`)
+    if (Array.isArray(raw)) {
+      return {
+        content: normalizedContent,
+        page,
+        size,
+        totalElements: normalizedContent.length,
+        totalPages: normalizedContent.length > 0 ? 1 : 0,
+        last: true,
       }
-    } else {
-      await api.delete(`/api/bookmarks/post/${postId}`)
     }
 
-    current.delete(postId)
-    this.bookmarks.set(userId, current)
+    return {
+      content: normalizedContent,
+      page: raw.number ?? page,
+      size: raw.size ?? size,
+      totalElements: raw.totalElements ?? normalizedContent.length,
+      totalPages: raw.totalPages ?? (normalizedContent.length > 0 ? 1 : 0),
+      last: raw.last ?? true,
+    }
+  }
+
+  async toggleBookmark(userIdOrPostId: string, maybePostId?: string): Promise<boolean> {
+    const postId = this.resolvePostId(userIdOrPostId, maybePostId)
+    if (!postId) throw new Error("postId es requerido para toggle bookmark")
+
+    const response = await api.post<BookmarkToggleResponse>("/api/bookmarks/toggle", { postId })
+    const saved = Boolean(response?.saved)
+    this.setSaved(postId, saved)
+    return saved
+  }
+
+  async getSavedPosts(page = 0, size = 20): Promise<SavedPostsPage> {
+    const response = await api.get<PageResponse<Post>>(`/api/bookmarks?page=${page}&size=${size}`)
+    return this.normalizePageResponse(response, page, size)
+  }
+
+  async list(_userId?: string): Promise<BookmarkItem[]> {
+    return Array.from(this.savedPostIds).map((postId) => ({ postId, bookmarkId: null }))
+  }
+
+  async refresh(_userId?: string): Promise<void> {
+    this.savedPostIds.clear()
+    const firstPage = await this.getSavedPosts(0, 50)
+    if (firstPage.last) return
+
+    const maxPages = Math.min(firstPage.totalPages, 10)
+    for (let page = 1; page < maxPages; page += 1) {
+      const next = await this.getSavedPosts(page, 50)
+      if (next.last) break
+    }
+  }
+
+  isBookmarked(_userId: string, postId: string): boolean {
+    return this.savedPostIds.has(postId)
+  }
+
+  isSaved(postId: string): boolean {
+    return this.savedPostIds.has(postId)
+  }
+
+  getBookmarkedPosts(_userId?: string): string[] {
+    return Array.from(this.savedPostIds)
   }
 }
 

@@ -1,0 +1,1685 @@
+﻿[
+    {
+        "id":  "69b322b141b4f348d505f495",
+        "name":  "?? Feed Personalizado",
+        "list":  "Pendiente de hacer backend",
+        "url":  "https://trello.com/c/HF3HMyPM/9-%F0%9F%8E%AE-feed-personalizado",
+        "labels":  {
+
+                   },
+        "endpoints":  [
+                          "/api/feed/foryou?page={page}\u0026size={size}",
+                          "/api/feed/following?page={page}\u0026size={size}"
+                      ],
+        "desc":  "Implementar algoritmo de feed personalizado.\n\n**Endpoints necesarios:**\n\n- `GET /api/feed/foryou?page={page}\u0026size={size}` - Feed \"Para Ti\" (algoritmo)\n- `GET /api/feed/following?page={page}\u0026size={size}` - Feed de seguidos\n\n**Detalles técnicos:**\n\n- Algoritmo básico considerando:\n  - Intereses del usuario\n  - Compatibilidad\n  - Engagement del post (likes, comentarios)\n  - Reputación del autor\n  - Recencia del post\n- Feed following: solo posts de usuarios que sigue\n\n**Frontend ya implementado:** ?\n\n- Tabs en `feed/page.tsx` (Global, Local, Siguiendo)\n- Hook `use-feed.ts` con modos de ordenamiento\n\n---"
+    },
+    {
+        "id":  "69b3231d6f7d912d0c5b17cf",
+        "name":  "?? Analytics Avanzado- sin prioridad",
+        "list":  "Pendiente de hacer backend",
+        "url":  "https://trello.com/c/p7TdJr5K/11-%F0%9F%93%88-analytics-avanzado-sin-prioridad",
+        "labels":  {
+
+                   },
+        "endpoints":  [
+                          "/api/analytics/profile",
+                          "/api/analytics/posts/{postId}",
+                          "/api/analytics/engagement"
+                      ],
+        "desc":  "Quizas pongamo eso con admin en el dashboard o como algo extra para gente premium, lo tienen la cuenta empresariares de ig y facebook\n\nEndpoints para estadísticas detalladas del usuario.\n\n**Endpoints necesarios:**\n\n- `GET /api/analytics/profile` - Estadísticas de perfil\n  ```json\n  {\n    \"profileViews\": 1234,\n    \"profileViewsGrowth\": 12,\n    \"followerGrowth\": [{\"date\": \"2024-01\", \"count\": 50}],\n    \"topPosts\": [...]\n  }\n  ```\n- `GET /api/analytics/posts/{postId}` - Estadísticas de post específico\n- `GET /api/analytics/engagement` - Engagement rate\n\n**Frontend ya implementado:** ?\n\n- Página `analytics/page.tsx`\n\n---"
+    },
+    {
+        "id":  "69dc1656e9b66830cfeb4502",
+        "name":  "Crear endpoint para editar USERNAME e EMAIL, agregar validación de email.",
+        "list":  "Pendiente de hacer backend",
+        "url":  "https://trello.com/c/McEfcbgE/64-crear-endpoint-para-editar-username-e-email-agregar-validaci%C3%B3n-de-email",
+        "labels":  {
+
+                   },
+        "endpoints":  {
+
+                      },
+        "desc":  ""
+    },
+    {
+        "id":  "69ec425cc3f75c5cdf9a8c79",
+        "name":  "Evaluar tipo de cuenta",
+        "list":  "Pendiente de hacer backend",
+        "url":  "https://trello.com/c/UxSPEzad/114-evaluar-tipo-de-cuenta",
+        "labels":  {
+
+                   },
+        "endpoints":  {
+
+                      },
+        "desc":  "Agrega que tipo es si es red social, dating o both. a los endpoints /me, y el de login"
+    },
+    {
+        "id":  "69d846d98f2f13635834ae88",
+        "name":  "Campo para seleccionar tipo",
+        "list":  "En test/Desarrollando Backend",
+        "url":  "https://trello.com/c/7Aomy6UW/42-campo-para-seleccionar-tipo",
+        "labels":  {
+
+                   },
+        "endpoints":  {
+
+                      },
+        "desc":  "get/post tipo red social, dating y both"
+    },
+    {
+        "id":  "69e6c760e145b917dd119bab",
+        "name":  "Fix: Incluir notificationId en respuesta de notificaciones",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/uEf06vU1/78-fix-incluir-notificationid-en-respuesta-de-notificaciones",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "PARCIAL"
+                   ],
+        "endpoints":  [
+                          "/api/notifications/{userId}",
+                          "/api/notifications/{notificationId}/read",
+                          "/api/notifications/{notificationId}"
+                      ],
+        "desc":  "**Descripción:**\nEl endpoint \n\n```\nGET /api/notifications/{userId}\n```\n\n no devuelve el \n\n```\nnotificationId\n```\n\n en la respuesta, lo que impide que el frontend pueda llamar los endpoints de marcar como leída y eliminar.\n\n?\n\n**Archivos a modificar:**\n\n?\n\n```\nNotificationsResponseDTO.java\n```\n\n?\n\n- Descomentar \n  ```\n  private UUID notificationId\n  ```\n  ?\n- Descomentar el getter \n  ```\n  getNotificationId()\n  ```\n  ?\n- Descomentar el setter \n  ```\n  setNotificationId()\n  ```\n  ?\n- Agregar \n  ```\n  notificationId\n  ```\n   como primer parámetro del constructor\n  ?\n\n?\n\n```\nNotificationsService.java\n```\n\n — método \n\n```\ngetNotificationsForUser\n```\n\n?\n\n- Descomentar la línea: \n  ```\n  // dto.setNotificationId(notification.getNotificationId());\n  ```\n  ?\n\n**Endpoints que dependen de este fix:**\n\n- ?\n  ```\n  PUT /api/notifications/{notificationId}/read\n  ```\n   — marcar como leída\n  ?\n- ?\n  ```\n  DELETE /api/notifications/{notificationId}\n  ```\n   — eliminar notificación\n  ?\n\n**Impacto:** Sin este fix el frontend usa un ID falso (\n\n```\nsenderId + createdAt\n```\n\n) y los endpoints devuelven 400."
+    },
+    {
+        "id":  "69df0234f85e9f585ce58a2d",
+        "name":  "Modifico response del endpoint ver mis cards (Las que postee), ver mas dentro de la tarjeta...",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/9zPQVoEW/69-modifico-response-del-endpoint-ver-mis-cards-las-que-postee-ver-mas-dentro-de-la-tarjeta",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "HECHO"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  "```\n??La idea es la siguiente, Solo mostraras las cards activas,\nlas que estan expiradas vas a darle un color grayout o ponerla en otra seccion de historico de citas. Por otro lado seria bueno que las personas que han mostrado intereses de las cards expiradas, se le haga una lista, que despliegue las propuestas, asi no se amontona mucha informacion. A las activas si se puede poner la lista completa, pero si se puede paginar, mucho mejor. o me dices y te la mando paginada\nQ UYT\n\n\n[\n  {\n    \"dateCardId\": \"17b39fc1-df14-4210-973e-f415616d2195\",\n    \"title\": \"string\",\n    \"message\": \"string\",\n    \"dateTime\": \"2026-04-15T22:02:41.647Z\",\n    \"locationZone\": \"string\",\n    \"category\": \"FOOD\",\n    \"detail\": \"string\",\n    \"plans\": [\n      \"CAFE\"\n    ],\n    \"placeTypes\": [\n      \"CAFE\"\n    ],\n    \"status\": \"ACTIVE\",\n    \"expiresAt\": \"2026-04-16T22:02:41.647Z\",\n    \"createdAt\": \"2026-04-14T22:03:14.210609Z\",\n    \"totalInterests\": 1,\n    \"interests\": [\n      {\n        \"interestId\": \"07bb3af6-4572-4be4-9c89-5dc618b6bf31\",\n        \"userId\": \"65337fd1-6adb-4e78-9861-cebc9d505dc1\",\n        \"profilePicture\": null,\n        \"profileId\": \"a37bedfe-18a9-4ef3-a245-c6a949308d15\",\n        \"message\": \"jjj\",\n        \"status\": \"PENDING\"\n      }\n    ]\n  },\n  {\n    \"dateCardId\": \"01138460-2916-4c5f-94d1-72fd71390c2f\",\n    \"title\": \"Prueba\",\n    \"message\": \"string\",\n    \"dateTime\": \"2026-04-13T20:24:46.300Z\",\n    \"locationZone\": \"string\",\n    \"category\": \"FOOD\",\n    \"detail\": \"string\",\n    \"plans\": [\n      \"CAFE\"\n    ],\n    \"placeTypes\": [\n      \"CAFE\"\n    ],\n    \"status\": \"EXPIRED\",\n    \"expiresAt\": \"2026-04-14T20:24:46.300Z\",\n    \"createdAt\": \"2026-04-12T20:39:38.865122Z\",\n    \"totalInterests\": 2,\n    \"interests\": [\n      {\n        \"interestId\": \"35fb6575-0a15-4c42-91c4-aa1b2df33051\",\n        \"userId\": \"390ae29c-99b6-42e6-a652-ccd5bc33b9c9\",\n        \"profilePicture\": \"https://res.cloudinary.com/dvk3yygql/image/upload/v1773436027/rx4cjelmtd9gw6mlvfw1.jpg\",\n        \"profileId\": \"b69ab123-9db0-4321-b9b9-e1e5c0b13014\",\n        \"message\": \"klk\",\n        \"status\": \"PENDING\"\n      },\n      {\n        \"interestId\": \"91340773-b757-4728-8459-4709cafb2b81\",\n        \"userId\": \"81a56d83-d576-4f74-b0fd-895c75a2b3b7\",\n        \"profilePicture\": \"https://res.cloudinary.com/dvk3yygql/image/upload/v1773435905/xcsi3asfhkswxzflwhay.png\",\n        \"profileId\": \"36ddca7f-a3e0-41dc-b3de-605969da980b\",\n        \"message\": \"Plis\",\n        \"status\": \"PENDING\"\n      }\n    ]\n  },\n  {\n    \"dateCardId\": \"cfd14a6c-fbd7-49ce-94a4-7c46900668e6\",\n    \"title\": \"Cena\",\n    \"message\": null,\n    \"dateTime\": \"2026-04-10T20:00:00Z\",\n    \"locationZone\": \"Zona Colonial\",\n    \"category\": \"OPEN_SUGGESTION\",\n    \"detail\": null,\n    \"plans\": [],\n    \"placeTypes\": [],\n    \"status\": \"EXPIRED\",\n    \"expiresAt\": \"2026-04-10T20:00:00Z\",\n    \"createdAt\": \"2026-04-09T23:10:00.577368Z\",\n    \"totalInterests\": 0,\n    \"interests\": []\n  }\n]\n```"
+    },
+    {
+        "id":  "69df05f286e8eaa97db423da",
+        "name":  "IMPLEMENTAR ENDPOINT BUSQUEDA INTELIGENTE. ESTE BUSCA POR POST, USUARIOS, HASHTAGS Y CONTENT DEL POST.",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/mChdRxjS/70-implementar-endpoint-busqueda-inteligente-este-busca-por-post-usuarios-hashtags-y-content-del-post",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "HECHO"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  ""
+    },
+    {
+        "id":  "69b31f9d65111a7b75001ff0",
+        "name":  "Sistema de Búsqueda Completo",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/7k2I0I2S/4-sistema-de-b%C3%BAsqueda-completo",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "HECHO"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  ""
+    },
+    {
+        "id":  "69df11c1de6ff8dfd620c461",
+        "name":  "Verificar que al subir foto no suban datos de location en la foto, ejemplo coordenadas. bloquear por privacidad.",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/0bxMBndA/71-verificar-que-al-subir-foto-no-suban-datos-de-location-en-la-foto-ejemplo-coordenadas-bloquear-por-privacidad",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "PENDIENTE"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  ""
+    },
+    {
+        "id":  "69e6eae5cfd42c04043b1806",
+        "name":  "Debo poder eliminar mensajes de otro usuario (Para mi)",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/l3j9EAR8/79-debo-poder-eliminar-mensajes-de-otro-usuario-para-mi",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "HECHO"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  ""
+    },
+    {
+        "id":  "69ebf533219e6b5217c34e1c",
+        "name":  "feed para seguidores GET /api/feed/following",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/6LG1EYoP/112-feed-para-seguidores-get-api-feed-following",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "HECHO"
+                   ],
+        "endpoints":  "/api/feed/following",
+        "desc":  ""
+    },
+    {
+        "id":  "69ea8850d02b7943aea98816",
+        "name":  "Controlar que el limite de opciones en el poll sea menor o igual a 10",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/4eyU45nl/85-controlar-que-el-limite-de-opciones-en-el-poll-sea-menor-o-igual-a-10",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "HECHO"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  "```\n\n        if (cleanedOptions.size() \u003e 10) {\n```\n\n```\n            throw new RuntimeException(\"Poll cannot have more than 10 options\");\n```\n\n```\n        }\n```"
+    },
+    {
+        "id":  "69ea88ef32484ce964db5a02",
+        "name":  "Manejar excepción cuando el poll haya expirado",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/343gijzA/86-manejar-excepci%C3%B3n-cuando-el-poll-haya-expirado",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "PARCIAL"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  "```\nif (poll.getExpiresAt() != null \u0026\u0026 Instant.now().isAfter(poll.getExpiresAt())) {\n            throw new org.springframework.web.server.ResponseStatusException(\n                org.springframework.http.HttpStatus.GONE, \"Este poll ya expiró\"\n            );\n        }\n```"
+    },
+    {
+        "id":  "69ea92412e598fb10695f1bb",
+        "name":  "Modulo Stories",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/PtNsBi7k/88-modulo-stories",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "HECHO"
+                   ],
+        "endpoints":  [
+                          "/api/stories",
+                          "/api/stories/feed",
+                          "/api/stories/user/{userId}",
+                          "/api/stories/{id}/view",
+                          "/api/stories/{id}/viewers",
+                          "/api/stories/{id}/view-count",
+                          "/api/stories/{id}/react?reaction=LIKE",
+                          "/api/stories/{id}/reactions",
+                          "/api/stories/{id}"
+                      ],
+        "desc":  "### Endpoints\n\n`POST/api/stories`Crear historia\n\n`GET/api/stories/feed`Feed agrupado por usuario, con unread primero\n\n`GET/api/stories/user/{userId}`Historias de un usuario (respeta privacidad)\n\n`POST/api/stories/{id}/view`Registrar vista\n\n`GET/api/stories/{id}/viewers`Quiénes la vieron (solo dueño)\n\n`GET/api/stories/{id}/view-count`Cuántos la vieron (solo dueño)\n\n`POST/api/stories/{id}/react?reaction=LIKE`Toggle reacción\n\n`GET/api/stories/{id}/reactions`Lista de reacciones (solo dueño)\n\n`DELETE/api/stories/{id}`Eliminar historia"
+    },
+    {
+        "id":  "69ea961912e86b905de59338",
+        "name":  "Ver follows request, acceptados, a quienes sigue el usuario",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/fsvFhDzv/89-ver-follows-request-acceptados-a-quienes-sigue-el-usuario",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "PARCIAL"
+                   ],
+        "endpoints":  [
+                          "/api/follow/requests",
+                          "/api/follow/followers/{userId}",
+                          "/api/follow/following/{userId}"
+                      ],
+        "desc":  "`GET /api/follow/requests`El usuario autenticadoSus solicitudes PENDING entrantes\n\n`GET /api/follow/followers/{userId}`Cualquier usuario autenticadoSeguidores ACCEPTED del userId\n\n`GET /api/follow/following/{userId}`Cualquier usuario autenticadoA quiénes sigue el userId\n\nDevuelven `List\u003cFollowerUserDTO\u003e` con `userId`, `username`, `nombres`, `apellidos` y `profilePictureUrl`."
+    },
+    {
+        "id":  "69ea9827b82901315109c269",
+        "name":  "contadores de seguidores, seguidos... Tanto en get me, como en profile.",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/BxHTMQdc/90-contadores-de-seguidores-seguidos-tanto-en-get-me-como-en-profile",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "HECHO"
+                   ],
+        "endpoints":  [
+                          "/api/profile/{userId}",
+                          "/api/profile/me"
+                      ],
+        "desc":  "`GET /api/profile/{userId}`\n\n`GET /api/profile/me`\n\n?\n\n?\n\ndevuelven `followersCount` y `followingCount`"
+    },
+    {
+        "id":  "69ea9fb14c847acb32fb3016",
+        "name":  "Sparkling list, Tipo Close friend. Historias tendrán privacidad. PUBLIC, SPARKLING LIST",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/Ofh81edh/91-sparkling-list-tipo-close-friend-historias-tendr%C3%A1n-privacidad-public-sparkling-list",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "HECHO"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  ""
+    },
+    {
+        "id":  "69eaaa1222d1d7feebbcddb1",
+        "name":  "GET /api/stories/{storyId}/view-count",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/leITEx6C/99-get-api-stories-storyid-view-count",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "HECHO"
+                   ],
+        "endpoints":  "/api/stories/{storyId}/view-count",
+        "desc":  "Número de vistas. **Solo el dueño.**"
+    },
+    {
+        "id":  "69eaaa375cfc495026659653",
+        "name":  "POST /api/stories/{storyId}/react?reaction=LIKE",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/b8wKt2iA/100-post-api-stories-storyid-reactreactionlike",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "HECHO"
+                   ],
+        "endpoints":  "/api/stories/{storyId}/react?reaction=LIKE",
+        "desc":  "`reaction`: `LIKE` | `LOVE` | `HAHA` | `WOW` | `SAD` | `ANGRY` _(los valores del enum_ `ReactionType`_)_"
+    },
+    {
+        "id":  "69eaaa5d684f08a59fd2497d",
+        "name":  "GET /api/stories/{storyId}/reactions",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/X7eI1YTb/101-get-api-stories-storyid-reactions",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "HECHO"
+                   ],
+        "endpoints":  "/api/stories/{storyId}/reactions",
+        "desc":  "```\n[\n  {\n    \"userId\": \"uuid\",\n    \"username\": \"maria99\",\n    \"profilePictureUrl\": \"https://...\",\n    \"reaction\": \"LOVE\",\n    \"reactedAt\": \"2026-04-23T16:00:00Z\"\n  }\n]\n```"
+    },
+    {
+        "id":  "69eaacfb315075b95c14c112",
+        "name":  "GET /api/settings/privacy",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/L0txa76K/102-get-api-settings-privacy",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "HECHO"
+                   ],
+        "endpoints":  "/api/settings/privacy",
+        "desc":  "Obtener configuración de privacidad del usuario autenticado.\n\n**Response** `200`**:**\n\n```\n{\n  \"whoCanSeeMyPosts\": \"EVERYONE\",\n  \"whoCanComment\": \"EVERYONE\",\n  \"whoCanSendDM\": \"EVERYONE\",\n  \"showOnlineStatus\": true,\n  \"showLastSeen\": false\n}\n```"
+    },
+    {
+        "id":  "69eaad4e033b253f72fde485",
+        "name":  "PUT /api/settings/privacy",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/NAz87uva/103-put-api-settings-privacy",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "HECHO"
+                   ],
+        "endpoints":  "/api/settings/privacy",
+        "desc":  "Actualizar privacidad. Los campos son todos opcionales — solo envía los que quieras cambiar.\n\n**Request body:**\n\n```\n{\n  \"whoCanComment\": \"FOLLOWERS\",\n  \"showLastSeen\": true\n}\n\nEnums:\n\nwhoCanSeeMyPosts / whoCanComment: EVERYONE | FOLLOWERS | NOBODY\nwhoCanSendDM: EVERYONE | FOLLOWERS | MATCHES\n```"
+    },
+    {
+        "id":  "69eaae29a3bce3d60ac9a541",
+        "name":  "Sparkling list",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/zgJSr7gw/104-sparkling-list",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "HECHO"
+                   ],
+        "endpoints":  [
+                          "/api/settings/sparkling-list",
+                          "/api/settings/sparkling-list/{memberId}"
+                      ],
+        "desc":  "### `GET /api/settings/sparkling-list`\n\nVer tu Sparkling List (amigos cercanos).\n\n**Response** `200`**:** Array de `FollowerUserDTO` (mismo objeto de Follow).\n\n?\n\n### `POST /api/settings/sparkling-list/{memberId}`\n\nAgregar usuario a tu Sparkling List.\n\n**Response** `204` **(sin body)**\n\n?\n\n### `DELETE /api/settings/sparkling-list/{memberId}`\n\nQuitar usuario de tu Sparkling List.\n\n**Response** `204` **(sin body)**"
+    },
+    {
+        "id":  "69eaaec51e9726ab83d8ffe8",
+        "name":  "Cambios en endpoints existentes",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/DGyhCRX9/105-cambios-en-endpoints-existentes",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "HECHO"
+                   ],
+        "endpoints":  [
+                          "/api/profile/{userId}",
+                          "/api/profile/me"
+                      ],
+        "desc":  "`GET /api/profile/{userId}` y `GET /api/profile/me` — el response ahora incluye dos campos nuevos:\n\n```\n{\n  \"followersCount\": 128,\n  \"followingCount\": 64\n}\n```"
+    },
+    {
+        "id":  "69eabc650e96c6d398bb03e0",
+        "name":  "Notifications (float), queda a media pantalla. Web Mobile. al dar a todas, entra perfecto.\u0027",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/RqyhTf3r/108-notifications-float-queda-a-media-pantalla-web-mobile-al-dar-a-todas-entra-perfecto",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "HECHO"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  ""
+    },
+    {
+        "id":  "69eae31376ca87828b1aede0",
+        "name":  "Profile voice note permite subir cualquier archivo, no solo voice. Debe ser solo voice",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/11wPOs4e/109-profile-voice-note-permite-subir-cualquier-archivo-no-solo-voice-debe-ser-solo-voice",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "PARCIAL"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  ""
+    },
+    {
+        "id":  "69eb0c2154553164993ad1ac",
+        "name":  "meetUp",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/wVwzVMEE/110-meetup",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "PARCIAL"
+                   ],
+        "endpoints":  [
+                          "/api/events",
+                          "/api/events/{eventId}",
+                          "/api/events/me/created",
+                          "/api/events/me/participating",
+                          "/api/events/{eventId}/join",
+                          "/api/events/{eventId}/participants/{userId}/approve",
+                          "/api/events/{eventId}/participants/{userId}/reject",
+                          "/api/events/{eventId}/participants/{userId}/moderator",
+                          "/api/events/{eventId}/participants",
+                          "/api/events/{eventId}/participants/pending",
+                          "/api/events/{eventId}/group",
+                          "/api/events/{eventId}/group/messages",
+                          "/api/events/{eventId}/group/messages/{messageId}",
+                          "/api/likes/toggle",
+                          "/api/likes/status/{messageId}",
+                          "/api/reports",
+                          "/api/events/{eventId}/group/invite-links",
+                          "/api/events/{eventId}/group/invite-links/{linkId}",
+                          "/api/group-join-requests/join-by-link",
+                          "/api/events/{eventId}/group/settings",
+                          "/api/events/{eventId}/group/members",
+                          "/api/events/{eventId}/group/members/{targetUserId}/mute",
+                          "/api/events/{eventId}/group/members/{targetUserId}",
+                          "/api/events/{eventId}/group/polls",
+                          "/api/events/{eventId}/group/polls/{optionId}/vote",
+                          "/api/events/{eventId}/group/join-requests",
+                          "/api/group-join-requests/{requestId}/respond",
+                          "/api/group-join-requests/me",
+                          "/api/events/{eventId}/group/join-requests/{requestId}/approve",
+                          "/api/events/{eventId}/group/join-requests/{requestId}/reject",
+                          "/api/events/{eventId}/group/share-address"
+                      ],
+        "desc":  "```\n# Sparkd — API de Eventos (Frontend Integration Guide)\n\n\u003e Base URL: `https://tu-api.com`\n\u003e Autenticación: Bearer JWT en header `Authorization`\n\u003e Todos los UUIDs son strings con formato `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`\n\n---\n\n## Roles\n\n| Rol | Permisos |\n|---|---|\n| `ADMIN` | Todo: expulsar, silenciar, ajustes, links, aprobar solicitudes, eliminar cualquier mensaje |\n| `MODERATOR` | Silenciar GUESTs, crear encuestas, enviar mensajes en slowMode |\n| `GUEST` | Enviar mensajes (si el grupo lo permite), votar encuestas, reaccionar |\n\n---\n\n## 1. Eventos (`/api/events`)\n\n### Existentes (sin cambios)\n\n| Método | Ruta | Quién | Descripción |\n|---|---|---|---|\n| `POST` | `/api/events` | Auth | Crear evento |\n| `GET` | `/api/events` | Público | Feed con filtros opcionales |\n| `GET` | `/api/events/{eventId}` | Auth | Detalle del evento |\n| `GET` | `/api/events/me/created` | Auth | Mis eventos creados |\n| `GET` | `/api/events/me/participating` | Auth | Eventos donde participo |\n| `PUT` | `/api/events/{eventId}` | ADMIN | Editar evento |\n| `DELETE` | `/api/events/{eventId}` | ADMIN | Cancelar evento |\n| `POST` | `/api/events/{eventId}/join` | Auth | Solicitar participación |\n| `POST` | `/api/events/{eventId}/participants/{userId}/approve` | ADMIN/MOD | Aprobar participante |\n| `POST` | `/api/events/{eventId}/participants/{userId}/reject` | ADMIN/MOD | Rechazar participante |\n| `POST` | `/api/events/{eventId}/participants/{userId}/moderator` | ADMIN | Asignar moderador |\n| `DELETE` | `/api/events/{eventId}/participants/{userId}/moderator` | ADMIN | Quitar moderador |\n| `GET` | `/api/events/{eventId}/participants` | ADMIN/MOD | Lista de aprobados |\n| `GET` | `/api/events/{eventId}/participants/pending` | ADMIN/MOD | Solicitudes pendientes individuales |\n\n#### GET /api/events — Parámetros opcionales\n```\n?category=PARTY|DINNER|CONCERT|SPORTS|NETWORKING|OUTDOOR|GROUP_DATE|CULTURAL|OTHER\n\u0026free=true|false\n\u0026minAge=18\n\u0026maxAge=35\n\u0026lat=4.6097\n\u0026lng=-74.0817\n\u0026radiusKm=10\n```\n\n---\n\n## 2. Mensajes del Grupo (`/api/events/{eventId}/group`)\n\n\u003e El grupo existe automáticamente cuando el primer participante es aprobado.\n\n### 2.1 Listar mensajes\n\n```\nGET /api/events/{eventId}/group/messages\n```\n\n**Respuesta** — array de `MessageDTO`:\n```json\n[\n  {\n    \"id\": \"uuid\",\n    \"groupId\": \"uuid\",\n    \"senderId\": \"uuid\",\n    \"senderUsername\": \"string\",\n    \"senderProfilePictureUrl\": \"string|null\",\n    \"content\": \"string|null\",\n    \"sentAt\": \"2025-01-01T12:00:00Z\",\n    \"editedAt\": \"2025-01-01T12:05:00Z|null\",\n    \"deleted\": false,\n    \"system\": false,\n    \"mediaType\": \"IMAGE|VIDEO|AUDIO|null\",\n    \"mediaUrl\": \"string|null\",\n    \"durationSeconds\": 42,\n    \"pollId\": \"uuid|null\",\n    \"poll\": { /* ver sección Encuestas */ },\n    \"reactions\": [\n      {\n        \"userId\": \"uuid\",\n        \"username\": \"string\",\n        \"profilePictureUrl\": \"string|null\",\n        \"reaction\": \"LIKE|LOVE|LAUGH|WOW|SAD|FIRE\"\n      }\n    ]\n  }\n]\n```\n\n\u003e Si `deleted: true` ? `content`, `mediaUrl` y `poll` vienen `null`. Muestra \"Mensaje eliminado\".\n\u003e Si `system: true` ? `senderId` es null. Son mensajes automáticos (ej. dirección del evento).\n\n---\n\n### 2.2 Enviar mensaje (texto y/o media)\n\n```\nPOST /api/events/{eventId}/group/messages\n```\n```json\n{\n  \"content\": \"Hola a todos\",\n  \"mediaUrl\": \"https://res.cloudinary.com/...\",\n  \"mediaPublicId\": \"sparkd/videos/abc123\",\n  \"mediaType\": \"IMAGE|VIDEO|AUDIO\",\n  \"durationSeconds\": 42\n}\n```\n\n- `content` y media son opcionales individualmente, pero al menos uno debe estar presente.\n- Videos deben tener `durationSeconds = 180`. El backend rechaza si supera 3 minutos.\n- Responde con el mismo `MessageDTO` de arriba.\n- También llega por **WebSocket** al canal del grupo.\n\n**Errores comunes:**\n| Código | Motivo |\n|---|---|\n| `400` | Sin contenido ni media |\n| `400` | Video supera 3 minutos |\n| `403` | Estás silenciado |\n| `403` | Modo solo-admin activo (no eres admin) |\n| `403` | Modo slow activo (eres GUEST) |\n\n---\n\n### 2.3 Editar mensaje\n\n```\nPUT /api/events/{eventId}/group/messages/{messageId}\n```\n```json\n{ \"content\": \"Texto corregido\" }\n```\n\n- Solo el **autor** puede editar.\n- Solo dentro de los **15 minutos** posteriores al envío.\n- Responde con `MessageDTO` actualizado (con `editedAt`).\n- También llega por **WebSocket**.\n\n---\n\n### 2.4 Eliminar mensaje\n\n```\nDELETE /api/events/{eventId}/group/messages/{messageId}\n```\n\n- **Usuario**: puede eliminar el propio dentro de 15 min.\n- **ADMIN**: puede eliminar cualquier mensaje en cualquier momento.\n- Responde `204 No Content`.\n- Llega por **WebSocket** con:\n```json\n{ \"type\": \"MESSAGE_DELETED\", \"messageId\": \"uuid\", \"groupId\": \"uuid\" }\n```\n\n---\n\n## 3. Reacciones en mensajes de grupo\n\n\u003e Usa el endpoint existente de reacciones, pasando el `messageId` del grupo como `targetId`.\n\n```\nPOST /api/likes/toggle\n```\n```json\n{\n  \"targetId\": \"messageId-del-grupo\",\n  \"reactionType\": \"LIKE|LOVE|LAUGH|WOW|SAD|FIRE\"\n}\n```\n\n- Primera llamada: agrega la reacción.\n- Segunda llamada con el mismo tipo: la elimina (toggle).\n- Llamada con tipo diferente: cambia la reacción.\n\n```\nGET /api/likes/status/{messageId}\n```\nDevuelve si el usuario actual reaccionó y el conteo total.\n\n---\n\n## 4. Reportar mensaje de grupo\n\n\u003e Usa el endpoint existente de reportes.\n\n```\nPOST /api/reports\n```\n```json\n{\n  \"targetId\": \"messageId-del-grupo\",\n  \"targetType\": \"GROUP_MESSAGE\",\n  \"reportedUserId\": \"uuid-del-autor\",\n  \"reasonId\": \"uuid-del-motivo\",\n  \"description\": \"Texto opcional\"\n}\n```\n\n---\n\n## 5. Links de Invitación\n\n### 5.1 Generar link (ADMIN)\n\n```\nPOST /api/events/{eventId}/group/invite-links\n```\n```json\n{\n  \"targetRole\": \"GUEST\",\n  \"expiresAt\": \"2025-12-31T23:59:00Z\",\n  \"maxUses\": 50\n}\n```\n\n- `targetRole`: `\"GUEST\"` o `\"MODERATOR\"`. El valor `\"ADMIN\"` está prohibido.\n- `expiresAt`: omitir para sin expiración.\n- `maxUses`: `0` = ilimitado.\n\n**Respuesta:**\n```json\n{\n  \"inviteId\": \"uuid\",\n  \"token\": \"a3f9b2c1d4e5f6...\",\n  \"targetRole\": \"GUEST\",\n  \"expiresAt\": \"2025-12-31T23:59:00Z\",\n  \"maxUses\": 50,\n  \"usedCount\": 0\n}\n```\n\n\u003e El link que compartes es solo el `token`. El frontend construye la URL de invitación como quiera (ej. `sparkd://join?token=a3f9b2c1...`).\n\n---\n\n### 5.2 Listar links activos (ADMIN)\n\n```\nGET /api/events/{eventId}/group/invite-links\n```\n\nDevuelve array de `InviteLinkDTO` (mismo formato de arriba).\n\n---\n\n### 5.3 Desactivar link (ADMIN)\n\n```\nDELETE /api/events/{eventId}/group/invite-links/{linkId}\n```\n\nResponde `204 No Content`.\n\n---\n\n### 5.4 Usar un link (cualquier usuario autenticado)\n\n```\nPOST /api/group-join-requests/join-by-link\n```\n```json\n{ \"token\": \"a3f9b2c1d4e5f6...\" }\n```\n\n- El usuario entra directo al grupo con el rol del link.\n- Dispara `CAPACITY_UPDATE` por WebSocket.\n- `204 No Content` si fue exitoso.\n\n**Errores comunes:**\n| Código | Motivo |\n|---|---|\n| `404` | Token inválido |\n| `410` | Link expirado / desactivado / agotado |\n| `409` | Ya eres miembro del grupo |\n| `409` | El evento está lleno |\n\n---\n\n## 6. Ajustes del Grupo (ADMIN)\n\n```\nPATCH /api/events/{eventId}/group/settings\n```\n```json\n{\n  \"slowMode\": true,\n  \"adminOnlyMode\": false\n}\n```\n\n- `slowMode: true` ? solo ADMIN y MODERATOR pueden enviar mensajes.\n- `adminOnlyMode: true` ? solo el ADMIN puede enviar mensajes.\n- Ambos campos son opcionales (solo se actualiza lo que se envía).\n- Responde `204 No Content`.\n- Llega por **WebSocket**:\n```json\n{ \"type\": \"SETTINGS_UPDATED\", \"slowMode\": true, \"adminOnlyMode\": false }\n```\n\n---\n\n## 7. Miembros del Grupo\n\n### 7.1 Listar miembros\n\n```\nGET /api/events/{eventId}/group/members\n```\n\n```json\n[\n  {\n    \"userId\": \"uuid\",\n    \"username\": \"string\",\n    \"profilePictureUrl\": \"string|null\",\n    \"role\": \"ADMIN|MODERATOR|GUEST\",\n    \"joinedAt\": \"2025-01-01T10:00:00Z\"\n  }\n]\n```\n\n---\n\n### 7.2 Silenciar miembro (ADMIN / MODERATOR)\n\n```\nPUT /api/events/{eventId}/group/members/{targetUserId}/mute\n```\n```json\n{ \"mutedUntil\": \"2025-06-01T00:00:00Z\" }\n```\n\n- Si omites `mutedUntil`, se silencia por 1 hora por defecto.\n- MODERATOR no puede silenciar a otro MODERATOR ni al ADMIN.\n- Responde `204 No Content`.\n\n---\n\n### 7.3 Quitar silencio (ADMIN / MODERATOR)\n\n```\nDELETE /api/events/{eventId}/group/members/{targetUserId}/mute\n```\n\nResponde `204 No Content`.\n\n---\n\n### 7.4 Expulsar miembro (ADMIN)\n\n```\nDELETE /api/events/{eventId}/group/members/{targetUserId}\n```\n\n- No se puede expulsar al ADMIN.\n- Elimina al usuario del grupo y lo marca como REJECTED en el evento.\n- Llega por **WebSocket**:\n```json\n{ \"type\": \"MEMBER_KICKED\", \"userId\": \"uuid\", \"groupId\": \"uuid\" }\n```\n\n---\n\n## 8. Encuestas\n\n### 8.1 Crear encuesta (ADMIN / MODERATOR)\n\n```\nPOST /api/events/{eventId}/group/polls\n```\n```json\n{\n  \"question\": \"¿A qué hora llegamos?\",\n  \"options\": [\"8pm\", \"9pm\", \"10pm\"],\n  \"expiresAt\": \"2025-06-01T00:00:00Z\"\n}\n```\n\n- Mínimo 2 opciones.\n- `expiresAt` es opcional.\n- Responde con `MessageDTO` (el mensaje tiene `poll` embebido).\n- También llega por **WebSocket** como mensaje normal.\n\n**Estructura del poll dentro del mensaje:**\n```json\n{\n  \"id\": \"uuid\",\n  \"groupId\": \"uuid\",\n  \"question\": \"¿A qué hora llegamos?\",\n  \"expiresAt\": \"2025-06-01T00:00:00Z\",\n  \"createdAt\": \"2025-01-01T12:00:00Z\",\n  \"expired\": false,\n  \"options\": [\n    {\n      \"id\": \"uuid\",\n      \"optionText\": \"8pm\",\n      \"voteCount\": 3,\n      \"votedByMe\": false\n    }\n  ]\n}\n```\n\n---\n\n### 8.2 Votar en encuesta (cualquier miembro)\n\n```\nPOST /api/events/{eventId}/group/polls/{optionId}/vote\n```\n\n- Solo se puede votar una vez por encuesta.\n- No se puede votar en encuestas expiradas.\n- Responde con el `PollDTO` actualizado.\n- Llega por **WebSocket**:\n```json\n{ \"type\": \"POLL_UPDATED\", \"groupId\": \"uuid\", \"poll\": { /* PollDTO */ } }\n```\n\n---\n\n## 9. Solicitudes Grupales (Invitar matches/seguidores)\n\n\u003e Flujo: Usuario A invita a B y C ? B y C aceptan ? llega al admin como grupo ? admin aprueba ? todos entran.\n\n### 9.1 Crear solicitud grupal\n\n```\nPOST /api/events/{eventId}/group/join-requests\n```\n```json\n{\n  \"inviteeUserIds\": [\"uuid-B\", \"uuid-C\"]\n}\n```\n\n- Solo se puede invitar a usuarios que sean **matches** o **seguidores mutuos** del invitador.\n- El invitador queda automáticamente como `ACCEPTED`.\n- Los invitados quedan como `PENDING` y reciben notificación.\n- `201 Created` — responde con `JoinGroupRequestDTO`.\n\n---\n\n### 9.2 Responder a una invitación (invitado)\n\n```\nPOST /api/group-join-requests/{requestId}/respond\n```\n```json\n{ \"accept\": true }\n```\n\n- Si todos los invitados aceptan ? la solicitud pasa a `PENDING_ADMIN` y el admin recibe notificación.\n- Si alguien rechaza ? queda en `PENDING_INTERNAL` (el invitador puede cancelarla).\n- Responde con `JoinGroupRequestDTO` actualizado.\n\n**Estructura de `JoinGroupRequestDTO`:**\n```json\n{\n  \"id\": \"uuid\",\n  \"eventId\": \"uuid\",\n  \"eventTitle\": \"string\",\n  \"inviterId\": \"uuid\",\n  \"inviterUsername\": \"string\",\n  \"inviterProfilePictureUrl\": \"string|null\",\n  \"status\": \"PENDING_INTERNAL|PENDING_ADMIN|APPROVED|REJECTED|CANCELLED\",\n  \"createdAt\": \"2025-01-01T10:00:00Z\",\n  \"members\": [\n    {\n      \"userId\": \"uuid\",\n      \"username\": \"string\",\n      \"profilePictureUrl\": \"string|null\",\n      \"status\": \"PENDING|ACCEPTED|DECLINED\",\n      \"respondedAt\": \"2025-01-01T10:05:00Z|null\"\n    }\n  ]\n}\n```\n\n---\n\n### 9.3 Ver mis solicitudes pendientes (invitado)\n\n```\nGET /api/group-join-requests/me\n```\n\nDevuelve las solicitudes donde el usuario tiene `status = PENDING` (aún no respondió).\n\n---\n\n### 9.4 Ver solicitudes pendientes de aprobación (ADMIN)\n\n```\nGET /api/events/{eventId}/group/join-requests\n```\n\nDevuelve solicitudes con `status = PENDING_ADMIN` para este evento.\n\n---\n\n### 9.5 Aprobar solicitud grupal (ADMIN)\n\n```\nPOST /api/events/{eventId}/group/join-requests/{requestId}/approve\n```\n\n- Todos los miembros con `ACCEPTED` entran al evento y al grupo automáticamente.\n- Dispara `CAPACITY_UPDATE` por WebSocket.\n- Responde `204 No Content`.\n\n---\n\n### 9.6 Rechazar solicitud grupal (ADMIN)\n\n```\nPOST /api/events/{eventId}/group/join-requests/{requestId}/reject\n```\n\n- El invitador recibe notificación.\n- Responde `204 No Content`.\n\n---\n\n## 10. Dirección del Evento (ADMIN)\n\n```\nPOST /api/events/{eventId}/group/share-address\n```\n```json\n{ \"address\": \"Calle 123 #45-67, Bogotá\" }\n```\n\n- Solo el ADMIN puede ejecutarlo.\n- La dirección debe coincidir exactamente con la registrada en el evento.\n- Aparece como mensaje del sistema en el chat (icono ??).\n\n---\n\n## 11. WebSocket\n\nConectar con STOMP sobre SockJS en: `wss://tu-api.com/ws`\n\n### Canales a suscribir\n\n#### Chat del grupo\n```\n/topic/event-group/{eventId}\n```\n\nMensajes que llegan por este canal:\n\n| `type` en payload | Cuándo |\n|---|---|\n| *(sin type, es un MessageDTO directo)* | Nuevo mensaje enviado |\n| `MESSAGE_DELETED` | Mensaje eliminado |\n| `SETTINGS_UPDATED` | Admin cambió slowMode o adminOnlyMode |\n| `MEMBER_KICKED` | Admin expulsó a alguien |\n| `POLL_UPDATED` | Alguien votó en una encuesta |\n\n```js\n// Ejemplo de lógica al recibir\nstompClient.subscribe(`/topic/event-group/${eventId}`, (frame) =\u003e {\n  const data = JSON.parse(frame.body)\n\n  if (!data.type) {\n    // Es un nuevo mensaje — agregarlo al chat\n    addMessage(data)\n  } else if (data.type === \u0027MESSAGE_DELETED\u0027) {\n    markAsDeleted(data.messageId)\n  } else if (data.type === \u0027SETTINGS_UPDATED\u0027) {\n    updateGroupSettings(data.slowMode, data.adminOnlyMode)\n  } else if (data.type === \u0027MEMBER_KICKED\u0027) {\n    if (data.userId === myUserId) showKickedDialog()\n    else removeFromMemberList(data.userId)\n  } else if (data.type === \u0027POLL_UPDATED\u0027) {\n    updatePoll(data.poll)\n  }\n})\n```\n\n---\n\n#### Contador de capacidad en tiempo real\n```\n/topic/event/{eventId}/capacity\n```\n\n```json\n{\n  \"type\": \"CAPACITY_UPDATE\",\n  \"eventId\": \"uuid\",\n  \"currentApprovedCount\": 42,\n  \"maxGuests\": 100,\n  \"status\": \"OPEN|FULL\"\n}\n```\n\nSuscribirse en la pantalla de detalle del evento para actualizar el contador sin hacer polling.\n\n---\n\n## 12. Enums de referencia\n\n### ReactionType\n`LIKE` `LOVE` `LAUGH` `WOW` `SAD` `FIRE`\n\n### MediaType\n`IMAGE` `VIDEO` `AUDIO` `FILE`\n\n### EventRole\n`ADMIN` `MODERATOR` `GUEST`\n\n### EventStatus\n`OPEN` `FULL` `CANCELLED` `FINISHED` `EXPIRED`\n\n### EventGroupInviteRequestStatus (solicitudes grupales)\n`PENDING_INTERNAL` ? esperando que todos acepten\n`PENDING_ADMIN` ? todos aceptaron, esperando al admin\n`APPROVED` ? admin aprobó\n`REJECTED` ? admin rechazó\n`CANCELLED` ? cancelada por el invitador\n\n### EventGroupInviteRequestMemberStatus\n`PENDING` `ACCEPTED` `DECLINED`\n\n### EventCategory\n`PARTY` `DINNER` `CONCERT` `SPORTS` `NETWORKING` `OUTDOOR` `GROUP_DATE` `CULTURAL` `OTHER`\n\n---\n\n## 13. Reglas de negocio para la UI\n\n| Regla | Comportamiento esperado |\n|---|---|\n| Mensaje con `deleted: true` | Mostrar \"Mensaje eliminado\" en gris, sin botones de acción |\n| Mensaje con `editedAt != null` | Mostrar etiqueta \"(editado)\" |\n| Mensaje propio con menos de 15 min | Mostrar botones editar y eliminar |\n| Mensaje propio con más de 15 min | No mostrar botón editar. Si eres ADMIN, sí mostrar eliminar |\n| Mensaje ajeno + eres ADMIN | Mostrar botón eliminar |\n| Usuario con `mutedUntil \u003e now` | Mostrar caja de texto deshabilitada con \"Silenciado hasta {hora}\" |\n| `slowMode: true` + eres GUEST | Deshabilitar caja de texto con \"Solo moderadores pueden escribir\" |\n| `adminOnlyMode: true` + no eres ADMIN | Deshabilitar caja de texto con \"Solo el administrador puede escribir\" |\n| Encuesta con `expired: true` | Mostrar resultados sin botón de votar |\n| Encuesta con `votedByMe: true` en alguna opción | Mostrar resultados, resaltar opción votada, sin botón de votar |\n| Solicitud grupal con miembro `DECLINED` | Mostrar \"X rechazó la invitación\" al invitador |\n| Contador de capacidad | `maxGuests - currentApprovedCount` = cupos disponibles |\n```"
+    },
+    {
+        "id":  "69ebeae958e3a79be87bb5f3",
+        "name":  "Sistema de Repost",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/Bt8WlRbJ/111-sistema-de-repost",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "PENDIENTE"
+                   ],
+        "endpoints":  [
+                          "/api/posts/{postId}/repost",
+                          "/api/posts/{postId}/reposts"
+                      ],
+        "desc":  "POST   /api/posts/{postId}/repost   ? crea repost (body opcional)\nDELETE /api/posts/{postId}/repost   ? elimina repost\nGET    /api/posts/{postId}/reposts  ? lista quién hizo repost"
+    },
+    {
+        "id":  "69ebff12130c90b4e53eadb2",
+        "name":  "Grupos",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/MQCq59xS/113-grupos",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "HECHO"
+                   ],
+        "endpoints":  [
+                          "/api/groups",
+                          "/api/groups/discover?category=TECNOLOGIA",
+                          "/api/groups/discover?feed=GLOBAL\u0026category=MUSICA"
+                      ],
+        "desc":  "### Endpoints `/api/groups`\n\nMétodoRutaPermisoDescripción`POST/`AutenticadoCrear grupo`GET/`AutenticadoMis grupos`GET/{groupId}`MiembroVer grupo`PUT/{groupId}`ADMINEditar grupo`DELETE/{groupId}`ADMINEliminar grupo`GET/{groupId}/messages`MiembroVer mensajes`POST/{groupId}/messages`whoCanTalkEnviar mensaje`PUT/{groupId}/messages/{id}`Autor (15 min)Editar mensaje`DELETE/{groupId}/messages/{id}`Autor (15 min) / ADMINEliminar mensaje`GET/{groupId}/members`MiembroVer miembros`POST/{groupId}/members`ADMINAgregar miembro directo + rol`DELETE/{groupId}/members/{userId}`ADMINExpulsar`PUT/{groupId}/members/{userId}/role`ADMINCambiar rol`PUT/{groupId}/members/{userId}/mute`ADMIN/MODSilenciar`DELETE/{groupId}/members/{userId}/mute`ADMIN/MODQuitar silencio`PATCH/{groupId}/settings`ADMINCambiar whoCanTalk`POST/{groupId}/invite-links`ADMIN/MODGenerar link`GET/{groupId}/invite-links`ADMINListar links`DELETE/{groupId}/invite-links/{id}`ADMINDesactivar link`POST/join/{token}`AutenticadoUnirse por link\n\n**Categorías disponibles** (reusan `InterestCategory`): `ENTRETENIMIENTO`, `DEPORTE`, `VIAJES`, `ESTILO_DE_VIDA`, `CONOCIMIENTO`, `SOCIAL`, `ARTE`, `MUSICA`, `GASTRONOMIA`, `NATURALEZA`, `TECNOLOGIA`, `NEGOCIOS`, `BIENESTAR`, `CULTURA`, `AVENTURA`.\n\n**Temas**: máximo 10, cada uno hasta 50 caracteres. Se guardan en la tabla `chat_group_topics`.\n\n**Descubrimiento** ahora admite filtrar por ambos a la vez:\n\n```\nGET /api/groups/discover?category=TECNOLOGIA\nGET /api/groups/discover?feed=GLOBAL\u0026category=MUSICA\n```\n\n### Reglas de negocio\n\n- El creador entra automáticamente como **ADMIN**\n- Los links solo pueden tener `targetRole` MODERATOR o GUEST (nunca ADMIN)\n- MODs pueden silenciar GUESTs, pero no a otros MODs ni ADMINs\n- El creador del grupo no puede ser expulsado ni quitarle el rol ADMIN\n- WebSocket broadcast en `/topic/group/{groupId}` para mensajes en tiempo real\n- Spring DDL `update` crea las 4 tablas automáticamente"
+    },
+    {
+        "id":  "69ec4e7aedcf5d8f66dda648",
+        "name":  "Pagination",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/HtZAjUeu/116-pagination",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "PENDIENTE"
+                   ],
+        "endpoints":  [
+                          "/api/posts/me?page=0\u0026size=20",
+                          "/api/comments/get/{postId}?page=0\u0026size=20",
+                          "/api/notifications/{userId}?page=0\u0026size=20",
+                          "/api/follow/followers/{userId}?page=0\u0026size=20",
+                          "/api/follow/following/{userId}?page=0\u0026size=20",
+                          "/api/messages/{chatId}/messages?page=0\u0026size=50"
+                      ],
+        "desc":  "## Endpoints paginados\n\n### Parámetros comunes\n\nParamDefaultMáximoDescripción`page0`—Número de página (0-indexed)`size2050`Items por página.\n\n?\n\nGET /api/posts/me?page=0\u0026size=20\n\nGET /api/comments/get/{postId}?page=0\u0026size=20\n\nGET /api/notifications/{userId}?page=0\u0026size=20\n\nGET /api/follow/followers/{userId}?page=0\u0026size=20\nGET /api/follow/following/{userId}?page=0\u0026size=20\n\nGET /api/messages/{chatId}/messages?page=0\u0026size=50\n\n## Formato de respuesta (todos devuelven esto)\n\n{\n  \"content\": [ ...items... ],\n  \"totalElements\": 348,\n  \"totalPages\": 18,\n  \"size\": 20,\n  \"number\": 0,\n  \"first\": true,\n  \"last\": false,\n  \"empty\": false\n}"
+    },
+    {
+        "id":  "69ec5a38a66848619247d705",
+        "name":  "BOOKMARKS",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/ICDMCgJx/117-bookmarks",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "PARCIAL"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  ""
+    },
+    {
+        "id":  "69ec45f0cca4d414cdb02447",
+        "name":  "Mensajes fijados en grupos",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/Z24ekXXN/115-mensajes-fijados-en-grupos",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "HECHO"
+                   ],
+        "endpoints":  [
+                          "/api/groups/{groupId}/messages/{messageId}/pin",
+                          "/api/groups/{groupId}/pinned-messages"
+                      ],
+        "desc":  "### Files modified\n\n**ChatGroupMessage.java**\n\n- Added `pinnedAt` (`Instant`) and `pinnedBy` (`Users` FK, lazy) columns with getters/setters.\n\n**ChatGroupMessageRepository.java**\n\n- `findPinnedByGroup` — JPQL with JOIN FETCH on sender, pinnedBy and their profiles; filters `deletedAt IS NULL`, orders by `pinnedAt DESC`.\n- `countByGroupAndPinnedAtIsNotNullAndDeletedAtIsNull` — derived count for the 10-pin limit check.\n\n**GroupMessageResponseDTO.java**\n\n- Added `pinnedAt`, `pinnedById`, `pinnedByUsername` with getters/setters.\n\n**GroupService.java**\n\n- `requireAdminOrModerator` — private helper that throws 403 for GUEST role.\n- `pinMessage` — validates not deleted, not already pinned, enforces 10-pin cap, sets fields, broadcasts `MESSAGE_PINNED`.\n- `unpinMessage` — validates currently pinned, clears fields, broadcasts `MESSAGE_UNPINNED`.\n- `getPinnedMessages` — member-accessible, delegates to repository query.\n- `deleteMessage` — auto-clears `pinnedAt`/`pinnedBy` when a pinned message is deleted.\n- `toMessageDTO` — now populates `pinnedAt`, `pinnedById`, `pinnedByUsername`.\n\n**GroupController.java**\n\n- `POST /api/groups/{groupId}/messages/{messageId}/pin`\n- `DELETE /api/groups/{groupId}/messages/{messageId}/pin`\n- `GET /api/groups/{groupId}/pinned-messages`"
+    },
+    {
+        "id":  "69ec5ff8c211b8543c376763",
+        "name":  "Mensajes fijados en chat privados",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/Rx6R2k5y/118-mensajes-fijados-en-chat-privados",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "PENDIENTE"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  ""
+    },
+    {
+        "id":  "69ec64e6ddeeaa6eda6b590e",
+        "name":  "ADMIN/ALL/USERS",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/ijL7fBFL/119-admin-all-users",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "PARCIAL"
+                   ],
+        "endpoints":  [
+                          "/api/admin/users?page=0\u0026size=20",
+                          "/api/admin/users?username=john",
+                          "/api/admin/users?userId=uuid-aqui",
+                          "/api/admin/users?nombres=test\u0026apellidos=user",
+                          "/api/admin/users?username=john\u0026page=1\u0026size=10"
+                      ],
+        "desc":  "Los 3 parámetros de búsqueda son opcionales:\n\n```\nGET /api/admin/users?page=0\u0026size=20\nGET /api/admin/users?username=john\nGET /api/admin/users?userId=uuid-aqui\nGET /api/admin/users?nombres=test\u0026apellidos=user\nGET /api/admin/users?username=john\u0026page=1\u0026size=10\n```\n\nTodos combinables entre sí. Si no se pasa ninguno devuelve todos los usuarios paginados."
+    },
+    {
+        "id":  "69ed0c7b9eb407cf43c2995f",
+        "name":  "Reportes completos",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/pfnHnlpY/120-reportes-completos",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "PARCIAL"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  "**ReportResponse.java** — 4 campos nuevos: `reporterProfileId`, `reporterProfilePictureUrl`, `reportedProfileId`, `reportedProfilePictureUrl`.\n\n**ReportRepository.java** — `findAllWithDetails` con JOIN FETCH sobre `reporter`, `reported`, sus profiles y `reason`. Sin N+1. `countQuery` separada para que la paginación no se aplique en memoria.\n\n**ModeratorService.java** — método `toDTO` extraído (el `getPendingReports` existente lo reutiliza), `getAllReports(status, pageable)` nuevo.\n\n**ModeratorController.java** — `GET /moderator/reports/all` con status y paginación opcionales.\n\nEjemplos de uso:\n\n```\nGET /moderator/reports/all                         ? todos\nGET /moderator/reports/all?status=PENDING          ? solo pendientes\nGET /moderator/reports/all?status=ACTION_TAKEN\u0026page=1\u0026size=10\n```"
+    },
+    {
+        "id":  "69ed0fd75001965aad97046c",
+        "name":  "Pantalla para redirigirlo resetPassword",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/x1llS3Ma/121-pantalla-para-redirigirlo-resetpassword",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "HECHO"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  "Ejemplo:\n\n```\nString resetLink = \"https://tu-frontend.com/reset-password?token=\" + token;\n```"
+    },
+    {
+        "id":  "69ed12cdb3d16854965abb44",
+        "name":  "change password ya lo tienes montado, conectar a POST /auth/change-password",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/GNCNzejM/122-change-password-ya-lo-tienes-montado-conectar-a-post-auth-change-password",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "HECHO"
+                   ],
+        "endpoints":  "/auth/change-password",
+        "desc":  ""
+    },
+    {
+        "id":  "69ed1591f3736edbadb3c9be",
+        "name":  "Verification de email al registrarse",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/mhZ8XY06/123-verification-de-email-al-registrarse",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "HECHO"
+                   ],
+        "endpoints":  [
+                          "/auth/register",
+                          "/auth/verify-email",
+                          "/auth/resend-verification"
+                      ],
+        "desc":  "## Flujo de verificación de email\n\n### 1. `POST /auth/register`\n\n- Crea el usuario con `enabled=false`\n- Genera un código de **6 dígitos** aleatorio (válido 15 min)\n- **Envía el código al correo** del usuario\n- Devuelve: `{ \"username\": \"...\", \"message\": \"Registro exitoso. Revisa tu correo e ingresa el código de verificación.\" }`\n\n### 2. `POST /auth/verify-email`\n\n```\n{ \"email\": \"usuario@gmail.com\", \"code\": \"483921\" }\n```\n\n- Valida que el código sea correcto y no haya expirado\n- Activa la cuenta (`enabled=true`), limpia el código\n- **Devuelve el JWT** igual que el login normal\n\n### 3. `POST /auth/resend-verification`\n\n```\n{ \"email\": \"usuario@gmail.com\" }\n```\n\n- Genera un nuevo código y lo reenvía al correo\n- Rate limit: solo un reenvío por minuto\n\n### Cambios en login\n\n- Si el usuario intenta hacer login sin verificar, recibe: `\"Debes verificar tu correo electrónico antes de iniciar sesión\"`\n\n### Archivos modificados\n\n- Users.java — campos `verificationCode` y `verificationCodeExpiry`\n- AuthService.java — `register()` rediseñado + `verifyEmail()` + `resendVerification()`\n- AuthController.java — endpoints `/verify-email` y `/resend-verification`\n- VerifyEmailRequest.java — nuevo DTO\n\n\u003e **Nota:** JPA/Hibernate creará automáticamente las columnas `verification_code` y `verification_code_expiry` en la tabla `users` si tienes `spring.jpa.hibernate.ddl-auto=update`. Si usas migraciones manuales, añade las dos columnas con tipo `VARCHAR` e `TIMESTAMP WITH TIME ZONE` respectivamente."
+    },
+    {
+        "id":  "69ed285b6eaea5eedb0a626f",
+        "name":  "15 Dias free trial",
+        "list":  "Pendiente de hacer frontend",
+        "url":  "https://trello.com/c/i8MxCCi5/124-15-dias-free-trial",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "PENDIENTE"
+                   ],
+        "endpoints":  "/auth/verify-email",
+        "desc":  "## Flujo del trial de 15 días\n\n**Al verificar el email** (`POST /auth/verify-email`), automáticamente se crea una suscripción premium gratuita:\n\n- `status = ACTIVE`\n- `currentPeriodEnd = ahora + 15 días`\n- `isTrial = true`\n- Sin IDs de Stripe (no requiere tarjeta)\n- Badge premium activado en el perfil\n\n**Cuando el usuario contrata Stripe** después del trial, `activate()` sobrescribe la misma fila con los IDs reales de Stripe y pone `isTrial = false` — sin duplicados.\n\n**La lógica existente no cambia:** `hasPremium()`, `validatePremium()`, `isActive()` funcionan igual para trial y suscripción real.\n\n### Archivos modificados\n\nArchivoCambioUserSubscription.java`stripeCustomerId`/`stripeSubscriptionId` ahora nullable + campo `isTrial`UserSubscriptionService.javaNuevo `activateTrial()` + `activate()` marca `isTrial=false`AuthService.javaInyecta `UserSubscriptionService` y llama `activateTrial()` en `verifyEmail()`\n\n\u003e "
+    },
+    {
+        "id":  "69dd01decb58b85f60b04726",
+        "name":  "Formato distinto a mensajes tipo \"system\": true.",
+        "list":  "En test/Desarrollando /Frontend",
+        "url":  "https://trello.com/c/mjx1YFqd/66-formato-distinto-a-mensajes-tipo-system-true",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "HECHO"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  "Probar: Crea una carta de cita, logueate con otro usuario, haz la solicitud para ir a esa cita. Vuelve al primer usuario y acepta, debe aparecer un mensaje auto, generado por el sistema. Cuando vienen del sistema, dale un aspecto distinto para que los usuarios distingan."
+    },
+    {
+        "id":  "69d9e2b3b77208399b1e0f6d",
+        "name":  "Implementar, fast dating.",
+        "list":  "En test/Desarrollando /Frontend",
+        "url":  "https://trello.com/c/ZJoyQVDZ/45-implementar-fast-dating",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "PARCIAL"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  "Usuarios gratuitos tendrán posibilidad de crear hasta 5 cards al mes (por el momento) y al igual que podrán enviar request a 5 cards al mes, ya esta controlado por el back"
+    },
+    {
+        "id":  "69d9e62c10efe8995aba75f1",
+        "name":  "En el perfil pondremos un campo que sea voice note, 30 sec, la persona podia decir algo sobre ella y que cuando alguien entre al perfil le pueda dar play, este debe estar disponible tambien para las cartas de swipe.",
+        "list":  "En test/Desarrollando /Frontend",
+        "url":  "https://trello.com/c/HMZQr1v7/53-en-el-perfil-pondremos-un-campo-que-sea-voice-note-30-sec-la-persona-podia-decir-algo-sobre-ella-y-que-cuando-alguien-entre-al-p",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "HECHO"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  ""
+    },
+    {
+        "id":  "69ed40951c6a7d9af0c4def8",
+        "name":  "[Backend] BOOKMARKS",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/rL8qKbRJ/151-backend-bookmarks",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta",
+                       "Bookmarks"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: BOOKMARKS\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/ICDMCgJx\n\nDescripción original frontend:\n"
+    },
+    {
+        "id":  "69ed4096f8466dec1986b1d2",
+        "name":  "[Backend] Pantalla para redirigirlo resetPassword",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/oEU5turh/156-backend-pantalla-para-redirigirlo-resetpassword",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta",
+                       "Auth"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: Pantalla para redirigirlo resetPassword\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/x1llS3Ma\n\nDescripción original frontend:\nEjemplo:\n\n```\nString resetLink = \"https://tu-frontend.com/reset-password?token=\" + token;\n```"
+    },
+    {
+        "id":  "69ed4093c38abac70b1f306b",
+        "name":  "[Backend] meetUp",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/ypYB1Gk7/147-backend-meetup",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta",
+                       "Feed",
+                       "Chat",
+                       "Auth",
+                       "Admin/Manager",
+                       "Reports",
+                       "Groups",
+                       "Notifications",
+                       "Events",
+                       "Polls"
+                   ],
+        "endpoints":  [
+                          "/api/events",
+                          "/api/events/{eventId}",
+                          "/api/events/me/created",
+                          "/api/events/me/participating",
+                          "/api/events/{eventId}/join",
+                          "/api/events/{eventId}/participants/{userId}/approve",
+                          "/api/events/{eventId}/participants/{userId}/reject",
+                          "/api/events/{eventId}/participants/{userId}/moderator",
+                          "/api/events/{eventId}/participants",
+                          "/api/events/{eventId}/participants/pending",
+                          "/api/events/{eventId}/group",
+                          "/api/events/{eventId}/group/messages",
+                          "/api/events/{eventId}/group/messages/{messageId}",
+                          "/api/likes/toggle",
+                          "/api/likes/status/{messageId}",
+                          "/api/reports",
+                          "/api/events/{eventId}/group/invite-links",
+                          "/api/events/{eventId}/group/invite-links/{linkId}",
+                          "/api/group-join-requests/join-by-link",
+                          "/api/events/{eventId}/group/settings",
+                          "/api/events/{eventId}/group/members",
+                          "/api/events/{eventId}/group/members/{targetUserId}/mute",
+                          "/api/events/{eventId}/group/members/{targetUserId}",
+                          "/api/events/{eventId}/group/polls",
+                          "/api/events/{eventId}/group/polls/{optionId}/vote",
+                          "/api/events/{eventId}/group/join-requests",
+                          "/api/group-join-requests/{requestId}/respond",
+                          "/api/group-join-requests/me",
+                          "/api/events/{eventId}/group/join-requests/{requestId}/approve",
+                          "/api/events/{eventId}/group/join-requests/{requestId}/reject",
+                          "/api/events/{eventId}/group/share-address"
+                      ],
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: meetUp\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/wVwzVMEE\n\nDescripción original frontend:\n```\n# Sparkd — API de Eventos (Frontend Integration Guide)\n\n\u003e Base URL: `https://tu-api.com`\n\u003e Autenticación: Bearer JWT en header `Authorization`\n\u003e Todos los UUIDs son strings con formato `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`\n\n---\n\n## Roles\n\n| Rol | Permisos |\n|---|---|\n| `ADMIN` | Todo: expulsar, silenciar, ajustes, links, aprobar solicitudes, eliminar cualquier mensaje |\n| `MODERATOR` | Silenciar GUESTs, crear encuestas, enviar mensajes en slowMode |\n| `GUEST` | Enviar mensajes (si el grupo lo permite), votar encuestas, reaccionar |\n\n---\n\n## 1. Eventos (`/api/events`)\n\n### Existentes (sin cambios)\n\n| Método | Ruta | Quién | Descripción |\n|---|---|---|---|\n| `POST` | `/api/events` | Auth | Crear evento |\n| `GET` | `/api/events` | Público | Feed con filtros opcionales |\n| `GET` | `/api/events/{eventId}` | Auth | Detalle del evento |\n| `GET` | `/api/events/me/created` | Auth | Mis eventos creados |\n| `GET` | `/api/events/me/participating` | Auth | Eventos donde participo |\n| `PUT` | `/api/events/{eventId}` | ADMIN | Editar evento |\n| `DELETE` | `/api/events/{eventId}` | ADMIN | Cancelar evento |\n| `POST` | `/api/events/{eventId}/join` | Auth | Solicitar participación |\n| `POST` | `/api/events/{eventId}/participants/{userId}/approve` | ADMIN/MOD | Aprobar participante |\n| `POST` | `/api/events/{eventId}/participants/{userId}/reject` | ADMIN/MOD | Rechazar participante |\n| `POST` | `/api/events/{eventId}/participants/{userId}/moderator` | ADMIN | Asignar moderador |\n| `DELETE` | `/api/events/{eventId}/participants/{userId}/moderator` | ADMIN | Quitar moderador |\n| `GET` | `/api/events/{eventId}/participants` | ADMIN/MOD | Lista de aprobados |\n| `GET` | `/api/events/{eventId}/participants/pending` | ADMIN/MOD | Solicitudes pendientes individuales |\n\n#### GET /api/events — Parámetros opcionales\n```\n?category=PARTY|DINNER|CONCERT|SPORTS|NETWORKING|OUTDOOR|GROUP_DATE|CULTURAL|OTHER\n\u0026free=true|false\n\u0026minAge=18\n\u0026maxAge=35\n\u0026lat=4.6097\n\u0026lng=-74.0817\n\u0026radiusKm=10\n```\n\n---\n\n## 2. Mensajes del Grupo (`/api/events/{eventId}/group`)\n\n\u003e El grupo existe automáticamente cuando el primer participante es aprobado.\n\n### 2.1 Listar mensajes\n\n```\nGET /api/events/{eventId}/group/messages\n```\n\n**Respuesta** — array de `MessageDTO`:\n```json\n[\n  {\n    \"id\": \"uuid\",\n    \"groupId\": \"uuid\",\n    \"senderId\": \"uuid\",\n    \"senderUsername\": \"string\",\n    \"senderProfilePictureUrl\": \"string|null\",\n    \"content\": \"string|null\",\n    \"sentAt\": \"2025-01-01T12:00:00Z\",\n    \"editedAt\": \"2025-01-01T12:05:00Z|null\",\n    \"deleted\": false,\n    \"system\": false,\n    \"mediaType\": \"IMAGE|VIDEO|AUDIO|null\",\n    \"mediaUrl\": \"string|null\",\n    \"durationSeconds\": 42,\n    \"pollId\": \"uuid|null\",\n    \"poll\": { /* ver sección Encuestas */ },\n    \"reactions\": [\n      {\n        \"userId\": \"uuid\",\n        \"username\": \"string\",\n        \"profilePictureUrl\": \"string|null\",\n        \"reaction\": \"LIKE|LOVE|LAUGH|WOW|SAD|FIRE\"\n      }\n    ]\n  }\n]\n```\n\n\u003e Si `deleted: true` ? `content`, `mediaUrl` y `poll` vienen `null`. Muestra \"Mensaje eliminado\".\n\u003e Si `system: true` ? `senderId` es null. Son mensajes automáticos (ej. dirección del evento).\n\n---\n\n### 2.2 Enviar mensaje (texto y/o media)\n\n```\nPOST /api/events/{eventId}/group/messages\n```\n```json\n{\n  \"content\": \"Hola a todos\",\n  \"mediaUrl\": \"https://res.cloudinary.com/...\",\n  \"mediaPublicId\": \"sparkd/videos/abc123\",\n  \"mediaType\": \"IMAGE|VIDEO|AUDIO\",\n  \"durationSeconds\": 42\n}\n```\n\n- `content` y media son opcionales individualmente, pero al menos uno debe estar presente.\n- Videos deben tener `durationSeconds = 180`. El backend rechaza si supera 3 minutos.\n- Responde con el mismo `MessageDTO` de arriba.\n- También llega por **WebSocket** al canal del grupo.\n\n**Errores comunes:**\n| Código | Motivo |\n|---|---|\n| `400` | Sin contenido ni media |\n| `400` | Video supera 3 minutos |\n| `403` | Estás silenciado |\n| `403` | Modo solo-admin activo (no eres admin) |\n| `403` | Modo slow activo (eres GUEST) |\n\n---\n\n### 2.3 Editar mensaje\n\n```\nPUT /api/events/{eventId}/group/messages/{messageId}\n```\n```json\n{ \"content\": \"Texto corregido\" }\n```\n\n- Solo el **autor** puede editar.\n- Solo dentro de los **15 minutos** posteriores al envío.\n- Responde con `MessageDTO` actualizado (con `editedAt`).\n- También llega por **WebSocket**.\n\n---\n\n### 2.4 Eliminar mensaje\n\n```\nDELETE /api/events/{eventId}/group/messages/{messageId}\n```\n\n- **Usuario**: puede eliminar el propio dentro de 15 min.\n- **ADMIN**: puede eliminar cualquier mensaje en cualquier momento.\n- Responde `204 No Content`.\n- Llega por **WebSocket** con:\n```json\n{ \"type\": \"MESSAGE_DELETED\", \"messageId\": \"uuid\", \"groupId\": \"uuid\" }\n```\n\n---\n\n## 3. Reacciones en mensajes de grupo\n\n\u003e Usa el endpoint existente de reacciones, pasando el `messageId` del grupo como `targetId`.\n\n```\nPOST /api/likes/toggle\n```\n```json\n{\n  \"targetId\": \"messageId-del-grupo\",\n  \"reactionType\": \"LIKE|LOVE|LAUGH|WOW|SAD|FIRE\"\n}\n```\n\n- Primera llamada: agrega la reacción.\n- Segunda llamada con el mismo tipo: la elimina (toggle).\n- Llamada con tipo diferente: cambia la reacción.\n\n```\nGET /api/likes/status/{messageId}\n```\nDevuelve si el usuario actual reaccionó y el conteo total.\n\n---\n\n## 4. Reportar mensaje de grupo\n\n\u003e Usa el endpoint existente de reportes.\n\n```\nPOST /api/reports\n```\n```json\n{\n  \"targetId\": \"messageId-del-grupo\",\n  \"targetType\": \"GROUP_MESSAGE\",\n  \"reportedUserId\": \"uuid-del-autor\",\n  \"reasonId\": \"uuid-del-motivo\",\n  \"description\": \"Texto opcional\"\n}\n```\n\n---\n\n## 5. Links de Invitación\n\n### 5.1 Generar link (ADMIN)\n\n```\nPOST /api/events/{eventId}/group/invite-links\n```\n```json\n{\n  \"targetRole\": \"GUEST\",\n  \"expiresAt\": \"2025-12-31T23:59:00Z\",\n  \"maxUses\": 50\n}\n```\n\n- `targetRole`: `\"GUEST\"` o `\"MODERATOR\"`. El valor `\"ADMIN\"` está prohibido.\n- `expiresAt`: omitir para sin expiración.\n- `maxUses`: `0` = ilimitado.\n\n**Respuesta:**\n```json\n{\n  \"inviteId\": \"uuid\",\n  \"token\": \"a3f9b2c1d4e5f6...\",\n  \"targetRole\": \"GUEST\",\n  \"expiresAt\": \"2025-12-31T23:59:00Z\",\n  \"maxUses\": 50,\n  \"usedCount\": 0\n}\n```\n\n\u003e El link que compartes es solo el `token`. El frontend construye la URL de invitación como quiera (ej. `sparkd://join?token=a3f9b2c1...`).\n\n---\n\n### 5.2 Listar links activos (ADMIN)\n\n```\nGET /api/events/{eventId}/group/invite-links\n```\n\nDevuelve array de `InviteLinkDTO` (mismo formato de arriba).\n\n---\n\n### 5.3 Desactivar link (ADMIN)\n\n```\nDELETE /api/events/{eventId}/group/invite-links/{linkId}\n```\n\nResponde `204 No Content`.\n\n---\n\n### 5.4 Usar un link (cualquier usuario autenticado)\n\n```\nPOST /api/group-join-requests/join-by-link\n```\n```json\n{ \"token\": \"a3f9b2c1d4e5f6...\" }\n```\n\n- El usuario entra directo al grupo con el rol del link.\n- Dispara `CAPACITY_UPDATE` por WebSocket.\n- `204 No Content` si fue exitoso.\n\n**Errores comunes:**\n| Código | Motivo |\n|---|---|\n| `404` | Token inválido |\n| `410` | Link expirado / desactivado / agotado |\n| `409` | Ya eres miembro del grupo |\n| `409` | El evento está lleno |\n\n---\n\n## 6. Ajustes del Grupo (ADMIN)\n\n```\nPATCH /api/events/{eventId}/group/settings\n```\n```json\n{\n  \"slowMode\": true,\n  \"adminOnlyMode\": false\n}\n```\n\n- `slowMode: true` ? solo ADMIN y MODERATOR pueden enviar mensajes.\n- `adminOnlyMode: true` ? solo el ADMIN puede enviar mensajes.\n- Ambos campos son opcionales (solo se actualiza lo que se envía).\n- Responde `204 No Content`.\n- Llega por **WebSocket**:\n```json\n{ \"type\": \"SETTINGS_UPDATED\", \"slowMode\": true, \"adminOnlyMode\": false }\n```\n\n---\n\n## 7. Miembros del Grupo\n\n### 7.1 Listar miembros\n\n```\nGET /api/events/{eventId}/group/members\n```\n\n```json\n[\n  {\n    \"userId\": \"uuid\",\n    \"username\": \"string\",\n    \"profilePictureUrl\": \"string|null\",\n    \"role\": \"ADMIN|MODERATOR|GUEST\",\n    \"joinedAt\": \"2025-01-01T10:00:00Z\"\n  }\n]\n```\n\n---\n\n### 7.2 Silenciar miembro (ADMIN / MODERATOR)\n\n```\nPUT /api/events/{eventId}/group/members/{targetUserId}/mute\n```\n```json\n{ \"mutedUntil\": \"2025-06-01T00:00:00Z\" }\n```\n\n- Si omites `mutedUntil`, se silencia por 1 hora por defecto.\n- MODERATOR no puede silenciar a otro MODERATOR ni al ADMIN.\n- Responde `204 No Content`.\n\n---\n\n### 7.3 Quitar silencio (ADMIN / MODERATOR)\n\n```\nDELETE /api/events/{eventId}/group/members/{targetUserId}/mute\n```\n\nResponde `204 No Content`.\n\n---\n\n### 7.4 Expulsar miembro (ADMIN)\n\n```\nDELETE /api/events/{eventId}/group/members/{targetUserId}\n```\n\n- No se puede expulsar al ADMIN.\n- Elimina al usuario del grupo y lo marca como REJECTED en el evento.\n- Llega por **WebSocket**:\n```json\n{ \"type\": \"MEMBER_KICKED\", \"userId\": \"uuid\", \"groupId\": \"uuid\" }\n```\n\n---\n\n## 8. Encuestas\n\n### 8.1 Crear encuesta (ADMIN / MODERATOR)\n\n```\nPOST /api/events/{eventId}/group/polls\n```\n```json\n{\n  \"question\": \"¿A qué hora llegamos?\",\n  \"options\": [\"8pm\", \"9pm\", \"10pm\"],\n  \"expiresAt\": \"2025-06-01T00:00:00Z\"\n}\n```\n\n- Mínimo 2 opciones.\n- `expiresAt` es opcional.\n- Responde con `MessageDTO` (el mensaje tiene `poll` embebido).\n- También llega por **WebSocket** como mensaje normal.\n\n**Estructura del poll dentro del mensaje:**\n```json\n{\n  \"id\": \"uuid\",\n  \"groupId\": \"uuid\",\n  \"question\": \"¿A qué hora llegamos?\",\n  \"expiresAt\": \"2025-06-01T00:00:00Z\",\n  \"createdAt\": \"2025-01-01T12:00:00Z\",\n  \"expired\": false,\n  \"options\": [\n    {\n      \"id\": \"uuid\",\n      \"optionText\": \"8pm\",\n      \"voteCount\": 3,\n      \"votedByMe\": false\n    }\n  ]\n}\n```\n\n---\n\n### 8.2 Votar en encuesta (cualquier miembro)\n\n```\nPOST /api/events/{eventId}/group/polls/{optionId}/vote\n```\n\n- Solo se puede votar una vez por encuesta.\n- No se puede votar en encuestas expiradas.\n- Responde con el `PollDTO` actualizado.\n- Llega por **WebSocket**:\n```json\n{ \"type\": \"POLL_UPDATED\", \"groupId\": \"uuid\", \"poll\": { /* PollDTO */ } }\n```\n\n---\n\n## 9. Solicitudes Grupales (Invitar matches/seguidores)\n\n\u003e Flujo: Usuario A invita a B y C ? B y C aceptan ? llega al admin como grupo ? admin aprueba ? todos entran.\n\n### 9.1 Crear solicitud grupal\n\n```\nPOST /api/events/{eventId}/group/join-requests\n```\n```json\n{\n  \"inviteeUserIds\": [\"uuid-B\", \"uuid-C\"]\n}\n```\n\n- Solo se puede invitar a usuarios que sean **matches** o **seguidores mutuos** del invitador.\n- El invitador queda automáticamente como `ACCEPTED`.\n- Los invitados quedan como `PENDING` y reciben notificación.\n- `201 Created` — responde con `JoinGroupRequestDTO`.\n\n---\n\n### 9.2 Responder a una invitación (invitado)\n\n```\nPOST /api/group-join-requests/{requestId}/respond\n```\n```json\n{ \"accept\": true }\n```\n\n- Si todos los invitados aceptan ? la solicitud pasa a `PENDING_ADMIN` y el admin recibe notificación.\n- Si alguien rechaza ? queda en `PENDING_INTERNAL` (el invitador puede cancelarla).\n- Responde con `JoinGroupRequestDTO` actualizado.\n\n**Estructura de `JoinGroupRequestDTO`:**\n```json\n{\n  \"id\": \"uuid\",\n  \"eventId\": \"uuid\",\n  \"eventTitle\": \"string\",\n  \"inviterId\": \"uuid\",\n  \"inviterUsername\": \"string\",\n  \"inviterProfilePictureUrl\": \"string|null\",\n  \"status\": \"PENDING_INTERNAL|PENDING_ADMIN|APPROVED|REJECTED|CANCELLED\",\n  \"createdAt\": \"2025-01-01T10:00:00Z\",\n  \"members\": [\n    {\n      \"userId\": \"uuid\",\n      \"username\": \"string\",\n      \"profilePictureUrl\": \"string|null\",\n      \"status\": \"PENDING|ACCEPTED|DECLINED\",\n      \"respondedAt\": \"2025-01-01T10:05:00Z|null\"\n    }\n  ]\n}\n```\n\n---\n\n### 9.3 Ver mis solicitudes pendientes (invitado)\n\n```\nGET /api/group-join-requests/me\n```\n\nDevuelve las solicitudes donde el usuario tiene `status = PENDING` (aún no respondió).\n\n---\n\n### 9.4 Ver solicitudes pendientes de aprobación (ADMIN)\n\n```\nGET /api/events/{eventId}/group/join-requests\n```\n\nDevuelve solicitudes con `status = PENDING_ADMIN` para este evento.\n\n---\n\n### 9.5 Aprobar solicitud grupal (ADMIN)\n\n```\nPOST /api/events/{eventId}/group/join-requests/{requestId}/approve\n```\n\n- Todos los miembros con `ACCEPTED` entran al evento y al grupo automáticamente.\n- Dispara `CAPACITY_UPDATE` por WebSocket.\n- Responde `204 No Content`.\n\n---\n\n### 9.6 Rechazar solicitud grupal (ADMIN)\n\n```\nPOST /api/events/{eventId}/group/join-requests/{requestId}/reject\n```\n\n- El invitador recibe notificación.\n- Responde `204 No Content`.\n\n---\n\n## 10. Dirección del Evento (ADMIN)\n\n```\nPOST /api/events/{eventId}/group/share-address\n```\n```json\n{ \"address\": \"Calle 123 #45-67, Bogotá\" }\n```\n\n- Solo el ADMIN puede ejecutarlo.\n- La dirección debe coincidir exactamente con la registrada en el evento.\n- Aparece como mensaje del sistema en el chat (icono ??).\n\n---\n\n## 11. WebSocket\n\nConectar con STOMP sobre SockJS en: `wss://tu-api.com/ws`\n\n### Canales a suscribir\n\n#### Chat del grupo\n```\n/topic/event-group/{eventId}\n```\n\nMensajes que llegan por este canal:\n\n| `type` en payload | Cuándo |\n|---|---|\n| *(sin type, es un MessageDTO directo)* | Nuevo mensaje enviado |\n| `MESSAGE_DELETED` | Mensaje eliminado |\n| `SETTINGS_UPDATED` | Admin cambió slowMode o adminOnlyMode |\n| `MEMBER_KICKED` | Admin expulsó a alguien |\n| `POLL_UPDATED` | Alguien votó en una encuesta |\n\n```js\n// Ejemplo de lógica al recibir\nstompClient.subscribe(`/topic/event-group/${eventId}`, (frame) =\u003e {\n  const data = JSON.parse(frame.body)\n\n  if (!data.type) {\n    // Es un nuevo mensaje — agregarlo al chat\n    addMessage(data)\n  } else if (data.type === \u0027MESSAGE_DELETED\u0027) {\n    markAsDeleted(data.messageId)\n  } else if (data.type === \u0027SETTINGS_UPDATED\u0027) {\n    updateGroupSettings(data.slowMode, data.adminOnlyMode)\n  } else if (data.type === \u0027MEMBER_KICKED\u0027) {\n    if (data.userId === myUserId) showKickedDialog()\n    else removeFromMemberList(data.userId)\n  } else if (data.type === \u0027POLL_UPDATED\u0027) {\n    updatePoll(data.poll)\n  }\n})\n```\n\n---\n\n#### Contador de capacidad en tiempo real\n```\n/topic/event/{eventId}/capacity\n```\n\n```json\n{\n  \"type\": \"CAPACITY_UPDATE\",\n  \"eventId\": \"uuid\",\n  \"currentApprovedCount\": 42,\n  \"maxGuests\": 100,\n  \"status\": \"OPEN|FULL\"\n}\n```\n\nSuscribirse en la pantalla de detalle del evento para actualizar el contador sin hacer polling.\n\n---\n\n## 12. Enums de referencia\n\n### ReactionType\n`LIKE` `LOVE` `LAUGH` `WOW` `SAD` `FIRE`\n\n### MediaType\n`IMAGE` `VIDEO` `AUDIO` `FILE`\n\n### EventRole\n`ADMIN` `MODERATOR` `GUEST`\n\n### EventStatus\n`OPEN` `FULL` `CANCELLED` `FINISHED` `EXPIRED`\n\n### EventGroupInviteRequestStatus (solicitudes grupales)\n`PENDING_INTERNAL` ? esperando que todos acepten\n`PENDING_ADMIN` ? todos aceptaron, esperando al admin\n`APPROVED` ? admin aprobó\n`REJECTED` ? admin rechazó\n`CANCELLED` ? cancelada por el invitador\n\n### EventGroupInviteRequestMemberStatus\n`PENDING` `ACCEPTED` `DECLINED`\n\n### EventCategory\n`PARTY` `DINNER` `CONCERT` `SPORTS` `NETWORKING` `OUTDOOR` `GROUP_DATE` `CULTURAL` `OTHER`\n\n---\n\n## 13. Reglas de negocio para la UI\n\n| Regla | Comportamiento esperado |\n|---|---|\n| Mensaje con `deleted: true` | Mostrar \"Mensaje eliminado\" en gris, sin botones de acción |\n| Mensaje con `editedAt != null` | Mostrar etiqueta \"(editado)\" |\n| Mensaje propio con menos de 15 min | Mostrar botones editar y eliminar |\n| Mensaje propio con más de 15 min | No mostrar botón editar. Si eres ADMIN, sí mostrar eliminar |\n| Mensaje ajeno + eres ADMIN | Mostrar botón eliminar |\n| Usuario con `mutedUntil \u003e now` | Mostrar caja de texto deshabilitada con \"Silenciado hasta {hora}\" |\n| `slowMode: true` + eres GUEST | Deshabilitar caja de texto con \"Solo moderadores pueden escribir\" |\n| `adminOnlyMode: true` + no eres ADMIN | Deshabilitar caja de texto con \"Solo el administrador puede escribir\" |\n| Encuesta con `expired: true` | Mostrar resultados sin botón de votar |\n| Encuesta con `votedByMe: true` en alguna opción | Mostrar resultados, resaltar opción votada, sin botón de votar |\n| Solicitud grupal con miembro `DECLINED` | Mostrar \"X rechazó la invitación\" al invitador |\n| Contador de capacidad | `maxGuests - currentApprovedCount` = cupos disponibles |\n```"
+    },
+    {
+        "id":  "69ed409cff38961ccb60042b",
+        "name":  "[Backend] Agregar contadores de seguidores a UserProfileResponseDTO",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/X33ay1ka/176-backend-agregar-contadores-de-seguidores-a-userprofileresponsedto",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta"
+                   ],
+        "endpoints":  "/api/follow/{userId}",
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: Agregar contadores de seguidores a UserProfileResponseDTO\nLista origen: Terminado/ Pendiente revision Frontend\nURL card frontend: https://trello.com/c/ExUr1HSU\n\nDescripción original frontend:\n\"El sistema de Follows ya funciona y el frontend ya está enviando peticiones a `/api/follow/{userId}`, pero necesitamos que al momento de cargar un perfil, el frontend sepa cuántos seguidores tiene esa persona para pintar el número.\n\n**Tareas a realizar:**\n\n1. En el archivo `UserProfileResponseDTO.java`, agregar dos nuevas variables `int followersCount;` e `int followingCount;` (con sus respectivos Getters/Setters).\n2. En `UserProfileService.java`, dentro de los métodos `getProfileByUserId` y `getMyProfile`, usar el `FollowRepository` para contar cuántos seguidores tiene el usuario (ej. `followRepository.countByFollowingAndStatus(user, ACCEPTED)`) y asignarlos al DTO.\n3. Enviar este DTO actualizado al frontend para que el número \"120 Seguidores\" sea dinámico y real, en lugar de simulado.\""
+    },
+    {
+        "id":  "69ed409401a25ee7d7a35bdb",
+        "name":  "[Backend] Sistema de Repost",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/Yporb6se/148-backend-sistema-de-repost",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta",
+                       "Feed"
+                   ],
+        "endpoints":  [
+                          "/api/posts/{postId}/repost",
+                          "/api/posts/{postId}/reposts"
+                      ],
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: Sistema de Repost\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/Bt8WlRbJ\n\nDescripción original frontend:\nPOST   /api/posts/{postId}/repost   ? crea repost (body opcional)\nDELETE /api/posts/{postId}/repost   ? elimina repost\nGET    /api/posts/{postId}/reposts  ? lista quién hizo repost"
+    },
+    {
+        "id":  "69ed40949b3723511a234a2c",
+        "name":  "[Backend] Grupos",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/4kTnA04Z/149-backend-grupos",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta",
+                       "Feed",
+                       "Chat",
+                       "Auth",
+                       "Admin/Manager",
+                       "Reports",
+                       "Groups"
+                   ],
+        "endpoints":  [
+                          "/api/groups",
+                          "/api/groups/discover?category=TECNOLOGIA",
+                          "/api/groups/discover?feed=GLOBAL\u0026category=MUSICA"
+                      ],
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: Grupos\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/MQCq59xS\n\nDescripción original frontend:\n### Endpoints `/api/groups`\n\nMétodoRutaPermisoDescripción`POST/`AutenticadoCrear grupo`GET/`AutenticadoMis grupos`GET/{groupId}`MiembroVer grupo`PUT/{groupId}`ADMINEditar grupo`DELETE/{groupId}`ADMINEliminar grupo`GET/{groupId}/messages`MiembroVer mensajes`POST/{groupId}/messages`whoCanTalkEnviar mensaje`PUT/{groupId}/messages/{id}`Autor (15 min)Editar mensaje`DELETE/{groupId}/messages/{id}`Autor (15 min) / ADMINEliminar mensaje`GET/{groupId}/members`MiembroVer miembros`POST/{groupId}/members`ADMINAgregar miembro directo + rol`DELETE/{groupId}/members/{userId}`ADMINExpulsar`PUT/{groupId}/members/{userId}/role`ADMINCambiar rol`PUT/{groupId}/members/{userId}/mute`ADMIN/MODSilenciar`DELETE/{groupId}/members/{userId}/mute`ADMIN/MODQuitar silencio`PATCH/{groupId}/settings`ADMINCambiar whoCanTalk`POST/{groupId}/invite-links`ADMIN/MODGenerar link`GET/{groupId}/invite-links`ADMINListar links`DELETE/{groupId}/invite-links/{id}`ADMINDesactivar link`POST/join/{token}`AutenticadoUnirse por link\n\n**Categorías disponibles** (reusan `InterestCategory`): `ENTRETENIMIENTO`, `DEPORTE`, `VIAJES`, `ESTILO_DE_VIDA`, `CONOCIMIENTO`, `SOCIAL`, `ARTE`, `MUSICA`, `GASTRONOMIA`, `NATURALEZA`, `TECNOLOGIA`, `NEGOCIOS`, `BIENESTAR`, `CULTURA`, `AVENTURA`.\n\n**Temas**: máximo 10, cada uno hasta 50 caracteres. Se guardan en la tabla `chat_group_topics`.\n\n**Descubrimiento** ahora admite filtrar por ambos a la vez:\n\n```\nGET /api/groups/discover?category=TECNOLOGIA\nGET /api/groups/discover?feed=GLOBAL\u0026category=MUSICA\n```\n\n### Reglas de negocio\n\n- El creador entra automáticamente como **ADMIN**\n- Los links solo pueden tener `targetRole` MODERATOR o GUEST (nunca ADMIN)\n- MODs pueden silenciar GUESTs, pero no a otros MODs ni ADMINs\n- El creador del grupo no puede ser expulsado ni quitarle el rol ADMIN\n- WebSocket broadcast en `/topic/group/{groupId}` para mensajes en tiempo real\n- Spring DDL `update` crea las 4 tablas automáticamente"
+    },
+    {
+        "id":  "69ed4094fc3a0e9d4ef7b311",
+        "name":  "[Backend] Pagination",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/ewahHWMT/150-backend-pagination",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta",
+                       "Feed",
+                       "Chat",
+                       "Notifications"
+                   ],
+        "endpoints":  [
+                          "/api/posts/me?page=0\u0026size=20",
+                          "/api/comments/get/{postId}?page=0\u0026size=20",
+                          "/api/notifications/{userId}?page=0\u0026size=20",
+                          "/api/follow/followers/{userId}?page=0\u0026size=20",
+                          "/api/follow/following/{userId}?page=0\u0026size=20",
+                          "/api/messages/{chatId}/messages?page=0\u0026size=50"
+                      ],
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: Pagination\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/HtZAjUeu\n\nDescripción original frontend:\n## Endpoints paginados\n\n### Parámetros comunes\n\nParamDefaultMáximoDescripción`page0`—Número de página (0-indexed)`size2050`Items por página.\n\n?\n\nGET /api/posts/me?page=0\u0026size=20\n\nGET /api/comments/get/{postId}?page=0\u0026size=20\n\nGET /api/notifications/{userId}?page=0\u0026size=20\n\nGET /api/follow/followers/{userId}?page=0\u0026size=20\nGET /api/follow/following/{userId}?page=0\u0026size=20\n\nGET /api/messages/{chatId}/messages?page=0\u0026size=50\n\n## Formato de respuesta (todos devuelven esto)\n\n{\n  \"content\": [ ...items... ],\n  \"totalElements\": 348,\n  \"totalPages\": 18,\n  \"size\": 20,\n  \"number\": 0,\n  \"first\": true,\n  \"last\": false,\n  \"empty\": false\n}"
+    },
+    {
+        "id":  "69ed40966ffe931257a7cec9",
+        "name":  "[Backend] Reportes completos",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/z3Y972eT/155-backend-reportes-completos",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta",
+                       "Reports"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: Reportes completos\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/pfnHnlpY\n\nDescripción original frontend:\n**ReportResponse.java** — 4 campos nuevos: `reporterProfileId`, `reporterProfilePictureUrl`, `reportedProfileId`, `reportedProfilePictureUrl`.\n\n**ReportRepository.java** — `findAllWithDetails` con JOIN FETCH sobre `reporter`, `reported`, sus profiles y `reason`. Sin N+1. `countQuery` separada para que la paginación no se aplique en memoria.\n\n**ModeratorService.java** — método `toDTO` extraído (el `getPendingReports` existente lo reutiliza), `getAllReports(status, pageable)` nuevo.\n\n**ModeratorController.java** — `GET /moderator/reports/all` con status y paginación opcionales.\n\nEjemplos de uso:\n\n```\nGET /moderator/reports/all                         ? todos\nGET /moderator/reports/all?status=PENDING          ? solo pendientes\nGET /moderator/reports/all?status=ACTION_TAKEN\u0026page=1\u0026size=10\n```"
+    },
+    {
+        "id":  "69ed409579899bdaf3d2dc90",
+        "name":  "[Backend] ADMIN/ALL/USERS",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/LuRKdzuV/154-backend-admin-all-users",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta",
+                       "Admin/Manager"
+                   ],
+        "endpoints":  [
+                          "/api/admin/users?page=0\u0026size=20",
+                          "/api/admin/users?username=john",
+                          "/api/admin/users?userId=uuid-aqui",
+                          "/api/admin/users?nombres=test\u0026apellidos=user",
+                          "/api/admin/users?username=john\u0026page=1\u0026size=10"
+                      ],
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: ADMIN/ALL/USERS\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/ijL7fBFL\n\nDescripción original frontend:\nLos 3 parámetros de búsqueda son opcionales:\n\n```\nGET /api/admin/users?page=0\u0026size=20\nGET /api/admin/users?username=john\nGET /api/admin/users?userId=uuid-aqui\nGET /api/admin/users?nombres=test\u0026apellidos=user\nGET /api/admin/users?username=john\u0026page=1\u0026size=10\n```\n\nTodos combinables entre sí. Si no se pasa ninguno devuelve todos los usuarios paginados."
+    },
+    {
+        "id":  "69ed409aaf7ff45ce8434b17",
+        "name":  "[Backend] ?? Sistema de Repost",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/YvE9QYwS/169-backend-%F0%9F%94%84-sistema-de-repost",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta",
+                       "Feed"
+                   ],
+        "endpoints":  [
+                          "/api/posts/{postId}/repost",
+                          "/api/posts/{postId}/reposts"
+                      ],
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: ?? Sistema de Repost\nLista origen: Terminado/ Pendiente revision Frontend\nURL card frontend: https://trello.com/c/mAqeY9mU\n\nDescripción original frontend:\nImplementar repost de contenido.\n\n**Endpoints necesarios:**\n\n- `POST /api/posts/{postId}/repost` - Hacer repost\n  ```json\n  {\n    \"comment\": \"string (opcional)\"\n  }\n  ```\n- `DELETE /api/posts/{postId}/repost` - Quitar repost\n- `GET /api/posts/{postId}/reposts` - Ver quién hizo repost\n\n**Detalles técnicos:**\n\n- Crear tabla `reposts`: `id`, `user_id`, `post_id`, `comment`, `created_at`\n- Agregar campo `repost_count` a tabla `posts`\n- Incluir reposts en feed\n\n**Frontend ya implementado:** ?\n\n- Componente `repost-modal.tsx`\n- Botón en `post-card.tsx`\n\n---"
+    },
+    {
+        "id":  "69ed40951e389ecd4a4a01c3",
+        "name":  "[Backend] Mensajes fijados en grupos",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/BzoXsZOb/152-backend-mensajes-fijados-en-grupos",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta",
+                       "Feed",
+                       "Chat",
+                       "Admin/Manager",
+                       "Reports",
+                       "Groups"
+                   ],
+        "endpoints":  [
+                          "/api/groups/{groupId}/messages/{messageId}/pin",
+                          "/api/groups/{groupId}/pinned-messages"
+                      ],
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: Mensajes fijados en grupos\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/Z24ekXXN\n\nDescripción original frontend:\n### Files modified\n\n**ChatGroupMessage.java**\n\n- Added `pinnedAt` (`Instant`) and `pinnedBy` (`Users` FK, lazy) columns with getters/setters.\n\n**ChatGroupMessageRepository.java**\n\n- `findPinnedByGroup` — JPQL with JOIN FETCH on sender, pinnedBy and their profiles; filters `deletedAt IS NULL`, orders by `pinnedAt DESC`.\n- `countByGroupAndPinnedAtIsNotNullAndDeletedAtIsNull` — derived count for the 10-pin limit check.\n\n**GroupMessageResponseDTO.java**\n\n- Added `pinnedAt`, `pinnedById`, `pinnedByUsername` with getters/setters.\n\n**GroupService.java**\n\n- `requireAdminOrModerator` — private helper that throws 403 for GUEST role.\n- `pinMessage` — validates not deleted, not already pinned, enforces 10-pin cap, sets fields, broadcasts `MESSAGE_PINNED`.\n- `unpinMessage` — validates currently pinned, clears fields, broadcasts `MESSAGE_UNPINNED`.\n- `getPinnedMessages` — member-accessible, delegates to repository query.\n- `deleteMessage` — auto-clears `pinnedAt`/`pinnedBy` when a pinned message is deleted.\n- `toMessageDTO` — now populates `pinnedAt`, `pinnedById`, `pinnedByUsername`.\n\n**GroupController.java**\n\n- `POST /api/groups/{groupId}/messages/{messageId}/pin`\n- `DELETE /api/groups/{groupId}/messages/{messageId}/pin`\n- `GET /api/groups/{groupId}/pinned-messages`"
+    },
+    {
+        "id":  "69ed409a36f1a1a21921c916",
+        "name":  "[Backend] Implementar /api/date-cards/feed con filtros (distancia, intereses, excluir dislikes)",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/K9FzF9nm/168-backend-implementar-api-date-cards-feed-con-filtros-distancia-intereses-excluir-dislikes",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta",
+                       "Feed",
+                       "Stories",
+                       "Privacy",
+                       "Auth"
+                   ],
+        "endpoints":  "/api/date-cards/feed",
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: Implementar /api/date-cards/feed con filtros (distancia, intereses, excluir dislikes)\nLista origen: Terminado/ Pendiente revision Frontend\nURL card frontend: https://trello.com/c/Sx5dk5KQ\n\nDescripción original frontend:\nDescripción de la tarjeta Necesitamos habilitar el filtrado del feed de date-cards en el backend sin tocar el frontend ahora. El objetivo es soportar filtros por distancia (lat, lon y distanceKm), intereses (intereses como lista de strings) y excluir usuarios a los que ya diste dislike (excludeDisliked con viewerId para identificar al viewer).\n\nContrato de API propuesto\n\n- Endpoint: GET /api/date-cards/feed\n- Parámetros de consulta:\n  - lat: número\n  - lon: número\n  - distanceKm: número (distancia máxima en km)\n  - interests: string (comma-separated, por ejemplo \"cine,música,arte\")\n  - excludeDisliked: boolean (true para excluir)\n  - viewerId: string (identificador del usuario que consulta; usado para exclusión de dislikes)\n- Respuesta: 200 con un array de DateCard (id, name, lat, lon, age, interests, bio, avatarUrl, etc.)\n\nHistoria de alto nivel\n\n- Como usuario, quiero filtrar el feed de date-cards por mi ubicación y preferencias, para ver perfiles cercanos que coincidan con mis intereses y evitar perfiles que ya descarté.\n\nCriterios de aceptación\n\n- Distancia: si se proporcionan lat/lon y distanceKm, se filtran tarjetas por distancia usando el criterio de proximidad.\n- Intereses: si se proporcionan intereses, se filtra para que haya coincidencia con al menos uno de los intereses de la tarjeta.\n- Dislikes: si excludeDisliked=true y se proporciona viewerId, las tarjetas bloqueadas por ese viewer quedan fuera.\n- Comportamiento por defecto: si no se proporcionan filtros, se devuelve la lista completa (o la paginación existente si aplica).\n- Seguridad: el endpoint debe requerir autenticación adecuada (usar token/sesión en backend) y no exponer datos sensibles.\n- Tests: al menos tests de integración para filtrado por distancia, por intereses y por exclusion de dislikes.\n- Documentación: actualizar documentación de API con el contrato y ejemplos de consultas.\n\nTareas (Checklist)\n\n- Diseñar/ajustar modelo de datos en backend para soportar:\n  - DateCards (ya existente)\n  - Ubicación de usuarios (lat/lon)\n  - Intereses (array de strings)\n  - Dislikes/Swipe (tabla o modelo de dislikes)\n- Implementar lógica de filtrado en DB (geoespacial para distancia, overlap de intereses, exclusión de dislikes) o, si no disponible, en memoria con límites claros.\n- Exponer API GET /api/date-cards/feed con los parámetros descritos.\n- Asegurar autenticación y saneamiento de inputs.\n- Escribir tests de integración para cada filtro y para combinaciones.\n- Actualizar/crear documentación de la API y ejemplos de requests.\n- Preparar plan de implementación incremental (feature flag o rollout) si procede.\n\nArchivos/artefactos sugeridos para el backend\n\n- Endpoints:\n  - GET /api/date-cards/feed\n- Modelos/Tablas:\n  - DateCards (ya existente)\n  - UserLocations(lat, lon) o usar lat/lon en UserProfile\n  - UserInterests (tabla relacional o array)\n  - Swipes/Dislikes (viewerId, targetUserId, swipeType)\n- Servicios/Repos:\n  - DateCardFeedRepository o DateCardFeedService con métodos:\n    - filterByDistance(lat, lon, distanceKm)\n    - filterByInterests(interests)\n    - excludeDisliked(viewerId)\n- Tests:\n  - testDateCardsFeedDistance\n  - testDateCardsFeedInterests\n  - testDateCardsFeedDislikes\n  - testDateCardsFeedCombinedFilters"
+    },
+    {
+        "id":  "69ed40964897f18165210d97",
+        "name":  "[Backend] change password ya lo tienes montado, conectar a POST /auth/change-password",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/DcKWtqwB/157-backend-change-password-ya-lo-tienes-montado-conectar-a-post-auth-change-password",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta",
+                       "Feed",
+                       "Auth"
+                   ],
+        "endpoints":  "/auth/change-password",
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: change password ya lo tienes montado, conectar a POST /auth/change-password\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/GNCNzejM\n\nDescripción original frontend:\n"
+    },
+    {
+        "id":  "69ed40965e1fbed262a94d55",
+        "name":  "[Backend] Verification de email al registrarse",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/Oi3od4Wt/158-backend-verification-de-email-al-registrarse",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta",
+                       "Feed",
+                       "Auth",
+                       "Chat"
+                   ],
+        "endpoints":  [
+                          "/auth/register",
+                          "/auth/verify-email",
+                          "/auth/resend-verification"
+                      ],
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: Verification de email al registrarse\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/mhZ8XY06\n\nDescripción original frontend:\n## Flujo de verificación de email\n\n### 1. `POST /auth/register`\n\n- Crea el usuario con `enabled=false`\n- Genera un código de **6 dígitos** aleatorio (válido 15 min)\n- **Envía el código al correo** del usuario\n- Devuelve: `{ \"username\": \"...\", \"message\": \"Registro exitoso. Revisa tu correo e ingresa el código de verificación.\" }`\n\n### 2. `POST /auth/verify-email`\n\n```\n{ \"email\": \"usuario@gmail.com\", \"code\": \"483921\" }\n```\n\n- Valida que el código sea correcto y no haya expirado\n- Activa la cuenta (`enabled=true`), limpia el código\n- **Devuelve el JWT** igual que el login normal\n\n### 3. `POST /auth/resend-verification`\n\n```\n{ \"email\": \"usuario@gmail.com\" }\n```\n\n- Genera un nuevo código y lo reenvía al correo\n- Rate limit: solo un reenvío por minuto\n\n### Cambios en login\n\n- Si el usuario intenta hacer login sin verificar, recibe: `\"Debes verificar tu correo electrónico antes de iniciar sesión\"`\n\n### Archivos modificados\n\n- Users.java — campos `verificationCode` y `verificationCodeExpiry`\n- AuthService.java — `register()` rediseñado + `verifyEmail()` + `resendVerification()`\n- AuthController.java — endpoints `/verify-email` y `/resend-verification`\n- VerifyEmailRequest.java — nuevo DTO\n\n\u003e **Nota:** JPA/Hibernate creará automáticamente las columnas `verification_code` y `verification_code_expiry` en la tabla `users` si tienes `spring.jpa.hibernate.ddl-auto=update`. Si usas migraciones manuales, añade las dos columnas con tipo `VARCHAR` e `TIMESTAMP WITH TIME ZONE` respectivamente."
+    },
+    {
+        "id":  "69ed409776a307b5ad653e3f",
+        "name":  "[Backend] 15 Dias free trial",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/qcuANJ7Z/159-backend-15-dias-free-trial",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta",
+                       "Feed",
+                       "Auth"
+                   ],
+        "endpoints":  "/auth/verify-email",
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: 15 Dias free trial\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/i8MxCCi5\n\nDescripción original frontend:\n## Flujo del trial de 15 días\n\n**Al verificar el email** (`POST /auth/verify-email`), automáticamente se crea una suscripción premium gratuita:\n\n- `status = ACTIVE`\n- `currentPeriodEnd = ahora + 15 días`\n- `isTrial = true`\n- Sin IDs de Stripe (no requiere tarjeta)\n- Badge premium activado en el perfil\n\n**Cuando el usuario contrata Stripe** después del trial, `activate()` sobrescribe la misma fila con los IDs reales de Stripe y pone `isTrial = false` — sin duplicados.\n\n**La lógica existente no cambia:** `hasPremium()`, `validatePremium()`, `isActive()` funcionan igual para trial y suscripción real.\n\n### Archivos modificados\n\nArchivoCambioUserSubscription.java`stripeCustomerId`/`stripeSubscriptionId` ahora nullable + campo `isTrial`UserSubscriptionService.javaNuevo `activateTrial()` + `activate()` marca `isTrial=false`AuthService.javaInyecta `UserSubscriptionService` y llama `activateTrial()` en `verifyEmail()`\n\n\u003e "
+    },
+    {
+        "id":  "69ed409877e1a5a00db9f0b5",
+        "name":  "[Backend] ?? Grupos - Posts y Roles",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/741txIRS/163-backend-%F0%9F%91%A5-grupos-posts-y-roles",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta",
+                       "Feed",
+                       "Admin/Manager",
+                       "Reports",
+                       "Groups"
+                   ],
+        "endpoints":  [
+                          "/api/groups/{groupId}/posts",
+                          "/api/groups/{groupId}/posts?page={page}\u0026size={size}",
+                          "/api/groups/{groupId}/members/{userId}/role",
+                          "/api/groups/{groupId}/members/{userId}"
+                      ],
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: ?? Grupos - Posts y Roles\nLista origen: Terminado/ Pendiente revision Frontend\nURL card frontend: https://trello.com/c/HYZYD1ss\n\nDescripción original frontend:\nImplementar posts dentro de grupos y sistema de roles.\n\n**Endpoints necesarios:**\n\n- `POST /api/groups/{groupId}/posts` - Crear post en grupo\n- `GET /api/groups/{groupId}/posts?page={page}\u0026size={size}` - Posts del grupo\n- `PUT /api/groups/{groupId}/members/{userId}/role` - Cambiar rol de miembro\n  ```json\n  {\n    \"role\": \"ADMIN|MODERATOR|MEMBER\"\n  }\n  ```\n- `DELETE /api/groups/{groupId}/members/{userId}` - Expulsar miembro (solo admin)\n\n**Detalles técnicos:**\n\n- Agregar campo `group_id` a tabla `posts`\n- Agregar campo `role` a tabla `group_members` (enum: ADMIN, MODERATOR, MEMBER)\n- Validar permisos según rol\n- Filtrar posts por grupo\n\n**Frontend ya implementado:** ?\n\n- Página `groups/page.tsx`\n- Página `groups/[id]/page.tsx`\n\n---"
+    },
+    {
+        "id":  "69ed4098ff02d824f158267f",
+        "name":  "[Backend] GET /moderator/reports/all — Historial completo de reportes",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/boLoLaJl/164-backend-get-moderator-reports-all-historial-completo-de-reportes",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta",
+                       "Stories",
+                       "Admin/Manager",
+                       "Reports"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: GET /moderator/reports/all — Historial completo de reportes\nLista origen: Terminado/ Pendiente revision Frontend\nURL card frontend: https://trello.com/c/bjCHWmGZ\n\nDescripción original frontend:\nEl panel de moderación necesita ver el historial completo de reportes,\nno solo los PENDING.\n\nAgregar endpoint:\nGET /moderator/reports/all\n\n- Requiere ROLE_MODERATOR\n- Devuelve todos los reportes sin filtrar por status\n- Mismo DTO que /moderator/reports (ReportResponse)\n\nEn ModeratorService agregar:\npublic List\u003cReportResponse\u003e getAllReports() {\n    return reportRepository.findAll()\n        .stream()\n        .map(report -\u003e { ... mismo mapeo ... })\n        .toList();\n}"
+    },
+    {
+        "id":  "69ed409967000cd28ab3cae6",
+        "name":  "[Backend] GET /api/admin/users — Listar todos los usuarios",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/yjsE0S3w/166-backend-get-api-admin-users-listar-todos-los-usuarios",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta",
+                       "Feed",
+                       "Admin/Manager",
+                       "Analytics"
+                   ],
+        "endpoints":  "/api/admin/users",
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: GET /api/admin/users — Listar todos los usuarios\nLista origen: Terminado/ Pendiente revision Frontend\nURL card frontend: https://trello.com/c/EpJRlM4I\n\nDescripción original frontend:\nEl dashboard de admin necesita un endpoint para listar usuarios.\n\nGET /api/admin/users\n\n- Requiere rol ADMIN\n- Devuelve lista de usuarios con:\n  - userId, username, email\n  - enabled, locked\n  - premium (si tiene stripeCustomerId)\n  - fechaRegistro\n  - postCount\n  - nombres, apellidos\n  - profilePictureUrl\n\nEjemplo de respuesta:\n[\n  {\n    \"userId\": \"uuid\",\n    \"username\": \"test1\",\n    \"email\": \"[test@test.com](mailto:test@test.com \"?\")\",\n    \"enabled\": true,\n    \"locked\": false,\n    \"premium\": false,\n    \"fechaRegistro\": \"2026-01-01T00:00:00Z\",\n    \"postCount\": 4,\n    \"nombres\": \"Test\",\n    \"apellidos\": \"User\",\n    \"profilePictureUrl\": \"[https://...](https://... \"?\")\"\n  }\n]"
+    },
+    {
+        "id":  "69ed409958503a8e12cee26b",
+        "name":  "[Backend] ?? Guardados/Bookmarks",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/FSBi3NYr/167-backend-%F0%9F%92%BE-guardados-bookmarks",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta",
+                       "Feed",
+                       "Bookmarks"
+                   ],
+        "endpoints":  [
+                          "/api/bookmarks/toggle",
+                          "/api/bookmarks?page={page}\u0026size={size}"
+                      ],
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: ?? Guardados/Bookmarks\nLista origen: Terminado/ Pendiente revision Frontend\nURL card frontend: https://trello.com/c/M3jhE5SQ\n\nDescripción original frontend:\nImplementar guardado de posts en el backend.\n\n**Endpoints necesarios:**\n\n- `POST /api/bookmarks/toggle` - Guardar/quitar guardado\n  ```json\n  {\n    \"postId\": \"uuid\"\n  }\n  ```\n- `GET /api/bookmarks?page={page}\u0026size={size}` - Obtener posts guardados\n\n**Detalles técnicos:**\n\n- Crear tabla `bookmarks`: `id`, `user_id`, `post_id`, `created_at`\n- Constraint UNIQUE en (`user_id`, `post_id`)\n\n**Frontend ya implementado:** ?\n\n- Página `saved/page.tsx`\n- Service `bookmark.ts` (actualmente usa localStorage)\n\n---"
+    },
+    {
+        "id":  "69ed409b197deadc69dd4cae",
+        "name":  "[Backend] Modifico controller de feed de citas, ahora podremos filtrar por distancia, intereses, excluye cuentas que di dislike en swipe cards.../api/date-cards/feed",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/ihPkxxpz/172-backend-modifico-controller-de-feed-de-citas-ahora-podremos-filtrar-por-distancia-intereses-excluye-cuentas-que-di-dislike-en-sw",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta",
+                       "Feed"
+                   ],
+        "endpoints":  "/api/date-cards/feed",
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: Modifico controller de feed de citas, ahora podremos filtrar por distancia, intereses, excluye cuentas que di dislike en swipe cards.../api/date-cards/feed\nLista origen: Terminado/ Pendiente revision Frontend\nURL card frontend: https://trello.com/c/Beerfwpb\n\nDescripción original frontend:\n"
+    },
+    {
+        "id":  "69ed409b690ce18926a62e3f",
+        "name":  "[Backend] Endpoints para listar Seguidores, Seguidos y Solicitudes Pendientes",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/A0gimKpu/174-backend-endpoints-para-listar-seguidores-seguidos-y-solicitudes-pendientes",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta"
+                   ],
+        "endpoints":  [
+                          "/api/follow/requests",
+                          "/api/follow/followers/{userId}",
+                          "/api/follow/following/{userId}"
+                      ],
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: Endpoints para listar Seguidores, Seguidos y Solicitudes Pendientes\nLista origen: Terminado/ Pendiente revision Frontend\nURL card frontend: https://trello.com/c/xlq5VB6R\n\nDescripción original frontend:\n\"La lógica de `FollowService` ya permite seguir, aceptar y rechazar solicitudes, pero actualmente el frontend no tiene forma de saber _quiénes_ son esos usuarios para pintarlos en una lista.\n\n**Tareas a realizar:** En `FollowController.java`, crear los siguientes 3 endpoints (y sus respectivos métodos en `FollowService`):\n\n1. `GET /api/follow/requests`\n   - **Propósito:** Listar los usuarios que me han enviado una solicitud de seguimiento que aún no apruebo.\n   - **Lógica:** Consultar en `FollowRepository` todas las relaciones donde `following == me` y `status == PENDING`.\n   - **Retorno:** Una lista de un nuevo DTO (`FollowerUserDTO` o `UserProfileResponseDTO` simplificado) que contenga al menos `userId`, `username`, `nombres`, `apellidos` y `profilePictureUrl` de los solicitantes.\n2. `GET /api/follow/followers/{userId}`\n   - **Propósito:** Listar quiénes siguen a un usuario específico.\n   - **Lógica:** Consultar relaciones donde `following == targetUser` y `status == ACCEPTED`.\n   - **Retorno:** Lista de la información básica de los usuarios seguidores.\n3. `GET /api/follow/following/{userId}`\n   - **Propósito:** Listar a quiénes está siguiendo un usuario específico.\n   - **Lógica:** Consultar relaciones donde `follower == targetUser` y `status == ACCEPTED`.\n   - **Retorno:** Lista de la información básica de los usuarios seguidos.\n\n_Nota: Se recomienda usar paginación si las listas pueden ser muy largas, pero de momento devolver una lista simple es suficiente para destrabar al frontend._\""
+    },
+    {
+        "id":  "69ed409b9d3e6a9c4858ca16",
+        "name":  "[Backend] ?? Configuración de Privacidad",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/jO11neXS/173-backend-%F0%9F%94%90-configuraci%C3%B3n-de-privacidad",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta",
+                       "Feed",
+                       "Chat",
+                       "Privacy"
+                   ],
+        "endpoints":  "/api/settings/privacy",
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: ?? Configuración de Privacidad\nLista origen: Terminado/ Pendiente revision Frontend\nURL card frontend: https://trello.com/c/kBjL64PD\n\nDescripción original frontend:\nImplementar configuración de privacidad del usuario.\n\n**Endpoints necesarios:**\n\n- `GET /api/settings/privacy` - Obtener configuración\n- `PUT /api/settings/privacy` - Actualizar configuración\n  ```json\n  {\n    \"whoCanSeeMyPosts\": \"EVERYONE|FOLLOWERS|NOBODY\",\n    \"whoCanComment\": \"EVERYONE|FOLLOWERS|NOBODY\",\n    \"whoCanSendDM\": \"EVERYONE|FOLLOWERS|MATCHES\",\n    \"showOnlineStatus\": true,\n    \"showLastSeen\": false\n  }\n  ```\n\n**Detalles técnicos:**\n\n- Crear tabla `privacy_settings`\n- Aplicar filtros según configuración en endpoints de posts, comentarios, chat\n\n**Frontend:** Parcialmente implementado en `settings/page.tsx`\n\n---"
+    },
+    {
+        "id":  "69ed409c26e79fdc2f53e9a0",
+        "name":  "[Backend] ?? Stories - Funcionalidades Adicionales",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/2rRS7uwX/175-backend-%F0%9F%93%96-stories-funcionalidades-adicionales",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta",
+                       "Stories",
+                       "Feed"
+                   ],
+        "endpoints":  [
+                          "/api/stories/{storyId}/view",
+                          "/api/stories/{storyId}/viewers",
+                          "/api/stories/{storyId}/react",
+                          "/api/stories/{storyId}"
+                      ],
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: ?? Stories - Funcionalidades Adicionales\nLista origen: Terminado/ Pendiente revision Frontend\nURL card frontend: https://trello.com/c/tYzh6pHq\n\nDescripción original frontend:\nMejorar sistema de stories existente.\n\n**Endpoints necesarios:**\n\n- `POST /api/stories/{storyId}/view` - Marcar story como vista\n- `GET /api/stories/{storyId}/viewers` - Ver quién vio la story\n- `POST /api/stories/{storyId}/react` - Reaccionar a story\n- `DELETE /api/stories/{storyId}` - Eliminar story propia\n\n**Detalles técnicos:**\n\n- Crear tabla `story_views`: `id`, `story_id`, `user_id`, `viewed_at`\n- Agregar campo `view_count` a tabla `stories`\n- Agregar campo `reaction` a tabla `story_views` (opcional)\n\n**Frontend ya implementado:** ?\n\n- Página `stories/page.tsx`\n- Componente `stories-bar.tsx`\n\n---"
+    },
+    {
+        "id":  "69b322656c7b58cf8d7fc8fe",
+        "name":  "?? Grupos - Posts y Roles",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/HYZYD1ss/7-%F0%9F%91%A5-grupos-posts-y-roles",
+        "labels":  "PARCIAL",
+        "endpoints":  [
+                          "/api/groups/{groupId}/posts",
+                          "/api/groups/{groupId}/posts?page={page}\u0026size={size}",
+                          "/api/groups/{groupId}/members/{userId}/role",
+                          "/api/groups/{groupId}/members/{userId}"
+                      ],
+        "desc":  "Implementar posts dentro de grupos y sistema de roles.\n\n**Endpoints necesarios:**\n\n- `POST /api/groups/{groupId}/posts` - Crear post en grupo\n- `GET /api/groups/{groupId}/posts?page={page}\u0026size={size}` - Posts del grupo\n- `PUT /api/groups/{groupId}/members/{userId}/role` - Cambiar rol de miembro\n  ```json\n  {\n    \"role\": \"ADMIN|MODERATOR|MEMBER\"\n  }\n  ```\n- `DELETE /api/groups/{groupId}/members/{userId}` - Expulsar miembro (solo admin)\n\n**Detalles técnicos:**\n\n- Agregar campo `group_id` a tabla `posts`\n- Agregar campo `role` a tabla `group_members` (enum: ADMIN, MODERATOR, MEMBER)\n- Validar permisos según rol\n- Filtrar posts por grupo\n\n**Frontend ya implementado:** ?\n\n- Página `groups/page.tsx`\n- Página `groups/[id]/page.tsx`\n\n---"
+    },
+    {
+        "id":  "69db2a13d4124b327ce740f7",
+        "name":  "GET /moderator/reports/all — Historial completo de reportes",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/bjCHWmGZ/58-get-moderator-reports-all-historial-completo-de-reportes",
+        "labels":  "HECHO",
+        "endpoints":  {
+
+                      },
+        "desc":  "El panel de moderación necesita ver el historial completo de reportes,\nno solo los PENDING.\n\nAgregar endpoint:\nGET /moderator/reports/all\n\n- Requiere ROLE_MODERATOR\n- Devuelve todos los reportes sin filtrar por status\n- Mismo DTO que /moderator/reports (ReportResponse)\n\nEn ModeratorService agregar:\npublic List\u003cReportResponse\u003e getAllReports() {\n    return reportRepository.findAll()\n        .stream()\n        .map(report -\u003e { ... mismo mapeo ... })\n        .toList();\n}"
+    },
+    {
+        "id":  "69c9467de828485931e6945a",
+        "name":  "Dashboard Mannager",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/gW6G4TDC/38-dashboard-mannager",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "HECHO"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  ""
+    },
+    {
+        "id":  "69db2088cb34ffdd5230bf42",
+        "name":  "GET /api/admin/users — Listar todos los usuarios",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/EpJRlM4I/57-get-api-admin-users-listar-todos-los-usuarios",
+        "labels":  "PARCIAL",
+        "endpoints":  "/api/admin/users",
+        "desc":  "El dashboard de admin necesita un endpoint para listar usuarios.\n\nGET /api/admin/users\n\n- Requiere rol ADMIN\n- Devuelve lista de usuarios con:\n  - userId, username, email\n  - enabled, locked\n  - premium (si tiene stripeCustomerId)\n  - fechaRegistro\n  - postCount\n  - nombres, apellidos\n  - profilePictureUrl\n\nEjemplo de respuesta:\n[\n  {\n    \"userId\": \"uuid\",\n    \"username\": \"test1\",\n    \"email\": \"[test@test.com](mailto:test@test.com \"?\")\",\n    \"enabled\": true,\n    \"locked\": false,\n    \"premium\": false,\n    \"fechaRegistro\": \"2026-01-01T00:00:00Z\",\n    \"postCount\": 4,\n    \"nombres\": \"Test\",\n    \"apellidos\": \"User\",\n    \"profilePictureUrl\": \"[https://...](https://... \"?\")\"\n  }\n]"
+    },
+    {
+        "id":  "69b32400aa532d66d7d91f23",
+        "name":  "?? Guardados/Bookmarks",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/M3jhE5SQ/14-%F0%9F%92%BE-guardados-bookmarks",
+        "labels":  "PARCIAL",
+        "endpoints":  [
+                          "/api/bookmarks/toggle",
+                          "/api/bookmarks?page={page}\u0026size={size}"
+                      ],
+        "desc":  "Implementar guardado de posts en el backend.\n\n**Endpoints necesarios:**\n\n- `POST /api/bookmarks/toggle` - Guardar/quitar guardado\n  ```json\n  {\n    \"postId\": \"uuid\"\n  }\n  ```\n- `GET /api/bookmarks?page={page}\u0026size={size}` - Obtener posts guardados\n\n**Detalles técnicos:**\n\n- Crear tabla `bookmarks`: `id`, `user_id`, `post_id`, `created_at`\n- Constraint UNIQUE en (`user_id`, `post_id`)\n\n**Frontend ya implementado:** ?\n\n- Página `saved/page.tsx`\n- Service `bookmark.ts` (actualmente usa localStorage)\n\n---"
+    },
+    {
+        "id":  "69eabc0fd36fb40b9de39acf",
+        "name":  "Implementar /api/date-cards/feed con filtros (distancia, intereses, excluir dislikes)",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/Sx5dk5KQ/107-implementar-api-date-cards-feed-con-filtros-distancia-intereses-excluir-dislikes",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "PARCIAL"
+                   ],
+        "endpoints":  "/api/date-cards/feed",
+        "desc":  "Descripción de la tarjeta Necesitamos habilitar el filtrado del feed de date-cards en el backend sin tocar el frontend ahora. El objetivo es soportar filtros por distancia (lat, lon y distanceKm), intereses (intereses como lista de strings) y excluir usuarios a los que ya diste dislike (excludeDisliked con viewerId para identificar al viewer).\n\nContrato de API propuesto\n\n- Endpoint: GET /api/date-cards/feed\n- Parámetros de consulta:\n  - lat: número\n  - lon: número\n  - distanceKm: número (distancia máxima en km)\n  - interests: string (comma-separated, por ejemplo \"cine,música,arte\")\n  - excludeDisliked: boolean (true para excluir)\n  - viewerId: string (identificador del usuario que consulta; usado para exclusión de dislikes)\n- Respuesta: 200 con un array de DateCard (id, name, lat, lon, age, interests, bio, avatarUrl, etc.)\n\nHistoria de alto nivel\n\n- Como usuario, quiero filtrar el feed de date-cards por mi ubicación y preferencias, para ver perfiles cercanos que coincidan con mis intereses y evitar perfiles que ya descarté.\n\nCriterios de aceptación\n\n- Distancia: si se proporcionan lat/lon y distanceKm, se filtran tarjetas por distancia usando el criterio de proximidad.\n- Intereses: si se proporcionan intereses, se filtra para que haya coincidencia con al menos uno de los intereses de la tarjeta.\n- Dislikes: si excludeDisliked=true y se proporciona viewerId, las tarjetas bloqueadas por ese viewer quedan fuera.\n- Comportamiento por defecto: si no se proporcionan filtros, se devuelve la lista completa (o la paginación existente si aplica).\n- Seguridad: el endpoint debe requerir autenticación adecuada (usar token/sesión en backend) y no exponer datos sensibles.\n- Tests: al menos tests de integración para filtrado por distancia, por intereses y por exclusion de dislikes.\n- Documentación: actualizar documentación de API con el contrato y ejemplos de consultas.\n\nTareas (Checklist)\n\n- Diseñar/ajustar modelo de datos en backend para soportar:\n  - DateCards (ya existente)\n  - Ubicación de usuarios (lat/lon)\n  - Intereses (array de strings)\n  - Dislikes/Swipe (tabla o modelo de dislikes)\n- Implementar lógica de filtrado en DB (geoespacial para distancia, overlap de intereses, exclusión de dislikes) o, si no disponible, en memoria con límites claros.\n- Exponer API GET /api/date-cards/feed con los parámetros descritos.\n- Asegurar autenticación y saneamiento de inputs.\n- Escribir tests de integración para cada filtro y para combinaciones.\n- Actualizar/crear documentación de la API y ejemplos de requests.\n- Preparar plan de implementación incremental (feature flag o rollout) si procede.\n\nArchivos/artefactos sugeridos para el backend\n\n- Endpoints:\n  - GET /api/date-cards/feed\n- Modelos/Tablas:\n  - DateCards (ya existente)\n  - UserLocations(lat, lon) o usar lat/lon en UserProfile\n  - UserInterests (tabla relacional o array)\n  - Swipes/Dislikes (viewerId, targetUserId, swipeType)\n- Servicios/Repos:\n  - DateCardFeedRepository o DateCardFeedService con métodos:\n    - filterByDistance(lat, lon, distanceKm)\n    - filterByInterests(interests)\n    - excludeDisliked(viewerId)\n- Tests:\n  - testDateCardsFeedDistance\n  - testDateCardsFeedInterests\n  - testDateCardsFeedDislikes\n  - testDateCardsFeedCombinedFilters"
+    },
+    {
+        "id":  "69b3241d61cb2bf35d053b23",
+        "name":  "?? Sistema de Repost",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/mAqeY9mU/15-%F0%9F%94%84-sistema-de-repost",
+        "labels":  "PENDIENTE",
+        "endpoints":  [
+                          "/api/posts/{postId}/repost",
+                          "/api/posts/{postId}/reposts"
+                      ],
+        "desc":  "Implementar repost de contenido.\n\n**Endpoints necesarios:**\n\n- `POST /api/posts/{postId}/repost` - Hacer repost\n  ```json\n  {\n    \"comment\": \"string (opcional)\"\n  }\n  ```\n- `DELETE /api/posts/{postId}/repost` - Quitar repost\n- `GET /api/posts/{postId}/reposts` - Ver quién hizo repost\n\n**Detalles técnicos:**\n\n- Crear tabla `reposts`: `id`, `user_id`, `post_id`, `comment`, `created_at`\n- Agregar campo `repost_count` a tabla `posts`\n- Incluir reposts en feed\n\n**Frontend ya implementado:** ?\n\n- Componente `repost-modal.tsx`\n- Botón en `post-card.tsx`\n\n---"
+    },
+    {
+        "id":  "69db1aeccbdaea919f41bef2",
+        "name":  "Agregar campos completos a MyDateCardsResponse",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/3e0wTJyr/56-agregar-campos-completos-a-mydatecardsresponse",
+        "labels":  "HECHO",
+        "endpoints":  {
+
+                      },
+        "desc":  "MyDateCardsResponse solo devuelve dateCardId y title.\nFaltan los campos de la cita para mostrarlos en el frontend.\n\nAgregar a MyDateCardsResponse:\n\n- dateTime (Instant)\n- locationZone (String)\n- category (DateCategory)\n- plans (List\u003cPlan\u003e)\n- message (String)\n- expiresAt (Instant)\n- status (DateCardStatus)\n\nY también en InterestDto:\n\n- interestId (UUID) — para poder responder\n- username (String)\n\nMapear en DateCardService.getMyCardsWithInterests()"
+    },
+    {
+        "id":  "69bbf0b98ca00f79c8579276",
+        "name":  "Agregar reacciones en chats",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/QVskaxuR/34-agregar-reacciones-en-chats",
+        "labels":  "HECHO",
+        "endpoints":  {
+
+                      },
+        "desc":  "Para que se pueda reaccional a los mensajes"
+    },
+    {
+        "id":  "69dda87dd561d45a0b004245",
+        "name":  "Modifico controller de feed de citas, ahora podremos filtrar por distancia, intereses, excluye cuentas que di dislike en swipe cards.../api/date-cards/feed",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/Beerfwpb/67-modifico-controller-de-feed-de-citas-ahora-podremos-filtrar-por-distancia-intereses-excluye-cuentas-que-di-dislike-en-swipe-card",
+        "labels":  [
+                       "Por Implementar Frontend",
+                       "PARCIAL"
+                   ],
+        "endpoints":  "/api/date-cards/feed",
+        "desc":  ""
+    },
+    {
+        "id":  "69b323996f531b3e9f142ef3",
+        "name":  "?? Configuración de Privacidad",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/kBjL64PD/12-%F0%9F%94%90-configuraci%C3%B3n-de-privacidad",
+        "labels":  "HECHO",
+        "endpoints":  "/api/settings/privacy",
+        "desc":  "Implementar configuración de privacidad del usuario.\n\n**Endpoints necesarios:**\n\n- `GET /api/settings/privacy` - Obtener configuración\n- `PUT /api/settings/privacy` - Actualizar configuración\n  ```json\n  {\n    \"whoCanSeeMyPosts\": \"EVERYONE|FOLLOWERS|NOBODY\",\n    \"whoCanComment\": \"EVERYONE|FOLLOWERS|NOBODY\",\n    \"whoCanSendDM\": \"EVERYONE|FOLLOWERS|MATCHES\",\n    \"showOnlineStatus\": true,\n    \"showLastSeen\": false\n  }\n  ```\n\n**Detalles técnicos:**\n\n- Crear tabla `privacy_settings`\n- Aplicar filtros según configuración en endpoints de posts, comentarios, chat\n\n**Frontend:** Parcialmente implementado en `settings/page.tsx`\n\n---"
+    },
+    {
+        "id":  "69e98fb3fae6cf32a9124a12",
+        "name":  "Endpoints para listar Seguidores, Seguidos y Solicitudes Pendientes",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/xlq5VB6R/84-endpoints-para-listar-seguidores-seguidos-y-solicitudes-pendientes",
+        "labels":  "PARCIAL",
+        "endpoints":  [
+                          "/api/follow/requests",
+                          "/api/follow/followers/{userId}",
+                          "/api/follow/following/{userId}"
+                      ],
+        "desc":  "\"La lógica de `FollowService` ya permite seguir, aceptar y rechazar solicitudes, pero actualmente el frontend no tiene forma de saber _quiénes_ son esos usuarios para pintarlos en una lista.\n\n**Tareas a realizar:** En `FollowController.java`, crear los siguientes 3 endpoints (y sus respectivos métodos en `FollowService`):\n\n1. `GET /api/follow/requests`\n   - **Propósito:** Listar los usuarios que me han enviado una solicitud de seguimiento que aún no apruebo.\n   - **Lógica:** Consultar en `FollowRepository` todas las relaciones donde `following == me` y `status == PENDING`.\n   - **Retorno:** Una lista de un nuevo DTO (`FollowerUserDTO` o `UserProfileResponseDTO` simplificado) que contenga al menos `userId`, `username`, `nombres`, `apellidos` y `profilePictureUrl` de los solicitantes.\n2. `GET /api/follow/followers/{userId}`\n   - **Propósito:** Listar quiénes siguen a un usuario específico.\n   - **Lógica:** Consultar relaciones donde `following == targetUser` y `status == ACCEPTED`.\n   - **Retorno:** Lista de la información básica de los usuarios seguidores.\n3. `GET /api/follow/following/{userId}`\n   - **Propósito:** Listar a quiénes está siguiendo un usuario específico.\n   - **Lógica:** Consultar relaciones donde `follower == targetUser` y `status == ACCEPTED`.\n   - **Retorno:** Lista de la información básica de los usuarios seguidos.\n\n_Nota: Se recomienda usar paginación si las listas pueden ser muy largas, pero de momento devolver una lista simple es suficiente para destrabar al frontend._\""
+    },
+    {
+        "id":  "69b32242cb98b9c018e10cb7",
+        "name":  "?? Stories - Funcionalidades Adicionales",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/tYzh6pHq/6-%F0%9F%93%96-stories-funcionalidades-adicionales",
+        "labels":  "HECHO",
+        "endpoints":  [
+                          "/api/stories/{storyId}/view",
+                          "/api/stories/{storyId}/viewers",
+                          "/api/stories/{storyId}/react",
+                          "/api/stories/{storyId}"
+                      ],
+        "desc":  "Mejorar sistema de stories existente.\n\n**Endpoints necesarios:**\n\n- `POST /api/stories/{storyId}/view` - Marcar story como vista\n- `GET /api/stories/{storyId}/viewers` - Ver quién vio la story\n- `POST /api/stories/{storyId}/react` - Reaccionar a story\n- `DELETE /api/stories/{storyId}` - Eliminar story propia\n\n**Detalles técnicos:**\n\n- Crear tabla `story_views`: `id`, `story_id`, `user_id`, `viewed_at`\n- Agregar campo `view_count` a tabla `stories`\n- Agregar campo `reaction` a tabla `story_views` (opcional)\n\n**Frontend ya implementado:** ?\n\n- Página `stories/page.tsx`\n- Componente `stories-bar.tsx`\n\n---"
+    },
+    {
+        "id":  "69e98d19ded7f7f29e1db811",
+        "name":  "Agregar contadores de seguidores a UserProfileResponseDTO",
+        "list":  "Terminado/ Pendiente revision Frontend",
+        "url":  "https://trello.com/c/ExUr1HSU/83-agregar-contadores-de-seguidores-a-userprofileresponsedto",
+        "labels":  "HECHO",
+        "endpoints":  "/api/follow/{userId}",
+        "desc":  "\"El sistema de Follows ya funciona y el frontend ya está enviando peticiones a `/api/follow/{userId}`, pero necesitamos que al momento de cargar un perfil, el frontend sepa cuántos seguidores tiene esa persona para pintar el número.\n\n**Tareas a realizar:**\n\n1. En el archivo `UserProfileResponseDTO.java`, agregar dos nuevas variables `int followersCount;` e `int followingCount;` (con sus respectivos Getters/Setters).\n2. En `UserProfileService.java`, dentro de los métodos `getProfileByUserId` y `getMyProfile`, usar el `FollowRepository` para contar cuántos seguidores tiene el usuario (ej. `followRepository.countByFollowingAndStatus(user, ACCEPTED)`) y asignarlos al DTO.\n3. Enviar este DTO actualizado al frontend para que el número \"120 Seguidores\" sea dinámico y real, en lugar de simulado.\""
+    },
+    {
+        "id":  "69d9e435ca6c4cdf84a17e7f",
+        "name":  "Las fotos deben ser blur, no solo mostrar bloqueado",
+        "list":  "Pendiente al final/ No prioritario",
+        "url":  "https://trello.com/c/DPoEh4cY/48-las-fotos-deben-ser-blur-no-solo-mostrar-bloqueado",
+        "labels":  {
+
+                   },
+        "endpoints":  {
+
+                      },
+        "desc":  ""
+    },
+    {
+        "id":  "69ed4092878216e2b6f23bb7",
+        "name":  "[Backend] Cambios en endpoints existentes",
+        "list":  "Backend - Alta",
+        "url":  "https://trello.com/c/UtxN1QYL/144-backend-cambios-en-endpoints-existentes",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta"
+                   ],
+        "endpoints":  [
+                          "/api/profile/{userId}",
+                          "/api/profile/me"
+                      ],
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: Cambios en endpoints existentes\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/DGyhCRX9\n\nDescripción original frontend:\n`GET /api/profile/{userId}` y `GET /api/profile/me` — el response ahora incluye dos campos nuevos:\n\n```\n{\n  \"followersCount\": 128,\n  \"followingCount\": 64\n}\n```"
+    },
+    {
+        "id":  "69ed409249b0266d3b7892c0",
+        "name":  "[Backend] Sparkling list",
+        "list":  "Backend - Alta",
+        "url":  "https://trello.com/c/gE3OiXZH/143-backend-sparkling-list",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta",
+                       "Feed",
+                       "Groups"
+                   ],
+        "endpoints":  [
+                          "/api/settings/sparkling-list",
+                          "/api/settings/sparkling-list/{memberId}"
+                      ],
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: Sparkling list\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/zgJSr7gw\n\nDescripción original frontend:\n### `GET /api/settings/sparkling-list`\n\nVer tu Sparkling List (amigos cercanos).\n\n**Response** `200`**:** Array de `FollowerUserDTO` (mismo objeto de Follow).\n\n?\n\n### `POST /api/settings/sparkling-list/{memberId}`\n\nAgregar usuario a tu Sparkling List.\n\n**Response** `204` **(sin body)**\n\n?\n\n### `DELETE /api/settings/sparkling-list/{memberId}`\n\nQuitar usuario de tu Sparkling List.\n\n**Response** `204` **(sin body)**"
+    },
+    {
+        "id":  "69ed40923eb78b2c5aa0eb30",
+        "name":  "[Backend] PUT /api/settings/privacy",
+        "list":  "Backend - Alta",
+        "url":  "https://trello.com/c/P7oeNL4U/142-backend-put-api-settings-privacy",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta",
+                       "Feed",
+                       "Privacy"
+                   ],
+        "endpoints":  "/api/settings/privacy",
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: PUT /api/settings/privacy\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/NAz87uva\n\nDescripción original frontend:\nActualizar privacidad. Los campos son todos opcionales — solo envía los que quieras cambiar.\n\n**Request body:**\n\n```\n{\n  \"whoCanComment\": \"FOLLOWERS\",\n  \"showLastSeen\": true\n}\n\nEnums:\n\nwhoCanSeeMyPosts / whoCanComment: EVERYONE | FOLLOWERS | NOBODY\nwhoCanSendDM: EVERYONE | FOLLOWERS | MATCHES\n```"
+    },
+    {
+        "id":  "69ed4092f99574c18bf8af4e",
+        "name":  "[Backend] GET /api/settings/privacy",
+        "list":  "Backend - Alta",
+        "url":  "https://trello.com/c/Tk3lSm9X/141-backend-get-api-settings-privacy",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta",
+                       "Feed",
+                       "Privacy"
+                   ],
+        "endpoints":  "/api/settings/privacy",
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: GET /api/settings/privacy\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/L0txa76K\n\nDescripción original frontend:\nObtener configuración de privacidad del usuario autenticado.\n\n**Response** `200`**:**\n\n```\n{\n  \"whoCanSeeMyPosts\": \"EVERYONE\",\n  \"whoCanComment\": \"EVERYONE\",\n  \"whoCanSendDM\": \"EVERYONE\",\n  \"showOnlineStatus\": true,\n  \"showLastSeen\": false\n}\n```"
+    },
+    {
+        "id":  "69ed4091bf9273c15a2be3e5",
+        "name":  "[Backend] GET /api/stories/{storyId}/reactions",
+        "list":  "Backend - Alta",
+        "url":  "https://trello.com/c/Ydj4RTil/140-backend-get-api-stories-storyid-reactions",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta",
+                       "Stories"
+                   ],
+        "endpoints":  "/api/stories/{storyId}/reactions",
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: GET /api/stories/{storyId}/reactions\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/X7eI1YTb\n\nDescripción original frontend:\n```\n[\n  {\n    \"userId\": \"uuid\",\n    \"username\": \"maria99\",\n    \"profilePictureUrl\": \"https://...\",\n    \"reaction\": \"LOVE\",\n    \"reactedAt\": \"2026-04-23T16:00:00Z\"\n  }\n]\n```"
+    },
+    {
+        "id":  "69ed4091ede2448e803a2c00",
+        "name":  "[Backend] POST /api/stories/{storyId}/react?reaction=LIKE",
+        "list":  "Backend - Alta",
+        "url":  "https://trello.com/c/3bZLblcK/139-backend-post-api-stories-storyid-reactreactionlike",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta",
+                       "Feed",
+                       "Stories"
+                   ],
+        "endpoints":  "/api/stories/{storyId}/react?reaction=LIKE",
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: POST /api/stories/{storyId}/react?reaction=LIKE\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/b8wKt2iA\n\nDescripción original frontend:\n`reaction`: `LIKE` | `LOVE` | `HAHA` | `WOW` | `SAD` | `ANGRY` _(los valores del enum_ `ReactionType`_)_"
+    },
+    {
+        "id":  "69ed4091571e813c092c9b54",
+        "name":  "[Backend] GET /api/stories/{storyId}/view-count",
+        "list":  "Backend - Alta",
+        "url":  "https://trello.com/c/nsgDKzYB/138-backend-get-api-stories-storyid-view-count",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta",
+                       "Stories"
+                   ],
+        "endpoints":  "/api/stories/{storyId}/view-count",
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: GET /api/stories/{storyId}/view-count\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/leITEx6C\n\nDescripción original frontend:\nNúmero de vistas. **Solo el dueño.**"
+    },
+    {
+        "id":  "69ed4090be4a803b0f9f6d7b",
+        "name":  "[Backend] contadores de seguidores, seguidos... Tanto en get me, como en profile.",
+        "list":  "Backend - Alta",
+        "url":  "https://trello.com/c/lJBd26gi/136-backend-contadores-de-seguidores-seguidos-tanto-en-get-me-como-en-profile",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta"
+                   ],
+        "endpoints":  [
+                          "/api/profile/{userId}",
+                          "/api/profile/me"
+                      ],
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: contadores de seguidores, seguidos... Tanto en get me, como en profile.\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/BxHTMQdc\n\nDescripción original frontend:\n`GET /api/profile/{userId}`\n\n`GET /api/profile/me`\n\n?\n\n?\n\ndevuelven `followersCount` y `followingCount`"
+    },
+    {
+        "id":  "69ed4090e80cc3841284126a",
+        "name":  "[Backend] Ver follows request, acceptados, a quienes sigue el usuario",
+        "list":  "Backend - Alta",
+        "url":  "https://trello.com/c/uQ4YFxnO/135-backend-ver-follows-request-acceptados-a-quienes-sigue-el-usuario",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta"
+                   ],
+        "endpoints":  [
+                          "/api/follow/requests",
+                          "/api/follow/followers/{userId}",
+                          "/api/follow/following/{userId}"
+                      ],
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: Ver follows request, acceptados, a quienes sigue el usuario\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/fsvFhDzv\n\nDescripción original frontend:\n`GET /api/follow/requests`El usuario autenticadoSus solicitudes PENDING entrantes\n\n`GET /api/follow/followers/{userId}`Cualquier usuario autenticadoSeguidores ACCEPTED del userId\n\n`GET /api/follow/following/{userId}`Cualquier usuario autenticadoA quiénes sigue el userId\n\nDevuelven `List\u003cFollowerUserDTO\u003e` con `userId`, `username`, `nombres`, `apellidos` y `profilePictureUrl`."
+    },
+    {
+        "id":  "69ed409089f0b6ca463ad9bd",
+        "name":  "[Backend] Modulo Stories",
+        "list":  "Backend - Alta",
+        "url":  "https://trello.com/c/CMOy3IRp/134-backend-modulo-stories",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta",
+                       "Feed",
+                       "Stories",
+                       "Privacy"
+                   ],
+        "endpoints":  [
+                          "/api/stories",
+                          "/api/stories/feed",
+                          "/api/stories/user/{userId}",
+                          "/api/stories/{id}/view",
+                          "/api/stories/{id}/viewers",
+                          "/api/stories/{id}/view-count",
+                          "/api/stories/{id}/react?reaction=LIKE",
+                          "/api/stories/{id}/reactions",
+                          "/api/stories/{id}"
+                      ],
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: Modulo Stories\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/PtNsBi7k\n\nDescripción original frontend:\n### Endpoints\n\n`POST/api/stories`Crear historia\n\n`GET/api/stories/feed`Feed agrupado por usuario, con unread primero\n\n`GET/api/stories/user/{userId}`Historias de un usuario (respeta privacidad)\n\n`POST/api/stories/{id}/view`Registrar vista\n\n`GET/api/stories/{id}/viewers`Quiénes la vieron (solo dueño)\n\n`GET/api/stories/{id}/view-count`Cuántos la vieron (solo dueño)\n\n`POST/api/stories/{id}/react?reaction=LIKE`Toggle reacción\n\n`GET/api/stories/{id}/reactions`Lista de reacciones (solo dueño)\n\n`DELETE/api/stories/{id}`Eliminar historia"
+    },
+    {
+        "id":  "69ed408f1b0dd6aa37d395d5",
+        "name":  "[Backend] Manejar excepción cuando el poll haya expirado",
+        "list":  "Backend - Alta",
+        "url":  "https://trello.com/c/k09cxgng/133-backend-manejar-excepci%C3%B3n-cuando-el-poll-haya-expirado",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta",
+                       "Polls"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: Manejar excepción cuando el poll haya expirado\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/343gijzA\n\nDescripción original frontend:\n```\nif (poll.getExpiresAt() != null \u0026\u0026 Instant.now().isAfter(poll.getExpiresAt())) {\n            throw new org.springframework.web.server.ResponseStatusException(\n                org.springframework.http.HttpStatus.GONE, \"Este poll ya expiró\"\n            );\n        }\n```"
+    },
+    {
+        "id":  "69ed408f7aed83d3c77617df",
+        "name":  "[Backend] Controlar que el limite de opciones en el poll sea menor o igual a 10",
+        "list":  "Backend - Alta",
+        "url":  "https://trello.com/c/D7dUfGwe/132-backend-controlar-que-el-limite-de-opciones-en-el-poll-sea-menor-o-igual-a-10",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta",
+                       "Polls"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: Controlar que el limite de opciones en el poll sea menor o igual a 10\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/4eyU45nl\n\nDescripción original frontend:\n```\n\n        if (cleanedOptions.size() \u003e 10) {\n```\n\n```\n            throw new RuntimeException(\"Poll cannot have more than 10 options\");\n```\n\n```\n        }\n```"
+    },
+    {
+        "id":  "69ed408fcc9692cd53b8c130",
+        "name":  "[Backend] feed para seguidores GET /api/feed/following",
+        "list":  "Backend - Alta",
+        "url":  "https://trello.com/c/XttEwFEP/131-backend-feed-para-seguidores-get-api-feed-following",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Alta",
+                       "Feed"
+                   ],
+        "endpoints":  "/api/feed/following",
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: feed para seguidores GET /api/feed/following\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/6LG1EYoP\n\nDescripción original frontend:\n"
+    },
+    {
+        "id":  "69ed408eac617eff2bdca0b9",
+        "name":  "[Backend] IMPLEMENTAR ENDPOINT BUSQUEDA INTELIGENTE. ESTE BUSCA POR POST, USUARIOS, HASHTAGS Y CONTENT DEL POST.",
+        "list":  "Backend - Alta",
+        "url":  "https://trello.com/c/IrR9m1tk/127-backend-implementar-endpoint-busqueda-inteligente-este-busca-por-post-usuarios-hashtags-y-content-del-post",
+        "labels":  [
+                       "Prioridad Alta",
+                       "Backend Auto",
+                       "Feed",
+                       "Search"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: IMPLEMENTAR ENDPOINT BUSQUEDA INTELIGENTE. ESTE BUSCA POR POST, USUARIOS, HASHTAGS Y CONTENT DEL POST.\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/mChdRxjS\n\nDescripción original frontend:\n"
+    },
+    {
+        "id":  "69ed408df3736edbaded4133",
+        "name":  "[Backend] Modifico response del endpoint ver mis cards (Las que postee), ver mas dentro de la tarjeta...",
+        "list":  "Backend - Alta",
+        "url":  "https://trello.com/c/Fd959IDo/126-backend-modifico-response-del-endpoint-ver-mis-cards-las-que-postee-ver-mas-dentro-de-la-tarjeta",
+        "labels":  [
+                       "Prioridad Alta",
+                       "Backend Auto",
+                       "Feed",
+                       "Chat",
+                       "Privacy"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: Modifico response del endpoint ver mis cards (Las que postee), ver mas dentro de la tarjeta...\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/9zPQVoEW\n\nDescripción original frontend:\n```\n??La idea es la siguiente, Solo mostraras las cards activas,\nlas que estan expiradas vas a darle un color grayout o ponerla en otra seccion de historico de citas. Por otro lado seria bueno que las personas que han mostrado intereses de las cards expiradas, se le haga una lista, que despliegue las propuestas, asi no se amontona mucha informacion. A las activas si se puede poner la lista completa, pero si se puede paginar, mucho mejor. o me dices y te la mando paginada\nQ UYT\n\n\n[\n  {\n    \"dateCardId\": \"17b39fc1-df14-4210-973e-f415616d2195\",\n    \"title\": \"string\",\n    \"message\": \"string\",\n    \"dateTime\": \"2026-04-15T22:02:41.647Z\",\n    \"locationZone\": \"string\",\n    \"category\": \"FOOD\",\n    \"detail\": \"string\",\n    \"plans\": [\n      \"CAFE\"\n    ],\n    \"placeTypes\": [\n      \"CAFE\"\n    ],\n    \"status\": \"ACTIVE\",\n    \"expiresAt\": \"2026-04-16T22:02:41.647Z\",\n    \"createdAt\": \"2026-04-14T22:03:14.210609Z\",\n    \"totalInterests\": 1,\n    \"interests\": [\n      {\n        \"interestId\": \"07bb3af6-4572-4be4-9c89-5dc618b6bf31\",\n        \"userId\": \"65337fd1-6adb-4e78-9861-cebc9d505dc1\",\n        \"profilePicture\": null,\n        \"profileId\": \"a37bedfe-18a9-4ef3-a245-c6a949308d15\",\n        \"message\": \"jjj\",\n        \"status\": \"PENDING\"\n      }\n    ]\n  },\n  {\n    \"dateCardId\": \"01138460-2916-4c5f-94d1-72fd71390c2f\",\n    \"title\": \"Prueba\",\n    \"message\": \"string\",\n    \"dateTime\": \"2026-04-13T20:24:46.300Z\",\n    \"locationZone\": \"string\",\n    \"category\": \"FOOD\",\n    \"detail\": \"string\",\n    \"plans\": [\n      \"CAFE\"\n    ],\n    \"placeTypes\": [\n      \"CAFE\"\n    ],\n    \"status\": \"EXPIRED\",\n    \"expiresAt\": \"2026-04-14T20:24:46.300Z\",\n    \"createdAt\": \"2026-04-12T20:39:38.865122Z\",\n    \"totalInterests\": 2,\n    \"interests\": [\n      {\n        \"interestId\": \"35fb6575-0a15-4c42-91c4-aa1b2df33051\",\n        \"userId\": \"390ae29c-99b6-42e6-a652-ccd5bc33b9c9\",\n        \"profilePicture\": \"https://res.cloudinary.com/dvk3yygql/image/upload/v1773436027/rx4cjelmtd9gw6mlvfw1.jpg\",\n        \"profileId\": \"b69ab123-9db0-4321-b9b9-e1e5c0b13014\",\n        \"message\": \"klk\",\n        \"status\": \"PENDING\"\n      },\n      {\n        \"interestId\": \"91340773-b757-4728-8459-4709cafb2b81\",\n        \"userId\": \"81a56d83-d576-4f74-b0fd-895c75a2b3b7\",\n        \"profilePicture\": \"https://res.cloudinary.com/dvk3yygql/image/upload/v1773435905/xcsi3asfhkswxzflwhay.png\",\n        \"profileId\": \"36ddca7f-a3e0-41dc-b3de-605969da980b\",\n        \"message\": \"Plis\",\n        \"status\": \"PENDING\"\n      }\n    ]\n  },\n  {\n    \"dateCardId\": \"cfd14a6c-fbd7-49ce-94a4-7c46900668e6\",\n    \"title\": \"Cena\",\n    \"message\": null,\n    \"dateTime\": \"2026-04-10T20:00:00Z\",\n    \"locationZone\": \"Zona Colonial\",\n    \"category\": \"OPEN_SUGGESTION\",\n    \"detail\": null,\n    \"plans\": [],\n    \"placeTypes\": [],\n    \"status\": \"EXPIRED\",\n    \"expiresAt\": \"2026-04-10T20:00:00Z\",\n    \"createdAt\": \"2026-04-09T23:10:00.577368Z\",\n    \"totalInterests\": 0,\n    \"interests\": []\n  }\n]\n```"
+    },
+    {
+        "id":  "69ed408d1c6a7d9af0c4c83f",
+        "name":  "[Backend] Fix: Incluir notificationId en respuesta de notificaciones",
+        "list":  "Backend - Alta",
+        "url":  "https://trello.com/c/U2tsIrMf/125-backend-fix-incluir-notificationid-en-respuesta-de-notificaciones",
+        "labels":  [
+                       "Prioridad Alta",
+                       "Backend Auto",
+                       "Notifications"
+                   ],
+        "endpoints":  [
+                          "/api/notifications/{userId}",
+                          "/api/notifications/{notificationId}/read",
+                          "/api/notifications/{notificationId}"
+                      ],
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: Fix: Incluir notificationId en respuesta de notificaciones\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/uEf06vU1\n\nDescripción original frontend:\n**Descripción:**\nEl endpoint \n\n```\nGET /api/notifications/{userId}\n```\n\n no devuelve el \n\n```\nnotificationId\n```\n\n en la respuesta, lo que impide que el frontend pueda llamar los endpoints de marcar como leída y eliminar.\n\n?\n\n**Archivos a modificar:**\n\n?\n\n```\nNotificationsResponseDTO.java\n```\n\n?\n\n- Descomentar \n  ```\n  private UUID notificationId\n  ```\n  ?\n- Descomentar el getter \n  ```\n  getNotificationId()\n  ```\n  ?\n- Descomentar el setter \n  ```\n  setNotificationId()\n  ```\n  ?\n- Agregar \n  ```\n  notificationId\n  ```\n   como primer parámetro del constructor\n  ?\n\n?\n\n```\nNotificationsService.java\n```\n\n — método \n\n```\ngetNotificationsForUser\n```\n\n?\n\n- Descomentar la línea: \n  ```\n  // dto.setNotificationId(notification.getNotificationId());\n  ```\n  ?\n\n**Endpoints que dependen de este fix:**\n\n- ?\n  ```\n  PUT /api/notifications/{notificationId}/read\n  ```\n   — marcar como leída\n  ?\n- ?\n  ```\n  DELETE /api/notifications/{notificationId}\n  ```\n   — eliminar notificación\n  ?\n\n**Impacto:** Sin este fix el frontend usa un ID falso (\n\n```\nsenderId + createdAt\n```\n\n) y los endpoints devuelven 400."
+    },
+    {
+        "id":  "69ed409a5d320968c2366d18",
+        "name":  "[Backend] Agregar reacciones en chats",
+        "list":  "Backend - Media",
+        "url":  "https://trello.com/c/8vrGQKv6/171-backend-agregar-reacciones-en-chats",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Media",
+                       "Chat"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: Agregar reacciones en chats\nLista origen: Terminado/ Pendiente revision Frontend\nURL card frontend: https://trello.com/c/QVskaxuR\n\nDescripción original frontend:\nPara que se pueda reaccional a los mensajes"
+    },
+    {
+        "id":  "69ed4095da3ba750f728f76a",
+        "name":  "[Backend] Mensajes fijados en chat privados",
+        "list":  "Backend - Media",
+        "url":  "https://trello.com/c/0KIeBcWm/153-backend-mensajes-fijados-en-chat-privados",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Media",
+                       "Chat"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: Mensajes fijados en chat privados\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/Rx6R2k5y\n\nDescripción original frontend:\n"
+    },
+    {
+        "id":  "69ed409a189773a7d28ea123",
+        "name":  "[Backend] Agregar campos completos a MyDateCardsResponse",
+        "list":  "Backend - Media",
+        "url":  "https://trello.com/c/SSa4Tlm5/170-backend-agregar-campos-completos-a-mydatecardsresponse",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Media",
+                       "Chat",
+                       "Privacy"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: Agregar campos completos a MyDateCardsResponse\nLista origen: Terminado/ Pendiente revision Frontend\nURL card frontend: https://trello.com/c/3e0wTJyr\n\nDescripción original frontend:\nMyDateCardsResponse solo devuelve dateCardId y title.\nFaltan los campos de la cita para mostrarlos en el frontend.\n\nAgregar a MyDateCardsResponse:\n\n- dateTime (Instant)\n- locationZone (String)\n- category (DateCategory)\n- plans (List\u003cPlan\u003e)\n- message (String)\n- expiresAt (Instant)\n- status (DateCardStatus)\n\nY también en InterestDto:\n\n- interestId (UUID) — para poder responder\n- username (String)\n\nMapear en DateCardService.getMyCardsWithInterests()"
+    },
+    {
+        "id":  "69ed4098cda027d665820fcd",
+        "name":  "[Backend] Dashboard Mannager",
+        "list":  "Backend - Media",
+        "url":  "https://trello.com/c/1IYL49w7/165-backend-dashboard-mannager",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Media",
+                       "Analytics"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: Dashboard Mannager\nLista origen: Terminado/ Pendiente revision Frontend\nURL card frontend: https://trello.com/c/gW6G4TDC\n\nDescripción original frontend:\n"
+    },
+    {
+        "id":  "69ed40987208722a63bff94f",
+        "name":  "[Backend] En el perfil pondremos un campo que sea voice note, 30 sec, la persona podia decir algo sobre ella y que cuando alguien entre al perfil le pueda dar play, este debe estar disponible tambien para las cartas de swipe.",
+        "list":  "Backend - Media",
+        "url":  "https://trello.com/c/cCq9RakP/162-backend-en-el-perfil-pondremos-un-campo-que-sea-voice-note-30-sec-la-persona-podia-decir-algo-sobre-ella-y-que-cuando-alguien-en",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Media"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: En el perfil pondremos un campo que sea voice note, 30 sec, la persona podia decir algo sobre ella y que cuando alguien entre al perfil le pueda dar play, este debe estar disponible tambien para las cartas de swipe.\nLista origen: En test/Desarrollando /Frontend\nURL card frontend: https://trello.com/c/HMZQr1v7\n\nDescripción original frontend:\n"
+    },
+    {
+        "id":  "69ed409791bff375efbecad4",
+        "name":  "[Backend] Implementar, fast dating.",
+        "list":  "Backend - Media",
+        "url":  "https://trello.com/c/Er2pk7lG/161-backend-implementar-fast-dating",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Media"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: Implementar, fast dating.\nLista origen: En test/Desarrollando /Frontend\nURL card frontend: https://trello.com/c/ZJoyQVDZ\n\nDescripción original frontend:\nUsuarios gratuitos tendrán posibilidad de crear hasta 5 cards al mes (por el momento) y al igual que podrán enviar request a 5 cards al mes, ya esta controlado por el back"
+    },
+    {
+        "id":  "69ed409781ae9a30b70a9e03",
+        "name":  "[Backend] Formato distinto a mensajes tipo \"system\": true.",
+        "list":  "Backend - Media",
+        "url":  "https://trello.com/c/TF72Fz1x/160-backend-formato-distinto-a-mensajes-tipo-system-true",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Media",
+                       "Chat"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: Formato distinto a mensajes tipo \"system\": true.\nLista origen: En test/Desarrollando /Frontend\nURL card frontend: https://trello.com/c/mjx1YFqd\n\nDescripción original frontend:\nProbar: Crea una carta de cita, logueate con otro usuario, haz la solicitud para ir a esa cita. Vuelve al primer usuario y acepta, debe aparecer un mensaje auto, generado por el sistema. Cuando vienen del sistema, dale un aspecto distinto para que los usuarios distingan."
+    },
+    {
+        "id":  "69ed409304369cd2348a8cbd",
+        "name":  "[Backend] Profile voice note permite subir cualquier archivo, no solo voice. Debe ser solo voice",
+        "list":  "Backend - Media",
+        "url":  "https://trello.com/c/w0WtxeXh/146-backend-profile-voice-note-permite-subir-cualquier-archivo-no-solo-voice-debe-ser-solo-voice",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Media"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: Profile voice note permite subir cualquier archivo, no solo voice. Debe ser solo voice\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/11wPOs4e\n\nDescripción original frontend:\n"
+    },
+    {
+        "id":  "69ed40936441b28f5d4c81d1",
+        "name":  "[Backend] Notifications (float), queda a media pantalla. Web Mobile. al dar a todas, entra perfecto.\u0027",
+        "list":  "Backend - Media",
+        "url":  "https://trello.com/c/gEEwGDh3/145-backend-notifications-float-queda-a-media-pantalla-web-mobile-al-dar-a-todas-entra-perfecto",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Media",
+                       "Notifications"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: Notifications (float), queda a media pantalla. Web Mobile. al dar a todas, entra perfecto.\u0027\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/RqyhTf3r\n\nDescripción original frontend:\n"
+    },
+    {
+        "id":  "69ed40906062dd099d86a5c3",
+        "name":  "[Backend] Sparkling list, Tipo Close friend. Historias tendrán privacidad. PUBLIC, SPARKLING LIST",
+        "list":  "Backend - Media",
+        "url":  "https://trello.com/c/GY8luANg/137-backend-sparkling-list-tipo-close-friend-historias-tendr%C3%A1n-privacidad-public-sparkling-list",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Media",
+                       "Stories",
+                       "Privacy"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: Sparkling list, Tipo Close friend. Historias tendrán privacidad. PUBLIC, SPARKLING LIST\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/Ofh81edh\n\nDescripción original frontend:\n"
+    },
+    {
+        "id":  "69ed408eef720a0281ef6828",
+        "name":  "[Backend] Debo poder eliminar mensajes de otro usuario (Para mi)",
+        "list":  "Backend - Media",
+        "url":  "https://trello.com/c/4BYvWZxo/130-backend-debo-poder-eliminar-mensajes-de-otro-usuario-para-mi",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Media",
+                       "Chat"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: Debo poder eliminar mensajes de otro usuario (Para mi)\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/l3j9EAR8\n\nDescripción original frontend:\n"
+    },
+    {
+        "id":  "69ed408e9957d2ae321d0604",
+        "name":  "[Backend] Verificar que al subir foto no suban datos de location en la foto, ejemplo coordenadas. bloquear por privacidad.",
+        "list":  "Backend - Media",
+        "url":  "https://trello.com/c/nyxVU2Pa/129-backend-verificar-que-al-subir-foto-no-suban-datos-de-location-en-la-foto-ejemplo-coordenadas-bloquear-por-privacidad",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Media",
+                       "Privacy"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: Verificar que al subir foto no suban datos de location en la foto, ejemplo coordenadas. bloquear por privacidad.\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/0bxMBndA\n\nDescripción original frontend:\n"
+    },
+    {
+        "id":  "69ed408e88ad121de0929187",
+        "name":  "[Backend] Sistema de Búsqueda Completo",
+        "list":  "Backend - Media",
+        "url":  "https://trello.com/c/t771hUrF/128-backend-sistema-de-b%C3%BAsqueda-completo",
+        "labels":  [
+                       "Backend Auto",
+                       "Prioridad Media"
+                   ],
+        "endpoints":  {
+
+                      },
+        "desc":  "Automática desde Frontend\n\nFuente card frontend: Sistema de Búsqueda Completo\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/7k2I0I2S\n\nDescripción original frontend:\n"
+    }
+]

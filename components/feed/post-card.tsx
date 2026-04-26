@@ -35,6 +35,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { reputationService } from "@/lib/services/reputation"
 import { bookmarkService } from "@/lib/services/bookmark"
+import { repostService } from "@/lib/services/repost"
 import { reactionService } from "@/lib/services/reaction"
 import { toast } from "sonner"
 import { formatDistanceToNow } from "date-fns"
@@ -99,8 +100,10 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
   const [userReaction, setUserReaction] = useState<ReactionType | null>(initialUserReaction)
   const [reactionCounts, setReactionCounts] = useState(post.reactions || {})
   const [repostCount, setRepostCount] = useState(post.repostCount || 0)
-  const [reposted, setReposted] = useState(false)
-  const [bookmarked, setBookmarked] = useState(false)
+  const [reposted, setReposted] = useState(post.repostedByCurrentUser || false)
+  const [bookmarked, setBookmarked] = useState(Boolean(post.saved))
+  const [isBookmarkPending, setIsBookmarkPending] = useState(false)
+  const [isRepostPending, setIsRepostPending] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const [showComments, setShowComments] = useState(false)
   const [showRepostModal, setShowRepostModal] = useState(false)
@@ -245,8 +248,9 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
       toast.error('Inicia sesión para guardar posts')
       return
     }
+    setIsBookmarkPending(true)
     try {
-      const isBookmarked = await bookmarkService.toggleBookmark(user.userId, post.id)
+      const isBookmarked = await bookmarkService.toggleBookmark(post.id)
       setBookmarked(isBookmarked)
       toast.success(isBookmarked ? 'Post guardado' : 'Post removido')
       setShowMenu(false)
@@ -255,6 +259,8 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
       }
     } catch (error: any) {
       toast.error(error?.message || 'No se pudo actualizar guardados')
+    } finally {
+      setIsBookmarkPending(false)
     }
   }, [user?.userId, post.id, onDelete])
 
@@ -287,37 +293,64 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
     setIsEditing(false)
   }, [post.body, post.visibility])
 
-  const handleRepost = useCallback((comment: string) => {
-    // TODO: Implementar endpoint de repost en el backend
-    // await api.post(`/api/posts/repost/${post.id}`, { comment })
-    setRepostCount(prev => prev + 1)
-    toast.success('Repost guardado')
-  }, [])
+  const handleRepost = useCallback(async (comment: string) => {
+    if (!user?.userId || isRepostPending) {
+      return
+    }
+
+    const previousCount = repostCount
+    const previousState = reposted
+    const nextState = !reposted
+    const nextCount = Math.max(0, repostCount + (nextState ? 1 : -1))
+
+    setIsRepostPending(true)
+    setReposted(nextState)
+    setRepostCount(nextCount)
+
+    try {
+      if (nextState) {
+        await repostService.createRepost(post.id, comment)
+        toast.success('Repost publicado')
+      } else {
+        await repostService.removeRepost(post.id, user.userId)
+        toast.success('Repost eliminado')
+      }
+      onUpdate?.(post.id)
+    } catch (error: any) {
+      setReposted(previousState)
+      setRepostCount(previousCount)
+      toast.error(error?.message || 'No se pudo actualizar el repost')
+    } finally {
+      setIsRepostPending(false)
+    }
+  }, [user?.userId, post.id, reposted, repostCount, isRepostPending, onUpdate])
 
 
   const [pollState, setPollState] = useState<typeof post.poll>(post.poll ?? null)
 
   useEffect(() => {
-    let cancelled = false
+    setBookmarked(Boolean(post.saved) || bookmarkService.isSaved(post.id))
+  }, [post.id, post.saved])
 
+  useEffect(() => {
+    let cancelled = false
     const run = async () => {
       if (!user?.userId) {
-        if (!cancelled) setBookmarked(false)
+        if (!cancelled) setReposted(false)
         return
       }
       try {
-        const rows = await bookmarkService.list(user.userId)
-        if (!cancelled) setBookmarked(rows.some((item) => item.postId === post.id))
+        const result = await repostService.hasReposted(post.id, user.userId)
+        if (!cancelled) setReposted(result)
       } catch {
-        if (!cancelled) setBookmarked(bookmarkService.isBookmarked(user.userId, post.id))
+        if (!cancelled) setReposted(Boolean(post.repostedByCurrentUser))
       }
     }
-
     void run()
     return () => {
       cancelled = true
     }
-  }, [user?.userId, post.id])
+  }, [post.id, post.repostedByCurrentUser, user?.userId])
 
   const handlePollVote = async (optionId: string) => {
     if (!pollState || pollState.userVoted) return
@@ -455,9 +488,13 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="bg-card border-border">
-                  <DropdownMenuItem onClick={handleBookmark} className="cursor-pointer flex items-center gap-2">
+                  <DropdownMenuItem
+                    onClick={handleBookmark}
+                    disabled={isBookmarkPending}
+                    className="cursor-pointer flex items-center gap-2"
+                  >
                     <Bookmark className={`h-4 w-4 ${bookmarked ? 'fill-current' : ''}`} />
-                    {bookmarked ? 'Quitar guardado' : 'Guardar'}
+                    {isBookmarkPending ? 'Actualizando...' : bookmarked ? 'Quitar guardado' : 'Guardar'}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setShowReportModal(true)} className="cursor-pointer text-destructive flex items-center gap-2">
                     <Flag className="h-4 w-4" />
@@ -700,12 +737,20 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
             
             <div className="flex items-center gap-1.5">
               <button
-                onClick={() => setShowRepostModal(true)}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-                title="Compartir"
+                onClick={() => {
+                  if (isRepostPending) return
+                  if (reposted) {
+                    void handleRepost("")
+                    return
+                  }
+                  setShowRepostModal(true)
+                }}
+                disabled={isRepostPending}
+                className={`text-muted-foreground hover:text-foreground transition-colors ${isRepostPending ? 'opacity-60 cursor-not-allowed' : ''}`}
+                title={reposted ? "Quitar repost" : "Repostear"}
                 aria-label="Republicar esta publicación"
               >
-                <Repeat2 className="h-5 w-5 hover:scale-110 transition-all" />
+                <Repeat2 className={`h-5 w-5 hover:scale-110 transition-all ${reposted ? 'text-primary' : ''}`} />
               </button>
               {repostCount > 0 && (
                 <span className="text-sm text-muted-foreground">

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { eventService } from "@/lib/services/event"
 import { groupService } from "@/lib/services/group"
+import { ApiError } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
 import { useWebSocket } from "@/hooks/use-websocket"
 
@@ -363,7 +364,23 @@ export default function EventDetailPage() {
         prev.map((m) => (m.poll?.id === pollId ? { ...m, poll: updatedPoll } : m))
       )
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo votar")
+      const message = String(error?.message || "")
+      const isExpiredPoll =
+        (error instanceof ApiError && error.status === 410) ||
+        /expir/i.test(message)
+
+      if (isExpiredPoll) {
+        toast.info("Esta encuesta ya expiró")
+        try {
+          const rows = await eventService.groupMessages.list(eventId)
+          setMessages(rows.map((m) => ({ ...m, id: normalizeMessageId(m) })))
+        } catch {
+          // Si falla la recarga, al menos dejamos feedback claro.
+        }
+        return
+      }
+
+      toast.error(message || "No se pudo votar")
     }
   }
 

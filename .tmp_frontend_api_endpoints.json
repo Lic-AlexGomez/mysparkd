@@ -1,0 +1,837 @@
+[
+  {
+    "file": "C:\\v0-social\\hooks\\use-feed.ts",
+    "method": "GET",
+    "path": "/api/feed/feed"
+  },
+  {
+    "file": "C:\\v0-social\\hooks\\use-premium-status.ts",
+    "method": "GET",
+    "path": "/api/user-subscription/status"
+  },
+  {
+    "file": "C:\\v0-social\\hooks\\use-unread-chats.ts",
+    "method": "GET",
+    "path": "/api/chat/chats"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\block.ts",
+    "method": "GET",
+    "path": "/api/matches/${userId}/blocks"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\bookmark.ts",
+    "method": "GET",
+    "path": "/api/bookmarks/${userId}"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\bookmark.ts",
+    "method": "POST",
+    "path": "/api/bookmarks"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\chat.ts",
+    "method": "GET",
+    "path": "/api/chat/chats"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\chat.ts",
+    "method": "POST",
+    "path": "/api/chat/open/${userId}"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\chat.ts",
+    "method": "GET",
+    "path": "/api/chat/${chatId}/messages"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\chat.ts",
+    "method": "POST",
+    "path": "/api/chat/send"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\chat.ts",
+    "method": "POST",
+    "path": "/api/chat/chats/${chatId}/read"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\chat.ts",
+    "method": "POST",
+    "path": "/api/chat/chats/${chatId}/open"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\chat.ts",
+    "method": "POST",
+    "path": "/api/chat/chats/close"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\chat.ts",
+    "method": "POST",
+    "path": "/api/chat/upload/media"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\email-verification.ts",
+    "method": "POST",
+    "path": "/auth/verify-email"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "POST",
+    "path": "/api/events"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "GET",
+    "path": "/api/events/${eventId}"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "GET",
+    "path": "/api/events/me/created"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "GET",
+    "path": "/api/events/me/participating"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "PUT",
+    "path": "/api/events/${eventId}"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "DELETE",
+    "path": "/api/events/${eventId}"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "POST",
+    "path": "/api/events/${eventId}/join"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "POST",
+    "path": "/api/events/${eventId}/participants/${userId}/approve"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "POST",
+    "path": "/api/events/${eventId}/participants/${userId}/reject"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "POST",
+    "path": "/api/events/${eventId}/participants/${userId}/moderator"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "DELETE",
+    "path": "/api/events/${eventId}/participants/${userId}/moderator"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "GET",
+    "path": "/api/events/${eventId}/participants"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "GET",
+    "path": "/api/events/${eventId}/participants/pending"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "GET",
+    "path": "/api/events/${eventId}/group/messages"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "POST",
+    "path": "/api/events/${eventId}/group/messages"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "PUT",
+    "path": "/api/events/${eventId}/group/messages/${messageId}"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "DELETE",
+    "path": "/api/events/${eventId}/group/messages/${messageId}"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "POST",
+    "path": "/api/likes/toggle"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "GET",
+    "path": "/api/likes/status/${messageId}"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "POST",
+    "path": "/api/reports"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "POST",
+    "path": "/api/events/${eventId}/group/invite-links"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "GET",
+    "path": "/api/events/${eventId}/group/invite-links"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "DELETE",
+    "path": "/api/events/${eventId}/group/invite-links/${linkId}"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "POST",
+    "path": "/api/group-join-requests/join-by-link"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "PATCH",
+    "path": "/api/events/${eventId}/group/settings"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "GET",
+    "path": "/api/events/${eventId}/group/members"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "PUT",
+    "path": "/api/events/${eventId}/group/members/${targetUserId}/mute"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "DELETE",
+    "path": "/api/events/${eventId}/group/members/${targetUserId}/mute"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "DELETE",
+    "path": "/api/events/${eventId}/group/members/${targetUserId}"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "POST",
+    "path": "/api/events/${eventId}/group/polls"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "POST",
+    "path": "/api/events/${eventId}/group/polls/${optionId}/vote"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "POST",
+    "path": "/api/events/${eventId}/group/join-requests"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "POST",
+    "path": "/api/group-join-requests/${requestId}/respond"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "GET",
+    "path": "/api/group-join-requests/me"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "GET",
+    "path": "/api/events/${eventId}/group/join-requests"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "POST",
+    "path": "/api/events/${eventId}/group/join-requests/${requestId}/approve"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "POST",
+    "path": "/api/events/${eventId}/group/join-requests/${requestId}/reject"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "POST",
+    "path": "/api/events/${eventId}/group/share-address"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\event.ts",
+    "method": "POST",
+    "path": "/api/chat/upload/media"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\fastdate.ts",
+    "method": "GET",
+    "path": "/api/date-cards/feed${qs "
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\fastdate.ts",
+    "method": "GET",
+    "path": "/api/date-cards/mine"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\fastdate.ts",
+    "method": "POST",
+    "path": "/api/fast-date/interests/respond"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\fastdate.ts",
+    "method": "GET",
+    "path": "/api/fast-date/interests/mine/sent"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\feed.ts",
+    "method": "GET",
+    "path": "/api/feed/following"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\follow.ts",
+    "method": "GET",
+    "path": "/api/follow/${userId}/counts"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\follow.ts",
+    "method": "GET",
+    "path": "/api/follow/${userId}/followers"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\follow.ts",
+    "method": "GET",
+    "path": "/api/follow/${userId}/following"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "method": "POST",
+    "path": "/api/groups"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "method": "GET",
+    "path": "/api/groups"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "method": "GET",
+    "path": "/api/groups/discover${qs "
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "method": "GET",
+    "path": "/api/groups/${groupId}"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "method": "PUT",
+    "path": "/api/groups/${groupId}"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "method": "DELETE",
+    "path": "/api/groups/${groupId}"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "method": "POST",
+    "path": "/api/groups/${groupId}/join"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "method": "POST",
+    "path": "/api/groups/join/${token}"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "method": "GET",
+    "path": "/api/groups/${groupId}/messages"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "method": "POST",
+    "path": "/api/groups/${groupId}/messages"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "method": "PUT",
+    "path": "/api/groups/${groupId}/messages/${messageId}"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "method": "DELETE",
+    "path": "/api/groups/${groupId}/messages/${messageId}"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "method": "GET",
+    "path": "/api/groups/${groupId}/pinned-messages"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "method": "POST",
+    "path": "/api/groups/${groupId}/messages/${messageId}/pin"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "method": "DELETE",
+    "path": "/api/groups/${groupId}/messages/${messageId}/pin"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "method": "GET",
+    "path": "/api/groups/${groupId}/members"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "method": "POST",
+    "path": "/api/groups/${groupId}/members"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "method": "DELETE",
+    "path": "/api/groups/${groupId}/members/${userId}"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "method": "PUT",
+    "path": "/api/groups/${groupId}/members/${userId}/role"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "method": "PUT",
+    "path": "/api/groups/${groupId}/members/${userId}/mute"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "method": "DELETE",
+    "path": "/api/groups/${groupId}/members/${userId}/mute"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "method": "PATCH",
+    "path": "/api/groups/${groupId}/settings"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "method": "POST",
+    "path": "/api/groups/${groupId}/invite-links"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "method": "GET",
+    "path": "/api/groups/${groupId}/invite-links"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\group.ts",
+    "method": "DELETE",
+    "path": "/api/groups/${groupId}/invite-links/${inviteId}"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\notification.ts",
+    "method": "GET",
+    "path": "/api/notifications/${userId}"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\notification.ts",
+    "method": "GET",
+    "path": "/api/notifications/${userId}/count"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\privacy.ts",
+    "method": "GET",
+    "path": "/api/settings/privacy"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\privacy.ts",
+    "method": "PUT",
+    "path": "/api/settings/privacy"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\privacy.ts",
+    "method": "GET",
+    "path": "/api/settings/sparkling-list"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\privacy.ts",
+    "method": "POST",
+    "path": "/api/settings/sparkling-list/${memberId}"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\privacy.ts",
+    "method": "DELETE",
+    "path": "/api/settings/sparkling-list/${memberId}"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\profile.ts",
+    "method": "GET",
+    "path": "/api/profile/${userId}"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\profile.ts",
+    "method": "GET",
+    "path": "/admin/stats"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\profile.ts",
+    "method": "GET",
+    "path": "/admin/growth"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\report.ts",
+    "method": "GET",
+    "path": "/api/reports/reasons"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\report.ts",
+    "method": "GET",
+    "path": "/moderator/reports/all"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\report.ts",
+    "method": "GET",
+    "path": "/api/admin/reports"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\search.ts",
+    "method": "GET",
+    "path": "/api/search/users"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\search.ts",
+    "method": "GET",
+    "path": "/api/search/autocomplete"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\search.ts",
+    "method": "GET",
+    "path": "/api/search/posts"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\search.ts",
+    "method": "GET",
+    "path": "/api/search/general"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\search.ts",
+    "method": "GET",
+    "path": "/api/search/hashtags"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\search.ts",
+    "method": "GET",
+    "path": "/api/search/general"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\search.ts",
+    "method": "GET",
+    "path": "/api/hashtags/trending"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\search.ts",
+    "method": "GET",
+    "path": "/api/search/hashtags/trending"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\search.ts",
+    "method": "GET",
+    "path": "/api/hashtags/${encodeURIComponent(cleanTag)}/posts"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\search.ts",
+    "method": "GET",
+    "path": "/api/search/hashtags/${encodeURIComponent(cleanTag)}/posts"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\search.ts",
+    "method": "GET",
+    "path": "/api/search/autocomplete"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\story.ts",
+    "method": "GET",
+    "path": "/api/stories/feed"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\story.ts",
+    "method": "GET",
+    "path": "/api/stories/user/${targetUserId}"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\story.ts",
+    "method": "GET",
+    "path": "/api/stories/${storyId}/view-count"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\auth-context.tsx",
+    "method": "GET",
+    "path": "/api/profile/me"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\auth-context.tsx",
+    "method": "POST",
+    "path": "/auth/login"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\auth-context.tsx",
+    "method": "POST",
+    "path": "/auth/google"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\auth-context.tsx",
+    "method": "POST",
+    "path": "/auth/register"
+  },
+  {
+    "file": "C:\\v0-social\\components\\feed\\comments-sheet.tsx",
+    "method": "GET",
+    "path": "/api/comments/get/${postId}"
+  },
+  {
+    "file": "C:\\v0-social\\components\\feed\\comments-sheet.tsx",
+    "method": "GET",
+    "path": "/api/settings/privacy"
+  },
+  {
+    "file": "C:\\v0-social\\components\\feed\\comments-sheet.tsx",
+    "method": "GET",
+    "path": "/api/likes/status/${comment.commentsId}"
+  },
+  {
+    "file": "C:\\v0-social\\components\\feed\\comments-sheet.tsx",
+    "method": "GET",
+    "path": "/api/comments/getcommentReply/${parentId}"
+  },
+  {
+    "file": "C:\\v0-social\\components\\feed\\comments-sheet.tsx",
+    "method": "GET",
+    "path": "/api/likes/status/${reply.commentReplyId}"
+  },
+  {
+    "file": "C:\\v0-social\\components\\feed\\stories-bar.tsx",
+    "method": "GET",
+    "path": "/api/stories/feed"
+  },
+  {
+    "file": "C:\\v0-social\\components\\layout\\top-navbar.tsx",
+    "method": "GET",
+    "path": "/api/notifications/${user.userId}"
+  },
+  {
+    "file": "C:\\v0-social\\components\\swipes\\match-modal.tsx",
+    "method": "POST",
+    "path": "/api/chat/open/${matchedUserId}"
+  },
+  {
+    "file": "C:\\v0-social\\components\\ui\\voice-note.tsx",
+    "method": "GET",
+    "path": "/api/profile/me"
+  },
+  {
+    "file": "C:\\v0-social\\components\\dashboard\\sections\\admin-users.tsx",
+    "method": "GET",
+    "path": "/api/admin/users"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(auth)\\login\\page.tsx",
+    "method": "GET",
+    "path": "/api/profile/me"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(auth)\\login\\page.tsx",
+    "method": "GET",
+    "path": "/api/profile/me"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(auth)\\register\\page.tsx",
+    "method": "GET",
+    "path": "/api/profile/me"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(auth)\\verify-email\\page.tsx",
+    "method": "GET",
+    "path": "/api/profile/me"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\chat\\page.tsx",
+    "method": "GET",
+    "path": "/api/presence/${chat.otherUserId}"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\chat\\page.tsx",
+    "method": "GET",
+    "path": "/api/chat/chats/hidden"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\likes\\page.tsx",
+    "method": "GET",
+    "path": "/api/swipes/liked-me"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\matches\\page.tsx",
+    "method": "GET",
+    "path": "/api/matches/my/matches"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\matches\\page.tsx",
+    "method": "GET",
+    "path": "/api/profile/${match.userId}"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\matches\\page.tsx",
+    "method": "POST",
+    "path": "/api/chat/open/${userId}"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\notifications\\page.tsx",
+    "method": "GET",
+    "path": "/api/notifications/${user.userId}"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\notifications\\page.tsx",
+    "method": "GET",
+    "path": "/api/follow/requests"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\onboarding\\page.tsx",
+    "method": "GET",
+    "path": "/api/interests/all/interest"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\onboarding\\page.tsx",
+    "method": "GET",
+    "path": "/api/interests/me"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\premium\\page.tsx",
+    "method": "GET",
+    "path": "/api/user-subscription/status"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\premium\\page.tsx",
+    "method": "POST",
+    "path": "/api/subscription/checkout"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\profile\\page.tsx",
+    "method": "POST",
+    "path": "/api/photos/cover-picture"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\saved\\page.tsx",
+    "method": "GET",
+    "path": "/api/bookmarks/${user.userId}/posts"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\saved\\page.tsx",
+    "method": "GET",
+    "path": "/api/posts/feed"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\settings\\page.tsx",
+    "method": "GET",
+    "path": "/api/preferences/get/my/preferences"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\settings\\page.tsx",
+    "method": "GET",
+    "path": "/api/interests/all/interest"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\settings\\page.tsx",
+    "method": "GET",
+    "path": "/api/interests/me"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\stories\\page.tsx",
+    "method": "GET",
+    "path": "/api/stories/${storyId}/viewers"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\stories\\page.tsx",
+    "method": "GET",
+    "path": "/api/stories/${storyId}/reactions"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\swipes\\page.tsx",
+    "method": "GET",
+    "path": "/api/discover"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\swipes\\page.tsx",
+    "method": "GET",
+    "path": "/api/swipes/remaining/${user.userId}"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\swipes\\page.tsx",
+    "method": "POST",
+    "path": "/api/swipes/perform/swipe"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\profile\\edit\\page.tsx",
+    "method": "POST",
+    "path": "/api/photos/cover-picture"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\profile\\[userId]\\page.tsx",
+    "method": "GET",
+    "path": "/api/follow/status/${userId}"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\profile\\[userId]\\page.tsx",
+    "method": "GET",
+    "path": "/api/profile/${userId}"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\profile\\[userId]\\page.tsx",
+    "method": "GET",
+    "path": "/api/follow/${type}/${userId}"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\profile\\[userId]\\page.tsx",
+    "method": "POST",
+    "path": "/api/chat/open/${userId}"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\profile\\[userId]\\page.tsx",
+    "method": "POST",
+    "path": "/api/swipes/perform/swipe"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\chat\\[chatId]\\page.tsx",
+    "method": "GET",
+    "path": "/api/presence/${otherId}"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\chat\\[chatId]\\page.tsx",
+    "method": "GET",
+    "path": "/api/messages/${chatId}/messages"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\chat\\[chatId]\\page.tsx",
+    "method": "GET",
+    "path": "/api/chat/chats"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\chat\\[chatId]\\page.tsx",
+    "method": "GET",
+    "path": "/api/profile/${current.otherUserId}"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\chat\\[chatId]\\page.tsx",
+    "method": "GET",
+    "path": "/api/presence/${current.otherUserId}"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\chat\\[chatId]\\page.tsx",
+    "method": "POST",
+    "path": "/api/chat/send"
+  }
+]

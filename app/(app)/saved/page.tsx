@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { bookmarkService } from "@/lib/services/bookmark"
-import { api } from "@/lib/api"
 import { PostCard } from "@/components/feed/post-card"
 import { Bookmark, Loader2 } from "lucide-react"
 import type { Post } from "@/lib/types"
@@ -12,37 +11,25 @@ export default function SavedPostsPage() {
   const { user } = useAuth()
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const loadSavedPosts = async () => {
-      if (!user?.userId) return
-      
+      if (!user?.userId) {
+        setPosts([])
+        setLoading(false)
+        setError(null)
+        return
+      }
+
+      setLoading(true)
+      setError(null)
       try {
-        await bookmarkService.refresh(user.userId)
-        const bookmarkedIds = bookmarkService.getBookmarkedPosts(user.userId)
-        if (bookmarkedIds.length === 0) {
-          setPosts([])
-          return
-        }
-
-        try {
-          const backendRows = await api.get<any[]>(`/api/bookmarks/${user.userId}/posts`)
-          const normalized = (Array.isArray(backendRows) ? backendRows : [])
-            .map((row) => (row?.post ? row.post : row))
-            .filter((row) => row?.id)
-          if (normalized.length > 0) {
-            setPosts(normalized as Post[])
-            return
-          }
-        } catch {
-          // Fallback to filtering feed response when dedicated endpoint is unavailable.
-        }
-
-        const allPosts = await api.get<Post[]>("/api/posts/feed")
-        const savedPosts = allPosts.filter((p) => bookmarkedIds.includes(p.id))
-        setPosts(savedPosts)
+        const page = await bookmarkService.getSavedPosts(0, 50)
+        setPosts(page.content)
       } catch {
         setPosts([])
+        setError("No se pudieron cargar tus guardados")
       } finally {
         setLoading(false)
       }
@@ -68,6 +55,12 @@ export default function SavedPostsPage() {
       <div className="sticky top-16 z-20 border-b border-border bg-background/95 px-4 py-3 backdrop-blur-md">
         <h1 className="text-lg font-bold text-foreground">Posts Guardados</h1>
       </div>
+
+      {error && (
+        <div className="px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      )}
 
       {posts.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 py-20">

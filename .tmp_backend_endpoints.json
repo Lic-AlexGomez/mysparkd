@@ -1,0 +1,972 @@
+[
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Admin\\AdminStatsController.java",
+    "method": "GET",
+    "path": "/api/admin/stats"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Admin\\AdminStatsController.java",
+    "method": "GET",
+    "path": "/api/admin/growth"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Admin\\AdminStatsController.java",
+    "method": "GET",
+    "path": "/api/admin/users"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Admin\\UserRoleController.java",
+    "method": "POST",
+    "path": "/api/administrator/user-roles/assign"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\AuthController.java",
+    "method": "POST",
+    "path": "/auth/login"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\AuthController.java",
+    "method": "POST",
+    "path": "/auth/register"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\AuthController.java",
+    "method": "POST",
+    "path": "/auth/verify-email"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\AuthController.java",
+    "method": "POST",
+    "path": "/auth/resend-verification"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\AuthController.java",
+    "method": "POST",
+    "path": "/auth/forgot-password"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\AuthController.java",
+    "method": "POST",
+    "path": "/auth/reset-password"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\AuthController.java",
+    "method": "GET",
+    "path": "/auth/ping"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\AuthController.java",
+    "method": "POST",
+    "path": "/auth/change-password"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\AuthController.java",
+    "method": "POST",
+    "path": "/auth/google"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\BookmarkController.java",
+    "method": "POST",
+    "path": "/api/bookmarks/toggle"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\ChatController.java",
+    "method": "POST",
+    "path": "/api/chat/open/{userId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\ChatController.java",
+    "method": "POST",
+    "path": "/api/chat/send"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\ChatController.java",
+    "method": "GET",
+    "path": "/api/chat/{chatId}/messages"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\ChatController.java",
+    "method": "GET",
+    "path": "/api/chat/chats/hidden"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\ChatController.java",
+    "method": "POST",
+    "path": "/api/chat/chats/{chatId}/hide"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\ChatController.java",
+    "method": "DELETE",
+    "path": "/api/chat/chats/{chatId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\ChatController.java",
+    "method": "GET",
+    "path": "/api/chat/chats"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\ChatController.java",
+    "method": "POST",
+    "path": "/api/chat/chats/{chatId}/read"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\ChatController.java",
+    "method": "POST",
+    "path": "/api/chat/chats/{chatId}/open"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\ChatController.java",
+    "method": "POST",
+    "path": "/api/chat/chats/close"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\ChatController.java",
+    "method": "POST",
+    "path": "/api/chat/upload/media"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\ChatController.java",
+    "method": "POST",
+    "path": "/api/chat/chats/{chatId}/unhide"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\ChatController.java",
+    "method": "PUT",
+    "path": "/api/chat/messages/{messageId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\ChatController.java",
+    "method": "DELETE",
+    "path": "/api/chat/messages/{messageId}/me"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\ChatController.java",
+    "method": "DELETE",
+    "path": "/api/chat/messages/{messageId}/everyone"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\CommentsController.java",
+    "method": "GET",
+    "path": "/api/comments/get/{postId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\CommentsController.java",
+    "method": "POST",
+    "path": "/api/comments/{postId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\CommentsController.java",
+    "method": "POST",
+    "path": "/api/comments/reply/{parentId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\CommentsController.java",
+    "method": "GET",
+    "path": "/api/comments/getcommentReply/{parentId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\CommentsController.java",
+    "method": "DELETE",
+    "path": "/api/comments/delete/{commentId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\CommentsController.java",
+    "method": "PUT",
+    "path": "/api/comments/update/{commentId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\DateCardController.java",
+    "method": "POST",
+    "path": "/api/date-cards/create"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\DateCardController.java",
+    "method": "GET",
+    "path": "/api/date-cards/feed"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\DateCardController.java",
+    "method": "GET",
+    "path": "/api/date-cards/feed"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\DateCardController.java",
+    "method": "PUT",
+    "path": "/api/date-cards/{id}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\DateCardController.java",
+    "method": "DELETE",
+    "path": "/api/date-cards/{id}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\DateCardController.java",
+    "method": "GET",
+    "path": "/api/date-cards/mine"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\DateInterestController.java",
+    "method": "POST",
+    "path": "/api/fast-date/interests/interested"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\DateInterestController.java",
+    "method": "POST",
+    "path": "/api/fast-date/interests/respond"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\DateInterestController.java",
+    "method": "GET",
+    "path": "/api/fast-date/interests/mine/sent"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\EventController.java",
+    "method": "GET",
+    "path": "/api/events/{eventId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\EventController.java",
+    "method": "GET",
+    "path": "/api/events/me/created"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\EventController.java",
+    "method": "GET",
+    "path": "/api/events/me/participating"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\EventController.java",
+    "method": "POST",
+    "path": "/api/events/{eventId}/join"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\EventController.java",
+    "method": "POST",
+    "path": "/api/events/{eventId}/participants/{participantUserId}/approve"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\EventController.java",
+    "method": "POST",
+    "path": "/api/events/{eventId}/participants/{participantUserId}/reject"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\EventController.java",
+    "method": "POST",
+    "path": "/api/events/{eventId}/participants/{targetUserId}/moderator"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\EventController.java",
+    "method": "DELETE",
+    "path": "/api/events/{eventId}/participants/{targetUserId}/moderator"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\EventController.java",
+    "method": "PUT",
+    "path": "/api/events/{eventId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\EventController.java",
+    "method": "DELETE",
+    "path": "/api/events/{eventId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\EventController.java",
+    "method": "GET",
+    "path": "/api/events/{eventId}/participants"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\EventController.java",
+    "method": "GET",
+    "path": "/api/events/{eventId}/participants/pending"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\EventGroupController.java",
+    "method": "GET",
+    "path": "/api/events/{eventId}/group/messages"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\EventGroupController.java",
+    "method": "POST",
+    "path": "/api/events/{eventId}/group/messages"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\EventGroupController.java",
+    "method": "PUT",
+    "path": "/api/events/{eventId}/group/messages/{messageId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\EventGroupController.java",
+    "method": "DELETE",
+    "path": "/api/events/{eventId}/group/messages/{messageId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\EventGroupController.java",
+    "method": "POST",
+    "path": "/api/events/{eventId}/group/share-address"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\EventGroupController.java",
+    "method": "GET",
+    "path": "/api/events/{eventId}/group/members"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\EventGroupController.java",
+    "method": "DELETE",
+    "path": "/api/events/{eventId}/group/members/{targetUserId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\EventGroupController.java",
+    "method": "PUT",
+    "path": "/api/events/{eventId}/group/members/{targetUserId}/mute"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\EventGroupController.java",
+    "method": "DELETE",
+    "path": "/api/events/{eventId}/group/members/{targetUserId}/mute"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\EventGroupController.java",
+    "method": "PATCH",
+    "path": "/api/events/{eventId}/group/settings"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\EventGroupController.java",
+    "method": "POST",
+    "path": "/api/events/{eventId}/group/invite-links"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\EventGroupController.java",
+    "method": "GET",
+    "path": "/api/events/{eventId}/group/invite-links"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\EventGroupController.java",
+    "method": "DELETE",
+    "path": "/api/events/{eventId}/group/invite-links/{linkId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\EventGroupController.java",
+    "method": "POST",
+    "path": "/api/events/{eventId}/group/polls"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\EventGroupController.java",
+    "method": "POST",
+    "path": "/api/events/{eventId}/group/polls/{optionId}/vote"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\EventGroupController.java",
+    "method": "POST",
+    "path": "/api/events/{eventId}/group/join-requests"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\EventGroupController.java",
+    "method": "GET",
+    "path": "/api/events/{eventId}/group/join-requests"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\EventGroupController.java",
+    "method": "POST",
+    "path": "/api/events/{eventId}/group/join-requests/{requestId}/approve"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\EventGroupController.java",
+    "method": "POST",
+    "path": "/api/events/{eventId}/group/join-requests/{requestId}/reject"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\FeedController.java",
+    "method": "POST",
+    "path": "/api/feed/location"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\FeedController.java",
+    "method": "GET",
+    "path": "/api/feed/local"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\FeedController.java",
+    "method": "GET",
+    "path": "/api/feed/feed"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\FeedController.java",
+    "method": "GET",
+    "path": "/api/feed/following"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\FollowController.java",
+    "method": "POST",
+    "path": "/api/follow/{userId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\FollowController.java",
+    "method": "DELETE",
+    "path": "/api/follow/{userId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\FollowController.java",
+    "method": "DELETE",
+    "path": "/api/follow/cancel/{userId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\FollowController.java",
+    "method": "POST",
+    "path": "/api/follow/accept/{userId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\FollowController.java",
+    "method": "POST",
+    "path": "/api/follow/reject/{userId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\FollowController.java",
+    "method": "DELETE",
+    "path": "/api/follow/follower/{userId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\FollowController.java",
+    "method": "GET",
+    "path": "/api/follow/status/{userId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\FollowController.java",
+    "method": "GET",
+    "path": "/api/follow/requests"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\FollowController.java",
+    "method": "GET",
+    "path": "/api/follow/followers/{userId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\FollowController.java",
+    "method": "GET",
+    "path": "/api/follow/following/{userId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\GroupController.java",
+    "method": "GET",
+    "path": "/api/groups/discover"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\GroupController.java",
+    "method": "POST",
+    "path": "/api/groups/{groupId}/join"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\GroupController.java",
+    "method": "GET",
+    "path": "/api/groups/{groupId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\GroupController.java",
+    "method": "PUT",
+    "path": "/api/groups/{groupId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\GroupController.java",
+    "method": "DELETE",
+    "path": "/api/groups/{groupId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\GroupController.java",
+    "method": "GET",
+    "path": "/api/groups/{groupId}/messages"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\GroupController.java",
+    "method": "POST",
+    "path": "/api/groups/{groupId}/messages"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\GroupController.java",
+    "method": "PUT",
+    "path": "/api/groups/{groupId}/messages/{messageId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\GroupController.java",
+    "method": "DELETE",
+    "path": "/api/groups/{groupId}/messages/{messageId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\GroupController.java",
+    "method": "POST",
+    "path": "/api/groups/{groupId}/messages/{messageId}/pin"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\GroupController.java",
+    "method": "DELETE",
+    "path": "/api/groups/{groupId}/messages/{messageId}/pin"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\GroupController.java",
+    "method": "GET",
+    "path": "/api/groups/{groupId}/pinned-messages"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\GroupController.java",
+    "method": "GET",
+    "path": "/api/groups/{groupId}/members"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\GroupController.java",
+    "method": "POST",
+    "path": "/api/groups/{groupId}/members"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\GroupController.java",
+    "method": "DELETE",
+    "path": "/api/groups/{groupId}/members/{targetUserId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\GroupController.java",
+    "method": "PUT",
+    "path": "/api/groups/{groupId}/members/{targetUserId}/role"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\GroupController.java",
+    "method": "PUT",
+    "path": "/api/groups/{groupId}/members/{targetUserId}/mute"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\GroupController.java",
+    "method": "DELETE",
+    "path": "/api/groups/{groupId}/members/{targetUserId}/mute"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\GroupController.java",
+    "method": "PATCH",
+    "path": "/api/groups/{groupId}/settings"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\GroupController.java",
+    "method": "POST",
+    "path": "/api/groups/{groupId}/invite-links"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\GroupController.java",
+    "method": "GET",
+    "path": "/api/groups/{groupId}/invite-links"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\GroupController.java",
+    "method": "DELETE",
+    "path": "/api/groups/{groupId}/invite-links/{linkId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\GroupController.java",
+    "method": "POST",
+    "path": "/api/groups/join/{token}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\GroupJoinRequestController.java",
+    "method": "POST",
+    "path": "/api/group-join-requests/join-by-link"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\GroupJoinRequestController.java",
+    "method": "POST",
+    "path": "/api/group-join-requests/{requestId}/respond"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\GroupJoinRequestController.java",
+    "method": "GET",
+    "path": "/api/group-join-requests/me"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\InterestController.java",
+    "method": "GET",
+    "path": "/api/interests/all/interest"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\InterestController.java",
+    "method": "POST",
+    "path": "/api/interests/add/{interestId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\InterestController.java",
+    "method": "GET",
+    "path": "/api/interests/me"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\InterestController.java",
+    "method": "POST",
+    "path": "/api/interests/admin/create"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\InterestController.java",
+    "method": "GET",
+    "path": "/api/interests/interest/by/category"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\InterestController.java",
+    "method": "PATCH",
+    "path": "/api/interests/admin/toggle/{interestId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\MatchController.java",
+    "method": "GET",
+    "path": "/api/matches/my/matches"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\MatchController.java",
+    "method": "POST",
+    "path": "/api/matches/matches/{userId}/unblock"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\MatchController.java",
+    "method": "POST",
+    "path": "/api/matches/{userId}/unmatch"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\MatchController.java",
+    "method": "POST",
+    "path": "/api/matches/{userId}/block"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\MessagesController.java",
+    "method": "POST",
+    "path": "/api/messages/send"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\MessagesController.java",
+    "method": "GET",
+    "path": "/api/messages/{chatId}/messages"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\MessagesController.java",
+    "method": "POST",
+    "path": "/api/messages/upload/media"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\MessagesController.java",
+    "method": "PUT",
+    "path": "/api/messages/messages/{messageId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\MessagesController.java",
+    "method": "DELETE",
+    "path": "/api/messages/messages/{messageId}/me"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\MessagesController.java",
+    "method": "DELETE",
+    "path": "/api/messages/messages/{messageId}/everyone"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\MessagesController.java",
+    "method": "POST",
+    "path": "/api/messages/messages/{messageId}/react"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\MessagesController.java",
+    "method": "POST",
+    "path": "/api/messages/messages/{messageId}/pin"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\MessagesController.java",
+    "method": "DELETE",
+    "path": "/api/messages/messages/{messageId}/pin"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\MessagesController.java",
+    "method": "GET",
+    "path": "/api/messages/{chatId}/pinned"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\NotificationsController.java",
+    "method": "GET",
+    "path": "/api/notifications/{userId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\NotificationsController.java",
+    "method": "PUT",
+    "path": "/api/notifications/{notificationId}/read"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\NotificationsController.java",
+    "method": "DELETE",
+    "path": "/api/notifications/{notificationId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\PollController.java",
+    "method": "POST",
+    "path": "/api/polls/vote/{optionId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\PollController.java",
+    "method": "DELETE",
+    "path": "/api/polls/delete/{pollId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\PostController.java",
+    "method": "POST",
+    "path": "/api/posts/new"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\PostController.java",
+    "method": "PUT",
+    "path": "/api/posts/update/{postId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\PostController.java",
+    "method": "DELETE",
+    "path": "/api/posts/delete/{postId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\PostController.java",
+    "method": "GET",
+    "path": "/api/posts/me"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\PostController.java",
+    "method": "POST",
+    "path": "/api/posts/{postId}/unlock"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\PresenceController.java",
+    "method": "GET",
+    "path": "/api/presence/{userId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\PrivacySettingsController.java",
+    "method": "GET",
+    "path": "/api/settings/privacy"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\PrivacySettingsController.java",
+    "method": "PUT",
+    "path": "/api/settings/privacy"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\PrivacySettingsController.java",
+    "method": "GET",
+    "path": "/api/settings/sparkling-list"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\PrivacySettingsController.java",
+    "method": "POST",
+    "path": "/api/settings/sparkling-list/{memberId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\PrivacySettingsController.java",
+    "method": "DELETE",
+    "path": "/api/settings/sparkling-list/{memberId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\ProfilePhotosController.java",
+    "method": "POST",
+    "path": "/api/photos/add"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\ProfilePhotosController.java",
+    "method": "PUT",
+    "path": "/api/photos/update/{id}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\ProfilePhotosController.java",
+    "method": "DELETE",
+    "path": "/api/photos/delete/{id}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\ProfilePhotosController.java",
+    "method": "GET",
+    "path": "/api/photos/profile/{profileId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\ProfilePhotosController.java",
+    "method": "POST",
+    "path": "/api/photos/profile-picture"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\ProfilePhotosController.java",
+    "method": "POST",
+    "path": "/api/photos/cover-picture"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\ReactionsController.java",
+    "method": "POST",
+    "path": "/api/likes/toggle"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\ReactionsController.java",
+    "method": "GET",
+    "path": "/api/likes/status/{targetId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\ReportController.java",
+    "method": "GET",
+    "path": "/api/reports/reasons"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\RepostController.java",
+    "method": "POST",
+    "path": "/api/posts/{postId}/repost"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\RepostController.java",
+    "method": "DELETE",
+    "path": "/api/posts/{postId}/repost"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\RepostController.java",
+    "method": "GET",
+    "path": "/api/posts/{postId}/reposts"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\SearchController.java",
+    "method": "GET",
+    "path": "/api/search/hashtags/{tag}/posts"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\SearchController.java",
+    "method": "GET",
+    "path": "/api/search/hashtags"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\SearchController.java",
+    "method": "GET",
+    "path": "/api/search/hashtags/trending"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\SearchController.java",
+    "method": "GET",
+    "path": "/api/search/general"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\SearchController.java",
+    "method": "GET",
+    "path": "/api/search/autocomplete"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\StoryController.java",
+    "method": "GET",
+    "path": "/api/stories/feed"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\StoryController.java",
+    "method": "GET",
+    "path": "/api/stories/user/{targetUserId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\StoryController.java",
+    "method": "POST",
+    "path": "/api/stories/{storyId}/view"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\StoryController.java",
+    "method": "GET",
+    "path": "/api/stories/{storyId}/viewers"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\StoryController.java",
+    "method": "GET",
+    "path": "/api/stories/{storyId}/view-count"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\StoryController.java",
+    "method": "POST",
+    "path": "/api/stories/{storyId}/react"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\StoryController.java",
+    "method": "GET",
+    "path": "/api/stories/{storyId}/reactions"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\StoryController.java",
+    "method": "DELETE",
+    "path": "/api/stories/{storyId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\SubscriptionController.java",
+    "method": "POST",
+    "path": "/api/subscription/checkout"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\SwipeController.java",
+    "method": "POST",
+    "path": "/api/swipes/perform/swipe"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\SwipeController.java",
+    "method": "GET",
+    "path": "/api/swipes/liked-me"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\SwipeController.java",
+    "method": "GET",
+    "path": "/api/swipes/disliked-me"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\SwipeController.java",
+    "method": "GET",
+    "path": "/api/swipes/i-liked"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\SwipeController.java",
+    "method": "GET",
+    "path": "/api/swipes/i-disliked"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\UserPreferencesController.java",
+    "method": "POST",
+    "path": "/api/preferences/set/preferences"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\UserPreferencesController.java",
+    "method": "GET",
+    "path": "/api/preferences/get/my/preferences"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\UserProfileController.java",
+    "method": "GET",
+    "path": "/api/profile/me"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\UserProfileController.java",
+    "method": "GET",
+    "path": "/api/profile/{userId}"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\UserProfileController.java",
+    "method": "POST",
+    "path": "/api/profile/voice-note"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\UserProfileController.java",
+    "method": "POST",
+    "path": "/api/profile/voice-note"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\UserProfileController.java",
+    "method": "DELETE",
+    "path": "/api/profile/delete/voice"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\Controllers\\UserSubscriptionControllerInfo.java",
+    "method": "GET",
+    "path": "/api/user-subscription/status"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\ModerationController\\ModeratorController.java",
+    "method": "GET",
+    "path": "/moderator/reports"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\ModerationController\\ModeratorController.java",
+    "method": "POST",
+    "path": "/moderator/reports/{id}/disable"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\ModerationController\\ModeratorController.java",
+    "method": "POST",
+    "path": "/moderator/users/{id}/enable"
+  },
+  {
+    "file": "C:\\Sparkd1.0-desarrollo (1)\\Sparkd1.0\\src\\main\\java\\sparkd\\ModerationController\\ModeratorController.java",
+    "method": "GET",
+    "path": "/moderator/reports/all"
+  }
+]

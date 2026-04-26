@@ -29,6 +29,7 @@ function normalizePost(post: any): Post {
     viewCount: post?.viewCount || 0,
     shareCount: post?.shareCount || 0,
     liked: post?.likedByCurrentUser || false,
+    saved: post?.saved || false,
     userReaction: post?.myReaction || null,
     reactions: reactionsObj,
     totalReactions: post?.totalReactions || 0,
@@ -41,6 +42,7 @@ function normalizePost(post: any): Post {
     reputation: post?.reputation,
     verificationLevel: post?.verificationLevel,
     repostCount: post?.repostCount || 0,
+    repostedByCurrentUser: post?.repostedByCurrentUser || false,
     media: post?.media || null,
     poll: null,
   } as Post

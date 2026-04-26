@@ -87,7 +87,14 @@ class FollowService {
   // Conteos reales desde el backend
   async getFollowCounts(userId: string): Promise<FollowCounts> {
     try {
-      return await api.get<FollowCounts>(`/api/follow/${userId}/counts`)
+      const [followers, following] = await Promise.all([
+        this.getFollowers(userId),
+        this.getFollowing(userId),
+      ])
+      return {
+        followersCount: followers.length,
+        followingCount: following.length,
+      }
     } catch {
       return {
         followersCount: this.getFollowersCount(userId),
@@ -97,11 +104,11 @@ class FollowService {
   }
 
   async getFollowers(userId: string) {
-    return api.get<any[]>(`/api/follow/${userId}/followers`)
+    return api.get<any[]>(`/api/follow/followers/${userId}`)
   }
 
   async getFollowing(userId: string) {
-    return api.get<any[]>(`/api/follow/${userId}/following`)
+    return api.get<any[]>(`/api/follow/following/${userId}`)
   }
 }
 

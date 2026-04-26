@@ -17,11 +17,9 @@ export function StoriesBar() {
     api.get<StoryGroup[]>("/api/stories/feed")
       .then(data => {
         const safe = Array.isArray(data) ? data : []
-        console.log('[StoriesBar] feed:', safe.map(g => ({ userId: g.userId, username: g.username, stories: g.stories?.length })))
-        console.log('[StoriesBar] myUserId:', user?.userId)
         setGroups(safe)
       })
-      .catch((e) => console.error('[StoriesBar] error:', e))
+      .catch(() => setGroups([]))
   }, [user?.userId])
 
   // Siempre mostrar el propio usuario primero
@@ -60,7 +58,7 @@ export function StoriesBar() {
         {otherGroups.map((group) => (
           <button
             key={group.userId}
-            onClick={() => router.push('/stories')}
+            onClick={() => router.push(`/stories?targetUserId=${encodeURIComponent(group.userId)}`)}
             className="flex flex-col items-center gap-2 flex-shrink-0"
           >
             <div className="relative">

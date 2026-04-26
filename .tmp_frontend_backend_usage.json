@@ -1,0 +1,57 @@
+[
+  {
+    "file": "C:\\v0-social\\lib\\services\\auth.ts",
+    "raw": "/auth/change-password",
+    "path": "/auth/change-password"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\email-verification.ts",
+    "raw": "/auth/verify-email",
+    "path": "/auth/verify-email"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\services\\email-verification.ts",
+    "raw": "/auth/resend-verification",
+    "path": "/auth/resend-verification"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\auth-context.tsx",
+    "raw": "/auth/login",
+    "path": "/auth/login"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\auth-context.tsx",
+    "raw": "/auth/google",
+    "path": "/auth/google"
+  },
+  {
+    "file": "C:\\v0-social\\lib\\auth-context.tsx",
+    "raw": "/auth/register",
+    "path": "/auth/register"
+  },
+  {
+    "file": "C:\\v0-social\\components\\feed\\create-post-dialog.tsx",
+    "raw": "/api/proxy/api/posts/new",
+    "path": "/api/posts/new"
+  },
+  {
+    "file": "C:\\v0-social\\components\\ui\\voice-note.tsx",
+    "raw": "/api/proxy/api/profile/voice-note",
+    "path": "/api/profile/voice-note"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(auth)\\forgot-password\\page.tsx",
+    "raw": "/auth/forgot-password",
+    "path": "/auth/forgot-password"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(auth)\\reset-password\\page.tsx",
+    "raw": "/auth/reset-password",
+    "path": "/auth/reset-password"
+  },
+  {
+    "file": "C:\\v0-social\\app\\(app)\\chat\\[chatId]\\page.tsx",
+    "raw": "/api/proxy/api/chat/upload/media",
+    "path": "/api/chat/upload/media"
+  }
+]

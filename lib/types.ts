@@ -254,6 +254,7 @@ export interface Post {
   likeCount: number
   commentsCount: number
   repostCount?: number
+  repostedByCurrentUser?: boolean
   shareCount?: number
   viewCount?: number
   message: string | null
@@ -262,6 +263,7 @@ export interface Post {
   interests?: string[]
   liked?: boolean
   likedByCurrentUser?: boolean
+  saved?: boolean
   media?: {
     mediaUrl: string
     mediaPublicId?: string
@@ -634,6 +636,7 @@ export interface Message {
   deletedForEveryone?: boolean
   system?: boolean
   reactions?: MessageReaction[]
+  pinnedAt?: string | null
 }
 
 export interface SendMessageRequest {

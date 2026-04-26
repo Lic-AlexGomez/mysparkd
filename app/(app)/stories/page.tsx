@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect, useRef, useCallback } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
 import type { StoryGroup, StoryResponse, StoryAudience } from "@/lib/types"
@@ -29,9 +29,13 @@ interface StoryReaction {
 
 export default function StoriesPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user } = useAuth()
+  const targetUserId = searchParams.get("targetUserId")?.trim() || ""
+  const isTargetFilterEnabled = targetUserId.length > 0
   const [groups, setGroups] = useState<StoryGroup[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [activeGroupIndex, setActiveGroupIndex] = useState(0)
   const [activeStoryIndex, setActiveStoryIndex] = useState(0)
   const [isUploading, setIsUploading] = useState(false)
@@ -50,7 +54,9 @@ export default function StoriesPage() {
     LOVE: '❤️', LIKE: '👍', LAUGH: '😂', WOW: '😮', SAD: '😢', FIRE: '🔥'
   }
 
-  useEffect(() => { fetchFeed() }, [])
+  useEffect(() => {
+    void fetchStories(targetUserId || undefined)
+  }, [fetchStories, targetUserId])
 
   useEffect(() => {
     if (groups.length === 0) return
@@ -86,11 +92,22 @@ export default function StoriesPage() {
     }
   }, [currentStory?.id, currentStory?.viewCount])
 
-  const fetchFeed = async () => {
+  const fetchStories = useCallback(async (userIdFilter?: string) => {
     setIsLoading(true)
+    setLoadError(null)
     try {
-      const data = await api.get<StoryGroup[]>("/api/stories/feed")
-      const safeData = Array.isArray(data) ? data : []
+      let safeData: StoryGroup[] = []
+      if (userIdFilter) {
+        try {
+          safeData = await storyService.getUserStories(userIdFilter)
+        } catch {
+          setLoadError("No se pudieron cargar stories de este perfil. Mostrando feed general.")
+          safeData = await storyService.getFeed()
+        }
+      } else {
+        safeData = await storyService.getFeed()
+      }
+
       setGroups(safeData)
       setActiveGroupIndex(0)
       setActiveStoryIndex(0)
@@ -98,11 +115,13 @@ export default function StoriesPage() {
         markViewed(safeData[0].stories[0].id)
       }
     } catch {
+      setGroups([])
+      setLoadError("Error al cargar stories")
       toast.error("Error al cargar stories")
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
   const markViewed = async (storyId: string) => {
     try { await api.post(`/api/stories/${storyId}/view`) } catch {}
@@ -130,7 +149,7 @@ export default function StoriesPage() {
       await api.delete(`/api/stories/${storyId}`)
       toast.success('Story eliminada')
       setShowInsights(false)
-      fetchFeed()
+      fetchStories(targetUserId || undefined)
     } catch {
       toast.error('Error al eliminar')
     }
@@ -184,7 +203,7 @@ export default function StoriesPage() {
       const mediaType = file.type.startsWith('video/') ? 'VIDEO' : 'IMAGE'
       await api.post("/api/stories", { mediaUrl, audience, mediaType })
       toast.success("Story publicada")
-      fetchFeed()
+      fetchStories(targetUserId || undefined)
     } catch {
       toast.error("Error al publicar story")
     } finally {
@@ -259,8 +278,30 @@ export default function StoriesPage() {
           )
         ) : (
           <div className="flex flex-col items-center gap-4">
-            <p className="text-white/60 text-sm">No hay stories disponibles</p>
-            <Button variant="outline" size="sm" onClick={fetchFeed} className="text-white border-white/30 hover:bg-white/10">Recargar</Button>
+            <p className="text-white/60 text-sm">
+              {isTargetFilterEnabled ? "Este usuario no tiene stories activas" : "No hay stories disponibles"}
+            </p>
+            {loadError && <p className="text-white/50 text-xs text-center max-w-xs">{loadError}</p>}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fetchStories(targetUserId || undefined)}
+                className="text-white border-white/30 hover:bg-white/10"
+              >
+                Recargar
+              </Button>
+              {isTargetFilterEnabled && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => router.push("/stories")}
+                  className="text-white hover:bg-white/10"
+                >
+                  Ver feed general
+                </Button>
+              )}
+            </div>
           </div>
         )}
 

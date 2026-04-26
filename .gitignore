@@ -14,3 +14,7 @@ node_modules/
 .env
 .DS_Store
 auto-git.ps1
+# Local temp dumps (may contain secrets)
+.tmp_board_cards_live.json
+.tmp_*.json
+
