@@ -919,11 +919,11 @@ export default function ChatRoomPage() {
         <div className="flex-shrink-0 border-b border-primary/20 bg-background/95 px-4 py-2">
           <p className="text-xs font-semibold mb-1.5">Galería ({mediaMessages.length})</p>
           <div className="grid grid-cols-6 gap-1.5 max-h-20 overflow-y-auto">
-            {mediaMessages.map((msg) => {
+            {mediaMessages.map((msg, gIdx) => {
               const content = msg.content.startsWith('@reply:') ? msg.content.split('|')[1] : msg.content
               return (
                 <img
-                  key={msg.messageId || msg.id || ''}
+                  key={msg.messageId || msg.id || `gallery-${gIdx}`}
                   src={content}
                   alt="Media"
                   className="w-full h-12 object-cover rounded cursor-pointer hover:opacity-80"
@@ -1066,8 +1066,8 @@ export default function ChatRoomPage() {
               <p className="text-muted-foreground">¡Envía el primer mensaje!</p>
             </div>
           ) : (
-            filteredMessages.map((msg) => {
-              const msgId = msg.messageId || msg.id || ''
+            filteredMessages.map((msg, msgIdx) => {
+              const msgId = msg.messageId || msg.id || `msg-${msgIdx}`
               const isOwn = msg.senderId === user?.userId
               const isSystem = msg.system === true || (!msg.senderId && !msg.receiverId)
 

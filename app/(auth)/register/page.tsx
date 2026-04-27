@@ -12,7 +12,12 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { GoogleSignInButton } from "@/components/ui/google-signin-button"
 import { toast } from "sonner"
-import { Loader2, Eye, EyeOff } from "lucide-react"
+import { Loader2, Eye, EyeOff, Check, X } from "lucide-react"
+import {
+  REGISTRATION_PASSWORD_HINT,
+  checkRegistrationPasswordRules,
+  getRegistrationPasswordError,
+} from "@/lib/password-policy"
 
 export default function RegisterPage() {
   const { register, loginWithGoogle } = useAuth()
@@ -33,8 +38,9 @@ export default function RegisterPage() {
       toast.error("El usuario debe tener al menos 3 caracteres")
       return
     }
-    if (password.length < 6) {
-      toast.error("La contrasena debe tener al menos 6 caracteres")
+    const pwdErr = getRegistrationPasswordError(password)
+    if (pwdErr) {
+      toast.error(pwdErr)
       return
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -83,7 +89,7 @@ export default function RegisterPage() {
     }
   }
 
-  const passwordStrength = password.length === 0 ? 0 : password.length < 6 ? 1 : password.length < 10 ? 2 : 3
+  const passwordRules = checkRegistrationPasswordRules(password)
 
   return (
     <Card className="border-primary/20 bg-background/95 backdrop-blur-xl shadow-2xl shadow-primary/10 overflow-hidden">
@@ -125,13 +131,14 @@ export default function RegisterPage() {
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="password" className="text-foreground font-medium">
-              Contrasena
+              Contraseña
             </Label>
+            <p className="text-xs text-muted-foreground">{REGISTRATION_PASSWORD_HINT}</p>
             <div className="relative">
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
-                placeholder="Minimo 6 caracteres"
+                placeholder="Ej. Mi_clave1"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="bg-muted/50 border-border text-foreground placeholder:text-muted-foreground h-11 pr-10 transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -144,26 +151,32 @@ export default function RegisterPage() {
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                <span className="sr-only">{showPassword ? "Ocultar" : "Mostrar"} contrasena</span>
+                <span className="sr-only">{showPassword ? "Ocultar" : "Mostrar"} contraseña</span>
               </button>
             </div>
             {password.length > 0 && (
-              <div className="flex gap-1">
-                {[1, 2, 3].map((level) => (
-                  <div
-                    key={level}
-                    className={`h-1 flex-1 rounded-full transition-colors ${
-                      passwordStrength >= level
-                        ? level === 1
-                          ? "bg-destructive"
-                          : level === 2
-                            ? "bg-accent"
-                            : "bg-success"
-                        : "bg-muted"
+              <ul
+                className="space-y-1.5 rounded-md border border-border bg-muted/30 px-3 py-2 text-xs"
+                aria-live="polite"
+              >
+                {passwordRules.map((rule) => (
+                  <li
+                    key={rule.id}
+                    className={`flex items-center gap-2 font-medium transition-colors ${
+                      rule.ok ? "text-success" : "text-destructive"
                     }`}
-                  />
+                  >
+                    {rule.ok ? (
+                      <Check className="h-3.5 w-3.5 shrink-0 text-success" aria-hidden />
+                    ) : (
+                      <X className="h-3.5 w-3.5 shrink-0 text-destructive" aria-hidden />
+                    )}
+                    <span className={rule.ok ? "text-success" : "text-destructive"}>
+                      {rule.label}
+                    </span>
+                  </li>
                 ))}
-              </div>
+              </ul>
             )}
           </div>
           <Button

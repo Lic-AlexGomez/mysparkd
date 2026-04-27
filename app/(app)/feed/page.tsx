@@ -10,20 +10,21 @@ import { CreatePostDialog } from "@/components/feed/create-post-dialog"
 import { EngagementStats } from "@/components/feed/engagement-stats"
 import { StoriesBar } from "@/components/feed/stories-bar"
 import { SkeletonPost } from "@/components/ui/skeleton-post"
-import { Loader2, Newspaper, Sliders, Star, Users, Search, X, Filter, Image as ImageIcon, Calendar, LayoutGrid, List, MapPin } from "lucide-react"
+import { Loader2, Newspaper, Globe, Users, Filter, Image as ImageIcon, LayoutGrid, List, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/lib/auth-context"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
 import { feedService, FEED_PAGE_SIZE } from "@/lib/services/feed"
 import type { Post } from "@/lib/types"
-import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 
 const sortOptions = [
@@ -55,7 +56,8 @@ export default function FeedPage() {
   
   const { posts, sortMode, loading, loadingMore, hasMore, onRefresh, changeSortMode, loadMore } = useFeed()
   const { posts: localPosts, loading: localLoading, locationEnabled, refresh: refreshLocalFeed } = useLocalFeed(localFeedRadius)
-  const [displayLocalPosts, setDisplayLocalPosts] = useState(posts)
+  /** Ocultar en UI tras borrar localmente hasta que el refresco coincida con el servidor. */
+  const [deletedPostIds, setDeletedPostIds] = useState(() => new Set<string>())
   const [scrollToPostId, setScrollToPostId] = useState<string | null>(null)
 
   const handleRefreshAndScroll = (postId?: string) => {
@@ -87,8 +89,6 @@ export default function FeedPage() {
     return () => clearInterval(interval)
   }, [scrollToPostId, loading, localLoading])
   const [feedTab, setFeedTab] = useState<'global' | 'local' | 'following'>('global')
-  const [searchQuery, setSearchQuery] = useState("")
-  const [showSearch, setShowSearch] = useState(false)
   const [filterType, setFilterType] = useState<'all' | 'withImage' | 'withoutImage'>('all')
   const [viewMode, setViewMode] = useState<'card' | 'compact'>('card')
   const [followingPosts, setFollowingPosts] = useState<Post[]>([])
@@ -181,7 +181,11 @@ export default function FeedPage() {
   ])
 
   useEffect(() => {
-    setDisplayLocalPosts(posts)
+    const valid = new Set(posts.map((p) => p.id))
+    setDeletedPostIds((prev) => {
+      const next = new Set([...prev].filter((id) => valid.has(id)))
+      return next.size === prev.size && [...next].every((id) => prev.has(id)) ? prev : next
+    })
   }, [posts])
 
   useEffect(() => {
@@ -325,13 +329,11 @@ export default function FeedPage() {
   }, [highlightPostId, highlightCommentId, posts])
 
   const handleDelete = (postId: string) => {
-    setDisplayLocalPosts((prev) => prev.filter((p) => p.id !== postId))
+    setDeletedPostIds((prev) => new Set([...prev, postId]))
     setFollowingPosts((prev) => prev.filter((p) => p.id !== postId))
   }
 
   const filteredPosts = useMemo(() => {
-    // Tab data sources must not mix: "Siguiendo" = followingPosts only; "Para ti" can use
-    // displayLocalPosts for delete sync; "Local" = localPosts.
     let list: Post[] = []
     if (feedTab === 'local') {
       list = Array.isArray(localPosts) ? localPosts : []
@@ -339,17 +341,9 @@ export default function FeedPage() {
       list = Array.isArray(followingPosts) ? followingPosts : []
     } else {
       const baseGlobal = Array.isArray(posts) ? posts : []
-      list = displayLocalPosts.length > 0 ? displayLocalPosts : baseGlobal
+      list = baseGlobal.filter((p) => !deletedPostIds.has(p.id))
     }
     let next = list
-
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase()
-      next = next.filter(post =>
-        (post.body || "").toLowerCase().includes(q) ||
-        post.username.toLowerCase().includes(q)
-      )
-    }
 
     if (filterType === 'withImage') {
       next = next.filter(post => post.file)
@@ -357,8 +351,19 @@ export default function FeedPage() {
       next = next.filter(post => !post.file)
     }
 
+    if (typeof process !== 'undefined' && process.env.NODE_ENV === 'development') {
+      console.log('[feed page]', {
+        feedTab,
+        postsHookLen: posts.length,
+        listaTrasTabYborrados: list.length,
+        resultadoTrasBusquedaYfiltro: next.length,
+        deletedPostIds: feedTab === 'global' ? [...deletedPostIds] : [],
+        filterType,
+      })
+    }
+
     return next
-  }, [posts, localPosts, followingPosts, feedTab, displayLocalPosts, searchQuery, filterType])
+  }, [posts, localPosts, followingPosts, feedTab, deletedPostIds, filterType])
 
   if (loading && posts.length === 0) {
     return (
@@ -427,116 +432,135 @@ export default function FeedPage() {
       )}
 
       {/* Header with Tabs */}
-      <div className="sticky top-16 z-20 border-b border-border bg-background/95 backdrop-blur-md">
-        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 px-4 py-2">
-          {features.personalizedFeed ? (
-          <Tabs value={feedTab} onValueChange={(v) => setFeedTab(v as any)} className="flex-1 md:max-w-md">
-            <TabsList className="w-full grid grid-cols-3">
-              <TabsTrigger value="global" className="flex items-center gap-2">
-                <Star className="h-4 w-4 animate-sparkle" />
-                Para ti
-              </TabsTrigger>
-              <TabsTrigger value="local" className="flex items-center gap-2">
-                <Newspaper className="h-4 w-4" />
-                Local
-              </TabsTrigger>
-              <TabsTrigger value="following" className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Siguiendo
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-          ) : (
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <Newspaper className="h-5 w-5" />
-              Feed
-            </h2>
-          )}
-          
-          <div className="flex gap-2 flex-shrink-0 justify-end md:justify-start">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => setShowSearch(!showSearch)}
-              className="gap-2"
-            >
-              <Search className="h-4 w-4" />
-            </Button>
-            
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setViewMode(viewMode === 'card' ? 'compact' : 'card')}
-              title={viewMode === 'card' ? 'Vista compacta' : 'Vista tarjetas'}
-            >
-              {viewMode === 'card' ? <List className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
-            </Button>
-            
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <Filter className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-card border-border">
-                <DropdownMenuItem onClick={() => setFilterType('all')} className={filterType === 'all' ? 'bg-primary/10' : ''}>
-                  Todos
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFilterType('withImage')} className={filterType === 'withImage' ? 'bg-primary/10' : ''}>
-                  <ImageIcon className="h-4 w-4 mr-2" />
-                  Con imagen
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFilterType('withoutImage')} className={filterType === 'withoutImage' ? 'bg-primary/10' : ''}>
-                  Sin imagen
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <Sliders className="h-4 w-4" />
-                  <span className="text-lg">{sortOptions.find(o => o.value === sortMode)?.icon}</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-card border-border">
-                {sortOptions.map((option) => (
-                  <DropdownMenuItem
-                    key={option.value}
-                    onClick={() => changeSortMode(option.value)}
-                    className={sortMode === option.value ? 'bg-primary/10 text-primary' : ''}
-                  >
-                    <span className="mr-2">{option.icon}</span>
-                    {option.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-        
-        {/* Barra de búsqueda */}
-        {showSearch && (
-          <div className="px-4 pb-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar posts..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-10"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2"
+      <div className="sticky top-16 z-20 border-b border-border/80 bg-background/90 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-background/75">
+        <div className="flex flex-col gap-3 px-3 py-3 sm:px-4 sm:py-2.5">
+            <div className="flex flex-col gap-3 min-[600px]:flex-row min-[600px]:items-center min-[600px]:justify-between min-[600px]:gap-4">
+              {features.personalizedFeed ? (
+                <Tabs
+                  value={feedTab}
+                  onValueChange={(v) => setFeedTab(v as "global" | "local" | "following")}
+                  className="w-full min-w-0 flex-row items-center gap-2 min-[600px]:flex-1"
                 >
-                  <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                </button>
+                  <TabsList className="grid h-11 w-full flex-1 grid-cols-3 gap-0.5 rounded-xl border border-border/60 bg-gradient-to-b from-muted/80 to-muted/50 p-1 shadow-inner sm:h-10">
+                    <TabsTrigger
+                      value="global"
+                      className="flex items-center justify-center gap-1.5 rounded-lg px-1.5 text-xs font-medium data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:gap-2 sm:px-2 sm:text-sm"
+                    >
+                      <Globe className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden />
+                      <span>Global</span>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="local"
+                      className="flex items-center justify-center gap-1.5 rounded-lg px-1.5 text-xs font-medium data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:gap-2 sm:px-2 sm:text-sm"
+                    >
+                      <Newspaper className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden />
+                      <span>Local</span>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="following"
+                      className="flex min-w-0 items-center justify-center gap-1.5 rounded-lg px-1.5 text-xs font-medium data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:gap-2 sm:px-2 sm:text-sm"
+                    >
+                      <Users className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden />
+                      <span className="truncate">Siguiendo</span>
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-10 shrink-0 rounded-xl border border-border/70 bg-gradient-to-b from-card/90 to-muted/30 px-2.5 shadow-sm sm:h-9"
+                        aria-label="Abrir opciones de vista, filtros y orden"
+                        title="Opciones del feed"
+                      >
+                        <svg
+                          viewBox="0 0 24 24"
+                          width="18"
+                          height="18"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden
+                        >
+                          <path d="M4 6h16" />
+                          <path d="M7 12h10" />
+                          <path d="M10 18h4" />
+                        </svg>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-60 border-border bg-card" sideOffset={6}>
+                      <DropdownMenuLabel className="text-xs text-muted-foreground">Vista</DropdownMenuLabel>
+                      <DropdownMenuItem
+                        onClick={() => setViewMode("card")}
+                        className={viewMode === "card" ? "bg-primary/10 text-primary" : ""}
+                      >
+                        <LayoutGrid className="h-4 w-4" aria-hidden />
+                        Tarjetas
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setViewMode("compact")}
+                        className={viewMode === "compact" ? "bg-primary/10 text-primary" : ""}
+                      >
+                        <List className="h-4 w-4" aria-hidden />
+                        Compacta
+                      </DropdownMenuItem>
+
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel className="text-xs text-muted-foreground">Filtro</DropdownMenuLabel>
+                      <DropdownMenuItem
+                        onClick={() => setFilterType("all")}
+                        className={filterType === "all" ? "bg-primary/10 text-primary" : ""}
+                      >
+                        <Filter className="h-4 w-4" aria-hidden />
+                        Todos
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setFilterType("withImage")}
+                        className={filterType === "withImage" ? "bg-primary/10 text-primary" : ""}
+                      >
+                        <ImageIcon className="h-4 w-4" aria-hidden />
+                        Con imagen
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setFilterType("withoutImage")}
+                        className={filterType === "withoutImage" ? "bg-primary/10 text-primary" : ""}
+                      >
+                        <ImageIcon className="h-4 w-4" aria-hidden />
+                        Sin imagen
+                      </DropdownMenuItem>
+
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel className="text-xs text-muted-foreground">Orden</DropdownMenuLabel>
+                      {sortOptions.map((option) => (
+                        <DropdownMenuItem
+                          key={option.value}
+                          onClick={() => changeSortMode(option.value)}
+                          className={sortMode === option.value ? "bg-primary/10 text-primary" : ""}
+                        >
+                          <span className="text-base leading-none" aria-hidden>
+                            {option.icon}
+                          </span>
+                          {option.label}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </Tabs>
+              ) : (
+                <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Newspaper className="h-5 w-5" aria-hidden />
+                  </span>
+                  Feed
+                </h2>
               )}
+
             </div>
-          </div>
-        )}
+        </div>
       </div>
 
       {/* Posts */}
@@ -578,31 +602,19 @@ export default function FeedPage() {
         <div className="flex flex-col items-center justify-center gap-3 py-20">
           <Newspaper className="h-12 w-12 text-muted-foreground" />
           <p className="text-muted-foreground">
-            {searchQuery ? 'No se encontraron posts' : 'No hay posts aun'}
+            No hay posts aun
           </p>
           <p className="text-sm text-muted-foreground">
-            {searchQuery 
-              ? 'Intenta con otra búsqueda'
-              : feedTab === 'following' 
+            {feedTab === 'following' 
               ? 'Sigue a más personas para ver su contenido' 
               : feedTab === 'local'
               ? 'No hay posts en tu zona aún'
               : 'Se el primero en publicar algo!'}
           </p>
-          {searchQuery && (
-            <Button variant="outline" size="sm" onClick={() => setSearchQuery("")}>
-              Limpiar búsqueda
-            </Button>
-          )}
         </div>
         )
       ) : (
         <div className="p-4">
-          {searchQuery && (
-            <p className="text-sm text-muted-foreground mb-4">
-              {filteredPosts.length} {filteredPosts.length === 1 ? 'resultado' : 'resultados'}
-            </p>
-          )}
           {filteredPosts.map((post) => (
             <PostCard
               key={post.id}

@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation"
 import { useEffect } from "react"
 import { AppShell } from "@/components/layout/app-shell"
 import { NotificationBanner } from "@/components/ui/notification-banner"
-import { Zap } from "lucide-react"
+import { Sparkles, Zap } from "lucide-react"
 
 export default function AppLayout({
   children,
@@ -26,12 +26,31 @@ export default function AppLayout({
     }
   }, [isAuthenticated, isLoading, user, router, pathname])
 
-  if (isLoading) {
+  // Solo bloquear la UI si no sabemos aún si hay sesión.
+  // Si ya hay token en contexto, renderizamos de inmediato y refrescamos perfil en background.
+  if (isLoading && !isAuthenticated) {
+    const label =
+      pathname === "/onboarding"
+        ? "Preparando tu onboarding…"
+        : pathname === "/feed" || pathname?.startsWith("/feed/")
+          ? "Cargando tu feed…"
+          : "Cargando…"
+    const Icon = pathname === "/onboarding" ? Sparkles : Zap
     return (
-      <div className="flex min-h-svh items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3">
-          <Zap className="h-10 w-10 text-primary animate-pulse" />
-          <span className="text-sm text-muted-foreground">Cargando...</span>
+      <div className="flex min-h-svh w-full items-center justify-center bg-background px-4">
+        <div className="flex max-w-sm flex-col items-center gap-4 text-center">
+          <Icon
+            className="h-10 w-10 text-primary animate-pulse"
+            aria-hidden
+          />
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-foreground">{label}</p>
+            <p className="text-xs text-muted-foreground">
+              {pathname === "/onboarding"
+                ? "Un momento mientras sincronizamos tu cuenta."
+                : "Sincronizando tu sesión con Sparkd."}
+            </p>
+          </div>
         </div>
       </div>
     )
@@ -41,7 +60,9 @@ export default function AppLayout({
 
   // Permitir acceso al onboarding sin AppShell
   if (pathname === "/onboarding") {
-    return <div className="min-h-svh bg-background">{children}</div>
+    return (
+      <div className="min-h-svh w-full overflow-x-hidden bg-background">{children}</div>
+    )
   }
 
   return (

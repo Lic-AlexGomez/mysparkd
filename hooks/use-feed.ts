@@ -1,18 +1,43 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { api, ApiError } from '@/lib/api'
+import { api } from '@/lib/api'
 import { feedService, FEED_PAGE_SIZE } from '@/lib/services/feed'
 import type { Post } from '@/lib/types'
 
 type SortMode = 'chronological' | 'relevant' | 'compatible' | 'top'
 
-let foryouFallbackWarned = false
+/**
+ * Feed global Sparkd: `FeedController` → `GET /api/feed/feed` (JWT requerido).
+ * No añadir `/api/feed/foryou` ni `/api/posts/feed` salvo existan en tu API:
+ * en Sparkd1.0 no están definidos y solo generan 404.
+ */
+const GLOBAL_FEED_PATH = '/api/feed/feed' as const
+
+const FEED_DEBUG =
+  typeof process !== 'undefined' && process.env.NODE_ENV === 'development'
+
+function feedDebug(...args: unknown[]) {
+  if (FEED_DEBUG) console.log('[useFeed]', ...args)
+}
 
 type PaginatedFeedResponse = {
   content?: any[]
   last?: boolean
   totalPages?: number
+}
+
+function extractPageRowsFromPayload(data: any): { rows: any[]; hint: string } {
+  if (data == null) return { rows: [], hint: 'null' }
+  if (Array.isArray(data)) return { rows: data, hint: 'array' }
+  if (Array.isArray(data.content)) return { rows: data.content, hint: 'content' }
+  if (Array.isArray(data.data?.content)) return { rows: data.data.content, hint: 'data.content' }
+  if (Array.isArray(data.posts)) return { rows: data.posts, hint: 'posts' }
+  if (Array.isArray(data.records)) return { rows: data.records, hint: 'records' }
+  if (FEED_DEBUG) {
+    console.warn('[useFeed] Formato de página desconocido, keys:', Object.keys(data))
+  }
+  return { rows: [], hint: 'unknown' }
 }
 
 type PrefetchedPage = {
@@ -45,7 +70,7 @@ function normalizePost(post: any): Post {
   }
 
   return {
-    id: post.id || '',
+    id: post.id != null ? String(post.id) : post.postId != null ? String(post.postId) : '',
     body: post.body ?? null,
     userId: post.userId ? String(post.userId) : '',
     username: post.username || 'Usuario',
@@ -91,11 +116,28 @@ export function useFeed() {
   const prefetchedPageRef = useRef<PrefetchedPage | null>(null)
   const prefetchPromiseRef = useRef<Promise<void> | null>(null)
   const prefetchEpochRef = useRef(0)
-
   const normalizeFeedItems = useCallback((items: any[]) => {
-    return items
-      .map(normalizePost)
-      .filter(p => !(p.message && !p.body && !p.file))
+    const mapped = items.map(normalizePost)
+    const out = mapped.filter((p) => {
+      if (p.locked) return true
+      return !(p.message && !p.body && !p.file)
+    })
+    if (
+      FEED_DEBUG &&
+      items.length > 0 &&
+      out.length === 0
+    ) {
+      console.warn(
+        '[useFeed] Se recibieron',
+        items.length,
+        'filas del API pero todas se descartaron (message-only / sin id?). Muestra:',
+        items[0]
+      )
+    }
+    if (FEED_DEBUG && items.length > 0 && out.length > 0 && out.some((p) => !p.id)) {
+      console.warn('[useFeed] Hay posts sin id; revisa si el DTO usa otro campo (postId).', out[0])
+    }
+    return out
   }, [])
 
   const mergeUniquePosts = useCallback((current: Post[], incoming: Post[]) => {
@@ -120,17 +162,29 @@ export function useFeed() {
         }
       }
 
-      const rows = Array.isArray(data?.content) ? data.content : []
-      const totalPages = typeof data?.totalPages === 'number' ? data.totalPages : undefined
+      const { rows, hint } = extractPageRowsFromPayload(data as any)
+      if (FEED_DEBUG && !Array.isArray(data) && (data as any)?.content === undefined) {
+        feedDebug('parse: extrayendo filas desde', hint, 'count=', rows.length)
+      }
+
+      const raw = data as Record<string, unknown> | null
+      const rowsLegacy = Array.isArray(raw?.content) ? (raw.content as any[]) : []
+      const useRows = rows.length > 0 ? rows : rowsLegacy
+      const totalPages =
+        typeof raw?.totalPages === 'number'
+          ? raw.totalPages
+          : typeof (raw as any)?.total_pages === 'number'
+            ? (raw as any).total_pages
+            : undefined
       const last =
-        typeof data?.last === 'boolean'
-          ? data.last
+        typeof raw?.last === 'boolean'
+          ? raw.last
           : typeof totalPages === 'number'
             ? targetPage >= totalPages - 1
-            : rows.length < FEED_PAGE_SIZE
+            : useRows.length < FEED_PAGE_SIZE
 
       return {
-        posts: normalizeFeedItems(rows),
+        posts: normalizeFeedItems(useRows),
         hasMore: !last,
         isPaginated: true,
       }
@@ -143,6 +197,15 @@ export function useFeed() {
       const data = await api.get<any[] | PaginatedFeedResponse>(
         `${path}?page=${targetPage}&size=${FEED_PAGE_SIZE}`
       )
+      if (FEED_DEBUG) {
+        const p = data as Record<string, unknown> | unknown[]
+        const preview = Array.isArray(p)
+          ? `array length=${p.length}`
+          : p && typeof p === 'object'
+            ? `keys=${Object.keys(p as object).join(',')}`
+            : String(p)
+        feedDebug('GET respuesta cruda', `${path}?page=${targetPage}`, preview)
+      }
       return parseFeedPagePayload(data, targetPage)
     },
     [parseFeedPagePayload]
@@ -150,20 +213,17 @@ export function useFeed() {
 
   const fetchServerPage = useCallback(
     async (targetPage: number) => {
-      try {
-        return await fetchFeedPathPage('/api/feed/foryou', targetPage)
-      } catch (error: unknown) {
-        const fallback =
-          error instanceof ApiError && error.status === 404
-        if (!fallback) throw error
-        if (!foryouFallbackWarned) {
-          foryouFallbackWarned = true
-          console.warn(
-            '[useFeed] GET /api/feed/foryou no disponible (404); usando /api/feed/feed.'
-          )
-        }
-        return fetchFeedPathPage('/api/feed/feed', targetPage)
-      }
+      feedDebug('GET', GLOBAL_FEED_PATH, 'page=', targetPage)
+      const out = await fetchFeedPathPage(GLOBAL_FEED_PATH, targetPage)
+      feedDebug(
+        '  posts=',
+        out.posts.length,
+        'hasMore=',
+        out.hasMore,
+        'paginated=',
+        out.isPaginated
+      )
+      return out
     },
     [fetchFeedPathPage]
   )
@@ -224,6 +284,18 @@ export function useFeed() {
       setLoading(true)
       const firstPage = await fetchServerPage(0)
       const sortedFirst = feedService.sortPosts(firstPage.posts, sortMode)
+      feedDebug('loadPosts primera página:', {
+        count: sortedFirst.length,
+        isPaginated: firstPage.isPaginated,
+        hasMore: firstPage.hasMore,
+        sortMode,
+        endpoint: GLOBAL_FEED_PATH,
+      })
+      if (sortedFirst.length === 0) {
+        console.warn(
+          '[useFeed] 0 publicaciones. Endpoint: GET /api/feed/feed (vía /api/proxy). En Red mira status y body: ¿content vacío, 401, o error?'
+        )
+      }
 
       if (firstPage.isPaginated) {
         setUseServerPagination(true)
@@ -246,6 +318,7 @@ export function useFeed() {
       setHasMore(sortedAll.length > FEED_PAGE_SIZE)
     } catch (error: any) {
       if (error?.name !== 'AbortError') {
+        feedDebug('loadPosts error:', error)
         setAllPosts([])
         setVisibleCount(FEED_PAGE_SIZE)
         setPage(0)

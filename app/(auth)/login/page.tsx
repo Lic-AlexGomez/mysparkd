@@ -179,12 +179,6 @@ export default function LoginPage() {
         />
         
         <div className="mt-4 text-center">
-          <p className="text-xs text-muted-foreground mb-2">
-            ¿No has verificado tu correo?{" "}
-            <Link href="/verify-email" className="text-primary hover:text-primary/80 font-medium hover:underline transition-colors">
-              Verificar ahora
-            </Link>
-          </p>
           <p className="text-sm text-muted-foreground">
             ¿No tienes cuenta?{" "}
             <Link href="/register" className="text-primary hover:text-primary/80 font-semibold hover:underline transition-colors">

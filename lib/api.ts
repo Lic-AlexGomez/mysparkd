@@ -26,6 +26,69 @@ function clearAuth() {
   window.location.href = "/login"
 }
 
+/** Evita mostrar solo "Error" / "Conflict" cuando falta `detail` útil (RFC 7807). */
+function isGenericProblemLabel(s: string): boolean {
+  const t = s.trim().toLowerCase()
+  return (
+    t === "error" ||
+    t === "bad request" ||
+    t === "internal server error" ||
+    t === "conflict"
+  )
+}
+
+/** Texto de excepción Java / Spring poco útil para el usuario final. */
+function looksLikeServerExceptionMessage(s: string): boolean {
+  return /cannot invoke|org\.springframework|because\s+["']?[\w.]+["']?\s+is\s+null|java\.lang|javax\.|at\s+[\w.$]+\(/i.test(s)
+}
+
+/** Mensaje legible desde JSON de error (Spring, Problem+JSON, validación). */
+function extractErrorMessageFromBody(
+  data: Record<string, unknown>
+): string | null {
+  const str = (v: unknown) =>
+    typeof v === "string" && v.trim() ? v.trim() : null
+
+  // RFC 7807: `detail` describe el fallo; `title` suele ser genérico ("Error").
+  const fromDetail = str(data.detail)
+  if (fromDetail) return fromDetail
+
+  const fromDescription = str(data.description)
+  if (fromDescription) return fromDescription
+
+  const fromReason = str(data.reason)
+  if (fromReason) return fromReason
+
+  const fromMessage = str(data.message)
+  if (fromMessage && !looksLikeServerExceptionMessage(fromMessage)) {
+    return fromMessage
+  }
+
+  const fromTitle = str(data.title)
+  if (fromTitle && !isGenericProblemLabel(fromTitle)) return fromTitle
+
+  const fromError = str(data.error)
+  if (fromError && !/^\d+$/.test(fromError) && !isGenericProblemLabel(fromError)) {
+    return fromError
+  }
+
+  if (Array.isArray(data.errors) && data.errors.length > 0) {
+    const e0 = data.errors[0] as Record<string, unknown>
+    const m = str(e0?.defaultMessage) || str(e0?.message)
+    if (m) return m
+  }
+  if (Array.isArray(data.violations) && data.violations.length > 0) {
+    const v0 = data.violations[0] as Record<string, unknown>
+    const m = str(v0?.message) || str(v0?.description)
+    if (m) return m
+  }
+
+  // Último recurso: mensaje técnico mejor que nada para depurar (se sustituye si es 5xx abajo).
+  if (fromMessage) return fromMessage
+
+  return null
+}
+
 async function request<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -72,22 +135,44 @@ async function request<T>(
   }
 
   if (!response.ok) {
-    let message = "Error del servidor"
+    const status = response.status
+    let message = ""
     let details: string | undefined
     try {
-      const errorData = await response.json()
-      message = errorData.message || errorData.error || message
+      const errorData = (await response.json()) as Record<string, unknown>
+      message = extractErrorMessageFromBody(errorData) ?? ""
       if (typeof errorData.details === "string" && errorData.details) {
         details = errorData.details
       }
     } catch {
       try {
-        message = await response.text()
+        const t = (await response.text()).trim()
+        if (t && !t.startsWith("<")) message = t.slice(0, 500)
       } catch {
-        // keep default
+        // ignore
       }
     }
-    throw new ApiError(message, response.status, details)
+    if (
+      status >= 500 &&
+      message &&
+      (looksLikeServerExceptionMessage(message) || isGenericProblemLabel(message))
+    ) {
+      message = ""
+    }
+    if (!message) {
+      if (status === 409) {
+        message =
+          "Ese correo no está disponible: puede estar en uso por otra cuenta, coincidir con tu correo principal, o haber una solicitud reciente. Prueba otro correo o espera unos minutos."
+      } else {
+        message =
+          status === 502 || status === 503 || status === 504
+            ? "No se pudo conectar con el servidor. Revisa tu conexión o inténtalo más tarde."
+            : status >= 500
+              ? `El servidor respondió con error (HTTP ${status}). Si estabas configurando el correo, puede ser un fallo temporal o del envío de emails.`
+              : `Solicitud no completada (HTTP ${status}).`
+      }
+    }
+    throw new ApiError(message, status, details)
   }
 
   const contentType = response.headers.get("content-type")

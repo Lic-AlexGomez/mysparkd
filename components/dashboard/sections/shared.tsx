@@ -16,8 +16,8 @@ export function StatCard({
 }) {
   const positive = (change ?? 0) >= 0
   return (
-    <Card className="border-border">
-      <CardContent className="p-5">
+    <Card className="border-border/80 shadow-sm transition-shadow hover:shadow-md">
+      <CardContent className="p-4 sm:p-5">
         <div className="flex items-start justify-between mb-3">
           <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${color}`}>
             <Icon className="h-4 w-4 text-white" />

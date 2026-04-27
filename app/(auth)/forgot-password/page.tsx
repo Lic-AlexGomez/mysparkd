@@ -46,7 +46,7 @@ export default function ForgotPasswordPage() {
                 Correo enviado
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Revisa tu bandeja de entrada para restablecer tu contrasena.
+                Revisa tu bandeja de entrada para restablecer tu contraseña.
               </p>
             </div>
             <Link href="/login">
@@ -58,14 +58,20 @@ export default function ForgotPasswordPage() {
         ) : (
           <>
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <p className="text-sm text-muted-foreground">
+                Puedes usar el correo <strong className="text-foreground">principal</strong> de la cuenta o el{" "}
+                <strong className="text-foreground">de recuperación</strong> si lo registraste en Ajustes: el
+                servidor localiza la cuenta con cualquiera de los dos y envía el enlace a{" "}
+                <strong className="text-foreground">este mismo correo</strong> que escribas.
+              </p>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="email" className="text-foreground">
-                  Email
+                  Correo
                 </Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="tu@email.com"
+                  placeholder="correo principal o de recuperación"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="bg-muted border-border text-foreground placeholder:text-muted-foreground"

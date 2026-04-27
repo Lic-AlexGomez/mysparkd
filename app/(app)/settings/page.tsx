@@ -135,6 +135,8 @@ export default function SettingsPage() {
   const [confirmRecoveryEmail, setConfirmRecoveryEmail] = useState("")
   const [changingRecovery, setChangingRecovery] = useState(false)
   const [recoveryCodePending, setRecoveryCodePending] = useState(false)
+  /** Si aún no está en el perfil, el correo al que se envió el código (guardado en localStorage). */
+  const [pendingRecoveryTargetEmail, setPendingRecoveryTargetEmail] = useState("")
   const [recoveryCode, setRecoveryCode] = useState("")
   const [verifyingRecoveryCode, setVerifyingRecoveryCode] = useState(false)
   const [deletingRecovery, setDeletingRecovery] = useState(false)
@@ -157,8 +159,12 @@ export default function SettingsPage() {
     if (localStorage.getItem(PENDING_EMAIL_CHANGE_KEY) === "1") {
       setEmailChangeCodePending(true)
     }
-    if (localStorage.getItem(PENDING_RECOVERY_KEY) === "1") {
+    const rawRec = localStorage.getItem(PENDING_RECOVERY_KEY)
+    if (rawRec) {
       setRecoveryCodePending(true)
+      if (rawRec.includes("@")) {
+        setPendingRecoveryTargetEmail(rawRec.trim().toLowerCase())
+      }
     }
   }, [])
 
@@ -288,6 +294,10 @@ export default function SettingsPage() {
       )
     )
   }, [user?.userId, user?.accountType])
+
+  const verifiedRecoveryEmail = user?.recoveryEmail?.trim()
+  const recoveryEmailDisplayLine =
+    verifiedRecoveryEmail || pendingRecoveryTargetEmail || ""
 
   const saveExperience = async () => {
     if (!user) {
@@ -497,6 +507,7 @@ export default function SettingsPage() {
   const clearRecoveryCodePending = () => {
     localStorage.removeItem(PENDING_RECOVERY_KEY)
     setRecoveryCodePending(false)
+    setPendingRecoveryTargetEmail("")
     setRecoveryCode("")
   }
 
@@ -531,7 +542,8 @@ export default function SettingsPage() {
     setChangingRecovery(true)
     try {
       await authService.requestRecoveryEmail(next)
-      localStorage.setItem(PENDING_RECOVERY_KEY, "1")
+      localStorage.setItem(PENDING_RECOVERY_KEY, next)
+      setPendingRecoveryTargetEmail(next)
       setRecoveryCodePending(true)
       setRecoveryCode("")
       toast.success(
@@ -1212,17 +1224,37 @@ export default function SettingsPage() {
               <span className="text-sm font-semibold">Correo de recuperación</span>
             </div>
             <p className="text-xs text-muted-foreground">
-              Distinto al principal. Sirve para recuperar la cuenta; el código de verificación llega a{" "}
-              <strong>este</strong> buzón, no al correo principal.
+              Debe ser <strong>distinto del correo principal</strong>. Si olvidas la contraseña o pierdes
+              acceso al principal, podrás usar este buzón; el código de verificación llega aquí, no al correo
+              principal.
             </p>
             <div className="space-y-2">
-              <Label className="text-foreground text-sm">Correo de recuperación actual</Label>
-              <Input
-                readOnly
-                value={user?.recoveryEmail?.trim() ?? ""}
-                placeholder="Ninguno registrado aún"
-                className="bg-muted/50 border-border text-foreground"
-              />
+              {!recoveryEmailDisplayLine ? (
+                <div className="rounded-md border border-dashed border-border bg-muted/30 px-3 py-2.5 text-sm text-muted-foreground">
+                  <span className="font-medium text-foreground">Sin configurar.</span> Pulsa{" "}
+                  <span className="text-foreground">«Añadir o actualizar correo de recuperación»</span>,
+                  indica un correo distinto al principal y confirma con el código que te enviemos a ese buzón.
+                </div>
+              ) : (
+                <>
+                  <Label className="text-foreground text-sm">
+                    {verifiedRecoveryEmail
+                      ? "Correo de recuperación registrado"
+                      : "Correo pendiente de verificar"}
+                  </Label>
+                  <Input
+                    readOnly
+                    value={recoveryEmailDisplayLine}
+                    className="bg-muted/50 border-border text-foreground"
+                  />
+                  {pendingRecoveryTargetEmail && !verifiedRecoveryEmail && (
+                    <p className="text-xs text-amber-600 dark:text-amber-500">
+                      Revisa la bandeja de este correo e introduce el código más abajo. Al confirmar, quedará
+                      guardado como correo de recuperación.
+                    </p>
+                  )}
+                </>
+              )}
             </div>
             {!!user?.recoveryEmail && (
               <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">

@@ -38,11 +38,10 @@ export function AdminOverview() {
     { label: "Usuarios totales",      value: stats ? stats.totalUsers.toLocaleString()          : "—", change: 0, icon: Users,    color: "bg-violet-500" },
     { label: "Nuevos (7 días)",        value: stats ? stats.newUsersLast7Days.toLocaleString()   : "—", change: 0, icon: UserPlus, color: "bg-primary" },
     { label: "Activos (24h)",          value: stats ? stats.activeUsersLast24h.toLocaleString()  : "—", change: 0, icon: Activity, color: "bg-emerald-500" },
-    { label: "Premium activos",        value: stats ? stats.premiumUsers.toLocaleString()        : "—", change: 0, icon: Crown,    color: "bg-amber-500" },
-    { label: "Usuarios free",          value: stats ? stats.freeUsers.toLocaleString()           : "—", change: 0, icon: Users,    color: "bg-orange-500" },
-    { label: "Usuarios activos",       value: stats ? stats.activeUsers.toLocaleString()         : "—", change: 0, icon: Activity, color: "bg-blue-500" },
-    { label: "Usuarios bloqueados",    value: stats ? stats.lockedUsers.toLocaleString()         : "—", change: 0, icon: Shield,   color: "bg-rose-500" },
-    { label: "Total usuarios",         value: stats ? stats.totalUsers.toLocaleString()          : "—", change: 0, icon: Users,    color: "bg-muted-foreground" },
+    { label: "Premium",                value: stats ? stats.premiumUsers.toLocaleString()        : "—", change: 0, icon: Crown,    color: "bg-amber-500" },
+    { label: "Free",                   value: stats ? stats.freeUsers.toLocaleString()           : "—", change: 0, icon: Users,    color: "bg-orange-500" },
+    { label: "Cuentas con sesión",     value: stats ? stats.activeUsers.toLocaleString()         : "—", change: 0, icon: Activity, color: "bg-blue-500" },
+    { label: "Bloqueados",             value: stats ? stats.lockedUsers.toLocaleString()         : "—", change: 0, icon: Shield,   color: "bg-rose-500" },
   ]
 
   const providerEntries = stats ? Object.entries(stats.usersByProvider) : []
@@ -91,10 +90,15 @@ export function AdminOverview() {
           </CardContent>
         </Card>
 
-        <Card className="border-border">
+        <Card className="border-border/80">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Heart className="h-4 w-4 text-rose-500" /> Matches (7d)
+            <CardTitle className="flex items-center justify-between gap-2 text-sm">
+              <span className="flex items-center gap-2">
+                <Heart className="h-4 w-4 text-rose-500" /> Matches (7d)
+              </span>
+              <Badge variant="secondary" className="text-[9px] font-normal text-muted-foreground">
+                Demo
+              </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -108,10 +112,15 @@ export function AdminOverview() {
           </CardContent>
         </Card>
 
-        <Card className="border-border">
+        <Card className="border-border/80">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-amber-500" /> Ingresos diarios ($)
+            <CardTitle className="flex items-center justify-between gap-2 text-sm">
+              <span className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-amber-500" /> Ingresos diarios ($)
+              </span>
+              <Badge variant="secondary" className="text-[9px] font-normal text-muted-foreground">
+                Demo
+              </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>

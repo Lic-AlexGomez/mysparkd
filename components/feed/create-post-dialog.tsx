@@ -315,9 +315,21 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
       <DialogTrigger asChild>
         <Button
           size="icon"
-          className="fixed bottom-24 right-6 z-30 h-16 w-16 rounded-2xl bg-gradient-to-br from-primary via-secondary to-primary text-black shadow-2xl shadow-primary/40 hover:scale-110 hover:rotate-90 transition-all duration-300 md:bottom-8 md:right-8 border-2 border-white/20"
+          className="group fixed bottom-24 right-6 z-30 h-16 w-16 rounded-2xl border border-sky-300/45 bg-sky-500/85 text-white shadow-2xl shadow-sky-500/40 backdrop-blur-md ring-1 ring-white/10 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:scale-[1.06] hover:bg-sky-500 hover:shadow-[0_18px_38px_rgba(0,0,0,0.4)] focus-visible:ring-sky-300/60 md:bottom-8 md:right-8"
+          aria-label="Crear post"
         >
-          <Plus className="h-7 w-7" />
+          <span className="pointer-events-none absolute bottom-[calc(100%+0.55rem)] left-1/2 z-40 hidden -translate-x-1/2 translate-y-1 rounded-lg border border-primary/35 bg-card/95 px-2.5 py-1 text-xs font-semibold text-foreground shadow-lg opacity-0 backdrop-blur-sm transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 md:block">
+            Crear post
+          </span>
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 rounded-2xl bg-white/0 transition-colors duration-200 group-hover:bg-white/5"
+          />
+          <span
+            aria-hidden
+            className="pointer-events-none absolute -inset-2 rounded-[1.1rem] border border-primary/30 opacity-0 blur-[1px] transition-opacity duration-200 group-hover:opacity-100"
+          />
+          <Plus className="h-6 w-6 transition-transform duration-200 group-hover:scale-110" />
           <span className="sr-only">Crear post</span>
         </Button>
       </DialogTrigger>

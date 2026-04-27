@@ -44,6 +44,17 @@ export function clearStashedLoginAccountTypeIfSynced(profile: UserProfile) {
   }
 }
 
+/** Alinea nombres del DTO Java (snake_case) con el cliente. */
+function normalizeProfileFromApi(profile: UserProfile): UserProfile {
+  const r = profile as UserProfile & { recovery_email?: string | null }
+  const recovery = profile.recoveryEmail ?? r.recovery_email
+  if (recovery === undefined || recovery === null) {
+    return profile
+  }
+  if (recovery === profile.recoveryEmail) return profile
+  return { ...profile, recoveryEmail: recovery }
+}
+
 interface AuthContextType {
   token: string | null
   user: User | null
@@ -67,6 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchProfile = useCallback(async () => {
     try {
       let profile = await api.get<UserProfile>("/api/profile/me")
+      profile = normalizeProfileFromApi(profile)
       profile = mergeProfileWithStashedLoginAccountType(profile)
       clearStashedLoginAccountTypeIfSynced(profile)
       setUser(profile)
@@ -74,7 +86,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       const savedUser = localStorage.getItem("sparkd_user")
       if (savedUser) {
-        let parsed = JSON.parse(savedUser) as UserProfile
+        let parsed = normalizeProfileFromApi(
+          JSON.parse(savedUser) as UserProfile
+        )
         parsed = mergeProfileWithStashedLoginAccountType(parsed)
         setUser(parsed)
         localStorage.setItem("sparkd_user", JSON.stringify(parsed))
@@ -87,20 +101,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const storedToken = localStorage.getItem("sparkd_token")
     const storedUser = localStorage.getItem("sparkd_user")
-    
-    if (storedToken) {
-      setToken(storedToken)
-      if (storedUser) {
-        let u = JSON.parse(storedUser) as UserProfile
+
+    if (!storedToken) {
+      setIsLoading(false)
+      return
+    }
+
+    setToken(storedToken)
+    if (storedUser) {
+      try {
+        let u = normalizeProfileFromApi(JSON.parse(storedUser) as UserProfile)
         u = mergeProfileWithStashedLoginAccountType(u)
         setUser(u)
+      } catch {
+        // si el cache está corrupto, lo ignora y sigue a refresh remoto
       }
-      fetchProfile().finally(() => {
-        setIsLoading(false)
-      })
-    } else {
-      setIsLoading(false)
     }
+
+    // Mostrar UI inmediatamente y refrescar perfil en segundo plano.
+    setIsLoading(false)
+    void fetchProfile()
   }, [fetchProfile])
 
   const login = async (data: LoginRequest) => {

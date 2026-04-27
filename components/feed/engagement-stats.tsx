@@ -12,14 +12,21 @@ export function EngagementStats({ posts }: EngagementStatsProps) {
   const { user } = useAuth()
   
   const myPosts = posts.filter(post => post.userId === user?.userId)
+  const sourcePosts = myPosts.length > 0 ? myPosts : posts
+  const isMyScope = myPosts.length > 0
   
-  const totalLikes = myPosts.reduce((sum, post) => sum + (post.likeCount || 0), 0)
-  const totalComments = myPosts.reduce((sum, post) => sum + (post.commentsCount || 0), 0)
-  const totalReposts = myPosts.reduce((sum, post) => sum + (post.repostCount || 0), 0)
-  const avgEngagement = myPosts.length > 0 ? Math.round((totalLikes + totalComments + totalReposts) / myPosts.length) : 0
+  const totalLikes = sourcePosts.reduce((sum, post) => sum + (post.likeCount || 0), 0)
+  const totalComments = sourcePosts.reduce((sum, post) => sum + (post.commentsCount || 0), 0)
+  const totalReposts = sourcePosts.reduce((sum, post) => sum + (post.repostCount || 0), 0)
+  const avgEngagement = sourcePosts.length > 0
+    ? Math.round((totalLikes + totalComments + totalReposts) / sourcePosts.length)
+    : 0
 
   return (
-    <div className="flex justify-around bg-card/60 mx-4 mb-4  mt-4 py-3 rounded-xl border border-border">
+    <div
+      className="flex justify-around bg-card/60 mx-4 mb-4 mt-4 py-3 rounded-xl border border-border"
+      title={isMyScope ? "Resumen de mis publicaciones en este lote" : "Resumen del feed cargado"}
+    >
       <div className="flex items-center gap-1.5">
         <Heart className="h-3.5 w-3.5 text-secondary" />
         <span className="text-xs font-semibold text-foreground">{totalLikes}</span>
