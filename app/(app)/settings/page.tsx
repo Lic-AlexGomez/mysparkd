@@ -42,13 +42,14 @@ import {
   Bell,
   Key,
   Mail,
+  Shield,
+  Users,
 } from "lucide-react"
 import { usePushNotifications } from "@/hooks/use-push-notifications"
 import { privacyService } from "@/lib/services/privacy"
 import { authService } from "@/lib/services/auth"
 import { normalizeEmailValue } from "@/lib/email-utils"
 import type { PrivacySettings, SparklingListMember } from "@/lib/types"
-import { Shield, Users } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 /** Valores UI de la sección Experiencia (Ajustes). */
@@ -117,6 +118,7 @@ export default function SettingsPage() {
   const [sparklingLoading, setSparklingLoading] = useState(false)
 
   const PENDING_EMAIL_CHANGE_KEY = "sparkd_pending_email_change_v1"
+  const PENDING_RECOVERY_KEY = "sparkd_pending_recovery_email_v1"
 
   // Change email
   const [showChangeEmail, setShowChangeEmail] = useState(false)
@@ -126,6 +128,17 @@ export default function SettingsPage() {
   const [emailChangeCodePending, setEmailChangeCodePending] = useState(false)
   const [emailChangeCode, setEmailChangeCode] = useState("")
   const [verifyingEmailCode, setVerifyingEmailCode] = useState(false)
+
+  // Recovery email (secundario)
+  const [showRecoveryForm, setShowRecoveryForm] = useState(false)
+  const [newRecoveryEmail, setNewRecoveryEmail] = useState("")
+  const [confirmRecoveryEmail, setConfirmRecoveryEmail] = useState("")
+  const [changingRecovery, setChangingRecovery] = useState(false)
+  const [recoveryCodePending, setRecoveryCodePending] = useState(false)
+  const [recoveryCode, setRecoveryCode] = useState("")
+  const [verifyingRecoveryCode, setVerifyingRecoveryCode] = useState(false)
+  const [deletingRecovery, setDeletingRecovery] = useState(false)
+  const [promotingPrimary, setPromotingPrimary] = useState(false)
 
   // Change Password
   const [showChangePassword, setShowChangePassword] = useState(false)
@@ -143,6 +156,9 @@ export default function SettingsPage() {
     if (typeof window === "undefined") return
     if (localStorage.getItem(PENDING_EMAIL_CHANGE_KEY) === "1") {
       setEmailChangeCodePending(true)
+    }
+    if (localStorage.getItem(PENDING_RECOVERY_KEY) === "1") {
+      setRecoveryCodePending(true)
     }
   }, [])
 
@@ -475,6 +491,121 @@ export default function SettingsPage() {
       )
     } finally {
       setVerifyingEmailCode(false)
+    }
+  }
+
+  const clearRecoveryCodePending = () => {
+    localStorage.removeItem(PENDING_RECOVERY_KEY)
+    setRecoveryCodePending(false)
+    setRecoveryCode("")
+  }
+
+  const handleRequestRecovery = async () => {
+    if (!newRecoveryEmail.trim() || !confirmRecoveryEmail.trim()) {
+      toast.error("Escribe y confirma el correo de recuperación")
+      return
+    }
+    const next = normalizeEmailValue(newRecoveryEmail)
+    const again = normalizeEmailValue(confirmRecoveryEmail)
+    if (next !== again) {
+      toast.error("Los correos de recuperación no coinciden")
+      return
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(next)) {
+      toast.error("Ingresa un correo válido")
+      return
+    }
+    const primary = (user?.email || "").trim().toLowerCase()
+    if (next === primary) {
+      toast.error(
+        "El correo de recuperación no puede ser igual al correo principal"
+      )
+      return
+    }
+    const currentRec = (user?.recoveryEmail || "").trim().toLowerCase()
+    if (currentRec && next === currentRec) {
+      toast.error("Ese email ya es tu correo de recuperación")
+      return
+    }
+    setChangingRecovery(true)
+    try {
+      await authService.requestRecoveryEmail(next)
+      localStorage.setItem(PENDING_RECOVERY_KEY, "1")
+      setRecoveryCodePending(true)
+      setRecoveryCode("")
+      toast.success(
+        "Código enviado. Revísalo en el buzón de ese correo (no en el principal) e introdúcelo abajo."
+      )
+      setShowRecoveryForm(false)
+      setNewRecoveryEmail("")
+      setConfirmRecoveryEmail("")
+      await refreshProfile()
+    } catch (err) {
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Error al solicitar el correo de recuperación"
+      )
+    } finally {
+      setChangingRecovery(false)
+    }
+  }
+
+  const handleVerifyRecoveryCode = async () => {
+    const c = recoveryCode.trim()
+    if (!c) {
+      toast.error("Escribe el código de recuperación")
+      return
+    }
+    setVerifyingRecoveryCode(true)
+    try {
+      await authService.verifyRecoveryEmail(c)
+      clearRecoveryCodePending()
+      await refreshProfile()
+      toast.success("Correo de recuperación guardado")
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Código incorrecto o expirado"
+      )
+    } finally {
+      setVerifyingRecoveryCode(false)
+    }
+  }
+
+  const handleDeleteRecovery = async () => {
+    setDeletingRecovery(true)
+    try {
+      await authService.deleteRecoveryEmail()
+      clearRecoveryCodePending()
+      setShowRecoveryForm(false)
+      await refreshProfile()
+      toast.success("Correo de recuperación eliminado")
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "No se pudo eliminar")
+    } finally {
+      setDeletingRecovery(false)
+    }
+  }
+
+  const handlePromoteRecoveryToPrimary = async () => {
+    if (!user?.recoveryEmail) {
+      toast.error("Primero añade y verifica un correo de recuperación")
+      return
+    }
+    setPromotingPrimary(true)
+    try {
+      await authService.deletePrimaryEmail()
+      clearRecoveryCodePending()
+      clearEmailChangePending()
+      setShowChangeEmail(false)
+      setShowRecoveryForm(false)
+      await refreshProfile()
+      toast.success("Tu antiguo correo de recuperación es ahora el correo principal")
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "No se pudo completar")
+    } finally {
+      setPromotingPrimary(false)
     }
   }
 
@@ -1026,11 +1157,11 @@ export default function SettingsPage() {
               <div className="space-y-2 border-t border-border pt-3 mt-1">
                 <div className="flex items-center gap-2 text-foreground">
                   <Check className="h-4 w-4 shrink-0" />
-                  <span className="text-sm font-semibold">Paso 2: confirmar con el código</span>
+                  <span className="text-sm font-semibold">Paso 2: código — correo principal</span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  En el <strong>correo nuevo</strong> (revisa spam) te enviamos un código. Cópialo aquí y pulsa
-                  confirmar. Es en esta misma página, sección Cuenta.
+                  Revisa el mensaje en el <strong>correo nuevo</strong> que quieres poner (spam incluido),
+                  copia el código y confirma.
                 </p>
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
                   <div className="flex-1">
@@ -1065,6 +1196,204 @@ export default function SettingsPage() {
                       variant="ghost"
                       onClick={clearEmailChangePending}
                       disabled={verifyingEmailCode}
+                      className="text-muted-foreground"
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
+            <div className="flex items-center gap-2 text-foreground">
+              <Shield className="h-4 w-4 shrink-0" />
+              <span className="text-sm font-semibold">Correo de recuperación</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Distinto al principal. Sirve para recuperar la cuenta; el código de verificación llega a{" "}
+              <strong>este</strong> buzón, no al correo principal.
+            </p>
+            <div className="space-y-2">
+              <Label className="text-foreground text-sm">Correo de recuperación actual</Label>
+              <Input
+                readOnly
+                value={user?.recoveryEmail?.trim() ?? ""}
+                placeholder="Ninguno registrado aún"
+                className="bg-muted/50 border-border text-foreground"
+              />
+            </div>
+            {!!user?.recoveryEmail && (
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full sm:w-auto border-destructive/50 text-destructive hover:bg-destructive/10"
+                      disabled={deletingRecovery}
+                    >
+                      {deletingRecovery ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        "Quitar correo de recuperación"
+                      )}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>¿Quitar el correo de recuperación?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Podrás añadir otro más adelante. Perderás una vía de recuperación mientras no haya
+                        reemplazo.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Volver</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => void handleDeleteRecovery()}>
+                        Sí, quitar
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="w-full sm:w-auto"
+                      disabled={promotingPrimary}
+                    >
+                      {promotingPrimary ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        "Hacer el de recuperación mi correo principal"
+                      )}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Intercambiar roles de correo</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Tu correo de recuperación actual pasará a ser el <strong>principal</strong> y
+                        dejará de mostrarse como secundario. Así lo hace el servidor al “eliminar” el
+                        principal.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => void handlePromoteRecoveryToPrimary()}>
+                        Confirmar
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowRecoveryForm((v) => !v)
+                setNewRecoveryEmail("")
+                setConfirmRecoveryEmail("")
+              }}
+              className="w-full justify-start border-border text-foreground hover:bg-muted"
+            >
+              <Shield className="mr-2 h-4 w-4" />
+              {showRecoveryForm ? "Ocultar" : "Añadir o actualizar correo de recuperación"}
+            </Button>
+            {showRecoveryForm && (
+              <div className="space-y-3 pt-1 border-t border-border">
+                <div className="flex flex-col gap-2">
+                  <Label className="text-foreground text-sm">Nuevo correo de recuperación</Label>
+                  <Input
+                    type="email"
+                    autoComplete="off"
+                    name="recovery-new-email"
+                    value={newRecoveryEmail}
+                    onChange={(e) => setNewRecoveryEmail(e.target.value)}
+                    onBlur={() => setNewRecoveryEmail((s) => s.trim())}
+                    placeholder="otro@correo.com"
+                    className="bg-background border-border"
+                    disabled={changingRecovery}
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label className="text-foreground text-sm">Confirmar</Label>
+                  <Input
+                    type="email"
+                    autoComplete="off"
+                    name="recovery-confirm-email"
+                    value={confirmRecoveryEmail}
+                    onChange={(e) => setConfirmRecoveryEmail(e.target.value)}
+                    onBlur={() => setConfirmRecoveryEmail((s) => s.trim())}
+                    placeholder="Mismo correo otra vez"
+                    className="bg-background border-border"
+                    disabled={changingRecovery}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    onClick={handleRequestRecovery}
+                    disabled={changingRecovery}
+                    className="flex-1 bg-primary text-primary-foreground"
+                  >
+                    {changingRecovery ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Solicitar código al correo de recuperación"
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {recoveryCodePending && (
+              <div className="space-y-2 border-t border-border pt-3 mt-1">
+                <div className="flex items-center gap-2 text-foreground">
+                  <Check className="h-4 w-4 shrink-0" />
+                  <span className="text-sm font-semibold">Paso 2: código — correo de recuperación</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  El mensaje con el código se envió a la dirección <strong>de recuperación</strong> (no al
+                  principal). Revisa su bandeja.
+                </p>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                  <div className="flex-1">
+                    <Label className="text-foreground text-sm">Código de verificación</Label>
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      name="recovery-email-code"
+                      value={recoveryCode}
+                      onChange={(e) => setRecoveryCode(e.target.value.replace(/\s/g, ""))}
+                      placeholder="Código de 6 dígitos (ej.)"
+                      className="bg-background border-border"
+                      disabled={verifyingRecoveryCode}
+                    />
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <Button
+                      type="button"
+                      onClick={handleVerifyRecoveryCode}
+                      disabled={verifyingRecoveryCode}
+                      className="bg-primary text-primary-foreground"
+                    >
+                      {verifyingRecoveryCode ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        "Verificar y guardar"
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={clearRecoveryCodePending}
+                      disabled={verifyingRecoveryCode}
                       className="text-muted-foreground"
                     >
                       Cancelar

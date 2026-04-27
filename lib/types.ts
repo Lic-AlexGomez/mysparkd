@@ -59,6 +59,8 @@ export interface UserProfile {
   username?: string
   /** Correo de la cuenta; puede venir en GET /api/profile/me según backend. */
   email?: string | null
+  /** Email secundario de recuperación (`UserProfileResponseDTO`). */
+  recoveryEmail?: string | null
   accountType?: AccountType | string
   nombres: string
   apellidos: string

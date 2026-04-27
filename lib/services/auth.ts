@@ -23,4 +23,27 @@ export const authService = {
   async verifyEmailChange(code: string): Promise<void> {
     await api.post("/auth/verify-email-change", { code: code.trim() })
   },
+
+  /** Agregar o cambiar email de recuperación: envía código al correo indicado. */
+  async requestRecoveryEmail(email: string): Promise<void> {
+    await api.post("/auth/request-recovery-email", {
+      email: email.trim().toLowerCase(),
+    })
+  },
+
+  async verifyRecoveryEmail(code: string): Promise<void> {
+    await api.post("/auth/verify-recovery-email", { code: code.trim() })
+  },
+
+  async deleteRecoveryEmail(): Promise<void> {
+    await api.delete("/auth/recovery-email")
+  },
+
+  /**
+   * Promueve el email de recuperación a principal (quita el principal anterior).
+   * Requiere tener `recoveryEmail` registrado.
+   */
+  async deletePrimaryEmail(): Promise<void> {
+    await api.delete("/auth/primary-email")
+  },
 }
