@@ -30,7 +30,15 @@ import {
 } from "lucide-react"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import { TOP_10_LANGUAGES, type SupportedLanguage, useI18n } from "@/lib/i18n"
 
 /** Ilustraciones SVG para el selector de modo. */
 function SvgModeSocial({ className }: { className?: string }) {
@@ -131,6 +139,7 @@ const STEP_META = [
 
 export default function OnboardingPage() {
   const { refreshProfile } = useAuth()
+  const { language, setLanguage, t } = useI18n()
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
@@ -437,6 +446,28 @@ export default function OnboardingPage() {
                       </p>
                     </div>
                   </div>
+                </div>
+
+                <div className="rounded-xl border border-border/70 bg-muted/20 p-4 lg:p-3">
+                  <Label className="text-sm font-medium text-foreground">{t("onboarding.language.title")}</Label>
+                  <p className="mt-1 text-xs leading-snug text-muted-foreground">
+                    {t("onboarding.language.description")}
+                  </p>
+                  <Select
+                    value={language}
+                    onValueChange={(value) => setLanguage(value as SupportedLanguage)}
+                  >
+                    <SelectTrigger className="mt-3 h-11 bg-background/70 lg:h-10">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TOP_10_LANGUAGES.map((option) => (
+                        <SelectItem key={option.code} value={option.code}>
+                          {option.nativeLabel} ({option.englishLabel})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="flex flex-col gap-3 lg:gap-2">

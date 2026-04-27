@@ -23,28 +23,30 @@ import { es } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { privateChatPinnedService } from "@/lib/services/private-chat-pinned"
+import { useI18n } from "@/lib/i18n"
 
-function pinnedSnippet(msg: Message): string {
+function pinnedSnippet(msg: Message, te: (es: string, en: string) => string): string {
   const raw = msg.content?.startsWith("@reply:")
     ? (msg.content.match(/@reply:[^|]+\|(.*)/)?.[1] ?? msg.content)
     : (msg.content ?? "")
   if (!raw?.trim()) {
-    if (msg.media?.mediaUrl || msg.mediaType === "IMAGE") return "📷 Imagen"
-    if (msg.mediaType === "VIDEO") return "🎬 Vídeo"
-    if (msg.mediaType === "AUDIO") return "🎤 Audio"
-    return "Mensaje"
+    if (msg.media?.mediaUrl || msg.mediaType === "IMAGE") return `📷 ${te("Imagen", "Image")}`
+    if (msg.mediaType === "VIDEO") return `🎬 ${te("Vídeo", "Video")}`
+    if (msg.mediaType === "AUDIO") return `🎤 ${te("Audio", "Audio")}`
+    return te("Mensaje", "Message")
   }
   return raw.length > 100 ? `${raw.slice(0, 97)}…` : raw
 }
 
-function pinnedAuthorLabel(msg: Message, selfId: string | undefined, otherName: string | undefined): string {
+function pinnedAuthorLabel(msg: Message, selfId: string | undefined, otherName: string | undefined, te: (es: string, en: string) => string): string {
   const sid = msg.senderId?.toString ? msg.senderId.toString() : String(msg.senderId)
   const my = selfId?.toString ? selfId.toString() : String(selfId)
-  if (sid === my) return "Tú"
-  return otherName || "Usuario"
+  if (sid === my) return te("Tú", "You")
+  return otherName || te("Usuario", "User")
 }
 
 export default function ChatRoomPage() {
+  const { te } = useI18n()
   const params = useParams()
   const router = useRouter()
   const { user } = useAuth()
@@ -377,7 +379,7 @@ export default function ChatRoomPage() {
         }
       } catch (e: unknown) {
         const err = e as { message?: string }
-        toast.error(err?.message || "No se pudo actualizar el mensaje fijado")
+        toast.error(err?.message || te("No se pudo actualizar el mensaje fijado", "Could not update pinned message"))
         void loadPinnedMessages()
       } finally {
         setPinUpdatingId(null)
@@ -556,7 +558,7 @@ export default function ChatRoomPage() {
       setEditedMessages(prev => ({ ...prev, [msgId]: editingContent.trim() }))
       setEditingMessageId(null)
     } catch {
-      toast.error('Error al editar el mensaje')
+      toast.error(te('Error al editar el mensaje', 'Error editing message'))
     }
   }
 
@@ -575,7 +577,7 @@ export default function ChatRoomPage() {
       setDeletedMessages(prev => new Set(prev).add(msgId))
     } catch (e: any) {
       console.error('[delete] error:', e)
-      toast.error('Error al eliminar el mensaje')
+      toast.error(te('Error al eliminar el mensaje', 'Error deleting message'))
     }
     setDeleteConfirmId(null)
   }
@@ -684,7 +686,7 @@ export default function ChatRoomPage() {
       setIsRecording(true)
     } catch (error) {
       console.error('Error al grabar audio:', error)
-      alert('No se pudo acceder al micrófono. Verifica los permisos.')
+      alert(te('No se pudo acceder al micrófono. Verifica los permisos.', 'Could not access microphone. Check permissions.'))
     }
   }
 
@@ -715,7 +717,7 @@ export default function ChatRoomPage() {
       const result = Array.isArray(data.result) ? data.result.filter((s: string) => s.trim()) : [data.result].filter(Boolean)
       setAiSuggestions(result)
     } catch {
-      toast.error('Error al obtener sugerencias')
+      toast.error(te('Error al obtener sugerencias', 'Error getting suggestions'))
     } finally {
       setAiLoading(false)
     }
@@ -738,12 +740,12 @@ export default function ChatRoomPage() {
         if (xhr.status >= 200 && xhr.status < 300) {
           resolve(JSON.parse(xhr.responseText))
         } else {
-          let msg = 'Error al subir archivo'
+          let msg = te('Error al subir archivo', 'Error uploading file')
           try { msg = JSON.parse(xhr.responseText)?.message || msg } catch {}
           reject(new Error(`${msg} (${xhr.status})`))
         }
       }
-      xhr.onerror = () => reject(new Error('Error de red al subir archivo'))
+      xhr.onerror = () => reject(new Error(te('Error de red al subir archivo', 'Network error while uploading file')))
       xhr.send(formData)
     })
   }
@@ -909,7 +911,7 @@ export default function ChatRoomPage() {
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar mensajes..."
+            placeholder={te("Buscar mensajes...", "Search messages...")}
             className="bg-muted/50 border-primary/20"
           />
         </div>
@@ -917,7 +919,7 @@ export default function ChatRoomPage() {
 
       {showGallery && (
         <div className="flex-shrink-0 border-b border-primary/20 bg-background/95 px-4 py-2">
-          <p className="text-xs font-semibold mb-1.5">Galería ({mediaMessages.length})</p>
+          <p className="text-xs font-semibold mb-1.5">{te("Galería", "Gallery")} ({mediaMessages.length})</p>
           <div className="grid grid-cols-6 gap-1.5 max-h-20 overflow-y-auto">
             {mediaMessages.map((msg, gIdx) => {
               const content = msg.content.startsWith('@reply:') ? msg.content.split('|')[1] : msg.content
@@ -981,7 +983,7 @@ export default function ChatRoomPage() {
           <GamePanel
             onClose={() => setShowGame(false)}
             onSendMessage={(msg) => sendViaWebSocket(chatId, msg)}
-            myUsername={user?.username || user?.nombres || 'Tú'}
+            myUsername={user?.username || user?.nombres || te('Tú', 'You')}
             otherUsername={chatInfo?.otherUsername || 'tu match'}
           />
         </div>
@@ -989,7 +991,7 @@ export default function ChatRoomPage() {
 
       {pinnedMessages.length > 0 && (
         <div className="flex-shrink-0 border-b border-primary/20 bg-primary/5 px-3 py-2 max-h-32 overflow-y-auto">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">Fijados</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">{te("Fijados", "Pinned")}</p>
           <div className="flex flex-col gap-1.5">
             {pinnedMessages.map((pm) => {
               const pId = String(pm.messageId || pm.id || "")
@@ -1003,9 +1005,9 @@ export default function ChatRoomPage() {
                   <Pin className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
                   <div className="min-w-0 flex-1">
                     <p className="text-[10px] text-muted-foreground">
-                      {pinnedAuthorLabel(pm, user?.userId, chatInfo?.otherUsername)}
+                      {pinnedAuthorLabel(pm, user?.userId, chatInfo?.otherUsername, te)}
                     </p>
-                    <p className="text-xs line-clamp-2 break-words">{pinnedSnippet(pm)}</p>
+                    <p className="text-xs line-clamp-2 break-words">{pinnedSnippet(pm, te)}</p>
                   </div>
                   <div className="flex shrink-0 items-center gap-0.5">
                     {inThread && (
@@ -1096,7 +1098,7 @@ export default function ChatRoomPage() {
               const replyMatch = isReply ? msg.content.match(/@reply:([^|]+)\|(.*)/) : null
               const replyToId = replyMatch?.[1]
               const actualContent = replyMatch?.[2] || msg.content
-              const isDeletedContent = actualContent === 'Mensaje eliminado'
+              const isDeletedContent = actualContent === te('Mensaje eliminado', 'Message deleted')
               const repliedMsg = replyToId ? messages.find(m => (m.messageId || m.id) === replyToId) : null
               const isAudio = actualContent.startsWith('🎤 ')
               const audioUrl = isAudio ? actualContent.substring(3) : null
@@ -1143,7 +1145,7 @@ export default function ChatRoomPage() {
                       <button
                         className="h-7 w-7 rounded-full flex items-center justify-center bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                         onClick={(e) => { e.stopPropagation(); handleCopyMessage(actualContent, msgId) }}
-                        title="Copiar"
+                        title={te("Copiar", "Copy")}
                       >
                         {copiedMessageId === msgId ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
                       </button>
@@ -1161,7 +1163,7 @@ export default function ChatRoomPage() {
                       <button
                         className="h-7 w-7 rounded-full flex items-center justify-center bg-muted/80 hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
                         onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(msgId) }}
-                        title="Eliminar para mí"
+                        title={te("Eliminar para mí", "Delete for me")}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -1185,7 +1187,7 @@ export default function ChatRoomPage() {
                         isOwn ? 'bg-black/20' : 'bg-primary/10'
                       }`}>
                         <p className="font-semibold text-primary/90 mb-0.5">
-                          {repliedMsg.senderId === user?.userId ? 'Tú' : chatInfo?.otherUsername}
+                          {repliedMsg.senderId === user?.userId ? te('Tú', 'You') : chatInfo?.otherUsername}
                         </p>
                         <p className="opacity-80 line-clamp-2">
                           {repliedMsg.media?.mediaUrl ? '📎 Archivo multimedia' : repliedMsg.content.substring(0, 100)}
@@ -1197,7 +1199,7 @@ export default function ChatRoomPage() {
                     ) : msg.media?.mediaUrl && msg.mediaType === 'IMAGE' ? (
                       <img 
                         src={msg.media.mediaUrl} 
-                        alt="Imagen" 
+                        alt={te("Imagen", "Image")} 
                         className="rounded-lg max-w-[200px] max-h-[200px] object-cover cursor-pointer hover:opacity-90" 
                         onClick={() => setSelectedImageView(msg.media!.mediaUrl)}
                       />
@@ -1225,7 +1227,7 @@ export default function ChatRoomPage() {
                     ) : actualContent.startsWith('http') && (actualContent.includes('cloudinary.com') || actualContent.match(/\.(jpg|jpeg|png|gif|webp)$/i)) ? (
                       <img 
                         src={actualContent} 
-                        alt="Imagen" 
+                        alt={te("Imagen", "Image")} 
                         className="rounded-lg w-[100px] h-[100px] object-cover cursor-pointer hover:opacity-90" 
                         onClick={() => setSelectedImageView(actualContent)}
                       />
@@ -1327,7 +1329,7 @@ export default function ChatRoomPage() {
                       <button
                         className="h-7 w-7 rounded-full flex items-center justify-center bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                         onClick={(e) => { e.stopPropagation(); handleCopyMessage(actualContent, msgId) }}
-                        title="Copiar"
+                        title={te("Copiar", "Copy")}
                       >
                         {copiedMessageId === msgId ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
                       </button>
@@ -1335,7 +1337,7 @@ export default function ChatRoomPage() {
                         <button
                           className="h-7 w-7 rounded-full flex items-center justify-center bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                           onClick={(e) => { e.stopPropagation(); handleStartEdit(msg) }}
-                          title="Editar"
+                          title={te("Editar", "Edit")}
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
@@ -1354,7 +1356,7 @@ export default function ChatRoomPage() {
                       <button
                         className="h-7 w-7 rounded-full flex items-center justify-center bg-muted/80 hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
                         onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(msgId) }}
-                        title="Eliminar"
+                        title={te("Eliminar", "Delete")}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -1379,21 +1381,21 @@ export default function ChatRoomPage() {
       {deleteConfirmId && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 pb-6 px-4" onClick={() => setDeleteConfirmId(null)}>
           <div className="w-full max-w-sm bg-card rounded-2xl border border-border overflow-hidden" onClick={e => e.stopPropagation()}>
-            <p className="text-sm font-semibold text-center text-foreground px-4 pt-4 pb-2">Eliminar mensaje</p>
+            <p className="text-sm font-semibold text-center text-foreground px-4 pt-4 pb-2">{te("Eliminar mensaje", "Delete message")}</p>
             <div className="divide-y divide-border">
               {deleteConfirmIsOwn && (
                 <button
                   className="w-full px-4 py-3.5 text-sm text-destructive font-medium hover:bg-muted/50 transition-colors text-left"
                   onClick={() => handleDeleteMessage(deleteConfirmId, true)}
                 >
-                  Eliminar para todos
+                  {te("Eliminar para todos", "Delete for everyone")}
                 </button>
               )}
               <button
                 className="w-full px-4 py-3.5 text-sm text-foreground hover:bg-muted/50 transition-colors text-left"
                 onClick={() => handleDeleteMessage(deleteConfirmId, false)}
               >
-                Eliminar para mí
+                {te("Eliminar para mí", "Delete for me")}
               </button>
               <button
                 className="w-full px-4 py-3.5 text-sm text-muted-foreground hover:bg-muted/50 transition-colors text-left"

@@ -24,8 +24,10 @@ import {
   VoiceNoteRecorder,
 } from "@/components/ui/voice-note"
 import { DialogTitle } from "@/components/ui/dialog"
+import { useI18n } from "@/lib/i18n"
 
 export default function ProfilePage() {
+  const { te } = useI18n()
   const { user, refreshProfile, updateUser, isLoading } = useAuth()
   const router = useRouter()
 
@@ -54,9 +56,9 @@ export default function ProfilePage() {
     setDraggedIndex(null)
     try {
       await api.put('/api/photos/reorder', { photoIds: photos.map(p => p.photoId || p.id) })
-      toast.success('Fotos reordenadas')
+      toast.success(te('Fotos reordenadas', 'Photos reordered'))
     } catch {
-      toast.error('Error al guardar orden')
+      toast.error(te('Error al guardar orden', 'Error saving order'))
       setLocalPhotos(user?.photos || [])
     }
   }
@@ -82,7 +84,7 @@ export default function ProfilePage() {
 
   if (!user) return (
     <div className="flex h-screen items-center justify-center">
-      <p className="text-muted-foreground">No se pudo cargar el perfil</p>
+      <p className="text-muted-foreground">{te('No se pudo cargar el perfil', 'Could not load profile')}</p>
     </div>
   )
 
@@ -94,7 +96,7 @@ export default function ProfilePage() {
         {/* Cover */}
         <div className="relative h-56 overflow-hidden group">
           {coverPhoto
-            ? <img src={coverPhoto} alt="Portada" className="h-full w-full object-cover" />
+            ? <img src={coverPhoto} alt={te("Portada", "Cover")} className="h-full w-full object-cover" />
             : <div className="h-full bg-gradient-to-br from-primary via-secondary/70 to-primary/40" />
           }
           {/* Overlay degradado hacia abajo */}
@@ -103,18 +105,18 @@ export default function ProfilePage() {
             onClick={() => document.getElementById('cover-upload')?.click()}
             className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white text-sm font-medium"
           >
-            <Camera className="h-5 w-5 mr-2" /> Cambiar portada
+            <Camera className="h-5 w-5 mr-2" /> {te("Cambiar portada", "Change cover")}
           </button>
           <input id="cover-upload" type="file" accept="image/*" className="hidden"
             onChange={async (e) => {
               const file = e.target.files?.[0]; if (!file) return
-              const toastId = toast.loading('Subiendo portada...')
+                const toastId = toast.loading(te('Subiendo portada...', 'Uploading cover...'))
               try {
                 const fd = new FormData(); fd.append('file', file)
                 const data = await api.post<{ url: string }>('/api/photos/cover-picture', fd)
                 setCoverPhoto(data.url); await refreshProfile()
-                toast.dismiss(toastId); toast.success('Portada actualizada')
-              } catch { toast.dismiss(toastId); toast.error('Error al subir portada') }
+                  toast.dismiss(toastId); toast.success(te('Portada actualizada', 'Cover updated'))
+                } catch { toast.dismiss(toastId); toast.error(te('Error al subir portada', 'Error uploading cover')) }
               e.target.value = ''
             }}
           />
@@ -142,13 +144,13 @@ export default function ProfilePage() {
             <input id="avatar-upload" type="file" accept="image/*" className="hidden"
               onChange={async (e) => {
                 const file = e.target.files?.[0]; if (!file) return
-                const toastId = toast.loading('Subiendo foto...')
+                const toastId = toast.loading(te('Subiendo foto...', 'Uploading photo...'))
                 try {
                   const fd = new FormData(); fd.append('file', file)
                   await api.post('/api/photos/profile-picture', fd)
                   await refreshProfile()
-                  toast.dismiss(toastId); toast.success('Foto actualizada')
-                } catch { toast.dismiss(toastId); toast.error('Error al subir foto') }
+                  toast.dismiss(toastId); toast.success(te('Foto actualizada', 'Photo updated'))
+                } catch { toast.dismiss(toastId); toast.error(te('Error al subir foto', 'Error uploading photo')) }
                 e.target.value = ''
               }}
             />
@@ -168,7 +170,7 @@ export default function ProfilePage() {
             onClick={() => router.push('/profile/edit')}
             className="flex items-center gap-1.5 px-4 h-9 rounded-full bg-background border border-border text-sm font-semibold hover:bg-muted transition-colors shadow-lg"
           >
-            <Pencil className="h-3.5 w-3.5" /> Editar
+            <Pencil className="h-3.5 w-3.5" /> {te("Editar", "Edit")}
           </button>
           <button
             onClick={() => router.push('/settings')}
@@ -190,12 +192,12 @@ export default function ProfilePage() {
               </h1>
               {user.premium && showPremiumBadge && (
                 <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-gradient-to-r from-yellow-500/20 to-amber-500/20 text-yellow-500 border border-yellow-500/30">
-                  <Crown className="h-3 w-3" /> Premium
+                  <Crown className="h-3 w-3" /> {te("Premium", "Premium")}
                 </span>
               )}
               {user.profileCompleted && (
                 <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-primary/10 text-primary border border-primary/20">
-                  <Zap className="h-3 w-3" /> Verificado
+                  <Zap className="h-3 w-3" /> {te("Verificado", "Verified")}
                 </span>
               )}
             </div>
@@ -237,8 +239,8 @@ export default function ProfilePage() {
               currentUrl={null}
               onSaved={(url) => {
                 updateUser({
-                  voiceIntroUrl: url ?? null,
-                  voiceNoteUrl: url ?? null,
+                  voiceIntroUrl: url ?? undefined,
+                  voiceNoteUrl: url ?? undefined,
                 })
                 void refreshProfile()
               }}

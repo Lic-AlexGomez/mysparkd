@@ -15,22 +15,24 @@ import {
 import { cn } from "@/lib/utils"
 import { useUnreadChats } from "@/hooks/use-unread-chats"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
+import { useI18n } from "@/lib/i18n"
 
 const navItems = [
-  { href: "/feed", label: "Feed", icon: Newspaper },
-  { href: "/groups", label: "Grupos", icon: Users },
-  { href: "/swipes", label: "Swipes", icon: Zap },
-  { href: "/events", label: "Eventos", icon: CalendarDays },
-  { href: "/fastdate", label: "Citas", icon: Calendar },
-  { href: "/chat", label: "Chat", icon: MessageCircle },
-  { href: "/trello", label: "Trello", icon: LayoutList },
-  { href: "/profile", label: "Perfil", icon: User },
+  { href: "/feed", labelKey: "bottomNav.feed", icon: Newspaper },
+  { href: "/groups", labelKey: "bottomNav.groups", icon: Users },
+  { href: "/swipes", labelKey: "bottomNav.swipes", icon: Zap },
+  { href: "/events", labelKey: "bottomNav.events", icon: CalendarDays },
+  { href: "/fastdate", labelKey: "bottomNav.dates", icon: Calendar },
+  { href: "/chat", labelKey: "bottomNav.chat", icon: MessageCircle },
+  { href: "/trello", labelKey: "bottomNav.trello", icon: LayoutList },
+  { href: "/profile", labelKey: "bottomNav.profile", icon: User },
 ]
 
 export function BottomNav() {
   const pathname = usePathname()
   const unreadChats = useUnreadChats()
   const features = useFeatureFlags()
+  const { t } = useI18n()
 
   const visibleNavItems = navItems.filter((item) => {
     if (item.href === "/groups" && !features.groupsPage) return false
@@ -54,7 +56,7 @@ export function BottomNav() {
                 "flex flex-col items-center gap-0.5 px-1.5 sm:px-2.5 py-1.5 text-[10px] sm:text-xs transition-colors",
                 isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
               )}
-              aria-label={item.label}
+              aria-label={t(item.labelKey)}
             >
               <div className="relative">
                 <item.icon className={cn("h-5 w-5", isActive && "fill-primary/20")} />
@@ -64,7 +66,7 @@ export function BottomNav() {
                   </span>
                 )}
               </div>
-              <span className="hidden sm:inline">{item.label}</span>
+              <span className="hidden sm:inline">{t(item.labelKey)}</span>
             </Link>
           )
         })}

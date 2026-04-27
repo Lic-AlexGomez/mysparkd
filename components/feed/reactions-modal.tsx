@@ -35,7 +35,7 @@ export function ReactionsModal({ open, onOpenChange, postId }: ReactionsModalPro
       setTimeout(() => {
         setReactions([
           { userId: '1', username: 'usuario1', reactionType: 'LOVE' },
-          { userId: '2', username: 'usuario2', reactionType: 'HAHA' },
+          { userId: '2', username: 'usuario2', reactionType: 'LAUGH' },
           { userId: '3', username: 'usuario3', reactionType: 'WOW' },
         ])
         setLoading(false)
@@ -64,7 +64,7 @@ export function ReactionsModal({ open, onOpenChange, postId }: ReactionsModalPro
             <TabsTrigger value="all">
               Todas {reactions.length > 0 && `(${reactions.length})`}
             </TabsTrigger>
-            {(['LOVE', 'HAHA', 'WOW', 'SAD', 'ANGRY'] as ReactionType[]).map((type) => {
+            {(['LOVE', 'LAUGH', 'WOW', 'SAD', 'FIRE', 'LIKE'] as ReactionType[]).map((type) => {
               const count = reactionCounts[type] || 0
               if (count === 0) return null
               return (

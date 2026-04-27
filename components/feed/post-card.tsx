@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, memo } from "react"
 import Link from "next/link"
-import type { Post, ReactionType, PostVisibility } from "@/lib/types"
+import type { Post, ReactionType, PostVisibility, ReactionSummary } from "@/lib/types"
 import { api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -51,9 +51,15 @@ import { PollComponent } from "./poll-component"
 import { ReportModal } from "./report-modal"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
 import { usePremiumStatus } from "@/hooks/use-premium-status"
-import { Tooltip } from "@/components/ui/tooltip"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { ReputationStars } from "@/components/ui/reputation-stars"
 import { OptimizedImage } from "@/components/ui/optimized-image"
+import { useI18n } from "@/lib/i18n"
 
 interface PostCardProps {
   post: Post
@@ -64,6 +70,8 @@ interface PostCardProps {
 }
 
 export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highlight, compact = false }: PostCardProps) {
+  const normalizedReactions: ReactionSummary = post.reactions || {}
+  const { te } = useI18n()
   const { user } = useAuth()
   const features = useFeatureFlags()
   const { isPremium } = usePremiumStatus()
@@ -77,7 +85,7 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
     if (post.userReaction) return post.userReaction;
     
     // Si no hay userReaction, buscar en reactions donde userReacted sea true
-    const userReactionEntry = Object.entries(post.reactions || {}).find(
+    const userReactionEntry = Object.entries(normalizedReactions).find(
       ([_, reaction]) => reaction.userReacted
     );
     
@@ -99,7 +107,7 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
   }, [post.commentsCount])
 
   const [userReaction, setUserReaction] = useState<ReactionType | null>(initialUserReaction)
-  const [reactionCounts, setReactionCounts] = useState(post.reactions || {})
+  const [reactionCounts, setReactionCounts] = useState<ReactionSummary>(normalizedReactions)
   const [repostCount, setRepostCount] = useState(post.repostCount || 0)
   const [reposted, setReposted] = useState(post.repostedByCurrentUser || false)
 
@@ -142,7 +150,7 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
     if (prevReaction === type) {
       // Remove reaction
       setUserReaction(null)
-      setReactionCounts(prev => {
+      setReactionCounts((prev: ReactionSummary) => {
         const updated = { ...prev }
         if (updated[type]) {
           updated[type] = { ...updated[type], count: updated[type].count - 1, userReacted: false }
@@ -153,7 +161,7 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
     } else {
       // Add or change reaction
       setUserReaction(type)
-      setReactionCounts(prev => {
+      setReactionCounts((prev: ReactionSummary) => {
         const updated = { ...prev }
         // Remove old reaction
         if (prevReaction && updated[prevReaction]) {
@@ -183,10 +191,10 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
       if (status && typeof status === 'object') {
         // Si el backend devuelve myReaction y reactions
         if ('myReaction' in status && 'reactions' in status) {
-          setUserReaction(status.myReaction || null)
+          setUserReaction((typeof status.myReaction === "string" ? status.myReaction : null) as ReactionType | null)
           
           // Convertir array de reacciones a objeto
-          const reactionsObj: Record<string, { type: string; count: number; userReacted: boolean }> = {}
+          const reactionsObj: ReactionSummary = {}
           if (Array.isArray(status.reactions)) {
             status.reactions.forEach((r: any) => {
               reactionsObj[r.reaction] = {
@@ -331,7 +339,7 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
   }, [user?.userId, post.id, reposted, repostCount, isRepostPending, onUpdate])
 
 
-  const [pollState, setPollState] = useState<typeof post.poll>(post.poll ?? null)
+  const [pollState, setPollState] = useState<Post["poll"]>(post.poll ?? null)
 
   useEffect(() => {
     setBookmarked(Boolean(post.saved) || bookmarkService.isSaved(post.id))
@@ -366,7 +374,7 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
       ...pollState,
       userVoted: optionId,
       totalVotes: newTotalVotes,
-      options: pollState.options.map(o => {
+      options: pollState.options.map((o) => {
         const newVotes = o.id === optionId ? o.votes + 1 : o.votes
         return { ...o, votes: newVotes, percentage: Math.round((newVotes / newTotalVotes) * 100) }
       })
@@ -452,17 +460,22 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
                   </Badge>
                 )}
                 {reputation && (
-                  <Tooltip content={`Reputación: ${reputation}/100`}>
-                    <div className="flex items-center gap-1">
-                      <ReputationStars reputation={reputation} size="sm" />
-                      <Badge 
-                        className="px-1.5 py-0 text-[10px] font-bold text-black border-0" 
-                        style={{ backgroundColor: reputationColor }}
-                      >
-                        {reputation}
-                      </Badge>
-                    </div>
-                  </Tooltip>
+                  <TooltipProvider delayDuration={100}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center gap-1">
+                          <ReputationStars reputation={reputation} size="sm" />
+                          <Badge
+                            className="px-1.5 py-0 text-[10px] font-bold text-black border-0"
+                            style={{ backgroundColor: reputationColor }}
+                          >
+                            {reputation}
+                          </Badge>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>{te("Reputación", "Reputation")}: {reputation}/100</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 )}
               </div>
               <p className="text-xs text-muted-foreground">{timeAgo}</p>
@@ -472,13 +485,13 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
             {!post.permanent && (
               <span className="flex items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-xs text-accent">
                 <Clock className="h-3 w-3" />
-                Temporal
+                {te("Temporal", "Temporary")}
               </span>
             )}
             {isOwn && post.locked && (
               <span className="flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
                 <Lock className="h-3 w-3" />
-                Premium
+                {te("Premium", "Premium")}
               </span>
             )}
             {!isOwn && (
@@ -499,11 +512,11 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
                     className="cursor-pointer flex items-center gap-2"
                   >
                     <Bookmark className={`h-4 w-4 ${bookmarked ? 'fill-current' : ''}`} />
-                    {isBookmarkPending ? 'Actualizando...' : bookmarked ? 'Quitar guardado' : 'Guardar'}
+                    {isBookmarkPending ? te('Actualizando...', 'Updating...') : bookmarked ? te('Quitar guardado', 'Remove saved') : te('Guardar', 'Save')}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setShowReportModal(true)} className="cursor-pointer text-destructive flex items-center gap-2">
                     <Flag className="h-4 w-4" />
-                    Reportar
+                    {te("Reportar", "Report")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -517,7 +530,7 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
                     className="h-8 w-8 text-muted-foreground"
                   >
                     <MoreHorizontal className="h-4 w-4" />
-                    <span className="sr-only">Opciones</span>
+                    <span className="sr-only">{te("Opciones", "Options")}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
@@ -526,14 +539,14 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
                 >
                   <DropdownMenuItem onClick={handleEdit} className="cursor-pointer">
                     <Pencil className="mr-2 h-4 w-4" />
-                    Editar
+                    {te("Editar", "Edit")}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => setShowDeleteConfirm(true)}
                     className="text-destructive cursor-pointer"
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
-                    Eliminar
+                    {te("Eliminar", "Delete")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -552,7 +565,7 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
                 maxLength={500}
               />
               <span className="text-xs text-muted-foreground text-right">
-                {editedBody.length}/500 {editedBody.length < 10 && editedBody.length > 0 && '(mínimo 10)'}
+                {editedBody.length}/500 {editedBody.length < 10 && editedBody.length > 0 && te('(mínimo 10)', '(minimum 10)')}
               </span>
               <Select value={editedVisibility} onValueChange={(v) => setEditedVisibility(v as PostVisibility)}>
                 <SelectTrigger className="bg-muted border-border text-foreground text-xs h-8">
@@ -562,19 +575,19 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
                   <SelectItem value="PUBLIC">
                     <div className="flex items-center gap-2 text-xs">
                       <Globe className="h-3.5 w-3.5" />
-                      Público
+                      {te("Público", "Public")}
                     </div>
                   </SelectItem>
                   <SelectItem value="FOLLOWERS">
                     <div className="flex items-center gap-2 text-xs">
                       <UsersIcon className="h-3.5 w-3.5" />
-                      Seguidores
+                      {te("Seguidores", "Followers")}
                     </div>
                   </SelectItem>
                   <SelectItem value="PRIVATE">
                     <div className="flex items-center gap-2 text-xs">
                       <LockKeyhole className="h-3.5 w-3.5" />
-                      Privado
+                      {te("Privado", "Private")}
                     </div>
                   </SelectItem>
                 </SelectContent>
@@ -587,7 +600,7 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
                   disabled={isSaving}
                   className="border-border text-foreground"
                 >
-                  Cancelar
+                  {te("Cancelar", "Cancel")}
                 </Button>
                 <Button
                   size="sm"
@@ -595,7 +608,7 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
                   disabled={isSaving || !editedBody.trim() || editedBody.trim().length < 10}
                   className="bg-primary text-primary-foreground"
                 >
-                  {isSaving ? 'Guardando...' : 'Guardar'}
+                  {isSaving ? te('Guardando...', 'Saving...') : te('Guardar', 'Save')}
                 </Button>
               </div>
             </div>
@@ -607,13 +620,13 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
                   <div className="blur-sm opacity-60 pointer-events-none text-sm text-foreground leading-relaxed">
                     {post.body
                       ? post.body
-                      : 'Contenido premium bloqueado. Desbloquea para ver este mensaje.'}
+                      : te('Contenido premium bloqueado. Desbloquea para ver este mensaje.', 'Premium content locked. Unlock to view this message.')}
                   </div>
                   {/* Overlay con candado */}
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="flex items-center gap-2 bg-background/80 backdrop-blur-sm border border-primary/30 rounded-full px-4 py-2 shadow-lg">
                       <Lock className="h-4 w-4 text-primary" />
-                      <span className="text-xs font-semibold text-primary">Desbloquear contenido</span>
+                      <span className="text-xs font-semibold text-primary">{te("Desbloquear contenido", "Unlock content")}</span>
                     </div>
                   </div>
                 </div>
@@ -643,9 +656,9 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
                   <div className="h-12 w-12 rounded-full bg-black/50 flex items-center justify-center">
                     <Lock className="h-6 w-6 text-white" />
                   </div>
-                  <p className="text-white font-semibold text-sm">Contenido Premium</p>
+                  <p className="text-white font-semibold text-sm">{te("Contenido Premium", "Premium content")}</p>
                   <span className="text-xs border border-white/50 text-white rounded-full px-4 py-1.5 hover:bg-white/20 transition-colors">
-                    Desbloquear
+                    {te("Desbloquear", "Unlock")}
                   </span>
                 </div>
               </div>
@@ -684,8 +697,8 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
                 <ReactionPicker onReact={handleReaction}>
                   <button
                     className="text-muted-foreground hover:text-foreground transition-colors"
-                    title="Reaccionar"
-                    aria-label="Reaccionar a esta publicación"
+                    title={te("Reaccionar", "React")}
+                    aria-label={te("Reaccionar a esta publicación", "React to this post")}
                   >
                     <Heart
                       className={`h-5 w-5 transition-all hover:scale-110 ${
@@ -707,8 +720,8 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
                 <button
                   onClick={toggleLike}
                   className="text-muted-foreground hover:text-foreground transition-colors"
-                  title={liked ? "Quitar like" : "Dar like"}
-                  aria-label={liked ? "Quitar me gusta" : "Dar me gusta"}
+                  title={liked ? te("Quitar like", "Remove like") : te("Dar like", "Like")}
+                  aria-label={liked ? te("Quitar me gusta", "Remove like") : te("Dar me gusta", "Like")}
                 >
                   <Heart
                     className={`h-5 w-5 transition-all hover:scale-110 ${
@@ -728,8 +741,8 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
               <button
                 onClick={() => setShowComments(true)}
                 className="text-muted-foreground hover:text-foreground transition-colors"
-                title="Comentar"
-                aria-label="Ver y escribir comentarios"
+                title={te("Comentar", "Comment")}
+                aria-label={te("Ver y escribir comentarios", "View and write comments")}
               >
                 <MessageCircle className="h-5 w-5 hover:scale-110 transition-all" />
               </button>
@@ -752,8 +765,8 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
                 }}
                 disabled={isRepostPending}
                 className={`text-muted-foreground hover:text-foreground transition-colors ${isRepostPending ? 'opacity-60 cursor-not-allowed' : ''}`}
-                title={reposted ? "Quitar repost" : "Repostear"}
-                aria-label="Republicar esta publicación"
+                title={reposted ? te("Quitar repost", "Remove repost") : te("Repostear", "Repost")}
+                aria-label={te("Republicar esta publicación", "Repost this post")}
               >
                 <Repeat2 className={`h-5 w-5 hover:scale-110 transition-all ${reposted ? 'text-primary' : ''}`} />
               </button>
@@ -768,7 +781,7 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
               <button
                 onClick={handleShare}
                 className="text-muted-foreground hover:text-foreground transition-colors"
-                title="Enviar"
+                title={te("Enviar", "Share")}
               >
                 <Share2 className="h-5 w-5 hover:scale-110 transition-all" />
               </button>
@@ -842,21 +855,21 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
       {/* Delete Confirm Dialog */}
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <DialogContent className="max-w-sm bg-card border-border" aria-describedby={undefined}>
-          <DialogTitle className="sr-only">Confirmar eliminación</DialogTitle>
+          <DialogTitle className="sr-only">{te("Confirmar eliminación", "Confirm deletion")}</DialogTitle>
           <div className="flex flex-col items-center gap-4 py-2">
             <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
               <Trash2 className="h-6 w-6 text-destructive" />
             </div>
             <div className="text-center">
-              <h3 className="font-semibold text-foreground text-lg">Eliminar post</h3>
-              <p className="text-sm text-muted-foreground mt-1">Esta acción no se puede deshacer.</p>
+              <h3 className="font-semibold text-foreground text-lg">{te("Eliminar post", "Delete post")}</h3>
+              <p className="text-sm text-muted-foreground mt-1">{te("Esta acción no se puede deshacer.", "This action cannot be undone.")}</p>
             </div>
             <div className="flex gap-3 w-full">
               <Button variant="outline" className="flex-1" onClick={() => setShowDeleteConfirm(false)}>
-                Cancelar
+                {te("Cancelar", "Cancel")}
               </Button>
               <Button variant="destructive" className="flex-1" onClick={handleDelete}>
-                Eliminar
+                {te("Eliminar", "Delete")}
               </Button>
             </div>
           </div>

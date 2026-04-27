@@ -81,7 +81,6 @@ export default function FastDatePage() {
     } finally {
       setLoading(false)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const applyFilter = (newFilter: FeedFilter) => {

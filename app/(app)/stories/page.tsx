@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
@@ -56,7 +56,7 @@ export default function StoriesPage() {
 
   useEffect(() => {
     void fetchStories(targetUserId || undefined)
-  }, [fetchStories, targetUserId])
+  }, [targetUserId])
 
   useEffect(() => {
     if (groups.length === 0) return
@@ -92,7 +92,7 @@ export default function StoriesPage() {
     }
   }, [currentStory?.id, currentStory?.viewCount])
 
-  const fetchStories = useCallback(async (userIdFilter?: string) => {
+  async function fetchStories(userIdFilter?: string) {
     setIsLoading(true)
     setLoadError(null)
     try {
@@ -121,7 +121,7 @@ export default function StoriesPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }
 
   const markViewed = async (storyId: string) => {
     try { await api.post(`/api/stories/${storyId}/view`) } catch {}

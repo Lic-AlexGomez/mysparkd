@@ -190,7 +190,7 @@ export function SocialShare({
           <span className="font-medium">{copied ? "¡Copiado!" : "Copiar link"}</span>
         </DropdownMenuItem>
 
-        {navigator.share && (
+        {typeof navigator !== "undefined" && typeof navigator.share === "function" && (
           <DropdownMenuItem
             onClick={handleNativeShare}
             className="cursor-pointer flex items-center gap-3 py-2.5"

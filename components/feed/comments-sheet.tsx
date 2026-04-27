@@ -23,6 +23,7 @@ import { es } from "date-fns/locale"
 import { ReactionPicker, getReactionEmoji } from "./reaction-picker"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
 import { reactionService } from "@/lib/services/reaction"
+import { useI18n } from "@/lib/i18n"
 
 interface CommentsSheetProps {
   postId: string
@@ -34,6 +35,7 @@ interface CommentsSheetProps {
 }
 
 export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentAdded, postOwnerId }: CommentsSheetProps) {
+  const { te } = useI18n()
   const { user } = useAuth()
   const features = useFeatureFlags()
   const [comments, setComments] = useState<CommentType[]>([])
@@ -92,16 +94,16 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
 
   const handleSubmitComment = async () => {
     if (!newComment.trim() || !user) return
-    if (!canComment) { toast.error(canCommentReason || 'No puedes comentar'); return }
+    if (!canComment) { toast.error(canCommentReason || te('No puedes comentar', 'You cannot comment')); return }
     setIsLoading(true)
     try {
       await api.post(`/api/comments/${postId}`, { text: newComment.trim() })
       setNewComment("")
       fetchComments()
       onCommentAdded?.()
-      toast.success('Comentario publicado')
+      toast.success(te('Comentario publicado', 'Comment posted'))
     } catch (error) {
-      toast.error('Error al publicar comentario')
+      toast.error(te('Error al publicar comentario', 'Error posting comment'))
     } finally {
       setIsLoading(false)
     }
@@ -117,7 +119,7 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
       fetchReplies(parentId)
       fetchComments()
     } catch {
-      toast.error("Error al responder")
+      toast.error(te("Error al responder", "Error replying"))
     } finally {
       setIsLoading(false)
     }
@@ -204,7 +206,7 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
       } else {
         setComments(prev => applyOptimistic(prev, targetId, 'commentsId'))
       }
-      toast.error('Error al reaccionar')
+      toast.error(te('Error al reaccionar', 'Error reacting'))
     }
   }
 
@@ -252,19 +254,19 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
       await api.put(`/api/comments/update/${commentId}`, { text: editingText.trim() })
       setComments(prev => prev.map(c => c.commentsId === commentId ? { ...c, text: editingText.trim() } : c))
       setEditingCommentId(null)
-      toast.success('Comentario editado')
+      toast.success(te('Comentario editado', 'Comment edited'))
     } catch {
-      toast.error('Error al editar comentario')
+      toast.error(te('Error al editar comentario', 'Error editing comment'))
     }
   }
 
   const deleteComment = async (commentId: string) => {
     try {
       await api.delete(`/api/comments/delete/${commentId}`)
-      toast.success("Comentario eliminado")
+      toast.success(te("Comentario eliminado", "Comment deleted"))
     } catch (error) {
       console.error('Error deleting comment:', error)
-      toast.error("No se puede eliminar este comentario")
+      toast.error(te("No se puede eliminar este comentario", "This comment cannot be deleted"))
       return
     }
     

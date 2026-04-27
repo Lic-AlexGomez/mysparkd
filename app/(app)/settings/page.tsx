@@ -51,6 +51,7 @@ import { authService } from "@/lib/services/auth"
 import { normalizeEmailValue } from "@/lib/email-utils"
 import type { PrivacySettings, SparklingListMember } from "@/lib/types"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useI18n } from "@/lib/i18n"
 
 /** Valores UI de la sección Experiencia (Ajustes). */
 type ExperienceObjective = "social" | "connection" | "both"
@@ -87,6 +88,7 @@ function objectiveFromAccountTypeAndLocal(
 }
 
 export default function SettingsPage() {
+  const { te } = useI18n()
   const { user, logout, refreshProfile } = useAuth()
   const router = useRouter()
   const { permission, requestPermission, isSupported } = usePushNotifications()
@@ -256,9 +258,9 @@ export default function SettingsPage() {
     setSavingPrivacy(true)
     try {
       await privacyService.updateSettings(privacySettings)
-      toast.success("Privacidad actualizada")
+      toast.success(te("Privacidad actualizada", "Privacy updated"))
     } catch {
-      toast.error("Error al guardar privacidad")
+      toast.error(te("Error al guardar privacidad", "Error saving privacy"))
     } finally {
       setSavingPrivacy(false)
     }
@@ -268,9 +270,9 @@ export default function SettingsPage() {
     try {
       await privacyService.removeFromSparklingList(memberId)
       setSparklingList(prev => prev.filter(m => m.userId !== memberId))
-      toast.success("Eliminado de Sparkling List")
+      toast.success(te("Eliminado de Sparkling List", "Removed from Sparkling List"))
     } catch {
-      toast.error("Error al eliminar")
+      toast.error(te("Error al eliminar", "Error removing"))
     }
   }
 
@@ -301,13 +303,14 @@ export default function SettingsPage() {
 
   const saveExperience = async () => {
     if (!user) {
-      toast.error("Inicia sesión para guardar")
+      toast.error(te("Inicia sesión para guardar", "Sign in to save"))
       return
     }
     if (!(user.username ?? "").trim()) {
-      toast.error(
-        "Añade un nombre de usuario en Editar perfil antes de guardar la experiencia."
-      )
+      toast.error(te(
+        "Añade un nombre de usuario en Editar perfil antes de guardar la experiencia.",
+        "Add a username in Edit profile before saving experience."
+      ))
       return
     }
     setSavingExperience(true)
@@ -349,13 +352,13 @@ export default function SettingsPage() {
         })
       )
 
-      toast.success("Experiencia guardada")
+      toast.success(te("Experiencia guardada", "Experience saved"))
     } catch (err) {
       if (err instanceof ApiError) {
         toast.error(err.message)
       } else {
         toast.error(
-          err instanceof Error ? err.message : "Error al guardar experiencia"
+          err instanceof Error ? err.message : te("Error al guardar experiencia", "Error saving experience")
         )
       }
     } finally {
@@ -383,9 +386,9 @@ export default function SettingsPage() {
         }))
       }
       
-      toast.success("Preferencias guardadas")
+      toast.success(te("Preferencias guardadas", "Preferences saved"))
     } catch {
-      toast.error("Error al guardar")
+      toast.error(te("Error al guardar", "Error saving"))
     } finally {
       setSavingPref(false)
     }
@@ -399,10 +402,10 @@ export default function SettingsPage() {
     try {
       if (isSelected) {
         await api.delete(`/api/interests/remove/${interestId}`)
-        toast.success("Interés eliminado")
+        toast.success(te("Interés eliminado", "Interest removed"))
       } else {
         await api.post(`/api/interests/add/${interestId}`)
-        toast.success("Interés agregado")
+        toast.success(te("Interés agregado", "Interest added"))
       }
       fetchInterests()
       await refreshProfile()
@@ -411,10 +414,10 @@ export default function SettingsPage() {
       let updated: Interest[]
       if (isSelected) {
         updated = myInterests.filter((i) => i.interestId !== interestId)
-        toast.success("Interés eliminado")
+        toast.success(te("Interés eliminado", "Interest removed"))
       } else {
         updated = [...myInterests, interest]
-        toast.success("Interés agregado")
+        toast.success(te("Interés agregado", "Interest added"))
       }
       setMyInterests(updated)
       
@@ -436,23 +439,23 @@ export default function SettingsPage() {
 
   const handleChangeEmail = async () => {
     if (!newEmail.trim() || !confirmNewEmail.trim()) {
-      toast.error("Escribe y confirma el nuevo correo")
+      toast.error(te("Escribe y confirma el nuevo correo", "Type and confirm the new email"))
       return
     }
     const next = normalizeEmailValue(newEmail)
     const again = normalizeEmailValue(confirmNewEmail)
     if (next !== again) {
-      toast.error("Los correos no coinciden. Revisa mayúsculas, espacios o copia el mismo texto en ambos campos.")
+      toast.error(te("Los correos no coinciden. Revisa mayúsculas, espacios o copia el mismo texto en ambos campos.", "Emails do not match. Check casing/spaces or copy the same text in both fields."))
       return
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(next)) {
-      toast.error("Ingresa un correo válido")
+      toast.error(te("Ingresa un correo válido", "Enter a valid email"))
       return
     }
     const current = (user?.email || "").trim().toLowerCase()
     if (current && next === current) {
-      toast.error("El nuevo correo es igual al actual")
+      toast.error(te("El nuevo correo es igual al actual", "New email is the same as current"))
       return
     }
     setChangingEmail(true)
@@ -462,7 +465,7 @@ export default function SettingsPage() {
       setEmailChangeCodePending(true)
       setEmailChangeCode("")
       toast.success(
-        "Código enviado al nuevo correo. Baja un poco e introdúcelo en el campo de verificación de esta misma pantalla (Configuración → Cuenta)."
+        te("Código enviado al nuevo correo. Baja un poco e introdúcelo en el campo de verificación de esta misma pantalla (Configuración → Cuenta).", "Code sent to the new email. Scroll down and enter it in the verification field on this screen (Settings → Account).")
       )
       setShowChangeEmail(false)
       setNewEmail("")
@@ -470,7 +473,7 @@ export default function SettingsPage() {
       await refreshProfile()
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Error al solicitar el cambio de correo"
+        err instanceof Error ? err.message : te("Error al solicitar el cambio de correo", "Error requesting email change")
       )
     } finally {
       setChangingEmail(false)
@@ -486,7 +489,7 @@ export default function SettingsPage() {
   const handleVerifyEmailCode = async () => {
     const c = emailChangeCode.trim()
     if (!c) {
-      toast.error("Escribe el código que recibiste")
+      toast.error(te("Escribe el código que recibiste", "Enter the code you received"))
       return
     }
     setVerifyingEmailCode(true)
@@ -494,10 +497,10 @@ export default function SettingsPage() {
       await authService.verifyEmailChange(c)
       clearEmailChangePending()
       await refreshProfile()
-      toast.success("Correo actualizado correctamente")
+      toast.success(te("Correo actualizado correctamente", "Email updated successfully"))
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Código incorrecto o expirado"
+        err instanceof Error ? err.message : te("Código incorrecto o expirado", "Incorrect or expired code")
       )
     } finally {
       setVerifyingEmailCode(false)
@@ -513,30 +516,31 @@ export default function SettingsPage() {
 
   const handleRequestRecovery = async () => {
     if (!newRecoveryEmail.trim() || !confirmRecoveryEmail.trim()) {
-      toast.error("Escribe y confirma el correo de recuperación")
+      toast.error(te("Escribe y confirma el correo de recuperación", "Type and confirm recovery email"))
       return
     }
     const next = normalizeEmailValue(newRecoveryEmail)
     const again = normalizeEmailValue(confirmRecoveryEmail)
     if (next !== again) {
-      toast.error("Los correos de recuperación no coinciden")
+      toast.error(te("Los correos de recuperación no coinciden", "Recovery emails do not match"))
       return
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(next)) {
-      toast.error("Ingresa un correo válido")
+      toast.error(te("Ingresa un correo válido", "Enter a valid email"))
       return
     }
     const primary = (user?.email || "").trim().toLowerCase()
     if (next === primary) {
-      toast.error(
-        "El correo de recuperación no puede ser igual al correo principal"
-      )
+      toast.error(te(
+        "El correo de recuperación no puede ser igual al correo principal",
+        "Recovery email cannot be the same as primary email"
+      ))
       return
     }
     const currentRec = (user?.recoveryEmail || "").trim().toLowerCase()
     if (currentRec && next === currentRec) {
-      toast.error("Ese email ya es tu correo de recuperación")
+      toast.error(te("Ese email ya es tu correo de recuperación", "That email is already your recovery email"))
       return
     }
     setChangingRecovery(true)
@@ -547,7 +551,7 @@ export default function SettingsPage() {
       setRecoveryCodePending(true)
       setRecoveryCode("")
       toast.success(
-        "Código enviado. Revísalo en el buzón de ese correo (no en el principal) e introdúcelo abajo."
+        te("Código enviado. Revísalo en el buzón de ese correo (no en el principal) e introdúcelo abajo.", "Code sent. Check that inbox (not your primary one) and enter it below.")
       )
       setShowRecoveryForm(false)
       setNewRecoveryEmail("")
@@ -557,7 +561,7 @@ export default function SettingsPage() {
       toast.error(
         err instanceof Error
           ? err.message
-          : "Error al solicitar el correo de recuperación"
+          : te("Error al solicitar el correo de recuperación", "Error requesting recovery email")
       )
     } finally {
       setChangingRecovery(false)
@@ -567,7 +571,7 @@ export default function SettingsPage() {
   const handleVerifyRecoveryCode = async () => {
     const c = recoveryCode.trim()
     if (!c) {
-      toast.error("Escribe el código de recuperación")
+      toast.error(te("Escribe el código de recuperación", "Enter the recovery code"))
       return
     }
     setVerifyingRecoveryCode(true)
@@ -575,10 +579,10 @@ export default function SettingsPage() {
       await authService.verifyRecoveryEmail(c)
       clearRecoveryCodePending()
       await refreshProfile()
-      toast.success("Correo de recuperación guardado")
+      toast.success(te("Correo de recuperación guardado", "Recovery email saved"))
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Código incorrecto o expirado"
+        err instanceof Error ? err.message : te("Código incorrecto o expirado", "Incorrect or expired code")
       )
     } finally {
       setVerifyingRecoveryCode(false)
@@ -592,9 +596,9 @@ export default function SettingsPage() {
       clearRecoveryCodePending()
       setShowRecoveryForm(false)
       await refreshProfile()
-      toast.success("Correo de recuperación eliminado")
+      toast.success(te("Correo de recuperación eliminado", "Recovery email removed"))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "No se pudo eliminar")
+      toast.error(err instanceof Error ? err.message : te("No se pudo eliminar", "Could not remove"))
     } finally {
       setDeletingRecovery(false)
     }
@@ -602,7 +606,7 @@ export default function SettingsPage() {
 
   const handlePromoteRecoveryToPrimary = async () => {
     if (!user?.recoveryEmail) {
-      toast.error("Primero añade y verifica un correo de recuperación")
+      toast.error(te("Primero añade y verifica un correo de recuperación", "First add and verify a recovery email"))
       return
     }
     setPromotingPrimary(true)
@@ -613,9 +617,9 @@ export default function SettingsPage() {
       setShowChangeEmail(false)
       setShowRecoveryForm(false)
       await refreshProfile()
-      toast.success("Tu antiguo correo de recuperación es ahora el correo principal")
+      toast.success(te("Tu antiguo correo de recuperación es ahora el correo principal", "Your former recovery email is now the primary email"))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "No se pudo completar")
+      toast.error(err instanceof Error ? err.message : te("No se pudo completar", "Could not complete"))
     } finally {
       setPromotingPrimary(false)
     }
@@ -623,15 +627,15 @@ export default function SettingsPage() {
 
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmNewPassword) {
-      toast.error("Completa todos los campos")
+      toast.error(te("Completa todos los campos", "Fill all fields"))
       return
     }
     if (newPassword.length < 6) {
-      toast.error("La nueva contraseña debe tener al menos 6 caracteres")
+      toast.error(te("La nueva contraseña debe tener al menos 6 caracteres", "New password must be at least 6 characters"))
       return
     }
     if (newPassword !== confirmNewPassword) {
-      toast.error("Las contraseñas no coinciden")
+      toast.error(te("Las contraseñas no coinciden", "Passwords do not match"))
       return
     }
     setChangingPassword(true)
@@ -640,13 +644,13 @@ export default function SettingsPage() {
         currentPassword,
         newPassword,
       })
-      toast.success("Contraseña actualizada")
+      toast.success(te("Contraseña actualizada", "Password updated"))
       setShowChangePassword(false)
       setCurrentPassword("")
       setNewPassword("")
       setConfirmNewPassword("")
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al cambiar contraseña")
+      toast.error(err instanceof Error ? err.message : te("Error al cambiar contraseña", "Error changing password"))
     } finally {
       setChangingPassword(false)
     }
@@ -655,23 +659,23 @@ export default function SettingsPage() {
   const handleDeleteProfile = async () => {
     try {
       await api.delete("/api/profile")
-      toast.success("Perfil eliminado")
+      toast.success(te("Perfil eliminado", "Profile deleted"))
       logout()
     } catch {
-      toast.error("Error al eliminar perfil")
+      toast.error(te("Error al eliminar perfil", "Error deleting profile"))
     }
   }
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
-      <h1 className="mb-6 text-xl font-bold text-foreground">Configuracion</h1>
+      <h1 className="mb-6 text-xl font-bold text-foreground">{te("Configuración", "Settings")}</h1>
 
       {/* Privacy Settings - Backend */}
       <Card className="border-border bg-card mb-6">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-foreground text-base">
             <Shield className="h-4 w-4" />
-            Privacidad
+            {te("Privacidad", "Privacy")}
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
@@ -683,7 +687,7 @@ export default function SettingsPage() {
             <>
               <div className="flex items-center justify-between">
                 <div>
-                  <Label className="text-foreground font-medium">¿Quién puede ver mis posts?</Label>
+                  <Label className="text-foreground font-medium">{te("¿Quién puede ver mis posts?", "Who can see my posts?")}</Label>
                 </div>
                 <Select
                   value={privacySettings.whoCanSeeMyPosts}
@@ -693,15 +697,15 @@ export default function SettingsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="EVERYONE">Todos</SelectItem>
-                    <SelectItem value="FOLLOWERS">Seguidores</SelectItem>
-                    <SelectItem value="NOBODY">Nadie</SelectItem>
+                    <SelectItem value="EVERYONE">{te("Todos", "Everyone")}</SelectItem>
+                    <SelectItem value="FOLLOWERS">{te("Seguidores", "Followers")}</SelectItem>
+                    <SelectItem value="NOBODY">{te("Nadie", "Nobody")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <Label className="text-foreground font-medium">¿Quién puede comentar?</Label>
+                  <Label className="text-foreground font-medium">{te("¿Quién puede comentar?", "Who can comment?")}</Label>
                 </div>
                 <Select
                   value={privacySettings.whoCanComment}
@@ -711,15 +715,15 @@ export default function SettingsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="EVERYONE">Todos</SelectItem>
-                    <SelectItem value="FOLLOWERS">Seguidores</SelectItem>
-                    <SelectItem value="NOBODY">Nadie</SelectItem>
+                    <SelectItem value="EVERYONE">{te("Todos", "Everyone")}</SelectItem>
+                    <SelectItem value="FOLLOWERS">{te("Seguidores", "Followers")}</SelectItem>
+                    <SelectItem value="NOBODY">{te("Nadie", "Nobody")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <Label className="text-foreground font-medium">¿Quién puede enviarme DMs?</Label>
+                  <Label className="text-foreground font-medium">{te("¿Quién puede enviarme DMs?", "Who can send me DMs?")}</Label>
                 </div>
                 <Select
                   value={privacySettings.whoCanSendDM}
@@ -729,9 +733,9 @@ export default function SettingsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="EVERYONE">Todos</SelectItem>
-                    <SelectItem value="FOLLOWERS">Seguidores</SelectItem>
-                    <SelectItem value="MATCHES">Matches</SelectItem>
+                    <SelectItem value="EVERYONE">{te("Todos", "Everyone")}</SelectItem>
+                    <SelectItem value="FOLLOWERS">{te("Seguidores", "Followers")}</SelectItem>
+                    <SelectItem value="MATCHES">{te("Matches", "Matches")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

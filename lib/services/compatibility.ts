@@ -1,5 +1,14 @@
 import type { User } from '../types'
 
+function normalizeInterest(interest: unknown): string {
+  if (typeof interest === "string") return interest
+  if (interest && typeof interest === "object") {
+    const i = interest as { name?: string; interestId?: string }
+    return i.name || i.interestId || ""
+  }
+  return ""
+}
+
 export const compatibilityService = {
   calculateCompatibility(user1: Partial<User>, user2: Partial<User>): number {
     let score = 0
@@ -7,8 +16,10 @@ export const compatibilityService = {
     // Intereses compartidos (40%)
     const interests1 = user1.interests || []
     const interests2 = user2.interests || []
-    const sharedInterests = interests1.filter(i => interests2.includes(i)).length
-    const totalInterests = Math.max(interests1.length, interests2.length)
+    const interests1Names = interests1.map(normalizeInterest).filter(Boolean)
+    const interests2Names = interests2.map(normalizeInterest).filter(Boolean)
+    const sharedInterests = interests1Names.filter(i => interests2Names.includes(i)).length
+    const totalInterests = Math.max(interests1Names.length, interests2Names.length)
     const interestScore = totalInterests > 0 ? (sharedInterests / totalInterests) * 40 : 0
     score += interestScore
     

@@ -36,6 +36,15 @@ const normalizeHashtags = (rows: any[]): HashtagResult[] =>
     .filter((h) => Boolean(h.tag))
 
 export const searchService = {
+  normalizeInterestLabel(interest: unknown): string {
+    if (typeof interest === "string") return interest
+    if (interest && typeof interest === "object") {
+      const i = interest as { name?: string; interestId?: string }
+      return i.name || i.interestId || ""
+    }
+    return ""
+  },
+
   async searchUsers(query: string, page = 0, size = 10): Promise<PagedResponse<UserProfile>> {
     const q = query.trim()
     if (!q) return { content: [], totalPages: 1, number: 0 }
@@ -178,7 +187,7 @@ export const searchService = {
 
     if (filters?.interests && filters.interests.length > 0) {
       results = results.filter(u => 
-        u.interests?.some(i => filters.interests!.includes(i))
+        u.interests?.some(i => filters.interests!.includes(searchService.normalizeInterestLabel(i)))
       )
     }
 

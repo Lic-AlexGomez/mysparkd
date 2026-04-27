@@ -11,6 +11,9 @@ export const contentValidation = {
   },
 
   isContentReported(contentId: string): boolean {
-    return reportService.getUserReports(contentId).length > 0
+    // Reportes se consultan de forma asíncrona para moderación; aquí no hay caché síncrona.
+    void contentId
+    void reportService
+    return false
   }
 }

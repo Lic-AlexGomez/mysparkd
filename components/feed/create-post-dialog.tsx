@@ -22,6 +22,7 @@ import { uploadToCloudinary } from "@/lib/cloudinary"
 import { CreatePollDialog } from "./create-poll-dialog"
 import { useAuth } from "@/lib/auth-context"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
+import { useI18n } from "@/lib/i18n"
 
 import { usePremiumStatus } from "@/hooks/use-premium-status"
 import type { PostVisibility } from "@/lib/types"
@@ -31,6 +32,7 @@ interface CreatePostDialogProps {
 }
 
 export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
+  const { te } = useI18n()
   const { user } = useAuth()
   const { isPremium } = usePremiumStatus()
   const features = useFeatureFlags()
@@ -74,7 +76,7 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
       setMaxZoom(capabilities?.zoom?.max || 1)
       setZoom(1)
     } catch {
-      toast.error('No se pudo acceder a la cámara. Verifica los permisos.')
+      toast.error(te('No se pudo acceder a la cámara. Verifica los permisos.', 'Could not access camera. Check permissions.'))
       setShowCamera(false)
     }
   }
@@ -119,7 +121,7 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
       const captured = new File([blob], `foto-${Date.now()}.jpg`, { type: 'image/jpeg' })
       setFile(captured)
       setFilePreview(URL.createObjectURL(captured))
-      toast.success('Foto capturada')
+      toast.success(te('Foto capturada', 'Photo captured'))
       closeCamera()
     }, 'image/jpeg', 0.9)
   }
@@ -167,16 +169,16 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
     if (!selectedFile) return
     setFile(selectedFile)
     setFilePreview(URL.createObjectURL(selectedFile))
-    toast.success(selectedFile.type.startsWith('video/') ? 'Video seleccionado' : 'Imagen seleccionada')
+    toast.success(selectedFile.type.startsWith('video/') ? te('Video seleccionado', 'Video selected') : te('Imagen seleccionada', 'Image selected'))
   }
 
   const handleSubmit = async () => {
     if (!body.trim() || body.trim().length < 10) {
-      toast.error("El contenido debe tener al menos 10 caracteres")
+      toast.error(te("El contenido debe tener al menos 10 caracteres", "Content must be at least 10 characters"))
       return
     }
     if (pollData && !pollData.question.trim()) {
-      toast.error("La encuesta necesita una pregunta")
+      toast.error(te("La encuesta necesita una pregunta", "Poll needs a question"))
       return
     }
     setIsLoading(true)
@@ -190,7 +192,7 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
           options: pollData.options,
           expiresAt: new Date(expiresAtMs).toISOString(),
         })
-        toast.success("Encuesta creada!")
+        toast.success(te("¡Encuesta creada!", "Poll created!"))
         setBody("")
         setPollData(null)
         setOpen(false)
@@ -292,7 +294,7 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
         throw new Error(errorMessage)
       }
       
-      toast.success("Post creado!")
+      toast.success(te("¡Post creado!", "Post created!"))
       setBody("")
       setFile(null)
       setFilePreview("")
@@ -304,7 +306,7 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
       onCreated()
     } catch (err: any) {
       console.error('Error:', err)
-      toast.error(err.message || "Error al crear post")
+      toast.error(err.message || te("Error al crear post", "Error creating post"))
     } finally {
       setIsLoading(false)
     }
@@ -316,10 +318,10 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
         <Button
           size="icon"
           className="group fixed bottom-24 right-6 z-30 h-16 w-16 rounded-2xl border border-sky-300/45 bg-sky-500/85 text-white shadow-2xl shadow-sky-500/40 backdrop-blur-md ring-1 ring-white/10 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:scale-[1.06] hover:bg-sky-500 hover:shadow-[0_18px_38px_rgba(0,0,0,0.4)] focus-visible:ring-sky-300/60 md:bottom-8 md:right-8"
-          aria-label="Crear post"
+          aria-label={te("Crear post", "Create post")}
         >
           <span className="pointer-events-none absolute bottom-[calc(100%+0.55rem)] left-1/2 z-40 hidden -translate-x-1/2 translate-y-1 rounded-lg border border-primary/35 bg-card/95 px-2.5 py-1 text-xs font-semibold text-foreground shadow-lg opacity-0 backdrop-blur-sm transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 md:block">
-            Crear post
+            {te("Crear post", "Create post")}
           </span>
           <span
             aria-hidden
@@ -330,12 +332,12 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
             className="pointer-events-none absolute -inset-2 rounded-[1.1rem] border border-primary/30 opacity-0 blur-[1px] transition-opacity duration-200 group-hover:opacity-100"
           />
           <Plus className="h-6 w-6 transition-transform duration-200 group-hover:scale-110" />
-          <span className="sr-only">Crear post</span>
+          <span className="sr-only">{te("Crear post", "Create post")}</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="bg-card border-border max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-foreground">Nuevo post</DialogTitle>
+          <DialogTitle className="text-foreground">{te("Nuevo post", "New post")}</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-4">
           {features.polls ? (
@@ -344,28 +346,28 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
               <TabsTrigger value="post">Post</TabsTrigger>
               <TabsTrigger value="poll">
                 <BarChart3 className="h-4 w-4 mr-2" />
-                Encuesta
+                {te("Encuesta", "Poll")}
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="post" className="space-y-4 mt-4">
               <div className="flex flex-col gap-2">
-                <Label className="text-foreground">Contenido</Label>
+                <Label className="text-foreground">{te("Contenido", "Content")}</Label>
                 <Textarea
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
-                  placeholder="Que estas pensando?"
+                  placeholder={te("Que estas pensando?", "What's on your mind?")}
                   className="min-h-24 resize-none bg-muted border-border text-foreground placeholder:text-muted-foreground"
                   maxLength={500}
                 />
                 <span className="text-xs text-muted-foreground text-right">
-                  {body.length}/500 {body.length < 10 && body.length > 0 && '(mínimo 10)'}
+                  {body.length}/500 {body.length < 10 && body.length > 0 && te('(mínimo 10)', '(minimum 10)')}
                 </span>
               </div>
               <div className="flex flex-col gap-2">
                 <Label className="text-foreground flex items-center gap-2">
                   <ImageIcon className="h-4 w-4" />
-                  Imagen o Video (opcional)
+                  {te("Imagen o Video (opcional)", "Image or video (optional)")}
                 </Label>
                 {renderFilePreview()}
                 {!filePreview && (
@@ -373,11 +375,11 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
                     <input ref={fileInputRef} type="file" accept="image/*,video/*,.mp4,.webm,.mov,.avi,.mkv" onChange={handleImageUpload} disabled={isUploading} className="hidden" />
                     <Button type="button" variant="outline" className="flex-1" disabled={isUploading} onClick={openGallery}>
                       <ImageIcon className="h-4 w-4 mr-2" />
-                      Galería
+                      {te("Galería", "Gallery")}
                     </Button>
                     <Button type="button" variant="outline" className="flex-1" disabled={isUploading} onClick={openCamera}>
                       <Camera className="h-4 w-4 mr-2" />
-                      Cámara
+                      {te("Cámara", "Camera")}
                     </Button>
                   </div>
                 )}
@@ -386,11 +388,11 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
 
             <TabsContent value="poll" className="space-y-4 mt-4">
               <div className="flex flex-col gap-2">
-                <Label className="text-foreground">Contenido</Label>
+                <Label className="text-foreground">{te("Contenido", "Content")}</Label>
                 <Textarea
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
-                  placeholder="Escribe algo sobre tu encuesta..."
+                  placeholder={te("Escribe algo sobre tu encuesta...", "Write something about your poll...")}
                   className="min-h-20 resize-none bg-muted border-border text-foreground placeholder:text-muted-foreground"
                   maxLength={500}
                 />
@@ -414,7 +416,7 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
                     ))}
                   </ul>
                   <p className="text-xs text-muted-foreground mt-2">
-                    Duración: {pollData.duration} horas
+                    {te("Duración", "Duration")}: {pollData.duration} {te("horas", "hours")}
                   </p>
                 </div>
               ) : (
@@ -424,7 +426,7 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
                   className="w-full"
                 >
                   <BarChart3 className="h-4 w-4 mr-2" />
-                  Crear encuesta
+                  {te("Crear encuesta", "Create poll")}
                 </Button>
               )}
             </TabsContent>
@@ -432,33 +434,33 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
           ) : (
             <div className="space-y-4">
               <div className="flex flex-col gap-2">
-                <Label className="text-foreground">Contenido</Label>
+                <Label className="text-foreground">{te("Contenido", "Content")}</Label>
                 <Textarea
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
-                  placeholder="Que estas pensando?"
+                  placeholder={te("Que estas pensando?", "What's on your mind?")}
                   className="min-h-24 resize-none bg-muted border-border text-foreground placeholder:text-muted-foreground"
                   maxLength={500}
                 />
                 <span className="text-xs text-muted-foreground text-right">
-                  {body.length}/500 {body.length < 10 && body.length > 0 && '(mínimo 10)'}
+                  {body.length}/500 {body.length < 10 && body.length > 0 && te('(mínimo 10)', '(minimum 10)')}
                 </span>
               </div>
               <div className="flex flex-col gap-2">
                 <Label className="text-foreground flex items-center gap-2">
                   <ImageIcon className="h-4 w-4" />
-                  Imagen o Video (opcional)
+                  {te("Imagen o Video (opcional)", "Image or video (optional)")}
                 </Label>
                 {renderFilePreview()}
                 {!filePreview && (
                   <div className="flex gap-2">
                     <Button type="button" variant="outline" className="flex-1" disabled={isUploading} onClick={openGallery}>
                       <ImageIcon className="h-4 w-4 mr-2" />
-                      Galería
+                      {te("Galería", "Gallery")}
                     </Button>
                     <Button type="button" variant="outline" className="flex-1" disabled={isUploading} onClick={openCamera}>
                       <Camera className="h-4 w-4 mr-2" />
-                      Cámara
+                      {te("Cámara", "Camera")}
                     </Button>
                   </div>
                 )}
@@ -467,12 +469,12 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
           )}
 
           <div className="flex items-center justify-between">
-            <Label className="text-foreground">Post permanente</Label>
+            <Label className="text-foreground">{te("Post permanente", "Permanent post")}</Label>
             <Switch checked={permanent} onCheckedChange={setPermanent} />
           </div>
           
           <div className="flex flex-col gap-2">
-            <Label className="text-foreground">Visibilidad</Label>
+            <Label className="text-foreground">{te("Visibilidad", "Visibility")}</Label>
             <Select value={visibility} onValueChange={(v) => setVisibility(v as PostVisibility)}>
               <SelectTrigger className="bg-muted border-border text-foreground">
                 <SelectValue />
@@ -481,19 +483,19 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
                 <SelectItem value="PUBLIC">
                   <div className="flex items-center gap-2">
                     <Globe className="h-4 w-4" />
-                    <span>Público - Todos pueden ver</span>
+                    <span>{te("Público - Todos pueden ver", "Public - Everyone can see")}</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="FOLLOWERS">
                   <div className="flex items-center gap-2">
                     <UsersIcon className="h-4 w-4" />
-                    <span>Seguidores - Solo tus seguidores</span>
+                    <span>{te("Seguidores - Solo tus seguidores", "Followers - Only your followers")}</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="PRIVATE">
                   <div className="flex items-center gap-2">
                     <LockKeyhole className="h-4 w-4" />
-                    <span>Privado - Solo tú</span>
+                    <span>{te("Privado - Solo tú", "Private - Only you")}</span>
                   </div>
                 </SelectItem>
               </SelectContent>
@@ -503,14 +505,14 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
           <div className="flex items-center justify-between">
             <Label className="text-foreground flex items-center gap-2">
               <Lock className="h-4 w-4 text-primary" />
-              Post bloqueado (blur)
+              {te("Post bloqueado (blur)", "Locked post (blur)")}
             </Label>
             <Switch checked={locked} onCheckedChange={setLocked} />
           </div>
           {!permanent && (
             <div className="flex flex-col gap-2">
               <Label className="text-foreground">
-                Duración (horas): {durationHours} (máx. 48)
+                {te("Duración", "Duration")} ({te("horas", "hours")}): {durationHours} ({te("máx. 48", "max. 48")})
               </Label>
               <Input
                 type="number"
@@ -532,10 +534,10 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Publicando...
+                {te("Publicando...", "Publishing...")}
               </>
             ) : (
-              "Publicar"
+              te("Publicar", "Publish")
             )}
           </Button>
         </div>

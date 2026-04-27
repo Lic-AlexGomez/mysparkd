@@ -222,7 +222,7 @@ export type ReactionType = 'LIKE' | 'LOVE' | 'LAUGH' | 'WOW' | 'SAD' | 'FIRE'
 export type ReactionTargetType = 'POST' | 'COMMENT' | 'REPLY'
 
 export interface Reaction {
-  type: ReactionType
+  type: ReactionType | string
   count: number
   userReacted?: boolean
 }
@@ -281,12 +281,16 @@ export interface Post {
   message: string | null
   reputation?: number
   verificationLevel?: number
-  interests?: string[]
+  interests?: Array<string | Interest>
   liked?: boolean
   likedByCurrentUser?: boolean
   saved?: boolean
+  reactions?: ReactionSummary
+  userReaction?: ReactionType | null
+  poll?: Poll | null
   media?: {
     mediaUrl: string
+    mediaType?: string
     mediaPublicId?: string
     width?: number
     height?: number
@@ -343,6 +347,8 @@ export interface CommentReply {
   userId: string
   likeCount: number
   liked?: boolean
+  reactions?: ReactionSummary
+  userReaction?: ReactionType | null
 }
 
 export interface CreateCommentRequest {

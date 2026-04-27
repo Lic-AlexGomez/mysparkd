@@ -8,6 +8,7 @@ import { MessageCircle, Zap, Loader2 } from "lucide-react"
 import { api } from "@/lib/api"
 import { toast } from "sonner"
 import type { Chat } from "@/lib/types"
+import { useI18n } from "@/lib/i18n"
 
 interface MatchModalProps {
   open: boolean
@@ -18,6 +19,7 @@ interface MatchModalProps {
 
 export function MatchModal({ open, onOpenChange, matchedUserId, matchedUserName }: MatchModalProps) {
   const router = useRouter()
+  const { t } = useI18n()
   const [isLoading, setIsLoading] = useState(false)
 
   const handleChat = async () => {
@@ -28,7 +30,7 @@ export function MatchModal({ open, onOpenChange, matchedUserId, matchedUserName 
       onOpenChange(false)
       router.push(`/chat/${chat.chatId}`)
     } catch {
-      toast.error("Error al abrir el chat")
+      toast.error(t("match.openChatError"))
     } finally {
       setIsLoading(false)
     }
@@ -49,13 +51,11 @@ export function MatchModal({ open, onOpenChange, matchedUserId, matchedUserName 
 
           <div>
             <h2 className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-3xl font-black text-transparent">
-              It{"'"}s a Match!
+              {t("match.title")}
             </h2>
             {matchedUserName && (
               <p className="mt-2 text-muted-foreground">
-                Tú y{" "}
-                <span className="font-semibold text-foreground">{matchedUserName}</span>{" "}
-                se gustan
+                {t("match.youAndLike").replace("{name}", matchedUserName)}
               </p>
             )}
           </div>
@@ -71,14 +71,14 @@ export function MatchModal({ open, onOpenChange, matchedUserId, matchedUserName 
               ) : (
                 <MessageCircle className="mr-2 h-4 w-4" />
               )}
-              Enviar mensaje
+              {t("match.sendMessage")}
             </Button>
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
               className="border-border text-foreground hover:bg-muted"
             >
-              Seguir deslizando
+              {t("match.keepSwiping")}
             </Button>
           </div>
         </div>

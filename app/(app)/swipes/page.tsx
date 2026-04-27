@@ -13,6 +13,7 @@ import { AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
+import { useI18n } from "@/lib/i18n"
 
 const DISCOVER_PAGE_SIZE = 20
 /** Alineado con backend free tier (mensaje 429). */
@@ -21,6 +22,7 @@ const FREE_DAILY_SWIPE_CAP = 30
 export default function SwipesPage() {
   const { user } = useAuth()
   const { isPremium } = usePremiumStatus()
+  const { t } = useI18n()
   const router = useRouter()
   const [profiles, setProfiles] = useState<UserProfile[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -180,7 +182,7 @@ export default function SwipesPage() {
         void fetchRemainingSwipes()
         toast.error(
           error.message ||
-            `Límite diario de swipes alcanzado (${FREE_DAILY_SWIPE_CAP}). Mejora a premium.`,
+            `${t("swipes.limitMessage")} (${FREE_DAILY_SWIPE_CAP})`,
         )
         shouldAdvance = false
       } else {
@@ -220,13 +222,16 @@ export default function SwipesPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-[80vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
+      <div className="relative flex h-[80vh] items-center justify-center overflow-hidden">
+        <div className="pointer-events-none absolute -top-16 left-1/2 h-56 w-56 -translate-x-1/2 rounded-full bg-primary/20 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-10 right-8 h-40 w-40 rounded-full bg-secondary/20 blur-3xl" />
+        <div className="relative flex flex-col items-center gap-3 rounded-2xl border border-border/60 bg-card/70 px-7 py-6 shadow-xl backdrop-blur-sm">
           <div className="relative">
-            <div className="absolute inset-0 blur-2xl bg-primary/40 rounded-full animate-pulse" />
-            <Zap className="h-12 w-12 text-primary relative animate-pulse" />
+            <div className="absolute inset-0 rounded-full bg-primary/30 blur-2xl animate-pulse" />
+            <Zap className="relative h-12 w-12 text-primary animate-pulse" />
           </div>
-          <p className="text-sm text-muted-foreground">Buscando personas...</p>
+          <p className="text-sm font-medium text-foreground">{t("swipes.seekingPeople")}</p>
+          <p className="text-xs text-muted-foreground">{t("swipes.preparingMatches")}</p>
         </div>
       </div>
     )
@@ -238,38 +243,35 @@ export default function SwipesPage() {
   const seenCount = Math.min(currentIndex, profiles.length)
 
   return (
-    <div className="flex flex-col items-center bg-background px-4 py-3">
-      <div className="w-full max-w-sm">
+    <div className="relative flex flex-col items-center overflow-hidden bg-background px-4 py-3">
+      <div className="pointer-events-none absolute -top-20 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-6 left-4 h-40 w-40 rounded-full bg-secondary/10 blur-3xl" />
+      <div className="relative w-full max-w-sm">
 
         {/* Header */}
-        <div className="mb-3 text-center">
+        <div className="mb-3 rounded-2xl border border-border/60 bg-card/70 px-4 py-3 text-center shadow-lg backdrop-blur-sm">
           <div className="flex flex-col items-center gap-1.5 sm:flex-row sm:justify-center sm:gap-3">
-            <h1 className="text-2xl font-black bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent">
-              Swipes
+            <h1 className="bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-2xl font-black tracking-tight text-transparent">
+              {t("swipes.title")}
             </h1>
             {!isPremium && remainingSwipes !== null && !swipeLimitReached && (
-              <Badge variant="secondary" className="text-[10px] font-bold tabular-nums px-2.5 py-0.5">
-                {remainingSwipes} / {FREE_DAILY_SWIPE_CAP} hoy
+              <Badge variant="secondary" className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold tabular-nums text-primary">
+                {remainingSwipes} / {FREE_DAILY_SWIPE_CAP} {t("swipes.today")}
               </Badge>
             )}
           </div>
-          {!noMoreProfiles && (
-            <p className="text-xs text-muted-foreground">
-              {Math.max(0, profiles.length - currentIndex)} personas por ver · {seenCount} vistas
-            </p>
-          )}
-          <p className="text-[11px] text-muted-foreground/80 mt-1 hidden sm:block">
-            Tip: usa ← / → en teclado
+          <p className="mt-1 hidden text-[11px] text-muted-foreground/80 sm:block">
+            {t("swipes.tipArrows")}
           </p>
         </div>
 
         {/* Swipe limit bar */}
         {!isPremium && remainingSwipes !== null && (
-          <div className="mb-3">
+          <div className="mb-3 rounded-2xl border border-border/60 bg-card/70 px-3.5 py-3 shadow-md backdrop-blur-sm">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-xs text-muted-foreground flex items-center gap-1">
                 <Zap className="h-3 w-3 text-primary" />
-                Swipes hoy
+                {t("swipes.daily")}
               </span>
               <span className={`text-xs font-bold ${remainingSwipes <= 3 ? 'text-destructive' : 'text-primary'}`}>
                 {remainingSwipes}/{FREE_DAILY_SWIPE_CAP}
@@ -288,21 +290,21 @@ export default function SwipesPage() {
             {remainingSwipes <= 3 && remainingSwipes > 0 && (
               <button
                 onClick={() => router.push('/premium')}
-                className="mt-2 w-full text-xs text-center text-primary hover:underline flex items-center justify-center gap-1"
+                className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg bg-primary/10 py-1.5 text-center text-xs font-medium text-primary transition-colors hover:bg-primary/15"
               >
-                <Crown className="h-3 w-3" /> Obtén swipes ilimitados con Premium
+                <Crown className="h-3 w-3" /> {t("swipes.getPremiumUnlimited")}
               </button>
             )}
           </div>
         )}
 
         {/* Card stack */}
-        <div className="relative w-full" style={{ height: '380px' }}>
+        <div className="relative w-full" style={{ height: '390px' }}>
           {swipesUiLocked && !noMoreProfiles && (
             <div className="absolute inset-0 z-30 flex flex-col items-center justify-end rounded-3xl border border-destructive/20 bg-background/85 backdrop-blur-sm p-4 pb-8 text-center">
-              <p className="text-sm font-semibold text-foreground">Sin swipes hoy</p>
+              <p className="text-sm font-semibold text-foreground">{t("swipes.noneToday")}</p>
               <p className="text-xs text-muted-foreground mt-1 max-w-[240px]">
-                Límite de {FREE_DAILY_SWIPE_CAP} al día. Mejora a Premium o vuelve mañana.
+                {t("swipes.limitMessage")}
               </p>
               <Button
                 type="button"
@@ -310,18 +312,18 @@ export default function SwipesPage() {
                 onClick={() => router.push("/premium")}
                 className="mt-3 bg-gradient-to-r from-primary to-secondary text-black font-bold"
               >
-                <Crown className="h-3.5 w-3.5 mr-1" /> Ver Premium
+                <Crown className="h-3.5 w-3.5 mr-1" /> {t("nav.premium")}
               </Button>
             </div>
           )}
           {noMoreProfiles ? (
-            <div className="flex h-full flex-col items-center justify-center gap-5 rounded-3xl bg-gradient-to-br from-card to-muted/30 border border-primary/10">
+            <div className="flex h-full flex-col items-center justify-center gap-5 rounded-3xl border border-primary/10 bg-gradient-to-br from-card to-muted/30 shadow-xl">
               {hasMoreProfiles || isFetchingMore ? (
                 <>
                   <Loader2 className="h-10 w-10 text-primary animate-spin" />
                   <div className="text-center px-6">
-                    <p className="text-lg font-bold text-foreground">Buscando más perfiles...</p>
-                    <p className="text-sm text-muted-foreground mt-1">Esto toma solo un momento</p>
+                    <p className="text-lg font-bold text-foreground">{t("swipes.searchingMore")}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{t("swipes.justMoment")}</p>
                   </div>
                 </>
               ) : (
@@ -333,14 +335,14 @@ export default function SwipesPage() {
                     </div>
                   </div>
                   <div className="text-center px-6">
-                    <p className="text-xl font-bold text-foreground">¡Has visto a todos!</p>
-                    <p className="text-sm text-muted-foreground mt-1">Vuelve más tarde para ver nuevas personas</p>
+                    <p className="text-xl font-bold text-foreground">{t("swipes.seenAll")}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{t("swipes.comeBackLater")}</p>
                   </div>
                   <button
                     onClick={() => { void fetchProfiles(true) }}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl border border-primary/30 text-primary text-sm font-medium hover:bg-primary/10 transition-colors"
+                    className="flex items-center gap-2 rounded-xl border border-primary/30 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
                   >
-                    <RefreshCw className="h-4 w-4" /> Recargar
+                    <RefreshCw className="h-4 w-4" /> {t("swipes.reload")}
                   </button>
                 </>
               )}
@@ -374,11 +376,13 @@ export default function SwipesPage() {
 
         {/* Action buttons */}
         {!noMoreProfiles && !swipesUiLocked && (
-          <div className="mt-5 flex items-center justify-between px-8">
+          <div className="mt-4 rounded-2xl border border-border/60 bg-card/70 px-6 py-3 shadow-lg backdrop-blur-sm">
+            <div className="flex items-center justify-between">
             <button
               onClick={() => void handleSwipe("left")}
               disabled={isSwiping || swipesUiLocked}
-              className="group h-12 w-12 rounded-full bg-card border-2 border-destructive/30 hover:border-destructive hover:bg-destructive/10 transition-all duration-200 hover:scale-110 shadow-lg flex items-center justify-center disabled:opacity-50 disabled:hover:scale-100"
+              className="group flex h-12 w-12 items-center justify-center rounded-full border-2 border-destructive/30 bg-card shadow-lg transition-all duration-200 hover:scale-110 hover:border-destructive hover:bg-destructive/10 disabled:opacity-50 disabled:hover:scale-100"
+              aria-label={t("swipes.pass")}
             >
               <X className="h-6 w-6 text-destructive" />
             </button>
@@ -386,24 +390,27 @@ export default function SwipesPage() {
             <button
               onClick={() => void handleSwipe("right")}
               disabled={isSwiping || swipesUiLocked}
-              className="h-14 w-14 rounded-full bg-gradient-to-br from-primary to-secondary shadow-xl shadow-primary/40 hover:scale-110 transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:hover:scale-100"
+              className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary shadow-xl shadow-primary/40 transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:hover:scale-100"
+              aria-label={t("swipes.like")}
             >
               <Heart className="h-8 w-8 text-black fill-black" />
             </button>
 
             <button
               onClick={() => router.push('/premium')}
-              className="h-12 w-12 rounded-full bg-card border-2 border-yellow-500/30 hover:border-yellow-500 hover:bg-yellow-500/10 transition-all duration-200 hover:scale-110 shadow-lg flex items-center justify-center"
-              title="Super Like (Premium)"
+              className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-yellow-500/30 bg-card shadow-lg transition-all duration-200 hover:scale-110 hover:border-yellow-500 hover:bg-yellow-500/10"
+              title={t("swipes.superLikePremium")}
+              aria-label={t("swipes.superLikePremium")}
             >
               <Zap className="h-6 w-6 text-yellow-500" />
             </button>
+            </div>
           </div>
         )}
 
         {!noMoreProfiles && !swipesUiLocked && (
           <p className="mt-2 text-center text-xs text-muted-foreground">
-            Desliza para pasar/like o usa los botones
+            {t("swipes.swipeButtonsHint")}
           </p>
         )}
       </div>

@@ -13,8 +13,10 @@ import { MessageCircle, EyeOff, Trash2, MoreVertical, Eye } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
 import { toast } from "sonner"
+import { useI18n } from "@/lib/i18n"
 
 export default function ChatListPage() {
+  const { te } = useI18n()
   const { user } = useAuth()
   const [chats, setChats] = useState<Chat[]>([])
   const [hiddenChats, setHiddenChats] = useState<Chat[]>([])
@@ -42,9 +44,9 @@ export default function ChatListPage() {
     try {
       await api.post(`/api/chat/chats/${chatId}/hide`)
       setChats(prev => prev.filter(c => c.chatId !== chatId))
-      toast.success('Chat ocultado')
+      toast.success(te('Chat ocultado', 'Chat hidden'))
     } catch {
-      toast.error('Error al ocultar chat')
+      toast.error(te('Error al ocultar chat', 'Error hiding chat'))
     }
   }
 
@@ -53,9 +55,9 @@ export default function ChatListPage() {
       await api.post(`/api/chat/chats/${chatId}/unhide`)
       setHiddenChats(prev => prev.filter(c => c.chatId !== chatId))
       fetchChats()
-      toast.success('Chat restaurado')
+      toast.success(te('Chat restaurado', 'Chat restored'))
     } catch {
-      toast.error('Error al restaurar chat')
+      toast.error(te('Error al restaurar chat', 'Error restoring chat'))
     }
   }
 
@@ -63,9 +65,9 @@ export default function ChatListPage() {
     try {
       await api.delete(`/api/chat/chats/${chatId}`)
       setChats(prev => prev.filter(c => c.chatId !== chatId))
-      toast.success('Chat eliminado')
+      toast.success(te('Chat eliminado', 'Chat deleted'))
     } catch {
-      toast.error('Error al eliminar chat')
+      toast.error(te('Error al eliminar chat', 'Error deleting chat'))
     }
   }
 
@@ -178,16 +180,16 @@ export default function ChatListPage() {
       <div className="w-full max-w-[680px]">
         <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-xl border-b border-primary/20 shadow-lg shadow-primary/5">
           <div className="px-6 py-4">
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent">Mensajes</h1>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent">{te("Mensajes", "Messages")}</h1>
             <div className="flex items-center justify-between mt-1">
-              <p className="text-sm text-muted-foreground">{chats.length} {chats.length === 1 ? 'conversación' : 'conversaciones'}</p>
+              <p className="text-sm text-muted-foreground">{chats.length} {chats.length === 1 ? te('conversación', 'conversation') : te('conversaciones', 'conversations')}</p>
               {hiddenChats.length > 0 && (
                 <button
                   onClick={() => setShowHidden(!showHidden)}
                   className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <EyeOff className="h-3.5 w-3.5" />
-                  {hiddenChats.length} oculto{hiddenChats.length > 1 ? 's' : ''}
+                  {hiddenChats.length} {te(hiddenChats.length > 1 ? 'ocultos' : 'oculto', hiddenChats.length > 1 ? 'hidden' : 'hidden')}
                 </button>
               )}
             </div>
@@ -200,9 +202,9 @@ export default function ChatListPage() {
               <div className="absolute inset-0 blur-3xl bg-primary/30 rounded-full" />
               <MessageCircle className="h-20 w-20 text-primary relative" />
             </div>
-            <p className="text-xl font-semibold">No tienes conversaciones</p>
+            <p className="text-xl font-semibold">{te("No tienes conversaciones", "You have no conversations")}</p>
             <p className="text-sm text-muted-foreground text-center max-w-sm">
-              Haz match con alguien para empezar a chatear
+              {te("Haz match con alguien para empezar a chatear", "Match with someone to start chatting")}
             </p>
           </div>
         ) : (
@@ -239,23 +241,23 @@ export default function ChatListPage() {
                   <p className={`text-sm truncate ${
                     chat.unread && chat.unread > 0 ? 'text-foreground font-medium' : 'text-muted-foreground'
                   }`}>
-                    {chat.lastMessage || "Sin mensajes aún"}
+                    {chat.lastMessage || te("Sin mensajes aún", "No messages yet")}
                   </p>
                 </div>
                 </Link>
                 {/* Menú de acciones */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="shrink-0 h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors z-10" onClick={e => e.preventDefault()} aria-label="Opciones del chat">
+                    <button className="shrink-0 h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors z-10" onClick={e => e.preventDefault()} aria-label={te("Opciones del chat", "Chat options")}>
                       <MoreVertical className="h-4 w-4" />
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="bg-card border-border">
                     <DropdownMenuItem onClick={() => handleHideChat(chat.chatId)} className="cursor-pointer gap-2">
-                      <EyeOff className="h-4 w-4" /> Ocultar
+                      <EyeOff className="h-4 w-4" /> {te("Ocultar", "Hide")}
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleDeleteChat(chat.chatId)} className="cursor-pointer gap-2 text-destructive">
-                      <Trash2 className="h-4 w-4" /> Eliminar
+                      <Trash2 className="h-4 w-4" /> {te("Eliminar", "Delete")}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -267,7 +269,7 @@ export default function ChatListPage() {
         {/* Chats ocultos */}
         {showHidden && hiddenChats.length > 0 && (
           <div className="px-4 pb-4">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Chats ocultos</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">{te("Chats ocultos", "Hidden chats")}</p>
             <div className="space-y-2">
               {hiddenChats.map(chat => (
                 <div key={chat.chatId} className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl border border-border">
@@ -280,7 +282,7 @@ export default function ChatListPage() {
                     onClick={() => handleUnhideChat(chat.chatId)}
                     className="flex items-center gap-1.5 text-xs text-primary hover:underline"
                   >
-                    <Eye className="h-3.5 w-3.5" /> Mostrar
+                    <Eye className="h-3.5 w-3.5" /> {te("Mostrar", "Show")}
                   </button>
                 </div>
               ))}

@@ -13,7 +13,6 @@ import {
   ThumbsUp,
   LayoutDashboard,
   ShieldCheck,
-  Search,
   Users,
   Crown,
   LayoutList,
@@ -21,26 +20,27 @@ import {
 import { cn } from "@/lib/utils"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
 import { useUnreadChats } from "@/hooks/use-unread-chats"
+import { useI18n } from "@/lib/i18n"
 
 const navItems = [
-  { href: "/feed", label: "Feed", icon: Newspaper },
-  // { href: "/search", label: "Buscar", icon: Search },
-  { href: "/swipes", label: "Swipes", icon: Zap },
-  { href: "/events", label: "Eventos", icon: CalendarDays },
-  { href: "/fastdate", label: "Fast Date", icon: Calendar },
-  { href: "/likes", label: "Likes", icon: ThumbsUp },
-  { href: "/matches", label: "Matches", icon: Heart },
-  { href: "/chat", label: "Chat", icon: MessageCircle },
-  { href: "/groups", label: "Grupos", icon: Users },
-  { href: "/trello", label: "Trello", icon: LayoutList },
-  { href: "/profile", label: "Perfil", icon: User },
-  { href: "/premium", label: "Premium", icon: Crown },
+  { href: "/feed", labelKey: "sidebar.feed", icon: Newspaper },
+  { href: "/swipes", labelKey: "sidebar.swipes", icon: Zap },
+  { href: "/events", labelKey: "sidebar.events", icon: CalendarDays },
+  { href: "/fastdate", labelKey: "sidebar.fastDate", icon: Calendar },
+  { href: "/likes", labelKey: "sidebar.likes", icon: ThumbsUp },
+  { href: "/matches", labelKey: "sidebar.matches", icon: Heart },
+  { href: "/chat", labelKey: "sidebar.chat", icon: MessageCircle },
+  { href: "/groups", labelKey: "sidebar.groups", icon: Users },
+  { href: "/trello", labelKey: "sidebar.trello", icon: LayoutList },
+  { href: "/profile", labelKey: "sidebar.profile", icon: User },
+  { href: "/premium", labelKey: "sidebar.premium", icon: Crown },
 ]
 
 export function SidebarNav() {
   const pathname = usePathname()
   const features = useFeatureFlags()
   const unreadChats = useUnreadChats()
+  const { t } = useI18n()
 
   const filteredNavItems = navItems.filter(item => {
     if (item.href === '/search' && !features.searchPage) return false
@@ -51,9 +51,9 @@ export function SidebarNav() {
 
   // Un solo item de panel según el rol
   const panelItem = features.dashboard
-    ? { href: '/dashboard', label: 'Admin Panel', icon: LayoutDashboard }
+    ? { href: '/dashboard', labelKey: 'sidebar.adminPanel', icon: LayoutDashboard }
     : features.managerPanel
-    ? { href: '/manager', label: 'Manager Panel', icon: ShieldCheck }
+    ? { href: '/manager', labelKey: 'sidebar.managerPanel', icon: ShieldCheck }
     : null
 
   const allNavItems = panelItem
@@ -101,7 +101,7 @@ export function SidebarNav() {
                       </span>
                     )}
                   </div>
-                  <span className="hidden xl:block relative z-10">{item.label}</span>
+                  <span className="hidden xl:block relative z-10">{t(item.labelKey)}</span>
                 </Link>
               </li>
             )

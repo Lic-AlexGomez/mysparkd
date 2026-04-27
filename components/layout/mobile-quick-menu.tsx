@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Search, BarChart3, Users, Menu, X } from "lucide-react"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
+import { useI18n } from "@/lib/i18n"
 
 export function MobileQuickMenu() {
   const router = useRouter()
   const features = useFeatureFlags()
+  const { t } = useI18n()
   const [isOpen, setIsOpen] = useState(false)
 
   if (!features.searchPage && !features.analyticsPage && !features.groupsPage) {
@@ -21,6 +23,7 @@ export function MobileQuickMenu() {
       <Button
         onClick={() => setIsOpen(!isOpen)}
         className="fixed bottom-24 left-4 z-40 h-12 w-12 rounded-full bg-gradient-to-br from-primary to-secondary shadow-lg lg:hidden"
+        aria-label={t("nav.settings")}
       >
         {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </Button>
@@ -41,6 +44,8 @@ export function MobileQuickMenu() {
                 }}
                 className="h-12 w-12 rounded-full bg-card border-2 border-primary shadow-lg"
                 variant="outline"
+                aria-label={t("nav.searchAria")}
+                title={t("nav.searchAria")}
               >
                 <Search className="h-5 w-5" />
               </Button>
@@ -53,6 +58,8 @@ export function MobileQuickMenu() {
                 }}
                 className="h-12 w-12 rounded-full bg-card border-2 border-primary shadow-lg"
                 variant="outline"
+                aria-label={t("nav.analytics")}
+                title={t("nav.analytics")}
               >
                 <BarChart3 className="h-5 w-5" />
               </Button>
@@ -65,6 +72,8 @@ export function MobileQuickMenu() {
                 }}
                 className="h-12 w-12 rounded-full bg-card border-2 border-primary shadow-lg"
                 variant="outline"
+                aria-label={t("nav.groups")}
+                title={t("nav.groups")}
               >
                 <Users className="h-5 w-5" />
               </Button>

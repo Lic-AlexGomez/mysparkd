@@ -37,7 +37,7 @@ export function LocationInput({ value, onChange, placeholder = "Ciudad, País", 
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const inputRef = useRef<HTMLInputElement>(null)
   const suggestionsRef = useRef<HTMLDivElement>(null)
-  const debounceTimer = useRef<NodeJS.Timeout>()
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null)
 
   // Cerrar sugerencias al hacer clic fuera
   useEffect(() => {

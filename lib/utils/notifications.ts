@@ -2,7 +2,7 @@ import { api } from '@/lib/api'
 
 export async function createNotification(
   userId: string,
-  type: 'like' | 'comment' | 'match' | 'message' | 'follow',
+  type: 'like' | 'comment' | 'match' | 'message' | 'follow' | 'reaction',
   message: string,
   relatedUserId?: string
 ) {
@@ -17,6 +17,18 @@ export async function createNotification(
   } catch (error) {
     // Si falla, crear localmente como fallback
     const { notificationService } = await import('@/lib/services/notification')
-    notificationService.create(userId, type, message, relatedUserId)
+    notificationService.addLocalNotification({
+      notificationId: `local-${Date.now()}`,
+      senderId: relatedUserId || "local",
+      senderUsername: "Sistema",
+      receiverId: userId,
+      receiverUsername: "",
+      title: type,
+      data: message,
+      read: false,
+      createdAt: new Date().toISOString(),
+      targetType: "POST",
+      targetId: undefined,
+    })
   }
 }

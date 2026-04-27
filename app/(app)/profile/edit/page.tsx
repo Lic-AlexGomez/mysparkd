@@ -121,7 +121,7 @@ export default function EditProfilePage() {
       updateUser({
         username: formData.username.trim(),
         accountType,
-        bio: formData.bio || null,
+        bio: formData.bio || undefined,
         url: formData.url || undefined,
         showPremiumBadge,
         visibility: formData.visibility,
@@ -336,7 +336,7 @@ export default function EditProfilePage() {
             <VoiceNoteRecorder
               ref={voiceRecorderRef}
               currentUrl={user.voiceIntroUrl || user.voiceNoteUrl}
-              onSaved={(url) => updateUser({ voiceIntroUrl: url ?? null, voiceNoteUrl: url ?? null })}
+              onSaved={(url) => updateUser({ voiceIntroUrl: url ?? undefined, voiceNoteUrl: url ?? undefined })}
               onRecordingChange={(val) => { isVoiceRecordingRef.current = val; setIsVoiceRecording(val) }}
             />
           </div>

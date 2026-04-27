@@ -26,15 +26,17 @@ import { useFeatureFlags } from "@/hooks/use-feature-flags"
 import { feedService, FEED_PAGE_SIZE } from "@/lib/services/feed"
 import type { Post } from "@/lib/types"
 import { toast } from "sonner"
+import { useI18n } from "@/lib/i18n"
 
 const sortOptions = [
-  { value: 'chronological' as const, label: 'Cronológico', icon: '🕐' },
-  { value: 'relevant' as const, label: 'Relevante', icon: '⚡' },
-  { value: 'compatible' as const, label: 'Compatible', icon: '💫' },
-  { value: 'top' as const, label: 'Populares', icon: '🔥' },
+  { value: 'chronological' as const, labelEs: 'Cronológico', labelEn: 'Chronological', icon: '🕐' },
+  { value: 'relevant' as const, labelEs: 'Relevante', labelEn: 'Relevant', icon: '⚡' },
+  { value: 'compatible' as const, labelEs: 'Compatible', labelEn: 'Compatible', icon: '💫' },
+  { value: 'top' as const, labelEs: 'Populares', labelEn: 'Top', icon: '🔥' },
 ]
 
 export default function FeedPage() {
+  const { te } = useI18n()
   const { user } = useAuth()
   const features = useFeatureFlags()
   const searchParams = useSearchParams()
@@ -131,7 +133,7 @@ export default function FeedPage() {
         setFollowingPosts([])
         setFollowingHasMore(false)
         setFollowingUseServerPagination(false)
-        toast.error('No se pudo cargar el feed de seguidos')
+        toast.error(te('No se pudo cargar el feed de seguidos', 'Could not load following feed'))
       } finally {
         setFollowingLoading(false)
       }
@@ -168,7 +170,7 @@ export default function FeedPage() {
       setFollowingHasMore(res.hasMore)
     } catch {
       setFollowingHasMore(false)
-      toast.error('No se pudo cargar más publicaciones')
+      toast.error(te('No se pudo cargar más publicaciones', 'Could not load more posts'))
     } finally {
       setFollowingLoadingMore(false)
     }
@@ -396,16 +398,16 @@ export default function FeedPage() {
             <div className="flex-1">
               {!window.isSecureContext ? (
                 <>
-                  <p className="text-sm font-medium text-foreground">Geolocalización requiere HTTPS</p>
+                  <p className="text-sm font-medium text-foreground">{te('Geolocalización requiere HTTPS', 'Geolocation requires HTTPS')}</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Accede a través de <code className="bg-muted px-1 py-0.5 rounded">http://localhost:3000</code> para usar esta función
+                    {te('Accede a través de', 'Access via')} <code className="bg-muted px-1 py-0.5 rounded">http://localhost:3000</code> {te('para usar esta función', 'to use this feature')}
                   </p>
                 </>
               ) : (
                 <>
-                  <p className="text-sm font-medium text-foreground">Activa tu ubicación para ver posts cercanos</p>
+                  <p className="text-sm font-medium text-foreground">{te('Activa tu ubicación para ver posts cercanos', 'Enable your location to see nearby posts')}</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Haz click en "Activar" y permite el acceso cuando tu navegador lo solicite
+                    {te('Haz click en "Activar" y permite el acceso cuando tu navegador lo solicite', 'Click "Enable" and allow access when your browser asks')}
                   </p>
                 </>
               )}
@@ -423,7 +425,7 @@ export default function FeedPage() {
                 {isRequestingLocation ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  'Activar'
+                  te('Activar', 'Enable')
                 )}
               </button>
             )}
@@ -447,21 +449,21 @@ export default function FeedPage() {
                       className="flex items-center justify-center gap-1.5 rounded-lg px-1.5 text-xs font-medium data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:gap-2 sm:px-2 sm:text-sm"
                     >
                       <Globe className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden />
-                      <span>Global</span>
+                      <span>{te("Global", "Global")}</span>
                     </TabsTrigger>
                     <TabsTrigger
                       value="local"
                       className="flex items-center justify-center gap-1.5 rounded-lg px-1.5 text-xs font-medium data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:gap-2 sm:px-2 sm:text-sm"
                     >
                       <Newspaper className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden />
-                      <span>Local</span>
+                      <span>{te("Local", "Local")}</span>
                     </TabsTrigger>
                     <TabsTrigger
                       value="following"
                       className="flex min-w-0 items-center justify-center gap-1.5 rounded-lg px-1.5 text-xs font-medium data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:gap-2 sm:px-2 sm:text-sm"
                     >
                       <Users className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden />
-                      <span className="truncate">Siguiendo</span>
+                      <span className="truncate">{te("Siguiendo", "Following")}</span>
                     </TabsTrigger>
                   </TabsList>
 
@@ -472,8 +474,8 @@ export default function FeedPage() {
                         variant="ghost"
                         size="sm"
                         className="h-10 shrink-0 rounded-xl border border-border/70 bg-gradient-to-b from-card/90 to-muted/30 px-2.5 shadow-sm sm:h-9"
-                        aria-label="Abrir opciones de vista, filtros y orden"
-                        title="Opciones del feed"
+                        aria-label={te('Abrir opciones de vista, filtros y orden', 'Open view, filter, and sort options')}
+                        title={te('Opciones del feed', 'Feed options')}
                       >
                         <svg
                           viewBox="0 0 24 24"
@@ -493,48 +495,48 @@ export default function FeedPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-60 border-border bg-card" sideOffset={6}>
-                      <DropdownMenuLabel className="text-xs text-muted-foreground">Vista</DropdownMenuLabel>
+                      <DropdownMenuLabel className="text-xs text-muted-foreground">{te('Vista', 'View')}</DropdownMenuLabel>
                       <DropdownMenuItem
                         onClick={() => setViewMode("card")}
                         className={viewMode === "card" ? "bg-primary/10 text-primary" : ""}
                       >
                         <LayoutGrid className="h-4 w-4" aria-hidden />
-                        Tarjetas
+                        {te('Tarjetas', 'Cards')}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => setViewMode("compact")}
                         className={viewMode === "compact" ? "bg-primary/10 text-primary" : ""}
                       >
                         <List className="h-4 w-4" aria-hidden />
-                        Compacta
+                        {te('Compacta', 'Compact')}
                       </DropdownMenuItem>
 
                       <DropdownMenuSeparator />
-                      <DropdownMenuLabel className="text-xs text-muted-foreground">Filtro</DropdownMenuLabel>
+                      <DropdownMenuLabel className="text-xs text-muted-foreground">{te('Filtro', 'Filter')}</DropdownMenuLabel>
                       <DropdownMenuItem
                         onClick={() => setFilterType("all")}
                         className={filterType === "all" ? "bg-primary/10 text-primary" : ""}
                       >
                         <Filter className="h-4 w-4" aria-hidden />
-                        Todos
+                        {te('Todos', 'All')}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => setFilterType("withImage")}
                         className={filterType === "withImage" ? "bg-primary/10 text-primary" : ""}
                       >
                         <ImageIcon className="h-4 w-4" aria-hidden />
-                        Con imagen
+                        {te('Con imagen', 'With image')}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => setFilterType("withoutImage")}
                         className={filterType === "withoutImage" ? "bg-primary/10 text-primary" : ""}
                       >
                         <ImageIcon className="h-4 w-4" aria-hidden />
-                        Sin imagen
+                        {te('Sin imagen', 'Without image')}
                       </DropdownMenuItem>
 
                       <DropdownMenuSeparator />
-                      <DropdownMenuLabel className="text-xs text-muted-foreground">Orden</DropdownMenuLabel>
+                      <DropdownMenuLabel className="text-xs text-muted-foreground">{te('Orden', 'Sort')}</DropdownMenuLabel>
                       {sortOptions.map((option) => (
                         <DropdownMenuItem
                           key={option.value}
@@ -544,7 +546,7 @@ export default function FeedPage() {
                           <span className="text-base leading-none" aria-hidden>
                             {option.icon}
                           </span>
-                          {option.label}
+                          {te(option.labelEs, option.labelEn)}
                         </DropdownMenuItem>
                       ))}
                     </DropdownMenuContent>
@@ -555,7 +557,7 @@ export default function FeedPage() {
                   <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
                     <Newspaper className="h-5 w-5" aria-hidden />
                   </span>
-                  Feed
+                  {te('Feed', 'Feed')}
                 </h2>
               )}
 
@@ -577,9 +579,9 @@ export default function FeedPage() {
               <MapPin className="h-10 w-10 text-yellow-500" />
             </div>
             <div className="text-center">
-              <p className="text-foreground font-semibold text-lg">Activa tu ubicación</p>
+              <p className="text-foreground font-semibold text-lg">{te('Activa tu ubicación', 'Enable your location')}</p>
               <p className="text-sm text-muted-foreground mt-1 max-w-xs">
-                Para ver posts de personas cercanas a ti necesitamos acceder a tu ubicación
+                {te('Para ver posts de personas cercanas a ti necesitamos acceder a tu ubicación', 'To show nearby posts we need access to your location')}
               </p>
             </div>
             <button
@@ -592,24 +594,24 @@ export default function FeedPage() {
               ) : (
                 <MapPin className="h-4 w-4" />
               )}
-              {isRequestingLocation ? 'Activando...' : 'Activar ubicación'}
+              {isRequestingLocation ? te('Activando...', 'Enabling...') : te('Activar ubicación', 'Enable location')}
             </button>
             <p className="text-xs text-muted-foreground text-center max-w-xs">
-              Tu ubicación solo se usa para mostrarte contenido cercano y nunca se comparte públicamente
+              {te('Tu ubicación solo se usa para mostrarte contenido cercano y nunca se comparte públicamente', 'Your location is only used to show nearby content and is never shared publicly')}
             </p>
           </div>
         ) : (
         <div className="flex flex-col items-center justify-center gap-3 py-20">
           <Newspaper className="h-12 w-12 text-muted-foreground" />
           <p className="text-muted-foreground">
-            No hay posts aun
+            {te('No hay posts aun', 'No posts yet')}
           </p>
           <p className="text-sm text-muted-foreground">
             {feedTab === 'following' 
-              ? 'Sigue a más personas para ver su contenido' 
+              ? te('Sigue a más personas para ver su contenido', 'Follow more people to see their content')
               : feedTab === 'local'
-              ? 'No hay posts en tu zona aún'
-              : 'Se el primero en publicar algo!'}
+              ? te('No hay posts en tu zona aún', 'No posts in your area yet')
+              : te('Se el primero en publicar algo!', 'Be the first to post something!')}
           </p>
         </div>
         )
@@ -630,11 +632,11 @@ export default function FeedPage() {
               {loadingMore ? (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Cargando más posts...
+                  {te('Cargando más posts...', 'Loading more posts...')}
                 </div>
               ) : (
                 <Button variant="ghost" size="sm" onClick={() => void loadMore()}>
-                  Cargar más
+                  {te('Cargar más', 'Load more')}
                 </Button>
               )}
             </div>
@@ -647,11 +649,11 @@ export default function FeedPage() {
                 {followingLoadingMore ? (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Cargando más posts...
+                    {te('Cargando más posts...', 'Loading more posts...')}
                   </div>
                 ) : (
                   <Button variant="ghost" size="sm" onClick={() => void loadFollowingMore()}>
-                    Cargar más
+                    {te('Cargar más', 'Load more')}
                   </Button>
                 )}
               </div>

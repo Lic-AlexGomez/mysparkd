@@ -4,10 +4,53 @@ import { useState } from "react"
 import { motion, useMotionValue, useTransform, type PanInfo } from "framer-motion"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { reputationService } from "@/lib/services/reputation"
-import { Star } from "lucide-react"
 import Link from "next/link"
 import { VoiceNotePlayer } from "@/components/ui/voice-note"
-import type { Photo } from "@/lib/types"
+import type { Interest, Photo } from "@/lib/types"
+import { useI18n } from "@/lib/i18n"
+
+function IconChevronDown({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function IconChevronUp({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path d="m18 15-6-6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function IconMapPin({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path d="M12 22s7-5.7 7-12a7 7 0 1 0-14 0c0 6.3 7 12 7 12Z" stroke="currentColor" strokeWidth="2" />
+      <circle cx="12" cy="10" r="2.5" fill="currentColor" />
+    </svg>
+  )
+}
+
+function IconCake({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path d="M5 11h14v8H5z" stroke="currentColor" strokeWidth="2" />
+      <path d="M3 11h18M8 7v2m4-2v2m4-2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function IconFileText({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path d="M7 3h7l5 5v13H7z" stroke="currentColor" strokeWidth="2" />
+      <path d="M14 3v5h5M9 12h6M9 16h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  )
+}
 
 interface SwipeCardProps {
   user: {
@@ -16,11 +59,13 @@ interface SwipeCardProps {
     apellidos: string
     photos: Photo[]
     reputation?: number
-    interests?: string[]
+    interests?: Array<string | Interest>
     bio?: string
     location?: string
     dateOfBirth?: string
     voiceNoteUrl?: string
+    totalPosts?: number
+    premium?: boolean
   }
   onSwipe: (direction: "left" | "right") => void
   isTop: boolean
@@ -30,13 +75,61 @@ interface SwipeCardProps {
   swipeEnabled?: boolean
 }
 
+function normalizeInterestLabel(interest: string | Interest): string {
+  if (typeof interest === "string") return interest
+  return interest?.name || interest?.interestId || ""
+}
+
 function getAge(dateOfBirth?: string): number | null {
   if (!dateOfBirth) return null
   const diff = Date.now() - new Date(dateOfBirth).getTime()
   return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25))
 }
 
+function getCompatibilityTheme(score: number, t: (key: string) => string) {
+  if (score >= 80) {
+    return {
+      ring: "rgba(52,211,153,0.95)",
+      glow: "rgba(16,185,129,0.35)",
+      badge: "text-emerald-100 border-emerald-300/30 bg-emerald-500/20",
+      label: t("swipeCard.compatVeryHigh"),
+    }
+  }
+  if (score >= 60) {
+    return {
+      ring: "rgba(56,189,248,0.95)",
+      glow: "rgba(14,165,233,0.35)",
+      badge: "text-sky-100 border-sky-300/30 bg-sky-500/20",
+      label: t("swipeCard.compatHigh"),
+    }
+  }
+  if (score >= 40) {
+    return {
+      ring: "rgba(250,204,21,0.95)",
+      glow: "rgba(234,179,8,0.3)",
+      badge: "text-yellow-100 border-yellow-300/30 bg-yellow-500/20",
+      label: t("swipeCard.compatMedium"),
+    }
+  }
+  return {
+    ring: "rgba(248,113,113,0.95)",
+    glow: "rgba(239,68,68,0.3)",
+    badge: "text-rose-100 border-rose-300/30 bg-rose-500/20",
+    label: t("swipeCard.compatLow"),
+  }
+}
+
+function getVibe(user: SwipeCardProps["user"], t: (key: string) => string) {
+  const interestCount = user.interests?.length ?? 0
+  if (user.premium && interestCount >= 5) return t("swipeCard.vibeTopProfile")
+  if (interestCount >= 6) return t("swipeCard.vibeVerySocial")
+  if (interestCount >= 3) return t("swipeCard.vibeInteresting")
+  if ((user.bio || "").length >= 50) return t("swipeCard.vibeTalkative")
+  return t("swipeCard.vibeUnknown")
+}
+
 export function SwipeCard({ user, onSwipe, isTop, compatibility, exitDirection, swipeEnabled = true }: SwipeCardProps) {
+  const { t } = useI18n()
   const [showInfo, setShowInfo] = useState(false)
   const x = useMotionValue(0)
   const rotate = useTransform(x, [-200, 200], [-18, 18])
@@ -48,6 +141,11 @@ export function SwipeCard({ user, onSwipe, isTop, compatibility, exitDirection, 
   const reputation = user.reputation || 75
   const reputationColor = reputationService.getReputationColor(reputation)
   const age = getAge(user.dateOfBirth)
+  const fullName = `${user.nombres || ""} ${user.apellidos || ""}`.trim() || user.nombres || "Usuario"
+  const shortBio = (user.bio || "").trim()
+  const safeCompatibility = Math.max(0, Math.min(100, compatibility || 0))
+  const compatibilityTheme = getCompatibilityTheme(safeCompatibility, t)
+  const vibe = getVibe(user, t)
 
   const handleDragEnd = (_: unknown, info: PanInfo) => {
     if (!swipeEnabled || showInfo) return
@@ -96,13 +194,32 @@ export function SwipeCard({ user, onSwipe, isTop, compatibility, exitDirection, 
 
         {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+        {safeCompatibility > 0 && (
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background: `radial-gradient(80% 55% at 50% 105%, ${compatibilityTheme.glow} 0%, transparent 70%)`,
+            }}
+          />
+        )}
 
         {/* Top badges */}
         <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
-          {compatibility && compatibility > 0 && (
-            <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-md rounded-full px-3 py-1.5 border border-white/20">
-              <Star className="h-3.5 w-3.5 text-yellow-400" />
-              <span className="text-xs font-bold text-white">{compatibility}% match</span>
+          {safeCompatibility > 0 && (
+            <div className="flex items-center gap-2">
+                <div
+                  className="relative grid h-12 w-12 place-items-center rounded-full border border-white/20 bg-black/45 shadow-lg backdrop-blur-md"
+                style={{
+                  backgroundImage: `conic-gradient(${compatibilityTheme.ring} ${safeCompatibility * 3.6}deg, rgba(255,255,255,0.18) ${safeCompatibility * 3.6}deg 360deg)`,
+                }}
+              >
+                <div className="grid h-9 w-9 place-items-center rounded-full bg-black/75 text-[11px] font-black text-white">
+                  {safeCompatibility}
+                </div>
+              </div>
+              <div className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm ${compatibilityTheme.badge}`}>
+                {compatibilityTheme.label} · {t("swipeCard.matchWord")}
+              </div>
             </div>
           )}
           <div
@@ -156,36 +273,81 @@ export function SwipeCard({ user, onSwipe, isTop, compatibility, exitDirection, 
                   onClick={(e) => e.stopPropagation()}
                   className="text-3xl font-black text-white tracking-tight hover:underline"
                 >
-                  {user.nombres}
+                  {fullName}
                   {age && <span className="ml-2 text-2xl font-light text-white/80">{age}</span>}
                 </Link>
-                {user.location && (
-                  <p className="text-xs text-white/60 mt-0.5">📍 {user.location}</p>
-                )}
               </div>
               {isTop && (
                 <button
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => { e.stopPropagation(); setShowInfo(!showInfo) }}
-                  className="flex-shrink-0 h-9 w-9 rounded-full shadow-lg flex items-center justify-center"
+                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-white/25 bg-black/35 shadow-lg backdrop-blur-sm transition-colors hover:bg-black/50"
+                  aria-label={showInfo ? t("swipeCard.hideDetails") : t("swipeCard.seeMoreDetails")}
                 >
-                  {showInfo ? <span className="text-lg font-bold text-white">⇓</span> : <span className="text-lg font-bold text-white">⇑</span>}
+                  {showInfo ? <IconChevronDown className="h-4.5 w-4.5 text-white" /> : <IconChevronUp className="h-4.5 w-4.5 text-white" />}
                 </button>
               )}
+            </div>
+
+            {/* Info rápida visible siempre */}
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {user.location && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-black/25 px-2 py-0.5 text-[11px] text-white/90 backdrop-blur-sm">
+                  <IconMapPin className="h-3 w-3" /> {user.location}
+                </span>
+              )}
+              {age && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-black/25 px-2 py-0.5 text-[11px] text-white/90 backdrop-blur-sm">
+                  <IconCake className="h-3 w-3" /> {age} {t("swipeCard.yearsOld")}
+                </span>
+              )}
+              {typeof user.totalPosts === "number" && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-black/25 px-2 py-0.5 text-[11px] text-white/90 backdrop-blur-sm">
+                  <IconFileText className="h-3 w-3" /> {user.totalPosts} posts
+                </span>
+              )}
+              {user.premium && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-yellow-300/30 bg-yellow-400/20 px-2 py-0.5 text-[11px] font-semibold text-yellow-100 backdrop-blur-sm">
+                  ✨ {t("swipeCard.premium")}
+                </span>
+              )}
+            </div>
+
+            {/* Mini tarjeta de personalidad */}
+            <div className="mt-3 grid grid-cols-3 gap-2 rounded-xl border border-white/15 bg-black/30 p-2.5 backdrop-blur-sm">
+              <div className="rounded-lg border border-white/10 bg-black/20 px-2 py-1.5 text-center">
+                <p className="text-[10px] uppercase tracking-wide text-white/50">{t("swipeCard.vibe")}</p>
+                <p className="mt-0.5 text-[11px] font-semibold text-white">{vibe}</p>
+              </div>
+              <div className="rounded-lg border border-white/10 bg-black/20 px-2 py-1.5 text-center">
+                <p className="text-[10px] uppercase tracking-wide text-white/50">{t("swipeCard.reputation")}</p>
+                <p className="mt-0.5 text-[11px] font-semibold text-white">{reputation}</p>
+              </div>
+              <div className="rounded-lg border border-white/10 bg-black/20 px-2 py-1.5 text-center">
+                <p className="text-[10px] uppercase tracking-wide text-white/50">Match</p>
+                <p className="mt-0.5 text-[11px] font-semibold text-white">{safeCompatibility || "—"}%</p>
+              </div>
             </div>
 
             {/* Interests (siempre visibles) */}
             {user.interests && user.interests.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-1.5">
-                {user.interests.slice(0, showInfo ? 10 : 3).map((interest, idx) => (
+                {user.interests.slice(0, showInfo ? 10 : 5).map((interest, idx) => (
                   <span
-                    key={idx}
+                    key={`${normalizeInterestLabel(interest)}-${idx}`}
                     className="px-2.5 py-1 rounded-full bg-white/15 backdrop-blur-sm border border-white/25 text-xs text-white font-medium"
                   >
-                    {interest}
+                    {normalizeInterestLabel(interest)}
                   </span>
                 ))}
               </div>
+            )}
+
+            {/* Bio corta siempre visible */}
+            {shortBio && (
+              <p className={`mt-3 text-sm leading-relaxed text-white/90 ${showInfo ? "" : "line-clamp-2"}`}>
+                {shortBio}
+              </p>
             )}
 
             {/* Extra info */}
@@ -196,22 +358,26 @@ export function SwipeCard({ user, onSwipe, isTop, compatibility, exitDirection, 
                 transition={{ delay: 0.1 }}
                 className="mt-4 space-y-3"
               >
-                {user.bio && (
-                  <div>
-                    <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-1">Sobre mí</p>
-                    <p className="text-sm text-white/90 leading-relaxed">{user.bio}</p>
-                  </div>
-                )}
                 {user.voiceNoteUrl && (
                   <div>
-                    <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-1">Nota de voz</p>
+                    <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-1">{t("swipeCard.voiceNote")}</p>
                     <div onPointerDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
                       <VoiceNotePlayer url={user.voiceNoteUrl} />
                     </div>
                   </div>
                 )}
+                <div>
+                  <Link
+                    href={`/profile/${user.userId}${compatibility ? `?compatibility=${compatibility}` : ''}`}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-white/20"
+                  >
+                    {t("swipeCard.seeFullProfile")}
+                  </Link>
+                </div>
                 {!user.bio && !user.location && (
-                  <p className="text-sm text-white/50 italic">Este usuario no ha completado su perfil aún.</p>
+                  <p className="text-sm text-white/50 italic">{t("swipeCard.incompleteProfile")}</p>
                 )}
               </motion.div>
             )}
