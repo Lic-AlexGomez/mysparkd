@@ -11,6 +11,7 @@ import { Bell, Loader2, Trash2, Check, UserPlus, X } from "lucide-react"
 import { toast } from "sonner"
 import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
+import { useI18n } from "@/lib/i18n"
 
 interface FollowRequest {
   userId: string
@@ -19,6 +20,7 @@ interface FollowRequest {
 }
 
 export default function NotificationsPage() {
+  const { te } = useI18n()
   const { user } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
@@ -37,7 +39,7 @@ export default function NotificationsPage() {
       setNotifications(notifs)
       setFollowRequests(requests)
     } catch {
-      toast.error("Error al cargar notificaciones")
+      toast.error(te("Error al cargar notificaciones", "Error loading notifications"))
     } finally {
       setIsLoading(false)
     }
@@ -55,9 +57,9 @@ export default function NotificationsPage() {
     try {
       await api.post(`/api/follow/accept/${userId}`)
       setFollowRequests(prev => prev.filter(r => r.userId !== userId))
-      toast.success("Solicitud aceptada")
+      toast.success(te("Solicitud aceptada", "Request accepted"))
     } catch {
-      toast.error("Error al aceptar")
+      toast.error(te("Error al aceptar", "Error accepting"))
     }
   }
 
@@ -65,9 +67,9 @@ export default function NotificationsPage() {
     try {
       await api.post(`/api/follow/reject/${userId}`)
       setFollowRequests(prev => prev.filter(r => r.userId !== userId))
-      toast.success("Solicitud rechazada")
+      toast.success(te("Solicitud rechazada", "Request rejected"))
     } catch {
-      toast.error("Error al rechazar")
+      toast.error(te("Error al rechazar", "Error rejecting"))
     }
   }
 
@@ -89,7 +91,7 @@ export default function NotificationsPage() {
       await api.put(`/api/notifications/${id}/read`, {})
       setNotifications(prev => prev.map(n => n.notificationId === id ? { ...n, read: true } : n))
     } catch {
-      toast.error("Error al marcar como leída")
+      toast.error(te("Error al marcar como leída", "Error marking as read"))
     }
   }
 
@@ -97,9 +99,9 @@ export default function NotificationsPage() {
     try {
       await api.delete(`/api/notifications/${id}`)
       setNotifications(prev => prev.filter(n => n.notificationId !== id))
-      toast.success("Notificacion eliminada")
+      toast.success(te("Notificación eliminada", "Notification deleted"))
     } catch {
-      toast.error("Error al eliminar")
+      toast.error(te("Error al eliminar", "Error deleting"))
     }
   }
 
@@ -112,14 +114,14 @@ export default function NotificationsPage() {
   return (
     <div className="mx-auto max-w-2xl">
       <div className="sticky top-16 z-20 border-b border-border bg-background/95 px-4 py-3 backdrop-blur-md">
-        <h1 className="text-lg font-bold text-foreground">Notificaciones</h1>
+        <h1 className="text-lg font-bold text-foreground">{te("Notificaciones", "Notifications")}</h1>
       </div>
 
       {/* Solicitudes de follow pendientes */}
       {followRequests.length > 0 && (
         <div className="border-b border-border">
           <p className="px-4 pt-3 pb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
-            <UserPlus className="h-3.5 w-3.5" /> Solicitudes de seguimiento ({followRequests.length})
+            <UserPlus className="h-3.5 w-3.5" /> {te("Solicitudes de seguimiento", "Follow requests")} ({followRequests.length})
           </p>
           {followRequests.map(req => (
             <div key={req.userId} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50">
@@ -129,11 +131,11 @@ export default function NotificationsPage() {
               </Avatar>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-foreground truncate">{req.username}</p>
-                <p className="text-xs text-muted-foreground">quiere seguirte</p>
+                <p className="text-xs text-muted-foreground">{te("quiere seguirte", "wants to follow you")}</p>
               </div>
               <div className="flex gap-2">
                 <Button size="sm" onClick={() => handleAcceptFollow(req.userId)} className="h-8 bg-primary text-primary-foreground">
-                  <Check className="h-3.5 w-3.5 mr-1" /> Aceptar
+                  <Check className="h-3.5 w-3.5 mr-1" /> {te("Aceptar", "Accept")}
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => handleRejectFollow(req.userId)} className="h-8">
                   <X className="h-3.5 w-3.5" />
@@ -147,7 +149,7 @@ export default function NotificationsPage() {
       {notifications.length === 0 && followRequests.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 py-20">
           <Bell className="h-12 w-12 text-muted-foreground" />
-          <p className="text-muted-foreground">Sin notificaciones</p>
+          <p className="text-muted-foreground">{te("Sin notificaciones", "No notifications")}</p>
         </div>
       ) : (
         <div className="divide-y divide-border">

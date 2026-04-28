@@ -14,6 +14,7 @@ import { toast } from "sonner"
 import type { Group } from "@/lib/types"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
 import { groupService } from "@/lib/services/group"
+import { useI18n } from "@/lib/i18n"
 
 const CATEGORIES = [
   "ENTRETENIMIENTO",
@@ -34,6 +35,7 @@ const CATEGORIES = [
 ] as const
 
 export default function GroupsPage() {
+  const { te } = useI18n()
   const features = useFeatureFlags()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -54,7 +56,7 @@ export default function GroupsPage() {
 
   useEffect(() => {
     if (!features.groupsPage) {
-      toast.error("Esta funcionalidad no está disponible aún!")
+      toast.error(te("Esta funcionalidad no está disponible aún!", "This feature is not available yet!"))
       router.push('/feed')
     }
   }, [features.groupsPage, router])
@@ -83,7 +85,7 @@ export default function GroupsPage() {
         }))
       )
     } catch (error) {
-      toast.error("No se pudieron cargar los grupos")
+      toast.error(te("No se pudieron cargar los grupos", "Could not load groups"))
     } finally {
       setIsLoading(false)
     }
@@ -105,7 +107,7 @@ export default function GroupsPage() {
 
   const handleCreate = async () => {
     if (!name.trim()) {
-      toast.error("El nombre es requerido")
+      toast.error(te("El nombre es requerido", "Name is required"))
       return
     }
     const rawTopics = topics
@@ -113,12 +115,12 @@ export default function GroupsPage() {
       .map((t) => t.trim())
       .filter(Boolean)
     if (rawTopics.length > 10) {
-      toast.error("Máximo 10 temas")
+      toast.error(te("Máximo 10 temas", "Maximum 10 topics"))
       return
     }
     const tooLong = rawTopics.find((t) => t.length > 50)
     if (tooLong) {
-      toast.error("Cada tema puede tener como máximo 50 caracteres")
+      toast.error(te("Cada tema puede tener como máximo 50 caracteres", "Each topic can have a maximum of 50 characters"))
       return
     }
     const normalizedTopics = rawTopics
@@ -134,7 +136,7 @@ export default function GroupsPage() {
         category: category || undefined,
         topics: normalizedTopics.length ? normalizedTopics : undefined,
       })
-      toast.success("Grupo creado")
+      toast.success(te("Grupo creado", "Group created"))
       setCreateOpen(false)
       setName("")
       setDescription("")
@@ -142,7 +144,7 @@ export default function GroupsPage() {
       setCategory("")
       await loadGroups(discoverCategory)
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo crear el grupo")
+      toast.error(error?.message || te("No se pudo crear el grupo", "Could not create group"))
     } finally {
       setIsCreating(false)
     }
@@ -151,10 +153,10 @@ export default function GroupsPage() {
   const handleJoin = async (groupId: string) => {
     try {
       await groupService.joinPublic(groupId)
-      toast.success("Te uniste al grupo")
+      toast.success(te("Te uniste al grupo", "You joined the group"))
       router.push(`/groups/${groupId}`)
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo unir al grupo")
+      toast.error(error?.message || te("No se pudo unir al grupo", "Could not join group"))
     }
   }
 
@@ -180,10 +182,10 @@ export default function GroupsPage() {
     if (!token) return
     try {
       const group = await groupService.joinByToken(token)
-      toast.success("Te uniste por invitación")
+      toast.success(te("Te uniste por invitación", "You joined via invitation"))
       router.push(`/groups/${group.id}`)
     } catch (error: any) {
-      toast.error(error?.message || "Invitación inválida o expirada")
+      toast.error(error?.message || te("Invitación inválida o expirada", "Invitation invalid or expired"))
     }
   }
 
@@ -202,44 +204,44 @@ export default function GroupsPage() {
     <div className="mx-auto max-w-4xl px-4 py-6">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Grupos</h1>
-          <p className="text-muted-foreground">Únete a comunidades con tus intereses</p>
+          <h1 className="text-2xl font-bold text-foreground">{te("Grupos", "Groups")}</h1>
+          <p className="text-muted-foreground">{te("Únete a comunidades con tus intereses", "Join communities based on your interests")}</p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
             <Button className="w-full bg-primary text-primary-foreground sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
-              Crear grupo
+              {te("Crear grupo", "Create group")}
             </Button>
           </DialogTrigger>
           <DialogContent className="bg-card border-border">
             <DialogHeader>
-              <DialogTitle>Crear Nuevo Grupo</DialogTitle>
+              <DialogTitle>{te("Crear Nuevo Grupo", "Create New Group")}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium">Nombre</label>
+                <label className="text-sm font-medium">{te("Nombre", "Name")}</label>
                 <Input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Nombre del grupo"
+                  placeholder={te("Nombre del grupo", "Group name")}
                   className="mt-1"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Descripción</label>
+                <label className="text-sm font-medium">{te("Descripción", "Description")}</label>
                 <Textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Describe tu grupo..."
+                  placeholder={te("Describe tu grupo...", "Describe your group...")}
                   className="mt-1"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Categoría</label>
+                <label className="text-sm font-medium">{te("Categoría", "Category")}</label>
                 <Select value={category} onValueChange={setCategory}>
                   <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Selecciona una categoría" />
+                    <SelectValue placeholder={te("Selecciona una categoría", "Select a category")} />
                   </SelectTrigger>
                   <SelectContent>
                     {CATEGORIES.map((cat) => (
@@ -249,16 +251,16 @@ export default function GroupsPage() {
                 </Select>
               </div>
               <div>
-                <label className="text-sm font-medium">Temas (coma separada, máx. 10, 50 caracteres c/u)</label>
+                <label className="text-sm font-medium">{te("Temas (coma separada, máx. 10, 50 caracteres c/u)", "Topics (comma separated, max. 10, 50 chars each)")}</label>
                 <Input
                   value={topics}
                   onChange={(e) => setTopics(e.target.value)}
-                  placeholder="ej: Java, Spring, Microservicios"
+                  placeholder={te("ej: Java, Spring, Microservicios", "e.g.: Java, Spring, Microservices")}
                   className="mt-1"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium mb-2 block">Privacidad</label>
+                <label className="text-sm font-medium mb-2 block">{te("Privacidad", "Privacy")}</label>
                 <div className="flex gap-2">
                   <Button
                     type="button"
@@ -267,7 +269,7 @@ export default function GroupsPage() {
                     className="flex-1"
                   >
                     <Globe className="h-4 w-4 mr-2" />
-                    Público
+                    {te("Público", "Public")}
                   </Button>
                   <Button
                     type="button"
@@ -276,12 +278,12 @@ export default function GroupsPage() {
                     className="flex-1"
                   >
                     <Lock className="h-4 w-4 mr-2" />
-                    Privado
+                    {te("Privado", "Private")}
                   </Button>
                 </div>
               </div>
               <Button onClick={handleCreate} className="w-full" disabled={isCreating}>
-                Crear Grupo
+                {te("Crear Grupo", "Create Group")}
               </Button>
             </div>
           </DialogContent>
@@ -291,19 +293,19 @@ export default function GroupsPage() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Link2 className="h-4 w-4" />
-            Unirse por invitación
+            {te("Unirse por invitación", "Join by invitation")}
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Pega el enlace de invitación que te compartieron y te unimos automáticamente.
+            {te("Pega el enlace de invitación que te compartieron y te unimos automáticamente.", "Paste the invitation link you received and we will join you automatically.")}
           </p>
         </CardHeader>
         <CardContent className="flex flex-col gap-2 sm:flex-row">
           <Input
             value={joinToken}
             onChange={(e) => setJoinToken(e.target.value)}
-            placeholder="Pega aquí el link de invitación o el código"
+            placeholder={te("Pega aquí el link de invitación o el código", "Paste invitation link or code here")}
           />
-          <Button onClick={handleJoinByToken} className="w-full sm:w-auto">Unirme al grupo</Button>
+          <Button onClick={handleJoinByToken} className="w-full sm:w-auto">{te("Unirme al grupo", "Join group")}</Button>
         </CardContent>
       </Card>
 
@@ -312,7 +314,7 @@ export default function GroupsPage() {
         <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-primary" />
-            Descubrir Grupos
+            {te("Descubrir Grupos", "Discover Groups")}
           </h2>
           <div className="grid w-full grid-cols-1 gap-2 sm:w-auto sm:grid-cols-2 lg:grid-cols-[180px_220px_220px_auto]">
             <Select value={discoverFeed} onValueChange={setDiscoverFeed}>
@@ -331,10 +333,10 @@ export default function GroupsPage() {
               onValueChange={setDiscoverCategory}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Filtrar categoría" />
+                <SelectValue placeholder={te("Filtrar categoría", "Filter category")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">Todas</SelectItem>
+                <SelectItem value="ALL">{te("Todas", "All")}</SelectItem>
                 {CATEGORIES.map((cat) => (
                   <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                 ))}
@@ -343,7 +345,7 @@ export default function GroupsPage() {
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar por nombre/tema"
+              placeholder={te("Buscar por nombre/tema", "Search by name/topic")}
               className="w-full"
             />
             <Button
@@ -376,7 +378,7 @@ export default function GroupsPage() {
                       )}
                     </CardTitle>
                     <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                      {group.description || "Sin descripción"}
+                      {group.description || te("Sin descripción", "No description")}
                     </p>
                   </div>
                 </div>
@@ -385,11 +387,11 @@ export default function GroupsPage() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Users className="h-4 w-4" />
-                    <span>{group.memberCount.toLocaleString()} miembros</span>
+                    <span>{group.memberCount.toLocaleString()} {te("miembros", "members")}</span>
                   </div>
                   {group.isMember ? (
                     <Badge className="bg-primary/10 text-primary border-0">
-                      Miembro
+                      {te("Miembro", "Member")}
                     </Badge>
                   ) : (
                     <Button
@@ -400,7 +402,7 @@ export default function GroupsPage() {
                         handleJoin(group.id)
                       }}
                     >
-                      Unirse
+                      {te("Unirse", "Join")}
                     </Button>
                   )}
                 </div>
@@ -412,7 +414,7 @@ export default function GroupsPage() {
 
       {/* My Groups */}
       <div>
-        <h2 className="text-lg font-semibold mb-3">Mis Grupos</h2>
+        <h2 className="text-lg font-semibold mb-3">{te("Mis Grupos", "My Groups")}</h2>
         <div className="grid md:grid-cols-2 gap-4">
           {myGroups.map((group) => (
             <Card
@@ -423,13 +425,13 @@ export default function GroupsPage() {
               <CardHeader>
                 <CardTitle className="text-lg">{group.name}</CardTitle>
                 <p className="text-sm text-muted-foreground line-clamp-2">
-                  {group.description || "Sin descripción"}
+                  {group.description || te("Sin descripción", "No description")}
                 </p>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Users className="h-4 w-4" />
-                  <span>{group.memberCount.toLocaleString()} miembros</span>
+                  <span>{group.memberCount.toLocaleString()} {te("miembros", "members")}</span>
                 </div>
               </CardContent>
             </Card>

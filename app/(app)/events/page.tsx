@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { CalendarDays, Link2, Loader2, MapPin, Users } from "lucide-react"
 import type { Event } from "@/lib/types"
 import { toast } from "sonner"
+import { useI18n } from "@/lib/i18n"
 
 type EventView = Event & {
   _id: string
@@ -30,6 +31,7 @@ const normalizeEvent = (raw: any): EventView => {
 }
 
 export default function EventsPage() {
+  const { te } = useI18n()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = useState(false)
@@ -49,7 +51,7 @@ export default function EventsPage() {
       })
       setItems((Array.isArray(rows) ? rows : []).map(normalizeEvent))
     } catch (error: any) {
-      toast.error(error?.message || "No se pudieron cargar los eventos")
+      toast.error(error?.message || te("No se pudieron cargar los eventos", "Could not load events"))
       setItems([])
     } finally {
       setIsLoading(false)
@@ -92,11 +94,11 @@ export default function EventsPage() {
     if (!token) return
     try {
       await eventService.inviteLinks.joinByToken(token)
-      toast.success("Te uniste al evento por invitación")
+      toast.success(te("Te uniste al evento por invitación", "You joined the event via invitation"))
       setJoinToken("")
       await loadEvents()
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo usar el link")
+      toast.error(error?.message || te("Could not use invitation link", "Could not use invitation link"))
     }
   }
 
@@ -104,10 +106,10 @@ export default function EventsPage() {
     setJoiningEventId(eventId)
     try {
       await eventService.join(eventId)
-      toast.success("Solicitud enviada")
+      toast.success(te("Solicitud enviada", "Request sent"))
       router.push(`/events/${eventId}`)
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo unir")
+      toast.error(error?.message || te("No se pudo unir", "Could not join"))
     } finally {
       setJoiningEventId(null)
     }
@@ -118,25 +120,25 @@ export default function EventsPage() {
       <div className="mb-6 flex flex-col gap-2">
         <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
           <CalendarDays className="h-6 w-6 text-primary" />
-          Eventos
+          {te("Eventos", "Events")}
         </h1>
-        <p className="text-muted-foreground">Explora eventos y su chat grupal en tiempo real.</p>
+        <p className="text-muted-foreground">{te("Explora eventos y su chat grupal en tiempo real.", "Explore events and their real-time group chat.")}</p>
       </div>
 
       <Card className="mb-6">
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Link2 className="h-4 w-4" />
-            Unirme por link de invitación
+            {te("Unirme por link de invitación", "Join by invitation link")}
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-2 sm:flex-row">
           <Input
             value={joinToken}
             onChange={(e) => setJoinToken(e.target.value)}
-            placeholder="Pega aquí el token o URL de invitación"
+            placeholder={te("Pega aquí el token o URL de invitación", "Paste invitation token or URL here")}
           />
-          <Button onClick={handleJoinByLink} className="w-full sm:w-auto">Unirme</Button>
+          <Button onClick={handleJoinByLink} className="w-full sm:w-auto">{te("Unirme", "Join")}</Button>
         </CardContent>
       </Card>
 
@@ -144,15 +146,15 @@ export default function EventsPage() {
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar por título/categoría"
+          placeholder={te("Buscar por título/categoría", "Search by title/category")}
           className="sm:col-span-2"
         />
         <Select value={category} onValueChange={setCategory}>
           <SelectTrigger>
-            <SelectValue placeholder="Categoría" />
+            <SelectValue placeholder={te("Categoría", "Category")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="ALL">Todas</SelectItem>
+            <SelectItem value="ALL">{te("Todas", "All")}</SelectItem>
             {eventService.enums.categories.map((cat) => (
               <SelectItem key={cat} value={cat}>{cat}</SelectItem>
             ))}
@@ -160,12 +162,12 @@ export default function EventsPage() {
         </Select>
         <Select value={freeOnly} onValueChange={setFreeOnly}>
           <SelectTrigger>
-            <SelectValue placeholder="Gratis/Pago" />
+            <SelectValue placeholder={te("Gratis/Pago", "Free/Paid")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="ALL">Todos</SelectItem>
-            <SelectItem value="TRUE">Gratis</SelectItem>
-            <SelectItem value="FALSE">Pago</SelectItem>
+            <SelectItem value="ALL">{te("Todos", "All")}</SelectItem>
+            <SelectItem value="TRUE">{te("Gratis", "Free")}</SelectItem>
+            <SelectItem value="FALSE">{te("Pago", "Paid")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -176,7 +178,7 @@ export default function EventsPage() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="rounded-xl border border-border p-10 text-center text-muted-foreground">
-          No hay eventos con esos filtros.
+          {te("No hay eventos con esos filtros.", "No events found with those filters.")}
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
@@ -192,22 +194,22 @@ export default function EventsPage() {
                     <CardTitle className="text-lg">{event._title}</CardTitle>
                     <Badge variant="outline">{event.status || "OPEN"}</Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground line-clamp-2">{event._description || "Sin descripción"}</p>
+                  <p className="text-sm text-muted-foreground line-clamp-2">{event._description || te("Sin descripción", "No description")}</p>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex flex-wrap items-center gap-2 text-xs">
                     {event.category && <Badge className="bg-primary/10 text-primary border-0">{event.category}</Badge>}
-                    {event.free === true && <Badge className="bg-green-500/15 text-green-500 border-0">Gratis</Badge>}
-                    {event.free === false && <Badge className="bg-amber-500/15 text-amber-500 border-0">Pago</Badge>}
+                    {event.free === true && <Badge className="bg-green-500/15 text-green-500 border-0">{te("Gratis", "Free")}</Badge>}
+                    {event.free === false && <Badge className="bg-amber-500/15 text-amber-500 border-0">{te("Pago", "Paid")}</Badge>}
                   </div>
                   <div className="text-sm text-muted-foreground space-y-1">
                     <p className="flex items-center gap-2">
                       <Users className="h-4 w-4" />
-                      {event.currentApprovedCount || 0}/{event.maxGuests || "∞"} participantes
+                      {event.currentApprovedCount || 0}/{event.maxGuests || "∞"} {te("participantes", "participants")}
                     </p>
                     <p className="flex items-center gap-2">
                       <MapPin className="h-4 w-4" />
-                      Cupos: {event.maxGuests ? available : "Ilimitado"}
+                      {te("Cupos", "Spots")}: {event.maxGuests ? available : te("Ilimitado", "Unlimited")}
                     </p>
                   </div>
                   <div className="flex flex-col gap-2 sm:flex-row">
@@ -216,14 +218,14 @@ export default function EventsPage() {
                       className="w-full"
                       onClick={() => router.push(`/events/${event._id}`)}
                     >
-                      Ver detalle
+                      {te("Ver detalle", "View details")}
                     </Button>
                     <Button
                       className="w-full"
                       onClick={() => handleJoinEvent(event._id)}
                       disabled={joiningEventId === event._id}
                     >
-                      {joiningEventId === event._id ? "Uniendo..." : "Unirme"}
+                      {joiningEventId === event._id ? te("Uniendo...", "Joining...") : te("Unirme", "Join")}
                     </Button>
                   </div>
                 </CardContent>

@@ -12,6 +12,7 @@ import { toast } from "sonner"
 import { uploadToCloudinary } from "@/lib/cloudinary"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { storyService } from "@/lib/services/story"
+import { useI18n } from "@/lib/i18n"
 
 interface StoryViewer {
   userId: string
@@ -28,6 +29,7 @@ interface StoryReaction {
 }
 
 export default function StoriesPage() {
+  const { te } = useI18n()
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user } = useAuth()
@@ -101,7 +103,7 @@ export default function StoriesPage() {
         try {
           safeData = await storyService.getUserStories(userIdFilter)
         } catch {
-          setLoadError("No se pudieron cargar stories de este perfil. Mostrando feed general.")
+          setLoadError(te("No se pudieron cargar stories de este perfil. Mostrando feed general.", "Could not load this profile's stories. Showing general feed."))
           safeData = await storyService.getFeed()
         }
       } else {
@@ -116,8 +118,8 @@ export default function StoriesPage() {
       }
     } catch {
       setGroups([])
-      setLoadError("Error al cargar stories")
-      toast.error("Error al cargar stories")
+      setLoadError(te("Error al cargar stories", "Error loading stories"))
+      toast.error(te("Error al cargar stories", "Error loading stories"))
     } finally {
       setIsLoading(false)
     }
@@ -138,7 +140,7 @@ export default function StoriesPage() {
       setViewers(viewersData || [])
       setReactions(reactionsData || [])
     } catch {
-      toast.error("Error al cargar estadísticas")
+      toast.error(te("Error al cargar estadísticas", "Error loading stats"))
     } finally {
       setInsightsLoading(false)
     }
@@ -147,11 +149,11 @@ export default function StoriesPage() {
   const handleDeleteStory = async (storyId: string) => {
     try {
       await api.delete(`/api/stories/${storyId}`)
-      toast.success('Story eliminada')
+      toast.success(te('Story eliminada', 'Story deleted'))
       setShowInsights(false)
       fetchStories(targetUserId || undefined)
     } catch {
-      toast.error('Error al eliminar')
+      toast.error(te('Error al eliminar', 'Error deleting'))
     }
   }
 
@@ -163,9 +165,9 @@ export default function StoriesPage() {
     if (!reactionType) return
     try {
       await api.post(`/api/stories/${storyId}/react?reaction=${reactionType}`)
-      toast.success('Reacción enviada')
+      toast.success(te('Reacción enviada', 'Reaction sent'))
     } catch {
-      toast.error('Error al reaccionar')
+      toast.error(te('Error al reaccionar', 'Error reacting'))
     }
   }
 
@@ -202,10 +204,10 @@ export default function StoriesPage() {
       const mediaUrl = await uploadToCloudinary(file)
       const mediaType = file.type.startsWith('video/') ? 'VIDEO' : 'IMAGE'
       await api.post("/api/stories", { mediaUrl, audience, mediaType })
-      toast.success("Story publicada")
+      toast.success(te("Story publicada", "Story published"))
       fetchStories(targetUserId || undefined)
     } catch {
-      toast.error("Error al publicar story")
+      toast.error(te("Error al publicar story", "Error publishing story"))
     } finally {
       setIsUploading(false)
     }
@@ -253,7 +255,7 @@ export default function StoriesPage() {
                     onClick={() => fetchInsights(currentStory.id)}
                     className="text-white/70 text-xs flex items-center gap-1 hover:text-white transition-colors"
                   >
-                    <Eye className="h-3 w-3" /> {currentViewCount} vistas
+                    <Eye className="h-3 w-3" /> {currentViewCount} {te("vistas", "views")}
                   </button>
                 )}
                 {!isOwnStory && currentStory?.viewCount !== undefined && (
@@ -279,7 +281,7 @@ export default function StoriesPage() {
         ) : (
           <div className="flex flex-col items-center gap-4">
             <p className="text-white/60 text-sm">
-              {isTargetFilterEnabled ? "Este usuario no tiene stories activas" : "No hay stories disponibles"}
+              {isTargetFilterEnabled ? te("Este usuario no tiene stories activas", "This user has no active stories") : te("No hay stories disponibles", "No stories available")}
             </p>
             {loadError && <p className="text-white/50 text-xs text-center max-w-xs">{loadError}</p>}
             <div className="flex items-center gap-2">
@@ -289,7 +291,7 @@ export default function StoriesPage() {
                 onClick={() => fetchStories(targetUserId || undefined)}
                 className="text-white border-white/30 hover:bg-white/10"
               >
-                Recargar
+                {te("Recargar", "Reload")}
               </Button>
               {isTargetFilterEnabled && (
                 <Button
@@ -298,7 +300,7 @@ export default function StoriesPage() {
                   onClick={() => router.push("/stories")}
                   className="text-white hover:bg-white/10"
                 >
-                  Ver feed general
+                  {te("Ver feed general", "View general feed")}
                 </Button>
               )}
             </div>
@@ -369,13 +371,13 @@ export default function StoriesPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="PUBLIC">🌍 Público</SelectItem>
+              <SelectItem value="PUBLIC">🌍 {te("Público", "Public")}</SelectItem>
               <SelectItem value="SPARKLING_LIST">✨ Sparkling List</SelectItem>
             </SelectContent>
           </Select>
           <Button onClick={() => document.getElementById('story-upload')?.click()} disabled={isUploading} className="bg-primary text-primary-foreground">
             <Plus className="h-5 w-5 mr-2" />
-            {isUploading ? "Subiendo..." : "Crear Story"}
+            {isUploading ? te("Subiendo...", "Uploading...") : te("Crear Story", "Create Story")}
           </Button>
         </div>
 
@@ -386,7 +388,7 @@ export default function StoriesPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-4 pt-4 pb-2 border-b border-white/10">
-              <h3 className="text-white font-semibold text-sm">Estadísticas</h3>
+              <h3 className="text-white font-semibold text-sm">{te("Estadísticas", "Stats")}</h3>
               <button onClick={() => setShowInsights(false)} className="text-white/60 hover:text-white">
                 <X className="h-5 w-5" />
               </button>
@@ -402,7 +404,7 @@ export default function StoriesPage() {
                 {reactions.length > 0 && (
                   <div>
                     <p className="text-white/60 text-xs uppercase tracking-wide mb-2 flex items-center gap-1">
-                      <Heart className="h-3 w-3" /> Reacciones ({reactions.length})
+                      <Heart className="h-3 w-3" /> {te("Reacciones", "Reactions")} ({reactions.length})
                     </p>
                     <div className="space-y-2">
                       {reactions.map((r, i) => (
@@ -422,10 +424,10 @@ export default function StoriesPage() {
                 {/* Vistas */}
                 <div>
                   <p className="text-white/60 text-xs uppercase tracking-wide mb-2 flex items-center gap-1">
-                    <Eye className="h-3 w-3" /> Vistas ({viewers.length})
+                    <Eye className="h-3 w-3" /> {te("Vistas", "Views")} ({viewers.length})
                   </p>
                   {viewers.length === 0 ? (
-                    <p className="text-white/40 text-sm">Nadie ha visto esta story aún</p>
+                    <p className="text-white/40 text-sm">{te("Nadie ha visto esta story aún", "No one has viewed this story yet")}</p>
                   ) : (
                     <div className="space-y-2">
                       {viewers.map((v, i) => (

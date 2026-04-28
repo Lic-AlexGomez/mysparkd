@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Loader2, Heart, X, Star, Eye, User, Lock, Crown } from "lucide-react"
 import { toast } from "sonner"
+import { useI18n } from "@/lib/i18n"
 
 interface LikedMeProfile {
   profile: {
@@ -24,6 +25,7 @@ interface LikedMeProfile {
 
 function LikesPaywall({ backendMessage }: { backendMessage?: string | null }) {
   const router = useRouter()
+  const { te } = useI18n()
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-20 px-6 min-h-[50vh]">
       <div className="relative">
@@ -32,23 +34,24 @@ function LikesPaywall({ backendMessage }: { backendMessage?: string | null }) {
           <Lock className="h-9 w-9 text-amber-500" />
         </div>
       </div>
-      <h2 className="text-xl font-bold text-center">Quién te dio like es Premium</h2>
+      <h2 className="text-xl font-bold text-center">{te("Quién te dio like es Premium", "Who liked you is Premium")}</h2>
       <p className="text-sm text-muted-foreground text-center max-w-sm">
         {backendMessage ||
-          "Los usuarios free no pueden ver la lista. Los likes siguen contando: hazte Premium para ver nombres y perfiles."}
+          te("Los usuarios free no pueden ver la lista. Los likes siguen contando: hazte Premium para ver nombres y perfiles.", "Free users cannot view this list. Likes still count: go Premium to see names and profiles.")}
       </p>
       <Button
         onClick={() => router.push("/premium")}
         className="mt-2 bg-gradient-to-r from-primary to-secondary text-black font-bold px-8 py-6 rounded-2xl shadow-lg"
       >
         <Crown className="h-4 w-4 mr-2" />
-        Desbloquear con Premium
+        {te("Desbloquear con Premium", "Unlock with Premium")}
       </Button>
     </div>
   )
 }
 
 export default function LikesPage() {
+  const { te } = useI18n()
   const router = useRouter()
   const { user, isLoading: authLoading } = useAuth()
   const { isPremium, isLoading: subLoading } = usePremiumStatus()
@@ -79,9 +82,9 @@ export default function LikesPage() {
         return
       }
       if (error instanceof ApiError) {
-        toast.error(error.message || "No se pudo cargar la lista")
+        toast.error(error.message || te("No se pudo cargar la lista", "Could not load list"))
       } else {
-        toast.error("No se pudo cargar la lista")
+        toast.error(te("No se pudo cargar la lista", "Could not load list"))
       }
     } finally {
       setIsLoading(false)
@@ -108,17 +111,17 @@ export default function LikesPage() {
       setProfiles((prev) => prev.filter((p) => p.profile.userId !== userId))
 
       if (type === "LIKE") {
-        toast.success("¡Match realizado!")
+        toast.success(te("¡Match realizado!", "Match created!"))
       }
     } catch (error) {
       if (error instanceof ApiError && error.status === 429) {
         toast.error(
           error.message ||
-            "Límite diario de swipes alcanzado. Mejora a premium.",
+            te("Límite diario de swipes alcanzado. Mejora a premium.", "Daily swipe limit reached. Upgrade to premium."),
         )
         return
       }
-      toast.error(error instanceof ApiError ? error.message : "Error al procesar")
+      toast.error(error instanceof ApiError ? error.message : te("Error al procesar", "Error processing request"))
     }
   }
 
@@ -182,15 +185,15 @@ export default function LikesPage() {
               <div className="absolute inset-0 blur-3xl bg-primary/30 rounded-full" />
               <Heart className="h-20 w-20 text-primary relative" />
             </div>
-            <p className="text-xl font-semibold">Nadie te ha dado like aún</p>
+            <p className="text-xl font-semibold">{te("Nadie te ha dado like aún", "No one has liked you yet")}</p>
             <p className="text-sm text-muted-foreground text-center max-w-sm">
-              ¡Sigue activo en la app para recibir más likes!
+              {te("¡Sigue activo en la app para recibir más likes!", "Stay active in the app to receive more likes!")}
             </p>
             <Button
               onClick={() => router.push("/swipes")}
               className="mt-4 bg-gradient-to-r from-primary to-secondary text-black font-semibold px-6 py-6 rounded-2xl shadow-lg shadow-primary/30 hover:scale-105 transition-transform"
             >
-              Ir a Swipes
+              {te("Ir a Swipes", "Go to Swipes")}
             </Button>
           </div>
         ) : (
@@ -230,9 +233,9 @@ export default function LikesPage() {
                       <div className="flex items-end justify-between mb-3">
                         <div>
                           <h3 className="font-bold text-2xl text-white drop-shadow-lg">
-                            {profile.nombres}
+                          {profile.nombres}
                           </h3>
-                          <p className="text-white/90 text-lg">{age} años</p>
+                        <p className="text-white/90 text-lg">{age} {te("años", "years")}</p>
                         </div>
                         <Badge className="bg-primary/90 text-white border-0 backdrop-blur-sm">
                           <Heart className="h-3 w-3 mr-1 fill-white" />
@@ -260,7 +263,7 @@ export default function LikesPage() {
                           className="flex-1 h-14 rounded-full bg-gradient-to-r from-primary to-secondary text-black font-bold hover:scale-105 transition-transform shadow-lg shadow-primary/50"
                         >
                           <Heart className="h-5 w-5 mr-2 fill-current" />
-                          Me gusta
+                          {te("Me gusta", "Like")}
                         </Button>
                       </div>
                     </div>
@@ -276,15 +279,16 @@ export default function LikesPage() {
 }
 
 function LikesPageHeader({ count, showCount }: { count: number; showCount: boolean }) {
+  const { te } = useI18n()
   return (
     <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-xl border-b border-primary/20 shadow-lg shadow-primary/5">
       <div className="px-6 py-4">
         <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent">
-          Les gustas
+          {te("Les gustas", "They like you")}
         </h1>
         {showCount && (
           <p className="text-sm text-muted-foreground mt-1">
-            {count} {count === 1 ? "persona" : "personas"} te dieron like
+            {count} {count === 1 ? te("persona", "person") : te("personas", "people")} {te("te dieron like", "liked you")}
           </p>
         )}
       </div>

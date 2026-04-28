@@ -19,11 +19,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Copy, Loader2, MessageCircle, Shield, Trash2, UserMinus, UserX, Volume2, VolumeX } from "lucide-react"
 import type { EventCapacityUpdate, EventGroupJoinRequest, EventGroupMember, EventGroupMessage, EventParticipant, ReactionType } from "@/lib/types"
 import { toast } from "sonner"
+import { useI18n } from "@/lib/i18n"
 
 const normalizeEventId = (raw: any) => String(raw?.eventId || raw?.id || "")
 const normalizeMessageId = (raw: any) => String(raw?.id || raw?.messageId || "")
 
 export default function EventDetailPage() {
+  const { te } = useI18n()
   const params = useParams()
   const router = useRouter()
   const { user } = useAuth()
@@ -129,7 +131,7 @@ export default function EventDetailPage() {
         })
       )
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo cargar el evento")
+      toast.error(error?.message || te("No se pudo cargar el evento", "Could not load event"))
       router.push("/events")
     } finally {
       setIsLoading(false)
@@ -165,7 +167,7 @@ export default function EventDetailPage() {
         })
       }
       if (payload.type === "MEMBER_KICKED" && String(payload.userId) === myUserId) {
-        toast.error("Fuiste expulsado del grupo del evento")
+        toast.error(te("Fuiste expulsado del grupo del evento", "You were removed from the event group"))
         router.push("/events")
       }
       if (payload.type === "POLL_UPDATED" && payload.poll?.id) {
@@ -213,7 +215,7 @@ export default function EventDetailPage() {
       }
       video.onerror = () => {
         URL.revokeObjectURL(objectUrl)
-        reject(new Error("No se pudo leer la duración del video"))
+        reject(new Error(te("No se pudo leer la duración del video", "Could not read video duration")))
       }
       video.src = objectUrl
     })
@@ -222,10 +224,10 @@ export default function EventDetailPage() {
     setIsJoining(true)
     try {
       await eventService.join(eventId)
-      toast.success("Solicitud enviada")
+      toast.success(te("Solicitud enviada", "Request sent"))
       await loadEvent()
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo solicitar participación")
+      toast.error(error?.message || te("No se pudo solicitar participación", "Could not request participation"))
     } finally {
       setIsJoining(false)
     }
@@ -257,7 +259,7 @@ export default function EventDetailPage() {
         if (mediaType === "VIDEO") {
           const durationSeconds = Math.floor(await getVideoDurationSeconds(mediaFile))
           if (durationSeconds > MAX_VIDEO_DURATION_SECONDS) {
-            toast.error("El video no puede durar más de 3 minutos")
+            toast.error(te("El video no puede durar más de 3 minutos", "Video cannot be longer than 3 minutes"))
             return
           }
           payload.durationSeconds = durationSeconds
@@ -277,7 +279,7 @@ export default function EventDetailPage() {
       upsertMessage(created)
       clearComposer()
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo enviar el mensaje")
+      toast.error(error?.message || te("No se pudo enviar el mensaje", "Could not send message"))
     } finally {
       setIsSending(false)
     }
@@ -293,21 +295,21 @@ export default function EventDetailPage() {
             : m
         )
       )
-      toast.success("Mensaje eliminado")
+      toast.success(te("Mensaje eliminado", "Message deleted"))
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo eliminar")
+      toast.error(error?.message || te("No se pudo eliminar", "Could not delete"))
     }
   }
 
   const handleEditMessage = async (message: EventGroupMessage) => {
-    const next = window.prompt("Editar mensaje", message.content || "")
+    const next = window.prompt(te("Editar mensaje", "Edit message"), message.content || "")
     if (next == null || !next.trim()) return
     try {
       const updated = await eventService.groupMessages.edit(eventId, normalizeMessageId(message), next.trim())
       upsertMessage(updated)
-      toast.success("Mensaje editado")
+      toast.success(te("Mensaje editado", "Message edited"))
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo editar")
+      toast.error(error?.message || te("No se pudo editar", "Could not edit"))
     }
   }
 
@@ -331,11 +333,11 @@ export default function EventDetailPage() {
   const handleReact = async (messageId: string, reactionType: ReactionType) => {
     try {
       await eventService.reactions.toggleMessageReaction(messageId, reactionType)
-      toast.success("Reacción actualizada")
+      toast.success(te("Reacción actualizada", "Reaction updated"))
       const rows = await eventService.groupMessages.list(eventId)
       setMessages(rows.map((m) => ({ ...m, id: normalizeMessageId(m) })))
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo reaccionar")
+      toast.error(error?.message || te("No se pudo reaccionar", "Could not react"))
     }
   }
 
@@ -343,7 +345,7 @@ export default function EventDetailPage() {
     const question = pollQuestion.trim()
     const options = pollOptions.split(",").map((v) => v.trim()).filter(Boolean)
     if (!question || options.length < 2) {
-      toast.error("Pregunta y al menos 2 opciones")
+      toast.error(te("Pregunta y al menos 2 opciones", "Question and at least 2 options are required"))
       return
     }
     try {
@@ -351,9 +353,9 @@ export default function EventDetailPage() {
       upsertMessage(pollMsg)
       setPollQuestion("")
       setPollOptions("")
-      toast.success("Encuesta creada")
+      toast.success(te("Encuesta creada", "Poll created"))
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo crear la encuesta")
+      toast.error(error?.message || te("No se pudo crear la encuesta", "Could not create poll"))
     }
   }
 
@@ -370,7 +372,7 @@ export default function EventDetailPage() {
         /expir/i.test(message)
 
       if (isExpiredPoll) {
-        toast.info("Esta encuesta ya expiró")
+        toast.info(te("Esta encuesta ya expiró", "This poll has expired"))
         try {
           const rows = await eventService.groupMessages.list(eventId)
           setMessages(rows.map((m) => ({ ...m, id: normalizeMessageId(m) })))
@@ -380,7 +382,7 @@ export default function EventDetailPage() {
         return
       }
 
-      toast.error(message || "No se pudo votar")
+      toast.error(message || te("No se pudo votar", "Could not vote"))
     }
   }
 
@@ -394,7 +396,7 @@ export default function EventDetailPage() {
       const refreshed = await eventService.groupMembers.list(eventId)
       setMembers(refreshed)
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo actualizar mute")
+      toast.error(error?.message || te("No se pudo actualizar mute", "Could not update mute"))
     }
   }
 
@@ -402,9 +404,9 @@ export default function EventDetailPage() {
     try {
       await eventService.groupMembers.kick(eventId, targetUserId)
       setMembers((prev) => prev.filter((m) => m.userId !== targetUserId))
-      toast.success("Miembro expulsado")
+      toast.success(te("Miembro expulsado", "Member removed"))
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo expulsar")
+      toast.error(error?.message || te("No se pudo expulsar", "Could not remove member"))
     }
   }
 
@@ -412,9 +414,9 @@ export default function EventDetailPage() {
     try {
       await eventService.groupSettings.patch(eventId, { slowMode, adminOnlyMode })
       setGroupSettings({ slowMode, adminOnlyMode })
-      toast.success("Ajustes actualizados")
+      toast.success(te("Ajustes actualizados", "Settings updated"))
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo actualizar ajustes")
+      toast.error(error?.message || te("No se pudo actualizar ajustes", "Could not update settings"))
     }
   }
 
@@ -425,9 +427,9 @@ export default function EventDetailPage() {
         maxUses: Number(inviteMaxUses || "0"),
       })
       setInviteLinks((prev) => [created, ...prev])
-      toast.success("Link creado")
+      toast.success(te("Link creado", "Link created"))
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo crear el link")
+      toast.error(error?.message || te("No se pudo crear el link", "Could not create link"))
     }
   }
 
@@ -436,7 +438,7 @@ export default function EventDetailPage() {
       await eventService.inviteLinks.remove(eventId, linkId)
       setInviteLinks((prev) => prev.filter((l) => l.inviteId !== linkId))
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo eliminar link")
+      toast.error(error?.message || te("No se pudo eliminar link", "Could not delete link"))
     }
   }
 
@@ -447,7 +449,7 @@ export default function EventDetailPage() {
       const refreshedMembers = await eventService.groupMembers.list(eventId)
       setMembers(refreshedMembers)
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo aprobar")
+      toast.error(error?.message || te("No se pudo aprobar", "Could not approve"))
     }
   }
 
@@ -456,7 +458,7 @@ export default function EventDetailPage() {
       await eventService.rejectParticipant(eventId, userId)
       setPendingParticipants((prev) => prev.filter((p) => p.userId !== userId))
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo rechazar")
+      toast.error(error?.message || te("No se pudo rechazar", "Could not reject"))
     }
   }
 
@@ -466,9 +468,9 @@ export default function EventDetailPage() {
       setPendingGroupRequests((prev) => prev.filter((r) => r.id !== requestId))
       const refreshedMembers = await eventService.groupMembers.list(eventId)
       setMembers(refreshedMembers)
-      toast.success("Solicitud grupal aprobada")
+      toast.success(te("Solicitud grupal aprobada", "Group request approved"))
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo aprobar solicitud grupal")
+      toast.error(error?.message || te("No se pudo aprobar solicitud grupal", "Could not approve group request"))
     }
   }
 
@@ -476,21 +478,21 @@ export default function EventDetailPage() {
     try {
       await eventService.groupJoinRequests.reject(eventId, requestId)
       setPendingGroupRequests((prev) => prev.filter((r) => r.id !== requestId))
-      toast.success("Solicitud grupal rechazada")
+      toast.success(te("Solicitud grupal rechazada", "Group request rejected"))
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo rechazar solicitud grupal")
+      toast.error(error?.message || te("No se pudo rechazar solicitud grupal", "Could not reject group request"))
     }
   }
 
   const handleCreateGroupJoinRequest = async () => {
     const inviteeUserIds = selectedInvitees.map((u) => u.userId)
     if (inviteeUserIds.length === 0) {
-      toast.error("Agrega al menos un usuario para invitar")
+      toast.error(te("Agrega al menos un usuario para invitar", "Add at least one user to invite"))
       return
     }
     try {
       await eventService.groupJoinRequests.create(eventId, inviteeUserIds)
-      toast.success("Solicitud grupal creada")
+      toast.success(te("Solicitud grupal creada", "Group request created"))
       setSelectedInvitees([])
       setInviteeQuery("")
       const mine = await eventService.groupJoinRequests.myPending().catch(() => [])
@@ -498,7 +500,7 @@ export default function EventDetailPage() {
         (Array.isArray(mine) ? mine : []).filter((r) => String(r.eventId || "") === eventId)
       )
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo crear solicitud grupal")
+      toast.error(error?.message || te("No se pudo crear solicitud grupal", "Could not create group request"))
     }
   }
 
@@ -506,25 +508,25 @@ export default function EventDetailPage() {
     try {
       await eventService.groupJoinRequests.respond(requestId, accept)
       setMyPendingGroupRequests((prev) => prev.filter((r) => r.id !== requestId))
-      toast.success(accept ? "Invitación aceptada" : "Invitación rechazada")
+      toast.success(accept ? te("Invitación aceptada", "Invitation accepted") : te("Invitación rechazada", "Invitation rejected"))
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo responder invitación")
+      toast.error(error?.message || te("No se pudo responder invitación", "Could not respond to invitation"))
     }
   }
 
   const handleShareAddress = async () => {
     const address = shareAddressText.trim()
     if (!address) {
-      toast.error("Ingresa una dirección")
+      toast.error(te("Ingresa una dirección", "Enter an address"))
       return
     }
     setIsSharingAddress(true)
     try {
       await eventService.shareAddress(eventId, address)
-      toast.success("Dirección compartida en el chat del evento")
+      toast.success(te("Dirección compartida en el chat del evento", "Address shared in event chat"))
       setShareAddressText("")
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo compartir la dirección")
+      toast.error(error?.message || te("No se pudo compartir la dirección", "Could not share address"))
     } finally {
       setIsSharingAddress(false)
     }
@@ -577,27 +579,27 @@ export default function EventDetailPage() {
 
       <Card className="mb-4">
         <CardHeader>
-          <CardTitle>{eventData?.title || eventData?.name || "Evento"}</CardTitle>
-          <p className="text-sm text-muted-foreground">{eventData?.description || "Sin descripción"}</p>
+          <CardTitle>{eventData?.title || eventData?.name || te("Evento", "Event")}</CardTitle>
+          <p className="text-sm text-muted-foreground">{eventData?.description || te("Sin descripción", "No description")}</p>
         </CardHeader>
         <CardContent className="flex flex-wrap items-center gap-2">
           <Badge variant="outline">{eventData?.status || "OPEN"}</Badge>
           {eventData?.category && <Badge className="bg-primary/10 text-primary border-0">{eventData.category}</Badge>}
           <Badge className="bg-secondary/10 text-secondary border-0">
-            Cupos: {maxGuests ? `${approvedCount}/${maxGuests}` : approvedCount}
+            {te("Cupos", "Spots")}: {maxGuests ? `${approvedCount}/${maxGuests}` : approvedCount}
           </Badge>
           <Button onClick={handleJoin} disabled={isJoining} className="ml-auto">
-            {isJoining ? "Enviando..." : "Solicitar participación"}
+            {isJoining ? te("Enviando...", "Sending...") : te("Solicitar participación", "Request participation")}
           </Button>
         </CardContent>
       </Card>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
-          <TabsTrigger value="chat">Chat</TabsTrigger>
-          <TabsTrigger value="members">Miembros</TabsTrigger>
-          <TabsTrigger value="requests">Solicitudes</TabsTrigger>
-          <TabsTrigger value="settings">Ajustes</TabsTrigger>
+          <TabsTrigger value="chat">{te("Chat", "Chat")}</TabsTrigger>
+          <TabsTrigger value="members">{te("Miembros", "Members")}</TabsTrigger>
+          <TabsTrigger value="requests">{te("Solicitudes", "Requests")}</TabsTrigger>
+          <TabsTrigger value="settings">{te("Ajustes", "Settings")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="chat" className="space-y-4 mt-4">
@@ -605,16 +607,16 @@ export default function EventDetailPage() {
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <MessageCircle className="h-4 w-4" />
-                Chat del evento
+                {te("Chat del evento", "Event chat")}
               </CardTitle>
               <p className="text-xs text-muted-foreground">
                 {isMuted
-                  ? `Silenciado hasta ${mutedUntil?.toLocaleString()}`
+                  ? te(`Silenciado hasta ${mutedUntil?.toLocaleString()}`, `Muted until ${mutedUntil?.toLocaleString()}`)
                   : groupSettings.adminOnlyMode && !isAdmin
-                    ? "Solo el administrador puede escribir"
+                    ? te("Solo el administrador puede escribir", "Only the admin can write")
                     : groupSettings.slowMode && isGuest
-                      ? "Solo moderadores pueden escribir"
-                      : "Escribe y participa en tiempo real"}
+                      ? te("Solo moderadores pueden escribir", "Only moderators can write")
+                      : te("Escribe y participa en tiempo real", "Write and participate in real time")}
               </p>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -628,11 +630,11 @@ export default function EventDetailPage() {
                         <div className="flex items-start justify-between gap-2">
                           <div>
                             <p className="text-xs text-muted-foreground mb-1">
-                              {m.system ? "Sistema" : m.senderUsername || "Usuario"} · {formatTime(m.sentAt)}
-                              {m.editedAt ? " · (editado)" : ""}
+                              {m.system ? te("Sistema", "System") : m.senderUsername || te("Usuario", "User")} · {formatTime(m.sentAt)}
+                              {m.editedAt ? te(" · (editado)", " · (edited)") : ""}
                             </p>
                             <p className="text-sm">
-                              {m.deleted ? "Mensaje eliminado" : m.content || ""}
+                              {m.deleted ? te("Mensaje eliminado", "Message deleted") : m.content || ""}
                             </p>
                             {m.mediaType === "IMAGE" && m.mediaUrl && !m.deleted && (
                               <img src={m.mediaUrl} alt="media" className="mt-2 rounded-md max-h-56 object-cover" />
@@ -677,13 +679,13 @@ export default function EventDetailPage() {
                               </div>
                               {canEditMessage(m) && (
                                 <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => handleEditMessage(m)}>
-                                  Editar
+                                  {te("Editar", "Edit")}
                                 </Button>
                               )}
                               {canDeleteMessage(m) && (
                                 <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-red-500" onClick={() => handleDeleteMessage(normalizeMessageId(m))}>
                                   <Trash2 className="h-3.5 w-3.5 mr-1" />
-                                  Eliminar
+                                  {te("Eliminar", "Delete")}
                                 </Button>
                               )}
                             </div>
@@ -697,7 +699,7 @@ export default function EventDetailPage() {
               <Textarea
                 value={messageText}
                 onChange={(e) => setMessageText(e.target.value)}
-                placeholder="Escribe un mensaje"
+                placeholder={te("Escribe un mensaje", "Write a message")}
                 disabled={!canSend}
                 className="min-h-20"
               />
@@ -710,12 +712,12 @@ export default function EventDetailPage() {
                 />
                 {mediaFile && (
                   <Button type="button" variant="outline" onClick={() => setMediaFile(null)}>
-                    Quitar archivo
+                    {te("Quitar archivo", "Remove file")}
                   </Button>
                 )}
               </div>
               <Button onClick={handleSend} disabled={(!messageText.trim() && !mediaFile) || isSending || !canSend} className="w-full">
-                {isSending ? "Enviando..." : "Enviar mensaje"}
+                {isSending ? te("Enviando...", "Sending...") : te("Enviar mensaje", "Send message")}
               </Button>
             </CardContent>
           </Card>
@@ -723,12 +725,12 @@ export default function EventDetailPage() {
           {(isAdmin || isModerator) && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Crear encuesta</CardTitle>
+                <CardTitle className="text-base">{te("Crear encuesta", "Create poll")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <Input value={pollQuestion} onChange={(e) => setPollQuestion(e.target.value)} placeholder="Pregunta" />
-                <Input value={pollOptions} onChange={(e) => setPollOptions(e.target.value)} placeholder="Opciones separadas por coma" />
-                <Button onClick={handleCreatePoll}>Crear encuesta</Button>
+                <Input value={pollQuestion} onChange={(e) => setPollQuestion(e.target.value)} placeholder={te("Pregunta", "Question")} />
+                <Input value={pollOptions} onChange={(e) => setPollOptions(e.target.value)} placeholder={te("Opciones separadas por coma", "Comma-separated options")} />
+                <Button onClick={handleCreatePoll}>{te("Crear encuesta", "Create poll")}</Button>
               </CardContent>
             </Card>
           )}
@@ -736,7 +738,7 @@ export default function EventDetailPage() {
 
         <TabsContent value="members" className="mt-4">
           <Card>
-            <CardHeader><CardTitle className="text-base">Miembros</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">{te("Miembros", "Members")}</CardTitle></CardHeader>
             <CardContent className="space-y-2">
               {members.map((m) => {
                 const targetMuted = Boolean(m.mutedUntil && new Date(m.mutedUntil).getTime() > Date.now())
@@ -744,18 +746,18 @@ export default function EventDetailPage() {
                   <div key={m.userId} className="rounded-lg border border-border p-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <p className="font-medium">{m.username}</p>
-                      <p className="text-xs text-muted-foreground">{m.role}{targetMuted ? " · Silenciado" : ""}</p>
+                      <p className="text-xs text-muted-foreground">{m.role}{targetMuted ? te(" · Silenciado", " · Muted") : ""}</p>
                     </div>
                     {(isAdmin || isModerator) && m.role !== "ADMIN" && (
                       <div className="flex gap-2">
                         <Button size="sm" variant="outline" onClick={() => handleMuteToggle(m)}>
                           {targetMuted ? <Volume2 className="h-3.5 w-3.5 mr-1" /> : <VolumeX className="h-3.5 w-3.5 mr-1" />}
-                          {targetMuted ? "Unmute" : "Mute"}
+                          {targetMuted ? te("Activar audio", "Unmute") : te("Silenciar", "Mute")}
                         </Button>
                         {isAdmin && (
                           <Button size="sm" variant="destructive" onClick={() => handleKick(m.userId)}>
                             <UserMinus className="h-3.5 w-3.5 mr-1" />
-                            Expulsar
+                            {te("Expulsar", "Kick")}
                           </Button>
                         )}
                       </div>
@@ -769,12 +771,12 @@ export default function EventDetailPage() {
 
         <TabsContent value="requests" className="mt-4 space-y-4">
           <Card>
-            <CardHeader><CardTitle className="text-base">Crear solicitud grupal</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">{te("Crear solicitud grupal", "Create group request")}</CardTitle></CardHeader>
             <CardContent className="space-y-2">
               <Input
                   value={inviteeQuery}
                   onChange={(e) => setInviteeQuery(e.target.value)}
-                  placeholder="Busca por @username"
+                  placeholder={te("Busca por @username", "Search by @username")}
               />
                 {inviteeSuggestions.length > 0 && (
                   <div className="rounded-md border border-border max-h-40 overflow-auto">
@@ -804,19 +806,19 @@ export default function EventDetailPage() {
                   </div>
                 )}
               <p className="text-xs text-muted-foreground">
-                Invita usuarios (matches o seguidores mutuos según reglas backend).
+                {te("Invita usuarios (matches o seguidores mutuos según reglas backend).", "Invite users (matches or mutual followers based on backend rules).")}
               </p>
-              <Button onClick={handleCreateGroupJoinRequest}>Crear solicitud</Button>
+              <Button onClick={handleCreateGroupJoinRequest}>{te("Crear solicitud", "Create request")}</Button>
             </CardContent>
           </Card>
 
           {isAdmin ? (
             <>
               <Card>
-                <CardHeader><CardTitle className="text-base">Pendientes individuales</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base">{te("Pendientes individuales", "Individual pending")}</CardTitle></CardHeader>
                 <CardContent className="space-y-2">
                   {pendingParticipants.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No hay solicitudes pendientes.</p>
+                    <p className="text-sm text-muted-foreground">{te("No hay solicitudes pendientes.", "No pending requests.")}</p>
                   ) : pendingParticipants.map((p) => (
                     <div key={p.userId} className="rounded-lg border border-border p-3 flex items-center justify-between">
                       <div>
@@ -824,8 +826,8 @@ export default function EventDetailPage() {
                         <p className="text-xs text-muted-foreground">{p.role}</p>
                       </div>
                       <div className="flex gap-2">
-                        <Button size="sm" onClick={() => handleApproveParticipant(p.userId)}>Aprobar</Button>
-                        <Button size="sm" variant="outline" onClick={() => handleRejectParticipant(p.userId)}>Rechazar</Button>
+                        <Button size="sm" onClick={() => handleApproveParticipant(p.userId)}>{te("Aprobar", "Approve")}</Button>
+                        <Button size="sm" variant="outline" onClick={() => handleRejectParticipant(p.userId)}>{te("Rechazar", "Reject")}</Button>
                       </div>
                     </div>
                   ))}
@@ -833,17 +835,17 @@ export default function EventDetailPage() {
               </Card>
 
               <Card>
-                <CardHeader><CardTitle className="text-base">Solicitudes grupales</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base">{te("Solicitudes grupales", "Group requests")}</CardTitle></CardHeader>
                 <CardContent className="space-y-2">
                   {pendingGroupRequests.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No hay solicitudes grupales pendientes.</p>
+                    <p className="text-sm text-muted-foreground">{te("No hay solicitudes grupales pendientes.", "No pending group requests.")}</p>
                   ) : pendingGroupRequests.map((r) => (
                     <div key={r.id} className="rounded-lg border border-border p-3 space-y-2">
                       <p className="font-medium">{r.inviterUsername} · {r.status}</p>
                       <p className="text-xs text-muted-foreground">{r.members.map((m) => `${m.username} (${m.status})`).join(", ")}</p>
                       <div className="flex gap-2">
-                        <Button size="sm" onClick={() => handleApproveGroupRequest(r.id)}>Aprobar</Button>
-                        <Button size="sm" variant="outline" onClick={() => handleRejectGroupRequest(r.id)}>Rechazar</Button>
+                        <Button size="sm" onClick={() => handleApproveGroupRequest(r.id)}>{te("Aprobar", "Approve")}</Button>
+                        <Button size="sm" variant="outline" onClick={() => handleRejectGroupRequest(r.id)}>{te("Rechazar", "Reject")}</Button>
                       </div>
                     </div>
                   ))}
@@ -853,17 +855,17 @@ export default function EventDetailPage() {
           ) : (
             <>
               <Card>
-                <CardHeader><CardTitle className="text-base">Mis invitaciones pendientes</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base">{te("Mis invitaciones pendientes", "My pending invitations")}</CardTitle></CardHeader>
                 <CardContent className="space-y-2">
                   {myPendingGroupRequests.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No tienes invitaciones pendientes.</p>
+                    <p className="text-sm text-muted-foreground">{te("No tienes invitaciones pendientes.", "You have no pending invitations.")}</p>
                   ) : myPendingGroupRequests.map((r) => (
                     <div key={r.id} className="rounded-lg border border-border p-3 space-y-2">
                       <p className="font-medium">{r.inviterUsername} · {r.status}</p>
                       <p className="text-xs text-muted-foreground">{r.members.map((m) => `${m.username} (${m.status})`).join(", ")}</p>
                       <div className="flex gap-2">
-                        <Button size="sm" onClick={() => handleRespondGroupInvite(r.id, true)}>Aceptar</Button>
-                        <Button size="sm" variant="outline" onClick={() => handleRespondGroupInvite(r.id, false)}>Rechazar</Button>
+                        <Button size="sm" onClick={() => handleRespondGroupInvite(r.id, true)}>{te("Aceptar", "Accept")}</Button>
+                        <Button size="sm" variant="outline" onClick={() => handleRespondGroupInvite(r.id, false)}>{te("Rechazar", "Reject")}</Button>
                       </div>
                     </div>
                   ))}
@@ -871,7 +873,7 @@ export default function EventDetailPage() {
               </Card>
               <Card>
                 <CardContent className="py-6 text-center text-sm text-muted-foreground">
-                  Solo ADMIN puede aprobar solicitudes para entrada al grupo.
+                  {te("Solo ADMIN puede aprobar solicitudes para entrada al grupo.", "Only ADMIN can approve requests to enter the group.")}
                 </CardContent>
               </Card>
             </>
@@ -882,25 +884,25 @@ export default function EventDetailPage() {
           {isAdmin ? (
             <>
               <Card>
-                <CardHeader><CardTitle className="text-base">Ajustes del grupo</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base">{te("Ajustes del grupo", "Group settings")}</CardTitle></CardHeader>
                 <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <Button
                     variant={groupSettings.slowMode ? "default" : "outline"}
                     onClick={() => handleUpdateSettings(!groupSettings.slowMode, groupSettings.adminOnlyMode)}
                   >
-                    {groupSettings.slowMode ? "Slow mode ON" : "Slow mode OFF"}
+                    {groupSettings.slowMode ? te("Modo lento activado", "Slow mode ON") : te("Modo lento desactivado", "Slow mode OFF")}
                   </Button>
                   <Button
                     variant={groupSettings.adminOnlyMode ? "default" : "outline"}
                     onClick={() => handleUpdateSettings(groupSettings.slowMode, !groupSettings.adminOnlyMode)}
                   >
-                    {groupSettings.adminOnlyMode ? "Solo admin ON" : "Solo admin OFF"}
+                    {groupSettings.adminOnlyMode ? te("Solo admin activado", "Admin only ON") : te("Solo admin desactivado", "Admin only OFF")}
                   </Button>
                 </CardContent>
               </Card>
 
               <Card>
-                <CardHeader><CardTitle className="text-base">Invite links</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base">{te("Links de invitación", "Invite links")}</CardTitle></CardHeader>
                 <CardContent className="space-y-3">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <Select value={inviteRole} onValueChange={(v: any) => setInviteRole(v)}>
@@ -910,12 +912,12 @@ export default function EventDetailPage() {
                         <SelectItem value="MODERATOR">MODERATOR</SelectItem>
                       </SelectContent>
                     </Select>
-                    <Input value={inviteMaxUses} onChange={(e) => setInviteMaxUses(e.target.value)} placeholder="max uses (0 ilimitado)" />
-                    <Button onClick={handleCreateInvite}>Crear link</Button>
+                    <Input value={inviteMaxUses} onChange={(e) => setInviteMaxUses(e.target.value)} placeholder={te("máx usos (0 ilimitado)", "max uses (0 unlimited)")} />
+                    <Button onClick={handleCreateInvite}>{te("Crear link", "Create link")}</Button>
                   </div>
                   <div className="space-y-2">
                     {inviteLinks.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No hay links activos.</p>
+                      <p className="text-sm text-muted-foreground">{te("No hay links activos.", "No active links.")}</p>
                     ) : inviteLinks.map((link) => (
                       <div key={link.inviteId} className="rounded-lg border border-border p-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <div className="text-xs">
@@ -928,15 +930,15 @@ export default function EventDetailPage() {
                             variant="outline"
                             onClick={async () => {
                               await navigator.clipboard.writeText(`${window.location.origin}/events?token=${link.token}`)
-                              toast.success("Link copiado")
+                              toast.success(te("Link copiado", "Link copied"))
                             }}
                           >
                             <Copy className="h-3.5 w-3.5 mr-1" />
-                            Copiar
+                            {te("Copiar", "Copy")}
                           </Button>
                           <Button size="sm" variant="destructive" onClick={() => handleDeleteInvite(link.inviteId)}>
                             <UserX className="h-3.5 w-3.5 mr-1" />
-                            Desactivar
+                            {te("Desactivar", "Disable")}
                           </Button>
                         </div>
                       </div>
@@ -946,18 +948,18 @@ export default function EventDetailPage() {
               </Card>
 
               <Card>
-                <CardHeader><CardTitle className="text-base">Compartir dirección del evento</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base">{te("Compartir dirección del evento", "Share event address")}</CardTitle></CardHeader>
                 <CardContent className="space-y-2">
                   <Input
                     value={shareAddressText}
                     onChange={(e) => setShareAddressText(e.target.value)}
-                    placeholder="Ej: Calle 123 #45-67, Bogotá"
+                    placeholder={te("Ej: Calle 123 #45-67, Bogotá", "Ex: 123 Main St, City")}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Solo ADMIN. El backend valida que coincida con la dirección oficial del evento.
+                    {te("Solo ADMIN. El backend valida que coincida con la dirección oficial del evento.", "ADMIN only. Backend validates it matches the official event address.")}
                   </p>
                   <Button onClick={handleShareAddress} disabled={isSharingAddress || !shareAddressText.trim()}>
-                    {isSharingAddress ? "Compartiendo..." : "Compartir en chat"}
+                    {isSharingAddress ? te("Compartiendo...", "Sharing...") : te("Compartir en chat", "Share in chat")}
                   </Button>
                 </CardContent>
               </Card>
@@ -966,7 +968,7 @@ export default function EventDetailPage() {
             <Card>
               <CardContent className="py-8 text-center text-sm text-muted-foreground">
                 <Shield className="h-4 w-4 inline mr-1" />
-                Solo ADMIN puede modificar ajustes e invitaciones.
+                {te("Solo ADMIN puede modificar ajustes e invitaciones.", "Only ADMIN can modify settings and invitations.")}
               </CardContent>
             </Card>
           )}

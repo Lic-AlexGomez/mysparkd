@@ -139,7 +139,7 @@ const STEP_META = [
 
 export default function OnboardingPage() {
   const { refreshProfile } = useAuth()
-  const { language, setLanguage, t } = useI18n()
+  const { language, setLanguage, t, te } = useI18n()
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
@@ -177,7 +177,7 @@ export default function OnboardingPage() {
 
   const handleStep1 = async () => {
     if (!nombres.trim() || !apellidos.trim() || !dateOfBirth) {
-      toast.error("Completa los campos obligatorios")
+      toast.error(te("Completa los campos obligatorios", "Complete required fields"))
       return
     }
     setIsLoading(true)
@@ -234,7 +234,7 @@ export default function OnboardingPage() {
       await api[method]("/api/profile", body)
       setStep(2)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al guardar perfil")
+      toast.error(err instanceof Error ? err.message : te("Error al guardar perfil", "Error saving profile"))
     } finally {
       setIsLoading(false)
     }
@@ -261,7 +261,7 @@ export default function OnboardingPage() {
 
       setStep(3)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al guardar intereses")
+      toast.error(err instanceof Error ? err.message : te("Error al guardar intereses", "Error saving interests"))
     } finally {
       setIsLoading(false)
     }
@@ -277,10 +277,10 @@ export default function OnboardingPage() {
         showMe,
       })
       await refreshProfile()
-      toast.success("¡Listo! Tu perfil está completo.")
+      toast.success(te("¡Listo! Tu perfil está completo.", "Done! Your profile is complete."))
       router.push("/feed")
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al guardar preferencias")
+      toast.error(err instanceof Error ? err.message : te("Error al guardar preferencias", "Error saving preferences"))
     } finally {
       setIsLoading(false)
     }
@@ -429,7 +429,7 @@ export default function OnboardingPage() {
                   ¿Cómo quieres usar la app?
                 </CardTitle>
                 <CardDescription className="text-sm lg:text-xs">
-                  Puedes cambiar el modo más adelante en ajustes.
+                  {te("Puedes cambiar el modo más adelante en ajustes.", "You can change the mode later in settings.")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto pt-6 lg:gap-3 lg:pt-4 lg:pb-4">
@@ -439,10 +439,9 @@ export default function OnboardingPage() {
                       <Sparkles className="h-5 w-5 text-primary" />
                     </div>
                     <div className="min-w-0 text-left">
-                      <p className="font-semibold text-foreground">Trial premium de bienvenida</p>
+                      <p className="font-semibold text-foreground">{te("Trial premium de bienvenida", "Welcome premium trial")}</p>
                       <p className="mt-1 text-xs leading-snug text-muted-foreground">
-                        Swipes ilimitados, sin anuncios y más ventajas al empezar. Los detalles están en tu
-                        cuenta.
+                        {te("Swipes ilimitados, sin anuncios y más ventajas al empezar. Los detalles están en tu cuenta.", "Unlimited swipes, no ads and more benefits when starting. Details are in your account.")}
                       </p>
                     </div>
                   </div>
@@ -482,14 +481,14 @@ export default function OnboardingPage() {
                       {
                         mode: "DATING" as const,
                         Illustration: SvgModeDating,
-                        title: "Conexión",
-                        subtitle: "Encuentros y matching.",
+                        title: te("Conexión", "Connection"),
+                        subtitle: te("Encuentros y matching.", "Dates and matching."),
                       },
                       {
                         mode: "BOTH" as const,
                         Illustration: SvgModeBoth,
-                        title: "Todo",
-                        subtitle: "Social y conexión juntos.",
+                        title: te("Todo", "Everything"),
+                        subtitle: te("Social y conexión juntos.", "Social and connection together."),
                       },
                     ] as const
                   ).map(({ mode, Illustration, title, subtitle }) => (
@@ -532,7 +531,7 @@ export default function OnboardingPage() {
                   onClick={() => setStep(1)}
                   className="mt-auto h-11 w-full shrink-0 bg-primary text-primary-foreground shadow-lg shadow-primary/25 hover:bg-primary/90 lg:h-10"
                 >
-                  Continuar
+                  {te("Continuar", "Continue")}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </CardContent>
@@ -548,7 +547,7 @@ export default function OnboardingPage() {
                   </div>
                   <div className="min-w-0 space-y-1">
                     <CardTitle className="text-lg text-foreground sm:text-xl lg:text-base">
-                      Información básica
+                      {te("Información básica", "Basic information")}
                     </CardTitle>
                     <CardDescription className="text-sm leading-relaxed lg:text-xs">
                       Completa tu perfil. Los campos con{" "}
@@ -562,18 +561,18 @@ export default function OnboardingPage() {
                   {/* Nombre */}
                   <div className="rounded-xl border border-border/60 bg-muted/15 p-4 lg:p-3">
                     <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground lg:mb-2">
-                      Nombre público
+                      {te("Nombre público", "Public name")}
                     </p>
                     <div className="grid gap-4 sm:grid-cols-2 lg:gap-3">
                       <div className="flex flex-col gap-2">
                         <Label htmlFor="onb-nombres" className="text-sm font-medium text-foreground">
-                          Nombres <span className="text-primary">*</span>
+                          {te("Nombres", "First names")} <span className="text-primary">*</span>
                         </Label>
                         <Input
                           id="onb-nombres"
                           value={nombres}
                           onChange={(e) => setNombres(e.target.value)}
-                          placeholder="Ej. María"
+                          placeholder={te("Ej. María", "e.g. Maria")}
                           autoComplete="given-name"
                           autoCapitalize="words"
                           className="h-11 border-border/80 bg-background/80 text-foreground shadow-sm transition-colors placeholder:text-muted-foreground/80 focus-visible:border-primary/50 focus-visible:ring-primary/20 lg:h-10"
@@ -581,13 +580,13 @@ export default function OnboardingPage() {
                       </div>
                       <div className="flex flex-col gap-2">
                         <Label htmlFor="onb-apellidos" className="text-sm font-medium text-foreground">
-                          Apellidos <span className="text-primary">*</span>
+                          {te("Apellidos", "Last names")} <span className="text-primary">*</span>
                         </Label>
                         <Input
                           id="onb-apellidos"
                           value={apellidos}
                           onChange={(e) => setApellidos(e.target.value)}
-                          placeholder="Ej. García López"
+                          placeholder={te("Ej. García López", "e.g. Garcia Lopez")}
                           autoComplete="family-name"
                           autoCapitalize="words"
                           className="h-11 border-border/80 bg-background/80 text-foreground shadow-sm transition-colors placeholder:text-muted-foreground/80 focus-visible:border-primary/50 focus-visible:ring-primary/20 lg:h-10"
@@ -599,12 +598,12 @@ export default function OnboardingPage() {
                   {/* Género — segmentado */}
                   <div>
                     <p className="mb-2 text-sm font-medium text-foreground">
-                      Género <span className="text-primary">*</span>
+                      {te("Género", "Gender")} <span className="text-primary">*</span>
                     </p>
                     <div
                       className="flex gap-1 rounded-2xl border border-border/70 bg-muted/30 p-1 shadow-inner"
                       role="radiogroup"
-                      aria-label="Género"
+                      aria-label={te("Género", "Gender")}
                     >
                       {(["MALE", "FEMALE"] as Sex[]).map((s) => {
                         const sel = sex === s
@@ -622,7 +621,7 @@ export default function OnboardingPage() {
                                 : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                             )}
                           >
-                            {s === "MALE" ? "Hombre" : "Mujer"}
+                            {s === "MALE" ? te("Hombre", "Man") : te("Mujer", "Woman")}
                           </button>
                         )
                       })}
@@ -637,7 +636,7 @@ export default function OnboardingPage() {
                         htmlFor="onb-dob"
                         className="text-sm font-medium leading-none text-foreground"
                       >
-                        Fecha de nacimiento <span className="text-primary">*</span>
+                        {te("Fecha de nacimiento", "Date of birth")} <span className="text-primary">*</span>
                       </Label>
                     </div>
                     <Input
@@ -658,7 +657,7 @@ export default function OnboardingPage() {
                       className="mt-2 flex items-start gap-1.5 text-xs leading-snug text-muted-foreground lg:text-[11px]"
                     >
                       <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success opacity-80" aria-hidden />
-                      <span>Debes tener al menos 18 años. El calendario usa el formato de tu sistema.</span>
+                      <span>{te("Debes tener al menos 18 años. El calendario usa el formato de tu sistema.", "You must be at least 18 years old. Calendar uses your system format.")}</span>
                     </p>
                   </div>
 
@@ -667,10 +666,10 @@ export default function OnboardingPage() {
                     <div className="mb-3 flex items-center gap-2 lg:mb-2">
                       <Phone className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                       <Label htmlFor="onb-phone" className="text-sm font-medium text-foreground">
-                        Teléfono
+                        {te("Teléfono", "Phone")}
                       </Label>
                       <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                        Opcional
+                        {te("Opcional", "Optional")}
                       </span>
                     </div>
                     <Input
@@ -683,7 +682,7 @@ export default function OnboardingPage() {
                       className="h-11 border-border/80 bg-background/80 text-foreground shadow-sm placeholder:text-muted-foreground/70 focus-visible:border-primary/50 focus-visible:ring-primary/20 lg:h-10"
                     />
                     <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-                      Útil para avisos o recuperar acceso; puedes dejarlo vacío.
+                      {te("Útil para avisos o recuperar acceso; puedes dejarlo vacío.", "Useful for notices or account recovery; you can leave it empty.")}
                     </p>
                   </div>
                 </div>
@@ -696,7 +695,7 @@ export default function OnboardingPage() {
                     className="h-12 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground sm:h-11 sm:flex-1 lg:h-10"
                   >
                     <ArrowLeft className="mr-2 h-4 w-4" />
-                    Atrás
+                    {te("Atrás", "Back")}
                   </Button>
                   <Button
                     type="button"
@@ -709,7 +708,7 @@ export default function OnboardingPage() {
                     ) : (
                       <ArrowRight className="mr-2 h-4 w-4" />
                     )}
-                    Siguiente
+                    {te("Siguiente", "Next")}
                   </Button>
                 </div>
               </CardContent>
@@ -727,16 +726,15 @@ export default function OnboardingPage() {
                     <div className="min-w-0 space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <CardTitle className="text-lg text-foreground sm:text-xl lg:text-base">
-                          Tus intereses
+                          {te("Tus intereses", "Your interests")}
                         </CardTitle>
                         <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                          Opcional
+                          {te("Opcional", "Optional")}
                         </span>
                       </div>
                       <CardDescription className="text-sm leading-relaxed text-muted-foreground lg:text-xs">
-                        Elige temas que te gusten para mejorar recomendaciones y matches. Toca una etiqueta para
-                        marcarla o quitarla.{" "}
-                        <span className="font-medium text-foreground/90">Puedes avanzar sin marcar ninguna.</span>
+                        {te("Elige temas que te gusten para mejorar recomendaciones y matches. Toca una etiqueta para marcarla o quitarla.", "Choose topics you like to improve recommendations and matches. Tap a tag to add or remove it.")}{" "}
+                        <span className="font-medium text-foreground/90">{te("Puedes avanzar sin marcar ninguna.", "You can continue without selecting any.")}</span>
                       </CardDescription>
                     </div>
                   </div>
@@ -750,14 +748,14 @@ export default function OnboardingPage() {
                   >
                     <Check className="h-3.5 w-3.5 opacity-70" aria-hidden />
                     {selectedInterests.length === 0
-                      ? "Ninguno aún"
+                      ? te("Ninguno aún", "None yet")
                       : `${selectedInterests.length} ${
-                          selectedInterests.length === 1 ? "elegido" : "elegidos"
+                          selectedInterests.length === 1 ? te("elegido", "selected") : te("elegidos", "selected")
                         }`}
                   </div>
                 </div>
                 <p className="text-[11px] leading-relaxed text-muted-foreground sm:pl-[3.25rem] lg:text-[10px]">
-                  Varios intereses suelen dar mejores resultados, pero no es obligatorio completar la lista.
+                  {te("Varios intereses suelen dar mejores resultados, pero no es obligatorio completar la lista.", "Multiple interests usually improve results, but completing the list is optional.")}
                 </p>
               </CardHeader>
               <CardContent className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden pt-4 lg:pt-3 lg:pb-3">
@@ -775,7 +773,7 @@ export default function OnboardingPage() {
                           <h3 className="text-base font-bold leading-tight text-foreground sm:text-lg">
                             {categoryNames[category] || category}
                           </h3>
-                          <p className="text-[11px] text-muted-foreground">Toca para añadir o quitar</p>
+                          <p className="text-[11px] text-muted-foreground">{te("Toca para añadir o quitar", "Tap to add or remove")}</p>
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
@@ -828,7 +826,7 @@ export default function OnboardingPage() {
                     <div className="rounded-xl border border-border/60 bg-muted/15 px-4 py-10 text-center">
                       <Heart className="mx-auto mb-2 h-8 w-8 text-muted-foreground/50" aria-hidden />
                       <p className="text-sm text-muted-foreground">
-                        No hay intereses por ahora. Puedes continuar y añadirlos después en tu perfil.
+                        {te("No hay intereses por ahora. Puedes continuar y añadirlos después en tu perfil.", "No interests available right now. You can continue and add them later in your profile.")}
                       </p>
                     </div>
                   )}
@@ -842,7 +840,7 @@ export default function OnboardingPage() {
                     className="h-12 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground sm:h-11 sm:flex-1 lg:h-10"
                   >
                     <ArrowLeft className="mr-2 h-4 w-4" />
-                    Atrás
+                    {te("Atrás", "Back")}
                   </Button>
                   <Button
                     type="button"
@@ -855,7 +853,7 @@ export default function OnboardingPage() {
                     ) : (
                       <ArrowRight className="mr-2 h-4 w-4" />
                     )}
-                    Siguiente
+                    {te("Siguiente", "Next")}
                   </Button>
                 </div>
               </CardContent>
@@ -865,14 +863,14 @@ export default function OnboardingPage() {
           {step === 3 && (
             <>
               <CardHeader className="space-y-1 border-b border-border/60 bg-muted/20 pb-4 lg:pb-3 lg:pt-4">
-                <CardTitle className="text-lg text-foreground sm:text-xl lg:text-base">Preferencias</CardTitle>
+                <CardTitle className="text-lg text-foreground sm:text-xl lg:text-base">{te("Preferencias", "Preferences")}</CardTitle>
                 <CardDescription className="text-sm lg:text-xs">
-                  Ajusta quién quieres ver y cómo te muestras a los demás.
+                  {te("Ajusta quién quieres ver y cómo te muestras a los demás.", "Adjust who you want to see and how you appear to others.")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto pt-6 lg:gap-4 lg:pt-4 lg:pb-4">
                 <div className="flex flex-col gap-3 lg:gap-2">
-                  <span className="text-sm font-medium text-foreground lg:text-xs">Me interesa conocer</span>
+                  <span className="text-sm font-medium text-foreground lg:text-xs">{te("Me interesa conocer", "I want to meet")}</span>
                   <div className="grid grid-cols-2 gap-2">
                     {(["MALE", "FEMALE"] as Sex[]).map((s) => (
                       <Button
@@ -887,7 +885,7 @@ export default function OnboardingPage() {
                             : "border-border text-foreground hover:bg-muted"
                         )}
                       >
-                        {s === "MALE" ? "Hombres" : "Mujeres"}
+                        {s === "MALE" ? te("Hombres", "Men") : te("Mujeres", "Women")}
                       </Button>
                     ))}
                   </div>
@@ -895,9 +893,9 @@ export default function OnboardingPage() {
 
                 <div className="rounded-xl border border-border/60 bg-muted/30 p-4 lg:p-3">
                   <div className="mb-3 flex items-center justify-between gap-2 lg:mb-2">
-                    <span className="text-sm font-medium text-foreground lg:text-xs">Rango de edad</span>
+                    <span className="text-sm font-medium text-foreground lg:text-xs">{te("Rango de edad", "Age range")}</span>
                     <span className="rounded-md bg-background/80 px-2 py-1 font-mono text-sm tabular-nums text-primary">
-                      {ageRange[0]} – {ageRange[1]} años
+                      {ageRange[0]} – {ageRange[1]} {te("años", "years")}
                     </span>
                   </div>
                   <Slider
@@ -909,17 +907,17 @@ export default function OnboardingPage() {
                     className="w-full py-2"
                   />
                   <p className="mt-2 text-xs text-muted-foreground lg:mt-1 lg:text-[11px]">
-                    Ajusta el mínimo y máximo con los dos controles del deslizador.
+                    {te("Ajusta el mínimo y máximo con los dos controles del deslizador.", "Adjust min and max using the two slider handles.")}
                   </p>
                 </div>
 
                 <div className="flex flex-col gap-2 rounded-xl border border-border/60 bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between lg:gap-3 lg:p-3">
                   <div className="space-y-0.5">
                     <Label htmlFor="onb-showme" className="text-foreground cursor-pointer text-base">
-                      Aparecer en búsquedas
+                      {te("Aparecer en búsquedas", "Appear in search")}
                     </Label>
                     <p className="text-xs text-muted-foreground">
-                      Si lo desactivas, serás menos visible para nuevas personas.
+                      {te("Si lo desactivas, serás menos visible para nuevas personas.", "If disabled, you'll be less visible to new people.")}
                     </p>
                   </div>
                   <Switch
@@ -938,7 +936,7 @@ export default function OnboardingPage() {
                     className="h-11 flex-1 border-border lg:h-10"
                   >
                     <ArrowLeft className="mr-2 h-4 w-4" />
-                    Atrás
+                    {te("Atrás", "Back")}
                   </Button>
                   <Button
                     type="button"
@@ -951,7 +949,7 @@ export default function OnboardingPage() {
                     ) : (
                       <Check className="mr-2 h-4 w-4" />
                     )}
-                    Entrar a Sparkd
+                    {te("Entrar a Sparkd", "Enter Sparkd")}
                   </Button>
                 </div>
               </CardContent>
@@ -960,7 +958,7 @@ export default function OnboardingPage() {
         </Card>
 
         <p className="mt-4 shrink-0 text-center text-xs text-muted-foreground lg:mt-2 lg:text-[10px]">
-          Al continuar confirmas que la información es correcta.
+          {te("Al continuar confirmas que la información es correcta.", "By continuing, you confirm the information is correct.")}
         </p>
       </div>
     </div>

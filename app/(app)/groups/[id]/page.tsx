@@ -39,8 +39,10 @@ import { useFeatureFlags } from "@/hooks/use-feature-flags"
 import { groupService } from "@/lib/services/group"
 import { useAuth } from "@/lib/auth-context"
 import { useWebSocket } from "@/hooks/use-websocket"
+import { useI18n } from "@/lib/i18n"
 
 export default function GroupDetailPage() {
+  const { te } = useI18n()
   const { user } = useAuth()
   const features = useFeatureFlags()
   const params = useParams()
@@ -105,9 +107,9 @@ export default function GroupDetailPage() {
   }, [group, isMuted])
   const whoCanTalkHint = useMemo(() => {
     const w = group?.whoCanTalk || "ALL"
-    if (w === "ALL") return "Cualquier miembro puede escribir en el chat."
-    if (w === "MODS_AND_ADMINS") return "Solo moderadores y administradores pueden escribir en el chat."
-    return "Solo el administrador puede escribir en el chat."
+    if (w === "ALL") return te("Cualquier miembro puede escribir en el chat.", "Any member can write in chat.")
+    if (w === "MODS_AND_ADMINS") return te("Solo moderadores y administradores pueden escribir en el chat.", "Only moderators and admins can write in chat.")
+    return te("Solo el administrador puede escribir en el chat.", "Only admin can write in chat.")
   }, [group?.whoCanTalk])
   const { subscribeToGroup } = useWebSocket(user?.userId, {})
 
@@ -195,7 +197,7 @@ export default function GroupDetailPage() {
         setInviteLinks([])
       }
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo cargar el grupo")
+      toast.error(error?.message || te("No se pudo cargar el grupo", "Could not load group"))
       router.push("/groups")
     } finally {
       setIsLoading(false)
@@ -299,21 +301,21 @@ export default function GroupDetailPage() {
     const text = messageContent.trim()
     const hasMediaPair = Boolean(outgoingMediaType && outgoingMediaUrl.trim())
     if (!text && !hasMediaPair) {
-      toast.error("Escribe un mensaje o completa URL y tipo de media")
+      toast.error(te("Escribe un mensaje o completa URL y tipo de media", "Write a message or complete URL and media type"))
       return
     }
     if (outgoingMediaType && !outgoingMediaUrl.trim()) {
-      toast.error("Falta la URL del archivo")
+      toast.error(te("Falta la URL del archivo", "Missing file URL"))
       return
     }
     if (!outgoingMediaType && outgoingMediaUrl.trim()) {
-      toast.error("Selecciona un tipo de media o borra la URL")
+      toast.error(te("Selecciona un tipo de media o borra la URL", "Select a media type or clear the URL"))
       return
     }
     if (outgoingMediaType === "VIDEO") {
       const d = parseInt(outgoingVideoDurationSec, 10)
       if (!Number.isFinite(d) || d < 0 || d > 180) {
-        toast.error("Para video indica la duración en segundos (0–180)")
+        toast.error(te("Para video indica la duración en segundos (0–180)", "For video specify duration in seconds (0-180)"))
         return
       }
     }
@@ -340,7 +342,7 @@ export default function GroupDetailPage() {
       setOutgoingMediaUrl("")
       setOutgoingVideoDurationSec("")
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo enviar")
+      toast.error(error?.message || te("No se pudo enviar", "Could not send"))
     } finally {
       setIsSending(false)
     }
@@ -353,7 +355,7 @@ export default function GroupDetailPage() {
       toast.success(`Rol actualizado a ${newRole}`)
       await loadGroup()
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo actualizar el rol")
+      toast.error(error?.message || te("No se pudo actualizar el rol", "Could not update role"))
     } finally {
       setRoleUpdatingUserId(null)
     }
@@ -363,10 +365,10 @@ export default function GroupDetailPage() {
     setRemovingMemberUserId(userId)
     try {
       await groupService.members.kick(groupId, userId)
-      toast.success("Miembro removido del grupo")
+      toast.success(te("Miembro removido del grupo", "Member removed from group"))
       await loadGroup()
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo remover el miembro")
+      toast.error(error?.message || te("No se pudo remover el miembro", "Could not remove member"))
     } finally {
       setRemovingMemberUserId(null)
     }
@@ -377,14 +379,14 @@ export default function GroupDetailPage() {
     try {
       if (member.muted) {
         await groupService.members.unmute(groupId, member.userId)
-        toast.success("Silencio removido")
+        toast.success(te("Silencio removido", "Mute removed"))
       } else {
         await groupService.members.mute(groupId, member.userId)
-        toast.success("Miembro silenciado")
+        toast.success(te("Miembro silenciado", "Member muted"))
       }
       await loadGroup()
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo actualizar el silencio")
+      toast.error(error?.message || te("No se pudo actualizar el silencio", "Could not update mute"))
     } finally {
       setMuteUpdatingUserId(null)
     }
@@ -395,9 +397,9 @@ export default function GroupDetailPage() {
     try {
       await groupService.settings.patch(groupId, settingsWhoCanTalk)
       setGroup((prev) => (prev ? { ...prev, whoCanTalk: settingsWhoCanTalk } : prev))
-      toast.success("Configuración actualizada")
+      toast.success(te("Configuración actualizada", "Configuration updated"))
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo actualizar configuración")
+      toast.error(error?.message || te("No se pudo actualizar configuración", "Could not update configuration"))
     } finally {
       setIsSavingSettings(false)
     }
@@ -411,9 +413,9 @@ export default function GroupDetailPage() {
         maxUses: Number(inviteMaxUses || "0"),
       })
       setInviteLinks((prev) => [link, ...prev])
-      toast.success("Link de invitación creado")
+      toast.success(te("Link de invitación creado", "Invitation link created"))
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo crear el link")
+      toast.error(error?.message || te("No se pudo crear el link", "Could not create link"))
     } finally {
       setIsCreatingInvite(false)
     }
@@ -424,9 +426,9 @@ export default function GroupDetailPage() {
     try {
       await groupService.inviteLinks.remove(groupId, inviteId)
       setInviteLinks((prev) => prev.filter((l) => l.inviteId !== inviteId))
-      toast.success("Link desactivado")
+      toast.success(te("Link desactivado", "Link disabled"))
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo desactivar el link")
+      toast.error(error?.message || te("No se pudo desactivar el link", "Could not disable link"))
     } finally {
       setDeactivatingInviteId(null)
     }
@@ -439,14 +441,14 @@ export default function GroupDetailPage() {
     try {
       const resolvedUserId = newMemberResolvedId || await groupService.resolveUserIdInput(input)
       await groupService.members.add(groupId, resolvedUserId, newMemberRole)
-      toast.success("Miembro agregado")
+      toast.success(te("Miembro agregado", "Member added"))
       setNewMemberId("")
       setNewMemberResolvedId("")
       setMemberSuggestions([])
       setShowMemberDropdown(false)
       await loadGroup()
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo agregar miembro")
+      toast.error(error?.message || te("No se pudo agregar miembro", "Could not add member"))
     } finally {
       setIsAddingMember(false)
     }
@@ -508,9 +510,9 @@ export default function GroupDetailPage() {
     if (!iso) return ""
     const d = new Date(iso)
     const sec = Math.floor((Date.now() - d.getTime()) / 1000)
-    if (sec < 60) return "ahora"
-    if (sec < 3600) return `hace ${Math.floor(sec / 60)} min`
-    if (sec < 86400) return `hace ${Math.floor(sec / 3600)} h`
+    if (sec < 60) return te("ahora", "now")
+    if (sec < 3600) return te(`hace ${Math.floor(sec / 60)} min`, `${Math.floor(sec / 60)} min ago`)
+    if (sec < 86400) return te(`hace ${Math.floor(sec / 3600)} h`, `${Math.floor(sec / 3600)} h ago`)
     return d.toLocaleString()
   }
 
@@ -532,8 +534,8 @@ export default function GroupDetailPage() {
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
     const that = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
     const diffDays = Math.round((today - that) / 86400000)
-    if (diffDays === 0) return "Hoy"
-    if (diffDays === 1) return "Ayer"
+    if (diffDays === 0) return te("Hoy", "Today")
+    if (diffDays === 1) return te("Ayer", "Yesterday")
     return d.toLocaleDateString([], { day: "2-digit", month: "short", year: "numeric" })
   }
 
@@ -550,9 +552,9 @@ export default function GroupDetailPage() {
       setMessages((prev) => prev.map((m) => (m.id === editingMessageId ? updated : m)))
       setEditingMessageId(null)
       setEditingContent("")
-      toast.success("Mensaje editado")
+      toast.success(te("Mensaje editado", "Message edited"))
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo editar")
+      toast.error(error?.message || te("No se pudo editar", "Could not edit"))
     } finally {
       setIsSavingEdit(false)
     }
@@ -565,9 +567,9 @@ export default function GroupDetailPage() {
       setMessages((prev) =>
         prev.map((m) => (m.id === messageId ? { ...m, deleted: true, content: null } : m))
       )
-      toast.success("Mensaje eliminado")
+      toast.success(te("Mensaje eliminado", "Message deleted"))
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo eliminar")
+      toast.error(error?.message || te("No se pudo eliminar", "Could not delete"))
     } finally {
       setDeletingMessageId(null)
     }
@@ -586,7 +588,7 @@ export default function GroupDetailPage() {
         setPinnedIds((prev) => (prev.includes(messageId) ? prev : [messageId, ...prev]))
       }
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo actualizar mensaje fijado")
+      toast.error(error?.message || te("No se pudo actualizar mensaje fijado", "Could not update pinned message"))
     } finally {
       setPinUpdatingMessageId(null)
     }
@@ -607,10 +609,10 @@ export default function GroupDetailPage() {
     setIsDeleting(true)
     try {
       await groupService.remove(groupId)
-      toast.success("Grupo eliminado")
+      toast.success(te("Grupo eliminado", "Group deleted"))
       router.push("/groups")
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo eliminar el grupo")
+      toast.error(error?.message || te("No se pudo eliminar el grupo", "Could not delete group"))
     } finally {
       setIsDeleting(false)
     }
@@ -636,11 +638,11 @@ export default function GroupDetailPage() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-foreground">{group.name}</h1>
-            <p className="text-muted-foreground mt-1">{group.description || "Sin descripción"}</p>
+            <p className="text-muted-foreground mt-1">{group.description || te("Sin descripción", "No description")}</p>
             <div className="mt-3 flex flex-wrap items-center gap-2 sm:gap-4">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Users className="h-4 w-4" />
-                <span>{group.memberCount.toLocaleString()} miembros</span>
+                <span>{group.memberCount.toLocaleString()} {te("miembros", "members")}</span>
               </div>
               {isAdmin && (
                 <Badge className="bg-primary/10 text-primary border-0">
@@ -651,7 +653,7 @@ export default function GroupDetailPage() {
               {isModerator && !isAdmin && (
                 <Badge className="bg-secondary/10 text-secondary border-0">
                   <Shield className="h-3 w-3 mr-1" />
-                  Moderador
+                  {te("Moderador", "Moderator")}
                 </Badge>
               )}
             </div>
@@ -665,7 +667,7 @@ export default function GroupDetailPage() {
               className="w-full sm:w-auto"
             >
               <Trash2 className="h-4 w-4 mr-2" />
-              Eliminar grupo
+              {te("Eliminar grupo", "Delete group")}
             </Button>
           )}
         </div>
@@ -675,29 +677,29 @@ export default function GroupDetailPage() {
         <TabsList
           className={`w-full grid ${features.groupRoles ? "grid-cols-3" : "grid-cols-2"}`}
         >
-          <TabsTrigger value="messages">Chat</TabsTrigger>
-          <TabsTrigger value="summary">Resumen</TabsTrigger>
-          {features.groupRoles && <TabsTrigger value="members">Miembros</TabsTrigger>}
+          <TabsTrigger value="messages">{te("Chat", "Chat")}</TabsTrigger>
+          <TabsTrigger value="summary">{te("Resumen", "Summary")}</TabsTrigger>
+          {features.groupRoles && <TabsTrigger value="members">{te("Miembros", "Members")}</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="messages" className="mt-6">
           {!canSendInChat && (
             <div className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
               {isMuted
-                ? "Estás silenciado en este grupo: no puedes enviar mensajes."
+                ? te("Estás silenciado en este grupo: no puedes enviar mensajes.", "You are muted in this group: you cannot send messages.")
                 : whoCanTalkHint}
             </div>
           )}
           {pinnedMessages.length > 0 && (
             <div className="mb-4 space-y-2">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Mensajes fijados</p>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">{te("Mensajes fijados", "Pinned messages")}</p>
               {pinnedMessages.map((msg, idx) => (
                 <div
                   key={`pin-${normalizeMessageId(msg) || "noid"}-${idx}`}
                   className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2"
                 >
-                  <p className="text-xs text-muted-foreground">{msg.senderUsername || "Sistema"}</p>
-                  <p className="text-sm">{msg.content || "Mensaje eliminado"}</p>
+                  <p className="text-xs text-muted-foreground">{msg.senderUsername || te("Sistema", "System")}</p>
+                  <p className="text-sm">{msg.content || te("Mensaje eliminado", "Message deleted")}</p>
                 </div>
               ))}
             </div>
@@ -707,14 +709,14 @@ export default function GroupDetailPage() {
             <Textarea
               value={messageContent}
               onChange={(e) => setMessageContent(e.target.value)}
-              placeholder="Escribe un mensaje al grupo..."
+              placeholder={te("Escribe un mensaje al grupo...", "Write a message to the group...")}
               className="min-h-24 resize-none"
               maxLength={4000}
               disabled={!canSendInChat}
             />
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:items-end">
               <div className="sm:col-span-1">
-                <p className="text-xs text-muted-foreground mb-1">Media (opcional)</p>
+                <p className="text-xs text-muted-foreground mb-1">{te("Media (opcional)", "Media (optional)")}</p>
                 <Select
                   value={outgoingMediaType || "NONE"}
                   onValueChange={(v) =>
@@ -723,19 +725,19 @@ export default function GroupDetailPage() {
                   disabled={!canSendInChat}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Sin archivo" />
+                    <SelectValue placeholder={te("Sin archivo", "No file")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="NONE">Sin archivo</SelectItem>
-                    <SelectItem value="IMAGE">Imagen (URL)</SelectItem>
-                    <SelectItem value="VIDEO">Video (URL)</SelectItem>
-                    <SelectItem value="AUDIO">Audio (URL)</SelectItem>
-                    <SelectItem value="FILE">Archivo (URL)</SelectItem>
+                    <SelectItem value="NONE">{te("Sin archivo", "No file")}</SelectItem>
+                    <SelectItem value="IMAGE">{te("Imagen (URL)", "Image (URL)")}</SelectItem>
+                    <SelectItem value="VIDEO">{te("Video (URL)", "Video (URL)")}</SelectItem>
+                    <SelectItem value="AUDIO">{te("Audio (URL)", "Audio (URL)")}</SelectItem>
+                    <SelectItem value="FILE">{te("Archivo (URL)", "File (URL)")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="sm:col-span-2">
-                <p className="text-xs text-muted-foreground mb-1">URL pública (p. ej. Cloudinary)</p>
+                <p className="text-xs text-muted-foreground mb-1">{te("URL pública (p. ej. Cloudinary)", "Public URL (e.g. Cloudinary)")}</p>
                 <Input
                   value={outgoingMediaUrl}
                   onChange={(e) => setOutgoingMediaUrl(e.target.value)}
@@ -746,7 +748,7 @@ export default function GroupDetailPage() {
             </div>
             {outgoingMediaType === "VIDEO" && (
               <div>
-                <p className="text-xs text-muted-foreground mb-1">Duración video (seg, máx. 180)</p>
+                <p className="text-xs text-muted-foreground mb-1">{te("Duración video (seg, máx. 180)", "Video duration (sec, max 180)")}</p>
                 <Input
                   type="number"
                   min={0}
@@ -767,14 +769,14 @@ export default function GroupDetailPage() {
               }
             >
               <Send className="h-4 w-4 mr-2" />
-              {isSending ? "Enviando..." : "Enviar"}
+              {isSending ? te("Enviando...", "Sending...") : te("Enviar", "Send")}
             </Button>
           </div>
 
           {renderedMessages.length === 0 ? (
             <div className="text-center py-20">
-              <p className="text-muted-foreground">No hay mensajes aún</p>
-              <p className="text-sm text-muted-foreground mt-2">Sé el primero en escribir</p>
+              <p className="text-muted-foreground">{te("No hay mensajes aún", "No messages yet")}</p>
+              <p className="text-sm text-muted-foreground mt-2">{te("Sé el primero en escribir", "Be the first to write")}</p>
             </div>
           ) : (
             <ScrollArea className="h-[56vh] sm:h-[420px] rounded-lg border border-border">
@@ -850,7 +852,7 @@ export default function GroupDetailPage() {
                         <div>
                           {!sameAsPrev && (
                             <p className="text-xs text-muted-foreground mb-1">
-                              {msg.senderUsername || "Sistema"} · {formatRelative(msg.sentAt)}
+                              {msg.senderUsername || te("Sistema", "System")} · {formatRelative(msg.sentAt)}
                             </p>
                           )}
                           {editingMessageId === msg.id ? (
@@ -863,17 +865,17 @@ export default function GroupDetailPage() {
                               />
                               <div className="flex gap-2">
                                 <Button size="sm" onClick={saveEdit} disabled={isSavingEdit}>
-                                  {isSavingEdit ? "Guardando..." : "Guardar"}
+                                  {isSavingEdit ? te("Guardando...", "Saving...") : te("Guardar", "Save")}
                                 </Button>
                                 <Button size="sm" variant="outline" onClick={() => setEditingMessageId(null)}>
-                                  Cancelar
+                                  {te("Cancelar", "Cancel")}
                                 </Button>
                               </div>
                             </div>
                           ) : (
                           <div>
                             <p className="text-sm text-foreground">
-                              {msg.deleted ? "Mensaje eliminado" : (msg.content || "")}
+                              {msg.deleted ? te("Mensaje eliminado", "Message deleted") : (msg.content || "")}
                             </p>
                             {!msg.deleted && msg.mediaUrl && (
                               <div className="mt-2 space-y-2">
@@ -901,7 +903,7 @@ export default function GroupDetailPage() {
                                     target="_blank"
                                     rel="noreferrer"
                                   >
-                                    Abrir archivo
+                                    {te("Abrir archivo", "Open file")}
                                   </a>
                                 )}
                                 {!msg.mediaType && (
@@ -911,7 +913,7 @@ export default function GroupDetailPage() {
                                     target="_blank"
                                     rel="noreferrer"
                                   >
-                                    Abrir enlace
+                                    {te("Abrir enlace", "Open link")}
                                   </a>
                                 )}
                               </div>
@@ -931,7 +933,7 @@ export default function GroupDetailPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               {canEditMessage(msg) && (
-                                <DropdownMenuItem onClick={() => startEdit(msg)}>Editar</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => startEdit(msg)}>{te("Editar", "Edit")}</DropdownMenuItem>
                               )}
                               {canDeleteMessage(msg) && (
                                 <DropdownMenuItem
@@ -939,7 +941,7 @@ export default function GroupDetailPage() {
                                   disabled={deletingMessageId === msg.id}
                                   onClick={() => deleteMessage(msg.id)}
                                 >
-                                  {deletingMessageId === msg.id ? "Eliminando..." : "Eliminar"}
+                                  {deletingMessageId === msg.id ? te("Eliminando...", "Deleting...") : te("Eliminar", "Delete")}
                                 </DropdownMenuItem>
                               )}
                               {canModerate && (
@@ -949,10 +951,10 @@ export default function GroupDetailPage() {
                                 >
                                   <Pin className="h-4 w-4 mr-2" />
                                   {pinUpdatingMessageId === msg.id
-                                    ? "Actualizando..."
+                                    ? te("Actualizando...", "Updating...")
                                     : pinnedIds.includes(msg.id)
-                                      ? "Desfijar"
-                                      : "Fijar"}
+                                      ? te("Desfijar", "Unpin")
+                                      : te("Fijar", "Pin")}
                                 </DropdownMenuItem>
                               )}
                             </DropdownMenuContent>
@@ -971,13 +973,13 @@ export default function GroupDetailPage() {
 
         <TabsContent value="summary" className="mt-6 space-y-4">
           <div className="rounded-xl border border-border bg-card p-4">
-            <p className="text-sm font-semibold mb-2">Categoría y temas</p>
+            <p className="text-sm font-semibold mb-2">{te("Categoría y temas", "Category and topics")}</p>
             {group.category ? (
               <p className="text-sm text-muted-foreground">
-                Categoría: <span className="text-foreground font-medium">{group.category}</span>
+                {te("Categoría", "Category")}: <span className="text-foreground font-medium">{group.category}</span>
               </p>
             ) : (
-              <p className="text-sm text-muted-foreground">Sin categoría.</p>
+              <p className="text-sm text-muted-foreground">{te("Sin categoría.", "No category.")}</p>
             )}
             {group.topics && group.topics.length > 0 ? (
               <div className="mt-2 flex flex-wrap gap-1.5">
@@ -988,23 +990,23 @@ export default function GroupDetailPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground mt-2">Sin temas listados.</p>
+              <p className="text-sm text-muted-foreground mt-2">{te("Sin temas listados.", "No topics listed.")}</p>
             )}
           </div>
           <div className="rounded-xl border border-border bg-card p-4">
-            <p className="text-sm font-semibold mb-2">Reglas de participación (chat)</p>
+            <p className="text-sm font-semibold mb-2">{te("Reglas de participación (chat)", "Participation rules (chat)")}</p>
             <p className="text-sm text-muted-foreground">{whoCanTalkHint}</p>
             <p className="text-xs text-muted-foreground mt-3">
-              Configuración actual: <span className="font-mono">{group.whoCanTalk || "ALL"}</span>
+              {te("Configuración actual", "Current config")}: <span className="font-mono">{group.whoCanTalk || "ALL"}</span>
             </p>
           </div>
           <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
-            <p className="text-sm font-semibold text-amber-900 dark:text-amber-100 mb-1">Publicaciones (feed)</p>
+            <p className="text-sm font-semibold text-amber-900 dark:text-amber-100 mb-1">{te("Publicaciones (feed)", "Posts (feed)")}</p>
             <p className="text-sm text-muted-foreground">
-              En el backend Sparkd no hay un endpoint de &quot;posts&quot; por grupo: el módulo usa mensajes de chat
+              {te("En el backend Sparkd no hay un endpoint de \"posts\" por grupo: el módulo usa mensajes de chat", "In Sparkd backend there is no group posts endpoint: this module uses chat messages")}
               (<code className="rounded bg-muted px-1">/api/groups/:id/messages</code>) y los posts de perfil viven en
               <code className="ml-1 rounded bg-muted px-1">/api/posts</code>. El contenido del grupo se gestiona en la
-              pestaña Chat.
+              {te("pestaña Chat.", "Chat tab.")}
             </p>
           </div>
         </TabsContent>
@@ -1015,11 +1017,11 @@ export default function GroupDetailPage() {
             <div className="mb-6 space-y-4 rounded-xl border border-border p-4 bg-card">
               <p className="text-sm font-semibold flex items-center gap-2">
                 <Settings className="h-4 w-4" />
-                Configuración del grupo
+                {te("Configuración del grupo", "Group configuration")}
               </p>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Quién puede hablar</p>
+                  <p className="text-xs text-muted-foreground mb-1">{te("Quién puede hablar", "Who can talk")}</p>
                   <Select value={settingsWhoCanTalk} onValueChange={(v: any) => setSettingsWhoCanTalk(v)}>
                     <SelectTrigger>
                       <SelectValue />
@@ -1033,7 +1035,7 @@ export default function GroupDetailPage() {
                 </div>
                 <div className="flex items-end">
                   <Button onClick={handleSaveSettings} disabled={isSavingSettings} className="w-full md:w-auto">
-                    Guardar settings
+                    {te("Guardar settings", "Save settings")}
                   </Button>
                 </div>
               </div>
@@ -1042,7 +1044,7 @@ export default function GroupDetailPage() {
 
           {isAdmin && (
             <div className="mb-6 space-y-4 rounded-xl border border-border p-4 bg-card">
-              <p className="text-sm font-semibold">Agregar miembro directo</p>
+              <p className="text-sm font-semibold">{te("Agregar miembro directo", "Add member directly")}</p>
               <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
                 <Input
                   value={newMemberId}
@@ -1052,15 +1054,15 @@ export default function GroupDetailPage() {
                     if (memberSuggestions.length > 0) setShowMemberDropdown(true)
                   }}
                   onBlur={() => setShowMemberDropdown(false)}
-                  placeholder="UUID o @username"
+                  placeholder={te("UUID o @username", "UUID or @username")}
                 />
                 {showMemberDropdown && (
                   <div className="relative md:col-span-3">
                     <div className="absolute z-20 mt-1 w-full rounded-md border border-border bg-card shadow-lg">
                       {isSearchingMembers ? (
-                        <div className="px-3 py-2 text-sm text-muted-foreground">Buscando...</div>
+                        <div className="px-3 py-2 text-sm text-muted-foreground">{te("Buscando...", "Searching...")}</div>
                       ) : memberSuggestions.length === 0 ? (
-                        <div className="px-3 py-2 text-sm text-muted-foreground">Sin resultados</div>
+                        <div className="px-3 py-2 text-sm text-muted-foreground">{te("Sin resultados", "No results")}</div>
                       ) : (
                         memberSuggestions.slice(0, 8).map((u, idx) => (
                           <button
@@ -1097,7 +1099,7 @@ export default function GroupDetailPage() {
                   </SelectContent>
                 </Select>
                 <Button onClick={handleAddMember} disabled={isAddingMember} className="w-full md:w-auto">
-                  {isAddingMember ? "Agregando..." : "Agregar"}
+                  {isAddingMember ? te("Agregando...", "Adding...") : te("Agregar", "Add")}
                 </Button>
               </div>
             </div>
@@ -1107,7 +1109,7 @@ export default function GroupDetailPage() {
             <div className="mb-6 space-y-4 rounded-xl border border-border p-4 bg-card">
               <p className="text-sm font-semibold flex items-center gap-2">
                 <Link2 className="h-4 w-4" />
-                Links de invitación
+                {te("Links de invitación", "Invitation links")}
               </p>
               <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
                 <Select value={inviteRole} onValueChange={(v: any) => setInviteRole(v)}>
@@ -1122,15 +1124,15 @@ export default function GroupDetailPage() {
                 <Input
                   value={inviteMaxUses}
                   onChange={(e) => setInviteMaxUses(e.target.value)}
-                  placeholder="max uses (0 = ilimitado)"
+                  placeholder={te("máx usos (0 = ilimitado)", "max uses (0 = unlimited)")}
                 />
                 <Button onClick={handleCreateInvite} disabled={isCreatingInvite} className="w-full md:w-auto">
-                  {isCreatingInvite ? "Creando..." : "Crear link"}
+                  {isCreatingInvite ? te("Creando...", "Creating...") : te("Crear link", "Create link")}
                 </Button>
               </div>
               <div className="space-y-2">
                 {inviteLinks.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">No hay links activos.</p>
+                  <p className="text-xs text-muted-foreground">{te("No hay links activos.", "No active links.")}</p>
                 ) : (
                   inviteLinks.map((link) => (
                     <div key={link.inviteId} className="flex flex-col gap-2 rounded border border-border p-2 sm:flex-row sm:items-center sm:justify-between">
@@ -1150,13 +1152,13 @@ export default function GroupDetailPage() {
                             setCopyingInviteId(link.inviteId)
                             try {
                               await navigator.clipboard.writeText(`${window.location.origin}/groups?token=${link.token}`)
-                              toast.success("Link copiado")
+                              toast.success(te("Link copiado", "Link copied"))
                             } finally {
                               setCopyingInviteId(null)
                             }
                           }}
                         >
-                          {copyingInviteId === link.inviteId ? "Copiando..." : "Copiar"}
+                          {copyingInviteId === link.inviteId ? te("Copiando...", "Copying...") : te("Copiar", "Copy")}
                         </Button>
                         {isAdmin && (
                           <Button
@@ -1166,7 +1168,7 @@ export default function GroupDetailPage() {
                             className="w-full sm:w-auto"
                             onClick={() => handleDeactivateInvite(link.inviteId)}
                           >
-                            {deactivatingInviteId === link.inviteId ? "Desactivando..." : "Desactivar"}
+                            {deactivatingInviteId === link.inviteId ? te("Desactivando...", "Disabling...") : te("Desactivar", "Disable")}
                           </Button>
                         )}
                       </div>

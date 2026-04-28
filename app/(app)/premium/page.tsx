@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Crown, Check, Loader2, Zap, Eye, Lock, MessageCircle } from "lucide-react"
 import { toast } from "sonner"
 import { usePremiumStatus } from "@/hooks/use-premium-status"
+import { useI18n } from "@/lib/i18n"
 import {
   Dialog,
   DialogContent,
@@ -18,6 +19,7 @@ import {
 } from "@/components/ui/dialog"
 
 export default function PremiumPage() {
+  const { te, language } = useI18n()
   const { user } = useAuth()
   const { isPremium } = usePremiumStatus()
   const [isLoading, setIsLoading] = useState(false)
@@ -26,20 +28,20 @@ export default function PremiumPage() {
 
   const featureDetails: Record<string, { title: string; description: string }> = {
     swipes: {
-      title: "Swipes ilimitados",
-      description: "Desliza sin límites. Con Premium, puedes dar like a tantos perfiles como quieras sin restricciones diarias. Aumenta tus posibilidades de encontrar conexiones perfectas."
+      title: te("Swipes ilimitados", "Unlimited swipes"),
+      description: te("Desliza sin límites. Con Premium, puedes dar like a tantos perfiles como quieras sin restricciones diarias. Aumenta tus posibilidades de encontrar conexiones perfectas.", "Swipe without limits. With Premium, you can like as many profiles as you want with no daily cap. Increase your chances of finding great connections.")
     },
     likes: {
-      title: "Ve quien te dio like",
-      description: "Descubre quién está interesado en ti antes de hacer match. Ahorra tiempo y conecta directamente con las personas que ya mostraron interés en tu perfil."
+      title: te("Ve quien te dio like", "See who liked you"),
+      description: te("Descubre quién está interesado en ti antes de hacer match. Ahorra tiempo y conecta directamente con las personas que ya mostraron interés en tu perfil.", "See who is interested in you before matching. Save time and connect directly with people who already liked your profile.")
     },
     content: {
-      title: "Contenido premium",
-      description: "Accede a posts exclusivos bloqueados para usuarios gratuitos. Desbloquea contenido especial y disfruta de una experiencia completa sin restricciones."
+      title: te("Contenido premium", "Premium content"),
+      description: te("Accede a posts exclusivos bloqueados para usuarios gratuitos. Desbloquea contenido especial y disfruta de una experiencia completa sin restricciones.", "Access exclusive posts locked for free users. Unlock special content and enjoy the full experience without restrictions.")
     },
     priority: {
-      title: "Prioridad en chat",
-      description: "Tus mensajes aparecen primero. Los usuarios premium tienen prioridad en las conversaciones, aumentando las probabilidades de respuesta rápida."
+      title: te("Prioridad en chat", "Chat priority"),
+      description: te("Tus mensajes aparecen primero. Los usuarios premium tienen prioridad en las conversaciones, aumentando las probabilidades de respuesta rápida.", "Your messages appear first. Premium users have priority in conversations, increasing the chances of a fast reply.")
     }
   }
 
@@ -54,7 +56,7 @@ export default function PremiumPage() {
       const data = await api.get<UserSubscription>("/api/user-subscription/status")
       setSubscription(data)
     } catch (error) {
-      console.log('Error al obtener suscripción:', error)
+      console.log(te('Error al obtener suscripción:', 'Error loading subscription:'), error)
     }
   }
 
@@ -65,10 +67,10 @@ export default function PremiumPage() {
       if (url && typeof url === "string") {
         window.location.href = url
       } else {
-        toast.error("No se pudo obtener el enlace de pago")
+        toast.error(te("No se pudo obtener el enlace de pago", "Could not get checkout link"))
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al procesar suscripcion")
+      toast.error(err instanceof Error ? err.message : te("Error al procesar suscripción", "Error processing subscription"))
     } finally {
       setIsLoading(false)
     }
@@ -79,8 +81,8 @@ export default function PremiumPage() {
       {/* Header */}
       <div className="text-center mb-12">
         <Crown className="h-12 w-12 mx-auto mb-4 text-primary" />
-        <h1 className="text-3xl font-bold mb-2">Sparkd Premium</h1>
-        <p className="text-muted-foreground">Desbloquea todas las funciones</p>
+        <h1 className="text-3xl font-bold mb-2">{te("Sparkd Premium", "Sparkd Premium")}</h1>
+        <p className="text-muted-foreground">{te("Desbloquea todas las funciones", "Unlock all features")}</p>
       </div>
 
       {/* Active Subscription */}
@@ -92,26 +94,26 @@ export default function PremiumPage() {
                 <Crown className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h2 className="text-lg font-bold">Premium Activo</h2>
-                <p className="text-sm text-muted-foreground">$9.99/mes</p>
+                <h2 className="text-lg font-bold">{te("Premium Activo", "Premium Active")}</h2>
+                <p className="text-sm text-muted-foreground">$9.99/{te("mes", "month")}</p>
               </div>
             </div>
-            <Badge className="bg-green-500 text-white">Activo</Badge>
+            <Badge className="bg-green-500 text-white">{te("Activo", "Active")}</Badge>
           </div>
           
           <div className="flex items-center justify-between">
             {subscription.currentPeriodEnd && (
               <p className="text-sm text-muted-foreground">
-                Próxima renovación: <span className="font-medium text-foreground">{new Date(subscription.currentPeriodEnd).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                {te("Próxima renovación", "Next renewal")}: <span className="font-medium text-foreground">{new Date(subscription.currentPeriodEnd).toLocaleDateString(language === "es" ? "es" : "en", { day: 'numeric', month: 'long', year: 'numeric' })}</span>
               </p>
             )}
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => toast.error("Próximamente: Cancelar suscripción")}
+              onClick={() => toast.error(te("Próximamente: Cancelar suscripción", "Coming soon: Cancel subscription"))}
               className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
             >
-              Cancelar
+              {te("Cancelar", "Cancel")}
             </Button>
           </div>
         </div>
@@ -120,10 +122,10 @@ export default function PremiumPage() {
       {/* Features */}
       <div className="grid sm:grid-cols-2 gap-4 mb-12">
         {[
-          { icon: Zap, text: "Swipes ilimitados", key: "swipes" },
-          { icon: Eye, text: "Ve quien te dio like", key: "likes" },
-          { icon: Lock, text: "Contenido premium", key: "content" },
-          { icon: MessageCircle, text: "Prioridad en chat", key: "priority" },
+          { icon: Zap, text: te("Swipes ilimitados", "Unlimited swipes"), key: "swipes" },
+          { icon: Eye, text: te("Ve quien te dio like", "See who liked you"), key: "likes" },
+          { icon: Lock, text: te("Contenido premium", "Premium content"), key: "content" },
+          { icon: MessageCircle, text: te("Prioridad en chat", "Chat priority"), key: "priority" },
         ].map((item) => (
           <button
             key={item.key}
@@ -162,37 +164,37 @@ export default function PremiumPage() {
       <div className="grid md:grid-cols-2 gap-6">
         {/* Free */}
         <div className="p-6 rounded-2xl border border-border">
-          <h3 className="text-xl font-bold mb-1">Gratis</h3>
-          <div className="text-3xl font-bold mb-6">$0<span className="text-lg text-muted-foreground">/mes</span></div>
+          <h3 className="text-xl font-bold mb-1">{te("Gratis", "Free")}</h3>
+          <div className="text-3xl font-bold mb-6">$0<span className="text-lg text-muted-foreground">/{te("mes", "month")}</span></div>
           <ul className="space-y-3 mb-6">
-            <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> Swipes limitados</li>
-            <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> Ver feed</li>
-            <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> Chat básico</li>
+            <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> {te("Swipes limitados", "Limited swipes")}</li>
+            <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> {te("Ver feed", "View feed")}</li>
+            <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> {te("Chat básico", "Basic chat")}</li>
           </ul>
-          {!isPremium && <Badge variant="outline">Plan actual</Badge>}
+          {!isPremium && <Badge variant="outline">{te("Plan actual", "Current plan")}</Badge>}
         </div>
 
         {/* Premium */}
         <div className="p-6 rounded-2xl border-2 border-primary bg-primary/5 relative">
-          <Badge className="absolute -top-3 right-4 bg-primary text-white">Recomendado</Badge>
+          <Badge className="absolute -top-3 right-4 bg-primary text-white">{te("Recomendado", "Recommended")}</Badge>
           <h3 className="text-xl font-bold mb-1 flex items-center gap-2">
             <Crown className="h-5 w-5 text-primary" />
-            Premium
+            {te("Premium", "Premium")}
           </h3>
-          <div className="text-3xl font-bold mb-6">$9.99<span className="text-lg text-muted-foreground">/mes</span></div>
+          <div className="text-3xl font-bold mb-6">$9.99<span className="text-lg text-muted-foreground">/{te("mes", "month")}</span></div>
           <ul className="space-y-3 mb-6">
-            <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> Swipes ilimitados</li>
-            <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> Ver quien te gusta</li>
-            <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> Contenido exclusivo</li>
-            <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> Boost de perfil</li>
-            <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> Sin anuncios</li>
+            <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> {te("Swipes ilimitados", "Unlimited swipes")}</li>
+            <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> {te("Ver quien te gusta", "See who likes you")}</li>
+            <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> {te("Contenido exclusivo", "Exclusive content")}</li>
+            <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> {te("Boost de perfil", "Profile boost")}</li>
+            <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> {te("Sin anuncios", "No ads")}</li>
           </ul>
           <Button
             onClick={handleSubscribe}
             disabled={isLoading || isPremium}
             className="w-full bg-primary hover:bg-primary/90"
           >
-            {isPremium ? "Ya eres Premium" : isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Activar Premium"}
+            {isPremium ? te("Ya eres Premium", "You are already Premium") : isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : te("Activar Premium", "Activate Premium")}
           </Button>
         </div>
       </div>

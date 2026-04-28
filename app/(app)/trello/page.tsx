@@ -9,8 +9,10 @@ import { Loader2, ExternalLink, LayoutList, RefreshCcw } from "lucide-react"
 import { toast } from "sonner"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
 import { useRouter } from "next/navigation"
+import { useI18n } from "@/lib/i18n"
 
 export default function TrelloPage() {
+  const { te } = useI18n()
   const router = useRouter()
   const features = useFeatureFlags()
   const [boards, setBoards] = useState<TrelloBoard[]>([])
@@ -41,7 +43,7 @@ export default function TrelloPage() {
         setSelectedBoardId(openBoards[0].id)
       }
     } catch (error: any) {
-      toast.error(error?.message || "No se pudieron cargar los tableros de Trello")
+      toast.error(error?.message || te("No se pudieron cargar los tableros de Trello", "Could not load Trello boards"))
     } finally {
       setLoadingBoards(false)
     }
@@ -57,7 +59,7 @@ export default function TrelloPage() {
       setLists(listRows.filter((l) => !l.closed))
       setCards(cardRows.filter((c) => !c.closed))
     } catch (error: any) {
-      toast.error(error?.message || "No se pudo cargar el contenido del tablero")
+      toast.error(error?.message || te("No se pudo cargar el contenido del tablero", "Could not load board content"))
       setLists([])
       setCards([])
     } finally {
@@ -67,7 +69,7 @@ export default function TrelloPage() {
 
   useEffect(() => {
     if (!features.trelloPage) {
-      toast.error("Esta opción está disponible solo para test1")
+      toast.error(te("Esta opción está disponible solo para test1", "This option is available only for test1"))
       router.replace("/feed")
       return
     }
@@ -95,15 +97,15 @@ export default function TrelloPage() {
           {loadingBoards ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Cargando tableros...
+              {te("Cargando tableros...", "Loading boards...")}
             </div>
           ) : boards.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No se encontraron tableros disponibles.</p>
+            <p className="text-sm text-muted-foreground">{te("No se encontraron tableros disponibles.", "No available boards found.")}</p>
           ) : (
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <Select value={selectedBoardId} onValueChange={setSelectedBoardId}>
                 <SelectTrigger className="w-full sm:w-[360px]">
-                  <SelectValue placeholder="Selecciona un tablero" />
+                  <SelectValue placeholder={te("Selecciona un tablero", "Select a board")} />
                 </SelectTrigger>
                 <SelectContent>
                   {boards.map((board) => (
@@ -116,14 +118,14 @@ export default function TrelloPage() {
 
               <Button variant="outline" onClick={() => void fetchBoards()} disabled={loadingBoards}>
                 <RefreshCcw className="h-4 w-4 mr-2" />
-                Refrescar
+                {te("Refrescar", "Refresh")}
               </Button>
 
               {selectedBoard?.url && (
                 <Button variant="ghost" asChild>
                   <a href={selectedBoard.url} target="_blank" rel="noreferrer">
                     <ExternalLink className="h-4 w-4 mr-2" />
-                    Abrir tablero
+                    {te("Abrir tablero", "Open board")}
                   </a>
                 </Button>
               )}
@@ -134,16 +136,16 @@ export default function TrelloPage() {
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Cards del tablero</CardTitle>
+          <CardTitle className="text-base">{te("Cards del tablero", "Board cards")}</CardTitle>
         </CardHeader>
         <CardContent>
           {loadingCards ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Cargando cards...
+              {te("Cargando cards...", "Loading cards...")}
             </div>
           ) : cards.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No hay cards para mostrar en este tablero.</p>
+            <p className="text-sm text-muted-foreground">{te("No hay cards para mostrar en este tablero.", "No cards to display on this board.")}</p>
           ) : (
             <div className="space-y-2">
               {cards.map((card) => (
@@ -152,12 +154,12 @@ export default function TrelloPage() {
                     <div>
                       <p className="font-medium text-sm text-foreground">{card.name}</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Lista: {listNameById.get(card.idList) || "Sin lista"}
+                        {te("Lista", "List")}: {listNameById.get(card.idList) || te("Sin lista", "No list")}
                         {card.due ? ` · Due: ${new Date(card.due).toLocaleString()}` : ""}
                       </p>
                     </div>
                     <a href={card.url} target="_blank" rel="noreferrer" className="text-primary hover:underline text-xs">
-                      Ver
+                      {te("Ver", "View")}
                     </a>
                   </div>
                 </div>

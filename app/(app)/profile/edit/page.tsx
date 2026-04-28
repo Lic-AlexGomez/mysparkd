@@ -17,8 +17,10 @@ import { ArrowLeft, Loader2, Save, Camera, Crown, Square, Globe, Lock } from "lu
 import { toast } from "sonner"
 import { Switch } from "@/components/ui/switch"
 import { VoiceNoteRecorder, type VoiceNoteRecorderHandle } from "@/components/ui/voice-note"
+import { useI18n } from "@/lib/i18n"
 
 export default function EditProfilePage() {
+  const { te } = useI18n()
   const router = useRouter()
   const { user, isLoading: authLoading, refreshProfile, updateUser } = useAuth()
   const [loading, setLoading] = useState(false)
@@ -62,10 +64,10 @@ export default function EditProfilePage() {
 
   const validateUsername = (raw: string): string | null => {
     const u = raw.trim()
-    if (u.length < 3) return "Mínimo 3 caracteres"
-    if (u.length > 30) return "Máximo 30 caracteres"
+    if (u.length < 3) return te("Mínimo 3 caracteres", "Minimum 3 characters")
+    if (u.length > 30) return te("Máximo 30 caracteres", "Maximum 30 characters")
     if (!/^[a-zA-Z0-9._]+$/.test(u)) {
-      return "Solo letras, números, punto y guion bajo"
+      return te("Solo letras, números, punto y guion bajo", "Only letters, numbers, dot and underscore")
     }
     return null
   }
@@ -76,7 +78,7 @@ export default function EditProfilePage() {
     if (!user) return
 
     if (isVoiceRecordingRef.current && voiceRecorderRef.current) {
-      toast.info('Guardando nota de voz...')
+      toast.info(te('Guardando nota de voz...', 'Saving voice note...'))
       await voiceRecorderRef.current.stopAndUpload()
     }
 
@@ -127,28 +129,28 @@ export default function EditProfilePage() {
         visibility: formData.visibility,
       })
       await refreshProfile()
-      toast.success("Perfil actualizado")
+      toast.success(te("Perfil actualizado", "Profile updated"))
       router.push("/profile")
     } catch (error) {
       if (error instanceof ApiError) {
         if (error.status === 409) {
           toast.error(
-            error.message || "Este nombre de usuario ya está en uso"
+            error.message || te("Este nombre de usuario ya está en uso", "This username is already in use")
           )
         } else if (error.status === 403) {
           // Backend usa 403 (p. ej. PlanLimitException) si el @ ya existe
           toast.error(
-            error.message || "No se pudo usar este nombre de usuario"
+            error.message || te("No se pudo usar este nombre de usuario", "Could not use this username")
           )
         } else if (error.status === 400) {
           const msg = [error.message, error.details].filter(Boolean).join(" — ")
-          toast.error(msg || "Datos de perfil no válidos")
+          toast.error(msg || te("Datos de perfil no válidos", "Invalid profile data"))
         } else {
-          toast.error(error.message || "Error al actualizar perfil")
+          toast.error(error.message || te("Error al actualizar perfil", "Error updating profile"))
         }
       } else {
         toast.error(
-          error instanceof Error ? error.message : "Error al actualizar perfil"
+          error instanceof Error ? error.message : te("Error al actualizar perfil", "Error updating profile")
         )
       }
     } finally {
@@ -171,9 +173,9 @@ export default function EditProfilePage() {
       formDataUpload.append('file', file)
       const data = await api.post<{ url: string; message: string }>('/api/photos/cover-picture', formDataUpload)
       setFormData(prev => ({ ...prev, coverPictureUrl: data.url }))
-      toast.success("Foto de portada actualizada")
+      toast.success(te("Foto de portada actualizada", "Cover photo updated"))
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Error al subir foto")
+      toast.error(error instanceof Error ? error.message : te("Error al subir foto", "Error uploading photo"))
     } finally {
       setUploadingCover(false)
     }
@@ -185,14 +187,14 @@ export default function EditProfilePage() {
         <Button variant="ghost" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <h1 className="text-2xl font-bold">Editar perfil</h1>
+        <h1 className="text-2xl font-bold">{te("Editar perfil", "Edit profile")}</h1>
       </div>
 
       <Card className="p-6 bg-card border-border">
         <form onSubmit={(e) => { e.preventDefault(); handleSubmit() }} className="space-y-6">
           {/* Cover Photo */}
           <div className="space-y-2">
-            <Label>Foto de portada</Label>
+            <Label>{te("Foto de portada", "Cover photo")}</Label>
             <div className="relative">
               <div 
                 className="h-48 rounded-lg bg-gradient-to-r from-secondary/40 via-primary/30 to-secondary/20 relative overflow-hidden"
@@ -221,7 +223,7 @@ export default function EditProfilePage() {
                         <>
                           <Camera className="h-8 w-8" />
                           <span className="text-sm font-medium">
-                            {formData.coverPictureUrl ? 'Cambiar portada' : 'Subir portada'}
+                            {formData.coverPictureUrl ? te('Cambiar portada', 'Change cover') : te('Subir portada', 'Upload cover')}
                           </span>
                         </>
                       )}
@@ -230,11 +232,11 @@ export default function EditProfilePage() {
                 </div>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">Recomendado: 1500x500px</p>
+            <p className="text-xs text-muted-foreground">{te("Recomendado: 1500x500px", "Recommended: 1500x500px")}</p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="username">Nombre de usuario</Label>
+            <Label htmlFor="username">{te("Nombre de usuario", "Username")}</Label>
             <Input
               id="username"
               value={formData.username}
@@ -248,7 +250,7 @@ export default function EditProfilePage() {
               aria-invalid={!!usernameError}
             />
             <p className="text-xs text-muted-foreground">
-              3–30 caracteres: letras, números, punto y guion bajo
+              {te("3–30 caracteres: letras, números, punto y guion bajo", "3-30 characters: letters, numbers, dot and underscore")}
             </p>
             {usernameError ? (
               <p className="text-xs text-destructive">{usernameError}</p>
@@ -269,7 +271,7 @@ export default function EditProfilePage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="location">Ubicación</Label>
+            <Label htmlFor="location">{te("Ubicación", "Location")}</Label>
             <LocationInput
               value={formData.location}
               onChange={(value, coordinates) => {
@@ -280,9 +282,9 @@ export default function EditProfilePage() {
                   longitude: coordinates?.longitude
                 })
               }}
-              placeholder="Busca tu ciudad o dirección..."
+              placeholder={te("Busca tu ciudad o dirección...", "Search your city or address...")}
             />
-            <p className="text-xs text-muted-foreground">Escribe al menos 3 caracteres para buscar</p>
+            <p className="text-xs text-muted-foreground">{te("Escribe al menos 3 caracteres para buscar", "Type at least 3 characters to search")}</p>
           </div>
 
           <div className="space-y-2">
@@ -302,8 +304,8 @@ export default function EditProfilePage() {
               <div className="flex items-center gap-2">
                 <Crown className="h-4 w-4 text-yellow-500" />
                 <div>
-                  <p className="text-sm font-semibold text-foreground">Badge Premium</p>
-                  <p className="text-xs text-muted-foreground">Mostrar en tu perfil</p>
+                  <p className="text-sm font-semibold text-foreground">{te("Badge Premium", "Premium badge")}</p>
+                  <p className="text-xs text-muted-foreground">{te("Mostrar en tu perfil", "Show on your profile")}</p>
                 </div>
               </div>
               <Switch
@@ -320,8 +322,8 @@ export default function EditProfilePage() {
             <div className="flex items-center gap-2">
               {formData.visibility === 'PRIVATE' ? <Lock className="h-4 w-4 text-muted-foreground" /> : <Globe className="h-4 w-4 text-primary" />}
               <div>
-                <p className="text-sm font-semibold text-foreground">Perfil Público</p>
-                <p className="text-xs text-muted-foreground">Tu perfil puede ser visto por todos</p>
+                <p className="text-sm font-semibold text-foreground">{te("Perfil Público", "Public profile")}</p>
+                <p className="text-xs text-muted-foreground">{te("Tu perfil puede ser visto por todos", "Your profile can be seen by everyone")}</p>
               </div>
             </div>
             <Switch
@@ -331,8 +333,8 @@ export default function EditProfilePage() {
           </div>
 
           <div className="space-y-2">
-            <Label>Nota de voz</Label>
-            <p className="text-xs text-muted-foreground">Graba hasta 30 segundos para presentarte</p>
+            <Label>{te("Nota de voz", "Voice note")}</Label>
+            <p className="text-xs text-muted-foreground">{te("Graba hasta 30 segundos para presentarte", "Record up to 30 seconds to introduce yourself")}</p>
             <VoiceNoteRecorder
               ref={voiceRecorderRef}
               currentUrl={user.voiceIntroUrl || user.voiceNoteUrl}
@@ -343,7 +345,7 @@ export default function EditProfilePage() {
 
           <div className="flex gap-3">
             <Button type="button" variant="outline" onClick={() => router.back()} className="flex-1">
-              Cancelar
+              {te("Cancelar", "Cancel")}
             </Button>
             <Button
               type="button"
@@ -352,10 +354,10 @@ export default function EditProfilePage() {
               className="flex-1"
             >
               {loading
-                ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Guardando...</>
+                ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{te("Guardando...", "Saving...")}</>
                 : isVoiceRecording
-                ? <><Square className="mr-2 h-4 w-4" />Detener y guardar</>
-                : <><Save className="mr-2 h-4 w-4" />Guardar</>
+                ? <><Square className="mr-2 h-4 w-4" />{te("Detener y guardar", "Stop and save")}</>
+                : <><Save className="mr-2 h-4 w-4" />{te("Guardar", "Save")}</>
               }
             </Button>
           </div>

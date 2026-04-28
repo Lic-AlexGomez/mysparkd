@@ -8,15 +8,17 @@ import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import { toast } from "sonner"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
+import { useI18n } from "@/lib/i18n"
 
 export default function AnalyticsPage() {
+  const { te } = useI18n()
   const { user } = useAuth()
   const router = useRouter()
   const features = useFeatureFlags()
 
   useEffect(() => {
     if (!features.analyticsPage) {
-      toast.error("Esta funcionalidad no está disponible aún")
+      toast.error(te("Esta funcionalidad no está disponible aún", "This feature is not available yet"))
       router.push('/feed')
     }
   }, [features.analyticsPage, router])
@@ -26,23 +28,23 @@ export default function AnalyticsPage() {
   }
 
   const stats = [
-    { label: "Vistas de perfil", value: "1,234", change: "+12%", icon: Eye, color: "text-primary" },
-    { label: "Likes recibidos", value: "456", change: "+8%", icon: Heart, color: "text-secondary" },
-    { label: "Comentarios", value: "89", change: "+15%", icon: MessageCircle, color: "text-accent" },
-    { label: "Nuevos seguidores", value: "67", change: "+23%", icon: Users, color: "text-success" },
+    { label: te("Vistas de perfil", "Profile views"), value: "1,234", change: "+12%", icon: Eye, color: "text-primary" },
+    { label: te("Likes recibidos", "Likes received"), value: "456", change: "+8%", icon: Heart, color: "text-secondary" },
+    { label: te("Comentarios", "Comments"), value: "89", change: "+15%", icon: MessageCircle, color: "text-accent" },
+    { label: te("Nuevos seguidores", "New followers"), value: "67", change: "+23%", icon: Users, color: "text-success" },
   ]
 
   const topPosts = [
-    { id: 1, content: "Mi mejor post del mes...", likes: 234, comments: 45, views: 1200 },
-    { id: 2, content: "Increíble experiencia...", likes: 189, comments: 32, views: 980 },
-    { id: 3, content: "Nuevo proyecto...", likes: 156, comments: 28, views: 850 },
+    { id: 1, content: te("Mi mejor post del mes...", "My best post of the month..."), likes: 234, comments: 45, views: 1200 },
+    { id: 2, content: te("Increíble experiencia...", "Amazing experience..."), likes: 189, comments: 32, views: 980 },
+    { id: 3, content: te("Nuevo proyecto...", "New project..."), likes: 156, comments: 28, views: 850 },
   ]
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground mb-2">Analytics</h1>
-        <p className="text-muted-foreground">Estadísticas de tu perfil</p>
+        <h1 className="text-2xl font-bold text-foreground mb-2">{te("Analíticas", "Analytics")}</h1>
+        <p className="text-muted-foreground">{te("Estadísticas de tu perfil", "Your profile stats")}</p>
       </div>
 
       {/* Stats Grid */}
@@ -68,7 +70,7 @@ export default function AnalyticsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-primary" />
-            Engagement Rate
+            {te("Tasa de engagement", "Engagement rate")}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -81,7 +83,7 @@ export default function AnalyticsPage() {
             <span className="text-2xl font-bold text-foreground">68%</span>
           </div>
           <p className="text-sm text-muted-foreground mt-2">
-            Tu contenido tiene un 68% de engagement, ¡excelente!
+            {te("Tu contenido tiene un 68% de engagement, ¡excelente!", "Your content has a 68% engagement rate, excellent!")}
           </p>
         </CardContent>
       </Card>
@@ -91,7 +93,7 @@ export default function AnalyticsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-secondary" />
-            Posts más populares
+            {te("Posts más populares", "Top posts")}
           </CardTitle>
         </CardHeader>
         <CardContent>

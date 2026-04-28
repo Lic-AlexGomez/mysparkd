@@ -19,6 +19,7 @@ import { toast } from "sonner"
 import { Loader2, Plus, MapPin, Calendar, Clock, Heart, Check, X, Zap, ChevronRight, Send, SlidersHorizontal, ChevronDown, ChevronUp, History } from "lucide-react"
 import { formatDistanceToNow, format } from "date-fns"
 import { es } from "date-fns/locale"
+import { useI18n } from "@/lib/i18n"
 
 const CATEGORY_LABELS: Record<string, string> = {
   FOOD: "🍽️ Comida",
@@ -45,6 +46,7 @@ const CATEGORIES: DateCategory[] = ['FOOD', 'ACTIVITY', 'EVENT', 'CHILL', 'ADVEN
 const PLANS: Plan[] = ['CAFE', 'RESTAURANT', 'BAR', 'PARK', 'BEACH', 'MALL', 'CINEMA', 'OTHER', 'OPEN_SUGGESTION']
 
 export default function FastDatePage() {
+  const { te } = useI18n()
   const { user } = useAuth()
   const router = useRouter()
   const [tab, setTab] = useState("feed")
@@ -109,7 +111,7 @@ export default function FastDatePage() {
 
   const handleCreate = async () => {
     if (!form.title || !form.dateTime || !form.locationZone || form.plans.length === 0) {
-      toast.error("Completa los campos obligatorios")
+      toast.error(te("Completa los campos obligatorios", "Complete required fields"))
       return
     }
     setCreating(true)
@@ -119,14 +121,14 @@ export default function FastDatePage() {
         dateTime: new Date(form.dateTime).toISOString(),
         placeTypes: form.plans as unknown as PlaceType[],
       })
-      toast.success("¡Cita creada!")
+      toast.success(te("¡Cita creada!", "Date created!"))
       setShowCreateDialog(false)
       setForm({ title: "", message: "", dateTime: "", locationZone: "", category: "FOOD", detail: "", plans: [], placeTypes: [] })
       fetchFeed()
       fetchMine()
     } catch (error) {
       if (!handleDateCardLimitError(error)) {
-        toast.error(error instanceof Error ? error.message : "Error al crear cita")
+        toast.error(error instanceof Error ? error.message : te("Error al crear cita", "Error creating date"))
       }
     } finally {
       setCreating(false)
@@ -138,14 +140,14 @@ export default function FastDatePage() {
     setSendingInterest(true)
     try {
       await fastDateService.sendInterest(showInterestDialog.id, interestMessage)
-      toast.success("¡Interés enviado! Revisa la pestaña 'Enviados'")
+      toast.success(te("¡Interés enviado! Revisa la pestaña 'Enviados'", "Interest sent! Check the 'Sent' tab"))
       setShowInterestDialog(null)
       setInterestMessage("")
       await fetchMine()
       setTab("sent")
     } catch (error) {
       if (!handleDateCardLimitError(error)) {
-        toast.error(error instanceof Error ? error.message : "Error al enviar interés")
+        toast.error(error instanceof Error ? error.message : te("Error al enviar interés", "Error sending interest"))
       }
     } finally {
       setSendingInterest(false)
@@ -156,7 +158,7 @@ export default function FastDatePage() {
     try {
       const res = await fastDateService.respondInterest(interestId, accept)
       if (accept) {
-        toast.success("¡Match creado! 🎉")
+        toast.success(te("¡Match creado! 🎉", "Match created! 🎉"))
         await fetchMine()
         if (res?.chatId) {
           router.push(`/chat/${res.chatId}`)
@@ -164,12 +166,12 @@ export default function FastDatePage() {
           router.push('/chat')
         }
       } else {
-        toast.success("Interés rechazado")
+        toast.success(te("Interés rechazado", "Interest rejected"))
         await fetchMine()
       }
     } catch (error) {
       if (!handleDateCardLimitError(error)) {
-        toast.error(error instanceof Error ? error.message : "Error")
+        toast.error(error instanceof Error ? error.message : te("Error", "Error"))
       }
     }
   }
@@ -199,7 +201,7 @@ export default function FastDatePage() {
             <Zap className="h-5 w-5 text-primary" />
             Fast Date
           </h1>
-          <p className="text-xs text-muted-foreground">Propón una cita, conecta al instante</p>
+          <p className="text-xs text-muted-foreground">{te("Propón una cita, conecta al instante", "Propose a date, connect instantly")}</p>
         </div>
         <Button
           size="sm"
@@ -207,7 +209,7 @@ export default function FastDatePage() {
           className="bg-gradient-to-r from-primary to-secondary text-black font-bold"
         >
           <Plus className="h-4 w-4 mr-1" />
-          Crear cita
+          {te("Crear cita", "Create date")}
         </Button>
       </div>
 
@@ -215,8 +217,8 @@ export default function FastDatePage() {
         <div className="flex items-center gap-2 mb-4">
           <TabsList className="flex-1 grid grid-cols-3">
             <TabsTrigger value="feed">Feed</TabsTrigger>
-            <TabsTrigger value="mine">Mis citas</TabsTrigger>
-            <TabsTrigger value="sent">Enviados</TabsTrigger>
+            <TabsTrigger value="mine">{te("Mis citas", "My dates")}</TabsTrigger>
+            <TabsTrigger value="sent">{te("Enviados", "Sent")}</TabsTrigger>
           </TabsList>
           <button
             onClick={() => setShowFilter(!showFilter)}

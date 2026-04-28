@@ -18,6 +18,7 @@ import { PostCard } from "@/components/feed/post-card"
 import { ReportModal } from "@/components/feed/report-modal"
 import { toast } from "sonner"
 import { VoiceNotePlayer } from "@/components/ui/voice-note"
+import { useI18n } from "@/lib/i18n"
 
 function getAge(dateOfBirth?: string): number | null {
   if (!dateOfBirth) return null
@@ -32,6 +33,7 @@ interface FollowerUser {
 }
 
 export default function UserProfilePage() {
+  const { te } = useI18n()
   const { user } = useAuth()
   const params = useParams()
   const router = useRouter()
@@ -104,9 +106,9 @@ export default function UserProfilePage() {
     try {
       await api.delete(`/api/follow/follower/${followerId}`)
       setFollowList(prev => prev.filter(u => u.userId !== followerId))
-      toast.success('Seguidor eliminado')
+      toast.success(te('Seguidor eliminado', 'Follower removed'))
     } catch {
-      toast.error('Error al eliminar seguidor')
+      toast.error(te('Error al eliminar seguidor', 'Error removing follower'))
     }
   }
 
@@ -117,30 +119,30 @@ export default function UserProfilePage() {
       try {
         await api.delete(`/api/follow/cancel/${userId}`)
         setPending(false)
-        toast.success("Solicitud cancelada")
+        toast.success(te("Solicitud cancelada", "Request cancelled"))
       } catch {
-        toast.error("Error al cancelar solicitud")
+        toast.error(te("Error al cancelar solicitud", "Error cancelling request"))
       }
     } else if (following) {
       try {
         await api.delete(`/api/follow/${userId}`)
         setFollowing(false)
-        toast.success("Dejaste de seguir")
+        toast.success(te("Dejaste de seguir", "You unfollowed"))
       } catch {
-        toast.error("Error al dejar de seguir")
+        toast.error(te("Error al dejar de seguir", "Error unfollowing"))
       }
     } else {
       try {
         await api.post(`/api/follow/${userId}`)
         if (profile!.visibility === 'PRIVATE') {
           setPending(true)
-          toast.success("Solicitud enviada")
+          toast.success(te("Solicitud enviada", "Request sent"))
         } else {
           setFollowing(true)
-          toast.success("Siguiendo")
+          toast.success(te("Siguiendo", "Following"))
         }
       } catch {
-        toast.error("Error al seguir")
+        toast.error(te("Error al seguir", "Error following"))
       }
     }
   }
@@ -150,20 +152,20 @@ export default function UserProfilePage() {
       if (inSparklingList) {
         await privacyService.removeFromSparklingList(userId)
         setInSparklingList(false)
-        toast.success("Eliminado de Sparkling List")
+        toast.success(te("Eliminado de Sparkling List", "Removed from Sparkling List"))
       } else {
         await privacyService.addToSparklingList(userId)
         setInSparklingList(true)
-        toast.success("Agregado a Sparkling List ✨")
+        toast.success(te("Agregado a Sparkling List ✨", "Added to Sparkling List ✨"))
       }
     } catch {
-      toast.error("Error al actualizar Sparkling List")
+      toast.error(te("Error al actualizar Sparkling List", "Error updating Sparkling List"))
     }
   }
 
   const handleMessage = async () => {
     if (profile!.visibility === 'PRIVATE' && !following) {
-      toast.error("Primero debes seguir a esta cuenta para enviar mensajes")
+      toast.error(te("Primero debes seguir a esta cuenta para enviar mensajes", "You must follow this account first to send messages"))
       return
     }
     setIsMessaging(true)
@@ -171,7 +173,7 @@ export default function UserProfilePage() {
       const chat = await api.post<Chat>(`/api/chat/open/${userId}`)
       router.push(`/chat/${chat.chatId}`)
     } catch {
-      toast.error("Error al abrir chat")
+      toast.error(te("Error al abrir chat", "Error opening chat"))
     } finally {
       setIsMessaging(false)
     }
@@ -184,18 +186,18 @@ export default function UserProfilePage() {
       const response = await api.post<SwipeResponse>("/api/swipes/perform/swipe", { targetUserId: userId, type: "LIKE" })
       setLiked(true)
       if (response.match) {
-        toast.success(`¡Es un match con ${profile?.nombres}! 🎉`, { duration: 4000 })
+        toast.success(te(`¡Es un match con ${profile?.nombres}! 🎉`, `It's a match with ${profile?.nombres}! 🎉`), { duration: 4000 })
       } else {
-        toast.success("¡Like enviado!")
+        toast.success(te("¡Like enviado!", "Like sent!"))
       }
     } catch (error) {
       if (error instanceof ApiError && (error.status === 429 || error.status === 403)) {
         toast.error(
           error.message ||
-            "Límite diario de swipes alcanzado. Mejora a premium.",
+            te("Límite diario de swipes alcanzado. Mejora a premium.", "Daily swipe limit reached. Upgrade to premium."),
         )
       } else {
-        toast.error("Error al enviar like")
+        toast.error(te("Error al enviar like", "Error sending like"))
       }
     } finally {
       setIsLiking(false)
@@ -204,7 +206,7 @@ export default function UserProfilePage() {
 
   const deletePhoto = (photo: Photo) => {
     if (photo.isPrimary || photo.primary) {
-      toast.error("No puedes eliminar la foto principal")
+      toast.error(te("No puedes eliminar la foto principal", "You cannot delete the main photo"))
       return
     }
     setPhotoToDelete(photo)
@@ -219,7 +221,7 @@ export default function UserProfilePage() {
       await api.delete(`/api/profile/${user?.userId}/photos/${pid}`)
       await fetchProfile()
     } catch {
-      toast.error("Error al eliminar la foto")
+      toast.error(te("Error al eliminar la foto", "Error deleting photo"))
     } finally {
       setConfirmOpen(false)
       setPhotoToDelete(null)
@@ -234,7 +236,7 @@ export default function UserProfilePage() {
 
   if (!profile) return (
     <div className="flex h-[60vh] items-center justify-center">
-      <p className="text-muted-foreground">Perfil no encontrado</p>
+      <p className="text-muted-foreground">{te("Perfil no encontrado", "Profile not found")}</p>
     </div>
   )
 
@@ -273,14 +275,14 @@ export default function UserProfilePage() {
             <DropdownMenuContent align="end" className="bg-card border-border">
               <DropdownMenuItem onClick={handleToggleSparklingList} className="cursor-pointer">
                 <Star className={`h-4 w-4 mr-2 ${inSparklingList ? 'fill-yellow-500 text-yellow-500' : ''}`} />
-                {inSparklingList ? 'Quitar de Sparkling List' : 'Agregar a Sparkling List'}
+                {inSparklingList ? te('Quitar de Sparkling List', 'Remove from Sparkling List') : te('Agregar a Sparkling List', 'Add to Sparkling List')}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setShowReportModal(true)} className="cursor-pointer">Reportar</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowReportModal(true)} className="cursor-pointer">{te("Reportar", "Report")}</DropdownMenuItem>
               <DropdownMenuItem onClick={async () => {
                 if (!user?.userId) return
                 await blockService.blockUser(user.userId, userId)
-                toast.success("Usuario bloqueado")
-              }} className="cursor-pointer text-destructive">Bloquear</DropdownMenuItem>
+                toast.success(te("Usuario bloqueado", "User blocked"))
+              }} className="cursor-pointer text-destructive">{te("Bloquear", "Block")}</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -328,7 +330,7 @@ export default function UserProfilePage() {
             <button
               onClick={() => router.push(`/stories?targetUserId=${encodeURIComponent(userId)}`)}
               className="h-9 w-9 rounded-full border border-border flex items-center justify-center transition-colors text-foreground hover:bg-muted"
-              title="Ver stories"
+              title={te("Ver stories", "View stories")}
             >
               <Clapperboard className="h-4 w-4" />
             </button>
@@ -426,16 +428,16 @@ export default function UserProfilePage() {
           <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
             <Lock className="h-8 w-8 text-muted-foreground" />
           </div>
-          <p className="font-semibold text-lg">Esta cuenta es privada</p>
+          <p className="font-semibold text-lg">{te("Esta cuenta es privada", "This account is private")}</p>
           <p className="text-sm text-muted-foreground text-center max-w-[250px]">
-            Sigue a esta cuenta para ver sus fotos, posts y más información.
+            {te("Sigue a esta cuenta para ver sus fotos, posts y más información.", "Follow this account to see photos, posts and more information.")}
           </p>
         </div>
       ) : (
         <>
           {profileInterests.length > 0 && (
             <div className="px-4 mt-4">
-              <h2 className="text-sm font-semibold text-foreground mb-3">Intereses</h2>
+              <h2 className="text-sm font-semibold text-foreground mb-3">{te("Intereses", "Interests")}</h2>
               <div className="flex flex-wrap gap-2">
                 {profileInterests.map((interest, index) => {
                   const name = typeof interest === "string" ? interest : interest.name
@@ -453,12 +455,12 @@ export default function UserProfilePage() {
 
           {profile.photos && profile.photos.length > 0 && (
             <div className="px-4 mt-6">
-              <h2 className="text-sm font-semibold text-foreground mb-3">Fotos</h2>
+              <h2 className="text-sm font-semibold text-foreground mb-3">{te("Fotos", "Photos")}</h2>
               <div className="grid grid-cols-3 gap-1.5">
                 {profile.photos.map((photo) => (
                   <div key={photo.photoId || photo.id} className="relative aspect-square overflow-hidden rounded-xl">
-                    <img src={photo.url} alt="Foto" className="h-full w-full object-cover hover:scale-105 transition-transform" loading="lazy" onClick={() => setViewPhotoUrl(photo.url)} />
-                    <button aria-label="Eliminar foto" onClick={() => deletePhoto(photo)} className="absolute top-1 right-1 h-8 w-8 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center text-white opacity-0 hover:opacity-100 transition-opacity">
+                    <img src={photo.url} alt={te("Foto", "Photo")} className="h-full w-full object-cover hover:scale-105 transition-transform" loading="lazy" onClick={() => setViewPhotoUrl(photo.url)} />
+                    <button aria-label={te("Eliminar foto", "Delete photo")} onClick={() => deletePhoto(photo)} className="absolute top-1 right-1 h-8 w-8 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center text-white opacity-0 hover:opacity-100 transition-opacity">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
@@ -469,7 +471,7 @@ export default function UserProfilePage() {
 
           {profile.posts && profile.posts.length > 0 && (
             <div className="mt-6 px-4">
-              <h2 className="text-sm font-semibold text-foreground mb-3">Posts</h2>
+              <h2 className="text-sm font-semibold text-foreground mb-3">{te("Posts", "Posts")}</h2>
               {profile.posts.map((post) => (
                 <PostCard key={post.id} post={post} />
               ))}
@@ -481,11 +483,11 @@ export default function UserProfilePage() {
       {/* Modal followers/following */}
       <Dialog open={!!followListModal} onOpenChange={() => setFollowListModal(null)}>
         <DialogContent className="max-w-sm">
-          <DialogTitle>{followListModal === 'followers' ? 'Seguidores' : 'Siguiendo'}</DialogTitle>
+          <DialogTitle>{followListModal === 'followers' ? te('Seguidores', 'Followers') : te('Siguiendo', 'Following')}</DialogTitle>
           {followListLoading ? (
             <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
           ) : followList.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">No hay usuarios</p>
+            <p className="text-sm text-muted-foreground text-center py-8">{te("No hay usuarios", "No users")}</p>
           ) : (
             <div className="flex flex-col gap-2 max-h-80 overflow-y-auto">
               {followList.map(u => (
@@ -502,7 +504,7 @@ export default function UserProfilePage() {
                     <button
                       onClick={() => handleRemoveFollower(u.userId)}
                       className="h-8 w-8 rounded-full hover:bg-destructive/10 flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors shrink-0"
-                      title="Eliminar seguidor"
+                      title={te("Eliminar seguidor", "Remove follower")}
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -516,19 +518,19 @@ export default function UserProfilePage() {
 
       <Dialog open={confirmOpen} onOpenChange={(open) => { if (!open) setConfirmOpen(false) }}>
         <DialogContent>
-          <DialogTitle>Eliminar foto</DialogTitle>
-          <p className="text-sm text-foreground">¿Seguro que quieres eliminar esta foto?</p>
+          <DialogTitle>{te("Eliminar foto", "Delete photo")}</DialogTitle>
+          <p className="text-sm text-foreground">{te("¿Seguro que quieres eliminar esta foto?", "Are you sure you want to delete this photo?")}</p>
           <div className="flex justify-end gap-2 mt-4">
-            <button onClick={() => setConfirmOpen(false)} className="px-4 py-2 rounded-lg border border-border text-sm">Cancelar</button>
-            <button onClick={confirmDeletePhoto} className="px-4 py-2 rounded-lg bg-destructive text-destructive-foreground text-sm">Eliminar</button>
+            <button onClick={() => setConfirmOpen(false)} className="px-4 py-2 rounded-lg border border-border text-sm">{te("Cancelar", "Cancel")}</button>
+            <button onClick={confirmDeletePhoto} className="px-4 py-2 rounded-lg bg-destructive text-destructive-foreground text-sm">{te("Eliminar", "Delete")}</button>
           </div>
         </DialogContent>
       </Dialog>
 
       <Dialog open={!!viewPhotoUrl} onOpenChange={() => setViewPhotoUrl(null)}>
         <DialogContent className="max-w-3xl p-0 bg-black border-0 [&>button]:hidden">
-          <DialogTitle className="sr-only">Vista de foto</DialogTitle>
-          <img src={viewPhotoUrl || ""} alt="Vista completa" className="w-full h-auto max-h-[90vh] object-contain" />
+          <DialogTitle className="sr-only">{te("Vista de foto", "Photo view")}</DialogTitle>
+          <img src={viewPhotoUrl || ""} alt={te("Vista completa", "Full view")} className="w-full h-auto max-h-[90vh] object-contain" />
           <button onClick={() => setViewPhotoUrl(null)} className="absolute top-3 right-3 h-8 w-8 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center text-white text-sm">✕</button>
         </DialogContent>
       </Dialog>

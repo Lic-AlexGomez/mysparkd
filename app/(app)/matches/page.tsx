@@ -28,8 +28,10 @@ import {
 import { toast } from "sonner"
 import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
+import { useI18n } from "@/lib/i18n"
 
 export default function MatchesPage() {
+  const { te } = useI18n()
   const router = useRouter()
   const { user } = useAuth()
   const [matches, setMatches] = useState<Match[]>([])
@@ -76,27 +78,27 @@ export default function MatchesPage() {
       const chat = await api.post<Chat>(`/api/chat/open/${userId}`)
       router.push(`/chat/${chat.chatId}`)
     } catch {
-      toast.error("Error al abrir chat")
+      toast.error(te("Error al abrir chat", "Error opening chat"))
     }
   }
 
   const handleUnmatch = async (userId: string) => {
     try {
       await api.post(`/api/matches/${userId}/unmatch`)
-      toast.success("Match eliminado")
+      toast.success(te("Match eliminado", "Match removed"))
       fetchMatches()
     } catch {
-      toast.error("Error al eliminar match")
+      toast.error(te("Error al eliminar match", "Error removing match"))
     }
   }
 
   const handleBlock = async (userId: string) => {
     try {
       await api.post(`/api/matches/${userId}/block`)
-      toast.success("Usuario bloqueado")
+      toast.success(te("Usuario bloqueado", "User blocked"))
       fetchMatches()
     } catch {
-      toast.error("Error al bloquear")
+      toast.error(te("Error al bloquear", "Error blocking user"))
     }
   }
 
@@ -124,15 +126,15 @@ export default function MatchesPage() {
               <div className="absolute inset-0 blur-3xl bg-secondary/30 rounded-full" />
               <Heart className="h-20 w-20 text-secondary relative" />
             </div>
-            <p className="text-xl font-semibold">No tienes matches aún</p>
+            <p className="text-xl font-semibold">{te("No tienes matches aún", "You have no matches yet")}</p>
             <p className="text-sm text-muted-foreground text-center max-w-sm">
-              ¡Sigue deslizando para encontrar a alguien especial!
+              {te("¡Sigue deslizando para encontrar a alguien especial!", "Keep swiping to find someone special!")}
             </p>
             <Button
               onClick={() => router.push("/swipes")}
               className="mt-4 bg-gradient-to-r from-primary to-secondary text-black font-semibold px-6 py-6 rounded-2xl shadow-lg shadow-primary/30 hover:scale-105 transition-transform"
             >
-              Ir a Swipes
+              {te("Ir a Swipes", "Go to Swipes")}
             </Button>
           </div>
         ) : (
@@ -194,7 +196,7 @@ export default function MatchesPage() {
                       
                       <p className="text-sm text-muted-foreground flex items-center gap-1">
                         <Heart className="h-3 w-3 text-secondary fill-secondary" />
-                        Match{" "}
+                        {te("Match", "Match")}{" "}
                         {formatDistanceToNow(new Date(match.matchedAt), {
                           addSuffix: true,
                           locale: es,
@@ -210,7 +212,7 @@ export default function MatchesPage() {
                           className="h-10 w-10 text-muted-foreground hover:bg-muted/50 rounded-xl"
                         >
                           <MoreVertical className="h-5 w-5" />
-                          <span className="sr-only">Opciones</span>
+                          <span className="sr-only">{te("Opciones", "Options")}</span>
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="bg-card border-border">
@@ -219,14 +221,14 @@ export default function MatchesPage() {
                           className="cursor-pointer"
                         >
                           <UserX className="mr-2 h-4 w-4" />
-                          Eliminar match
+                          {te("Eliminar match", "Remove match")}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => handleBlock(match.userId)}
                           className="text-destructive cursor-pointer"
                         >
                           <Ban className="mr-2 h-4 w-4" />
-                          Bloquear
+                          {te("Bloquear", "Block")}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -273,7 +275,7 @@ export default function MatchesPage() {
                     className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-secondary text-black font-semibold hover:scale-105 transition-transform shadow-lg"
                   >
                     <MessageCircle className="h-5 w-5 mr-2" />
-                    {match.lastMessage ? 'Continuar conversación' : 'Enviar mensaje'}
+                    {match.lastMessage ? te('Continuar conversación', 'Continue conversation') : te('Enviar mensaje', 'Send message')}
                   </Button>
                 </div>
               </div>
