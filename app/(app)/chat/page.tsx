@@ -16,7 +16,7 @@ import { toast } from "sonner"
 import { useI18n } from "@/lib/i18n"
 
 export default function ChatListPage() {
-  const { te } = useI18n()
+  const { te, t } = useI18n()
   const { user } = useAuth()
   const [chats, setChats] = useState<Chat[]>([])
   const [hiddenChats, setHiddenChats] = useState<Chat[]>([])
@@ -257,7 +257,7 @@ export default function ChatListPage() {
                       <EyeOff className="h-4 w-4" /> {te("Ocultar", "Hide")}
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleDeleteChat(chat.chatId)} className="cursor-pointer gap-2 text-destructive">
-                      <Trash2 className="h-4 w-4" /> {te("Eliminar", "Delete")}
+                      <Trash2 className="h-4 w-4" /> {t("common.delete")}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

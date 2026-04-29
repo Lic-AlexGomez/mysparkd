@@ -75,8 +75,8 @@ async function handler(
   }
 
   if (process.env.NODE_ENV === 'development') {
-    if (endpoint.includes('/chat')) {
-      console.log(`[chat] ${request.method} ${endpoint}`, {
+    if (endpoint.includes('/chat') || endpoint.startsWith('/api/events')) {
+      console.log(`[proxy] ${request.method} ${endpoint}`, {
         contentType,
         body: typeof body === 'string' ? body : body instanceof FormData ? '[FormData]' : body
       })
@@ -118,6 +118,14 @@ async function handler(
     }
 
     const responseBody = await response.arrayBuffer()
+    if (process.env.NODE_ENV === "development" && endpoint.startsWith("/api/events") && response.status >= 400) {
+      try {
+        const text = new TextDecoder().decode(responseBody)
+        console.log(`[events] ${request.method} ${endpoint} -> ${response.status}`, text)
+      } catch {
+        console.log(`[events] ${request.method} ${endpoint} -> ${response.status} (unreadable body)`)
+      }
+    }
 
     return new Response(responseBody, {
       status: response.status,

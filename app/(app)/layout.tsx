@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation"
 import { useEffect } from "react"
 import { AppShell } from "@/components/layout/app-shell"
 import { NotificationBanner } from "@/components/ui/notification-banner"
-import { Sparkles, Zap } from "lucide-react"
+import { Zap } from "lucide-react"
 
 export default function AppLayout({
   children,
@@ -35,14 +35,12 @@ export default function AppLayout({
         : pathname === "/feed" || pathname?.startsWith("/feed/")
           ? "Cargando tu feed…"
           : "Cargando…"
-    const Icon = pathname === "/onboarding" ? Sparkles : Zap
+    const iconClass = "h-10 w-10 text-primary animate-pulse"
     return (
       <div className="flex min-h-svh w-full items-center justify-center bg-background px-4">
         <div className="flex max-w-sm flex-col items-center gap-4 text-center">
-          <Icon
-            className="h-10 w-10 text-primary animate-pulse"
-            aria-hidden
-          />
+          {/* Un solo icono de lucide aquí evita fallos HMR/Turbopack con sparkles.js en este layout. */}
+          <Zap className={iconClass} aria-hidden />
           <div className="space-y-1">
             <p className="text-sm font-medium text-foreground">{label}</p>
             <p className="text-xs text-muted-foreground">

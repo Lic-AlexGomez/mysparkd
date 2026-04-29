@@ -7,8 +7,10 @@ import { Plus } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { api } from "@/lib/api"
 import type { StoryGroup } from "@/lib/types"
+import { useI18n } from "@/lib/i18n"
 
 export function StoriesBar() {
+  const { t } = useI18n()
   const router = useRouter()
   const { user } = useAuth()
   const [groups, setGroups] = useState<StoryGroup[]>([])
@@ -31,7 +33,7 @@ export function StoriesBar() {
     <div className="border-b border-border py-4">
       <div className="flex gap-4 overflow-x-auto px-4 scrollbar-hide">
 
-        {/* Tu historia */}
+        {/* Own story */}
         <button
           onClick={() => router.push('/stories')}
           className="flex flex-col items-center gap-2 flex-shrink-0"
@@ -51,7 +53,7 @@ export function StoriesBar() {
               <Plus className="h-3 w-3 text-primary-foreground" />
             </div>
           </div>
-          <span className="text-xs text-foreground font-medium truncate max-w-[70px]">Tu historia</span>
+          <span className="text-xs text-foreground font-medium truncate max-w-[70px]">{t("storiesBar.yourStory")}</span>
         </button>
 
         {/* Stories de otros */}

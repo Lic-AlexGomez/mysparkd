@@ -32,6 +32,8 @@ import {
   Volume2,
   UserMinus,
   UserPlus,
+  QrCode,
+  Share2,
 } from "lucide-react"
 import { toast } from "sonner"
 import type { Group, GroupInviteLink, GroupMember, GroupMessage, GroupMessageMediaType } from "@/lib/types"
@@ -40,9 +42,10 @@ import { groupService } from "@/lib/services/group"
 import { useAuth } from "@/lib/auth-context"
 import { useWebSocket } from "@/hooks/use-websocket"
 import { useI18n } from "@/lib/i18n"
+import QRCode from "qrcode"
 
 export default function GroupDetailPage() {
-  const { te } = useI18n()
+  const { te, t } = useI18n()
   const { user } = useAuth()
   const features = useFeatureFlags()
   const params = useParams()
@@ -65,6 +68,9 @@ export default function GroupDetailPage() {
   const [removingMemberUserId, setRemovingMemberUserId] = useState<string | null>(null)
   const [deactivatingInviteId, setDeactivatingInviteId] = useState<string | null>(null)
   const [copyingInviteId, setCopyingInviteId] = useState<string | null>(null)
+  const [sharingInviteId, setSharingInviteId] = useState<string | null>(null)
+  const [generatingQrInviteId, setGeneratingQrInviteId] = useState<string | null>(null)
+  const [inviteQrById, setInviteQrById] = useState<Record<string, string>>({})
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
   const [pinUpdatingMessageId, setPinUpdatingMessageId] = useState<string | null>(null)
   const [editingContent, setEditingContent] = useState("")
@@ -111,6 +117,30 @@ export default function GroupDetailPage() {
     if (w === "MODS_AND_ADMINS") return te("Solo moderadores y administradores pueden escribir en el chat.", "Only moderators and admins can write in chat.")
     return te("Solo el administrador puede escribir en el chat.", "Only admin can write in chat.")
   }, [group?.whoCanTalk])
+  const whoCanTalkOptions = useMemo(
+    () => [
+      {
+        value: "ALL" as const,
+        label: te("Todos los miembros", "All members"),
+      },
+      {
+        value: "MODS_AND_ADMINS" as const,
+        label: te("Solo moderadores y admin", "Moderators and admin only"),
+      },
+      {
+        value: "ONLY_ADMIN" as const,
+        label: te("Solo administrador", "Admin only"),
+      },
+    ],
+    [te]
+  )
+  const roleLabel = useMemo(
+    () => ({
+      GUEST: te("Miembro", "Member"),
+      MODERATOR: te("Moderador", "Moderator"),
+    }),
+    [te]
+  )
   const { subscribeToGroup } = useWebSocket(user?.userId, {})
 
   const normalizeMessageId = (msg: Partial<GroupMessage>) =>
@@ -434,6 +464,73 @@ export default function GroupDetailPage() {
     }
   }
 
+  const getInviteUrl = (invite: GroupInviteLink) => {
+    const sp = new URLSearchParams()
+    sp.set("token", invite.token)
+    sp.set("targetRole", invite.targetRole)
+    sp.set("maxUses", String(invite.maxUses))
+    sp.set("usedCount", String(invite.usedCount))
+    if (invite.expiresAt) sp.set("expiresAt", invite.expiresAt)
+    return `${window.location.origin}/groups?${sp.toString()}`
+  }
+
+  const handleGenerateInviteQr = async (invite: GroupInviteLink) => {
+    setGeneratingQrInviteId(invite.inviteId)
+    try {
+      const inviteUrl = getInviteUrl(invite)
+      const dataUrl = await QRCode.toDataURL(inviteUrl, {
+        width: 256,
+        margin: 2,
+        color: {
+          dark: "#000000",
+          light: "#ffffff",
+        },
+      })
+      setInviteQrById((prev) => ({ ...prev, [invite.inviteId]: dataUrl }))
+      toast.success(te("Código QR generado", "QR code generated"))
+    } catch {
+      toast.error(te("No se pudo generar el QR", "Could not generate QR"))
+    } finally {
+      setGeneratingQrInviteId(null)
+    }
+  }
+
+  const handleShareInviteAsPost = async (invite: GroupInviteLink) => {
+    setSharingInviteId(invite.inviteId)
+    try {
+      const inviteUrl = getInviteUrl(invite)
+      const body = te(
+        `Invitación al grupo "${group?.name || ""}"\nRol: ${invite.targetRole}\nÚnete aquí: ${inviteUrl}`,
+        `Invitation to group "${group?.name || ""}"\nRole: ${invite.targetRole}\nJoin here: ${inviteUrl}`
+      )
+      const formData = new FormData()
+      formData.append("post", JSON.stringify({
+        body,
+        permanent: true,
+        locked: false,
+        visibility: "PUBLIC",
+      }))
+
+      const token = localStorage.getItem("sparkd_token")
+      const response = await fetch("/api/proxy/api/posts/new", {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const text = await response.text()
+        throw new Error(text || te("No se pudo compartir en post", "Could not share as post"))
+      }
+
+      toast.success(te("Invitación compartida en un post", "Invitation shared as a post"))
+    } catch (error: any) {
+      toast.error(error?.message || te("No se pudo compartir en post", "Could not share as post"))
+    } finally {
+      setSharingInviteId(null)
+    }
+  }
+
   const handleAddMember = async () => {
     const input = newMemberId.trim()
     if (!input) return
@@ -679,7 +776,7 @@ export default function GroupDetailPage() {
         >
           <TabsTrigger value="messages">{te("Chat", "Chat")}</TabsTrigger>
           <TabsTrigger value="summary">{te("Resumen", "Summary")}</TabsTrigger>
-          {features.groupRoles && <TabsTrigger value="members">{te("Miembros", "Members")}</TabsTrigger>}
+          {features.groupRoles && <TabsTrigger value="members">{t("common.members")}</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="messages" className="mt-6">
@@ -769,7 +866,7 @@ export default function GroupDetailPage() {
               }
             >
               <Send className="h-4 w-4 mr-2" />
-              {isSending ? te("Enviando...", "Sending...") : te("Enviar", "Send")}
+              {isSending ? te("Enviando...", "Sending...") : t("common.send")}
             </Button>
           </div>
 
@@ -865,10 +962,10 @@ export default function GroupDetailPage() {
                               />
                               <div className="flex gap-2">
                                 <Button size="sm" onClick={saveEdit} disabled={isSavingEdit}>
-                                  {isSavingEdit ? te("Guardando...", "Saving...") : te("Guardar", "Save")}
+                                  {isSavingEdit ? te("Guardando...", "Saving...") : t("common.save")}
                                 </Button>
                                 <Button size="sm" variant="outline" onClick={() => setEditingMessageId(null)}>
-                                  {te("Cancelar", "Cancel")}
+                                  {t("common.cancel")}
                                 </Button>
                               </div>
                             </div>
@@ -933,7 +1030,7 @@ export default function GroupDetailPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               {canEditMessage(msg) && (
-                                <DropdownMenuItem onClick={() => startEdit(msg)}>{te("Editar", "Edit")}</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => startEdit(msg)}>{t("common.edit")}</DropdownMenuItem>
                               )}
                               {canDeleteMessage(msg) && (
                                 <DropdownMenuItem
@@ -941,7 +1038,7 @@ export default function GroupDetailPage() {
                                   disabled={deletingMessageId === msg.id}
                                   onClick={() => deleteMessage(msg.id)}
                                 >
-                                  {deletingMessageId === msg.id ? te("Eliminando...", "Deleting...") : te("Eliminar", "Delete")}
+                                  {deletingMessageId === msg.id ? te("Eliminando...", "Deleting...") : t("common.delete")}
                                 </DropdownMenuItem>
                               )}
                               {canModerate && (
@@ -1027,15 +1124,17 @@ export default function GroupDetailPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="ALL">ALL</SelectItem>
-                      <SelectItem value="MODS_AND_ADMINS">MODS_AND_ADMINS</SelectItem>
-                      <SelectItem value="ONLY_ADMIN">ONLY_ADMIN</SelectItem>
+                      {whoCanTalkOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="flex items-end">
                   <Button onClick={handleSaveSettings} disabled={isSavingSettings} className="w-full md:w-auto">
-                    {te("Guardar settings", "Save settings")}
+                    {te("Guardar configuración", "Save configuration")}
                   </Button>
                 </div>
               </div>
@@ -1054,7 +1153,7 @@ export default function GroupDetailPage() {
                     if (memberSuggestions.length > 0) setShowMemberDropdown(true)
                   }}
                   onBlur={() => setShowMemberDropdown(false)}
-                  placeholder={te("UUID o @username", "UUID or @username")}
+                  placeholder={te("ID de usuario (UUID) o @usuario", "User ID (UUID) or @username")}
                 />
                 {showMemberDropdown && (
                   <div className="relative md:col-span-3">
@@ -1094,8 +1193,8 @@ export default function GroupDetailPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="GUEST">GUEST</SelectItem>
-                    <SelectItem value="MODERATOR">MODERATOR</SelectItem>
+                    <SelectItem value="GUEST">{roleLabel.GUEST}</SelectItem>
+                    <SelectItem value="MODERATOR">{roleLabel.MODERATOR}</SelectItem>
                   </SelectContent>
                 </Select>
                 <Button onClick={handleAddMember} disabled={isAddingMember} className="w-full md:w-auto">
@@ -1109,7 +1208,7 @@ export default function GroupDetailPage() {
             <div className="mb-6 space-y-4 rounded-xl border border-border p-4 bg-card">
               <p className="text-sm font-semibold flex items-center gap-2">
                 <Link2 className="h-4 w-4" />
-                {te("Links de invitación", "Invitation links")}
+                {te("Enlaces de invitación", "Invitation links")}
               </p>
               <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
                 <Select value={inviteRole} onValueChange={(v: any) => setInviteRole(v)}>
@@ -1117,17 +1216,17 @@ export default function GroupDetailPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="GUEST">GUEST</SelectItem>
-                    <SelectItem value="MODERATOR">MODERATOR</SelectItem>
+                    <SelectItem value="GUEST">{roleLabel.GUEST}</SelectItem>
+                    <SelectItem value="MODERATOR">{roleLabel.MODERATOR}</SelectItem>
                   </SelectContent>
                 </Select>
                 <Input
                   value={inviteMaxUses}
                   onChange={(e) => setInviteMaxUses(e.target.value)}
-                  placeholder={te("máx usos (0 = ilimitado)", "max uses (0 = unlimited)")}
+                  placeholder={te("Máximo de usos (0 = ilimitado)", "Maximum uses (0 = unlimited)")}
                 />
                 <Button onClick={handleCreateInvite} disabled={isCreatingInvite} className="w-full md:w-auto">
-                  {isCreatingInvite ? te("Creando...", "Creating...") : te("Crear link", "Create link")}
+                  {isCreatingInvite ? te("Creando...", "Creating...") : t("common.createLink")}
                 </Button>
               </div>
               <div className="space-y-2">
@@ -1139,7 +1238,7 @@ export default function GroupDetailPage() {
                       <div className="text-xs">
                         <p className="font-mono">{link.token}</p>
                         <p className="text-muted-foreground">
-                          {link.targetRole} · {link.usedCount}/{link.maxUses === 0 ? "∞" : link.maxUses}
+                          {link.targetRole === "MODERATOR" ? roleLabel.MODERATOR : roleLabel.GUEST} · {link.usedCount}/{link.maxUses === 0 ? "∞" : link.maxUses}
                         </p>
                       </div>
                       <div className="flex flex-wrap gap-2">
@@ -1151,14 +1250,38 @@ export default function GroupDetailPage() {
                           onClick={async () => {
                             setCopyingInviteId(link.inviteId)
                             try {
-                              await navigator.clipboard.writeText(`${window.location.origin}/groups?token=${link.token}`)
+                              await navigator.clipboard.writeText(getInviteUrl(link))
                               toast.success(te("Link copiado", "Link copied"))
                             } finally {
                               setCopyingInviteId(null)
                             }
                           }}
                         >
-                          {copyingInviteId === link.inviteId ? te("Copiando...", "Copying...") : te("Copiar", "Copy")}
+                          {copyingInviteId === link.inviteId ? te("Copiando...", "Copying...") : t("common.copy")}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={generatingQrInviteId === link.inviteId}
+                          className="w-full sm:w-auto"
+                          onClick={() => handleGenerateInviteQr(link)}
+                        >
+                          <QrCode className="h-3.5 w-3.5 mr-1" />
+                          {generatingQrInviteId === link.inviteId
+                            ? te("Generando QR...", "Generating QR...")
+                            : te("QR", "QR")}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={sharingInviteId === link.inviteId}
+                          className="w-full sm:w-auto"
+                          onClick={() => handleShareInviteAsPost(link)}
+                        >
+                          <Share2 className="h-3.5 w-3.5 mr-1" />
+                          {sharingInviteId === link.inviteId
+                            ? te("Compartiendo...", "Sharing...")
+                            : te("Compartir en post", "Share as post")}
                         </Button>
                         {isAdmin && (
                           <Button
@@ -1168,10 +1291,25 @@ export default function GroupDetailPage() {
                             className="w-full sm:w-auto"
                             onClick={() => handleDeactivateInvite(link.inviteId)}
                           >
-                            {deactivatingInviteId === link.inviteId ? te("Desactivando...", "Disabling...") : te("Desactivar", "Disable")}
+                            {deactivatingInviteId === link.inviteId ? te("Desactivando...", "Disabling...") : t("common.disable")}
                           </Button>
                         )}
                       </div>
+                      {inviteQrById[link.inviteId] && (
+                        <div className="mt-2 rounded border border-border bg-muted/30 p-3">
+                          <div className="flex flex-col items-center gap-2 sm:flex-row sm:items-start">
+                            <img
+                              src={inviteQrById[link.inviteId]}
+                              alt={te("QR de invitación", "Invitation QR")}
+                              className="h-36 w-36 rounded bg-white p-1"
+                            />
+                            <div className="text-xs text-muted-foreground">
+                              <p>{te("Escanea para unirte al grupo.", "Scan to join the group.")}</p>
+                              <p className="mt-1 font-mono break-all">{getInviteUrl(link)}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))
                 )}

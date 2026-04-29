@@ -5,10 +5,18 @@ const REQUEST_TIMEOUT_MS = 20_000
 class ApiError extends Error {
   status: number
   details?: string
-  constructor(message: string, status: number, details?: string) {
+  /** Segundos desde cabecera `Retry-After` (solo cuando el servidor lo envía). */
+  retryAfterSeconds?: number
+  constructor(
+    message: string,
+    status: number,
+    details?: string,
+    retryAfterSeconds?: number
+  ) {
     super(message)
     this.status = status
     this.details = details
+    this.retryAfterSeconds = retryAfterSeconds
     this.name = "ApiError"
   }
 }
@@ -163,6 +171,9 @@ async function request<T>(
       if (status === 409) {
         message =
           "Ese correo no está disponible: puede estar en uso por otra cuenta, coincidir con tu correo principal, o haber una solicitud reciente. Prueba otro correo o espera unos minutos."
+      } else if (status === 429) {
+        message =
+          "Demasiados intentos en poco tiempo. Espera un momento e inténtalo de nuevo."
       } else {
         message =
           status === 502 || status === 503 || status === 504
@@ -172,7 +183,17 @@ async function request<T>(
               : `Solicitud no completada (HTTP ${status}).`
       }
     }
-    throw new ApiError(message, status, details)
+    let retryAfterSeconds: number | undefined
+    if (status === 429) {
+      const ra = response.headers.get("Retry-After")
+      if (ra) {
+        const sec = parseInt(ra.trim(), 10)
+        if (!Number.isNaN(sec) && sec >= 0 && sec <= 86400) {
+          retryAfterSeconds = sec
+        }
+      }
+    }
+    throw new ApiError(message, status, details, retryAfterSeconds)
   }
 
   const contentType = response.headers.get("content-type")

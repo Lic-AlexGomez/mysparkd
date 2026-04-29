@@ -29,7 +29,7 @@ interface StoryReaction {
 }
 
 export default function StoriesPage() {
-  const { te } = useI18n()
+  const { te, t } = useI18n()
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user } = useAuth()
@@ -291,7 +291,7 @@ export default function StoriesPage() {
                 onClick={() => fetchStories(targetUserId || undefined)}
                 className="text-white border-white/30 hover:bg-white/10"
               >
-                {te("Recargar", "Reload")}
+                {t("common.reload")}
               </Button>
               {isTargetFilterEnabled && (
                 <Button

@@ -16,3 +16,19 @@ export function toBackendAccountType(
   if (u === "PREMIUM") return "BOTH"
   return "BOTH"
 }
+
+/** Etiquetas cortas para mostrar el modo de cuenta en perfil (no es el plan premium). */
+export function accountTypeBadgeLabels(at: BackendAccountType): {
+  emoji: string
+  labelEs: string
+  labelEn: string
+} {
+  switch (at) {
+    case "DATING":
+      return { emoji: "💕", labelEs: "Citas", labelEn: "Dating" }
+    case "SOCIAL":
+      return { emoji: "💬", labelEs: "Social", labelEn: "Social" }
+    default:
+      return { emoji: "✨", labelEs: "Mixto", labelEn: "Mixed" }
+  }
+}

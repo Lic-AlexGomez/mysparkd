@@ -26,8 +26,61 @@ const withQuery = (base: string, params: Record<string, string | number | boolea
 
 export const eventService = {
   // 1) Events
-  create: (payload: Record<string, unknown>) =>
-    api.post<Event>("/api/events", payload),
+  create: (payload: Record<string, unknown>) => {
+    const officialAddress = String(
+      payload.officialAddress ??
+      payload.address ??
+      payload.locationAddress ??
+      ""
+    ).trim()
+    if (!officialAddress) {
+      throw new Error("Official meetup address is required")
+    }
+    const dateCandidate = String(
+      payload.eventDate ??
+      payload.startsAt ??
+      payload.startAt ??
+      payload.startDateTime ??
+      payload.dateTime ??
+      ""
+    ).trim()
+    if (!dateCandidate) {
+      throw new Error("Event date is required")
+    }
+
+    const eventDate = new Date(dateCandidate)
+    if (Number.isNaN(eventDate.getTime())) {
+      throw new Error("Event date is invalid")
+    }
+
+    const maxGuestsRaw = Number(payload.maxGuests ?? 0)
+    const maxGuests = Number.isFinite(maxGuestsRaw) && maxGuestsRaw > 0 ? Math.floor(maxGuestsRaw) : 1
+    const free = Boolean(payload.free ?? true)
+    const priceRaw = Number(payload.price ?? 0)
+    const normalizedPrice = !free && Number.isFinite(priceRaw) && priceRaw > 0 ? priceRaw : undefined
+
+    const backendPayload: Record<string, unknown> = {
+      title: String(payload.title || "").trim(),
+      description: String(payload.description || "").trim() || undefined,
+      category: payload.category,
+      eventDate: eventDate.toISOString(),
+      zone: String(payload.zone || payload.locationZone || officialAddress.split(",")[0] || "").trim(),
+      exactAddress: officialAddress,
+      latitude: Number(payload.latitude ?? 0) || 0,
+      longitude: Number(payload.longitude ?? 0) || 0,
+      free,
+      price: normalizedPrice,
+      minGuests: Number(payload.minGuests ?? 1) || 1,
+      maxGuests,
+      minAge: Number(payload.minAge ?? 18) || 18,
+      maxAge: Number(payload.maxAge ?? 99) || 99,
+      targetAudience: payload.targetAudience || undefined,
+      coverPhotoUrl: payload.coverPhotoUrl || undefined,
+      coverPhotoPublicId: payload.coverPhotoPublicId || undefined,
+    }
+
+    return api.post<Event>("/api/events", backendPayload)
+  },
 
   list: (filters?: EventFilters) =>
     api.get<Event[]>(
@@ -182,8 +235,17 @@ export const eventService = {
   },
 
   // 10) Share event address
+  setOfficialAddress: (eventId: string, officialAddress: string) =>
+    api.patch<Event>(`/api/events/${eventId}`, { officialAddress }),
+
   shareAddress: (eventId: string, address: string) =>
-    api.post<void>(`/api/events/${eventId}/group/share-address`, { address }),
+    api.post<{
+      matched?: boolean
+      requiresUpdate?: boolean
+      message?: string
+      officialAddress?: string
+      sharedAddress?: string
+    }>(`/api/events/${eventId}/group/share-address`, { address }),
 
   // Reuse existing backend upload endpoint for media
   uploadMedia: async (file: File): Promise<{ mediaUrl: string; mediaPublicId: string }> => {

@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import { Toaster } from 'sonner'
 import { AuthProvider } from '@/lib/auth-context'
 import { LanguageProvider } from '@/lib/i18n'
+import { SyncPreferredLanguage } from '@/components/sync-preferred-language'
 import './globals.css'
 
 const _geist = Geist({ subsets: ["latin"] });
@@ -181,6 +182,7 @@ export default function RootLayout({
       <body className="font-sans antialiased">
         <LanguageProvider>
           <AuthProvider>
+            <SyncPreferredLanguage />
             {children}
             <Toaster
               theme="dark"

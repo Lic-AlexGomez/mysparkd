@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation"
 import { useI18n } from "@/lib/i18n"
 
 export default function TrelloPage() {
-  const { te } = useI18n()
+  const { te, t } = useI18n()
   const router = useRouter()
   const features = useFeatureFlags()
   const [boards, setBoards] = useState<TrelloBoard[]>([])
@@ -159,7 +159,7 @@ export default function TrelloPage() {
                       </p>
                     </div>
                     <a href={card.url} target="_blank" rel="noreferrer" className="text-primary hover:underline text-xs">
-                      {te("Ver", "View")}
+                      {t("common.view")}
                     </a>
                   </div>
                 </div>

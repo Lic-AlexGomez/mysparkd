@@ -340,7 +340,7 @@ export function TopNavbar() {
                 aria-modal={isNarrowViewport}
                 aria-labelledby={notificationsTitleId}
                 tabIndex={-1}
-                className="fixed left-0 right-0 top-16 z-50 flex max-h-[min(85dvh,calc(100dvh-4.5rem))] flex-col overflow-hidden border-x border-b border-border bg-card px-2 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] shadow-2xl shadow-black/25 outline-none [padding-left:max(0.5rem,env(safe-area-inset-left,0px))] [padding-right:max(0.5rem,env(safe-area-inset-right,0px))] rounded-b-2xl sm:px-3 md:absolute md:left-auto md:right-0 md:top-full md:z-50 md:mt-2 md:max-h-none md:w-96 md:rounded-2xl md:border md:px-0 md:pb-0 md:pt-0"
+                className="fixed left-0 right-0 top-16 bottom-0 z-50 flex flex-col overflow-hidden border-x border-b border-border bg-card px-2 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] shadow-2xl shadow-black/25 outline-none [padding-left:max(0.5rem,env(safe-area-inset-left,0px))] [padding-right:max(0.5rem,env(safe-area-inset-right,0px))] rounded-b-2xl sm:px-3 md:bottom-auto md:absolute md:left-auto md:right-0 md:top-full md:z-50 md:mt-2 md:max-h-[min(420px,80vh)] md:w-96 md:rounded-2xl md:border md:px-0 md:pb-0 md:pt-0"
                 data-notifications-dropdown
               >
               {/* Header */}

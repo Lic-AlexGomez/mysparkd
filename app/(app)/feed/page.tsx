@@ -36,7 +36,7 @@ const sortOptions = [
 ]
 
 export default function FeedPage() {
-  const { te } = useI18n()
+  const { te, t } = useI18n()
   const { user } = useAuth()
   const features = useFeatureFlags()
   const searchParams = useSearchParams()
@@ -449,21 +449,21 @@ export default function FeedPage() {
                       className="flex items-center justify-center gap-1.5 rounded-lg px-1.5 text-xs font-medium data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:gap-2 sm:px-2 sm:text-sm"
                     >
                       <Globe className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden />
-                      <span>{te("Global", "Global")}</span>
+                      <span>{t("common.global")}</span>
                     </TabsTrigger>
                     <TabsTrigger
                       value="local"
                       className="flex items-center justify-center gap-1.5 rounded-lg px-1.5 text-xs font-medium data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:gap-2 sm:px-2 sm:text-sm"
                     >
                       <Newspaper className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden />
-                      <span>{te("Local", "Local")}</span>
+                      <span>{t("common.local")}</span>
                     </TabsTrigger>
                     <TabsTrigger
                       value="following"
                       className="flex min-w-0 items-center justify-center gap-1.5 rounded-lg px-1.5 text-xs font-medium data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:gap-2 sm:px-2 sm:text-sm"
                     >
                       <Users className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden />
-                      <span className="truncate">{te("Siguiendo", "Following")}</span>
+                      <span className="truncate">{t("common.following")}</span>
                     </TabsTrigger>
                   </TabsList>
 

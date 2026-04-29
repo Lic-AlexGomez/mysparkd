@@ -19,6 +19,7 @@ import { ReportModal } from "@/components/feed/report-modal"
 import { toast } from "sonner"
 import { VoiceNotePlayer } from "@/components/ui/voice-note"
 import { useI18n } from "@/lib/i18n"
+import { accountTypeBadgeLabels, toBackendAccountType } from "@/lib/account-type"
 
 function getAge(dateOfBirth?: string): number | null {
   if (!dateOfBirth) return null
@@ -33,7 +34,7 @@ interface FollowerUser {
 }
 
 export default function UserProfilePage() {
-  const { te } = useI18n()
+  const { te, t } = useI18n()
   const { user } = useAuth()
   const params = useParams()
   const router = useRouter()
@@ -139,7 +140,7 @@ export default function UserProfilePage() {
           toast.success(te("Solicitud enviada", "Request sent"))
         } else {
           setFollowing(true)
-          toast.success(te("Siguiendo", "Following"))
+          toast.success(t("common.following"))
         }
       } catch {
         toast.error(te("Error al seguir", "Error following"))
@@ -252,6 +253,11 @@ export default function UserProfilePage() {
   const compatibility = compatibilityFromUrl ? parseInt(compatibilityFromUrl) : null
   const isPremium = profile.premium || profile.showPremiumBadge || profile.subscriptionStatus === 'ACTIVE'
   const profileInterests: any[] = profile.interests || []
+  const totalPostsDisplay =
+    typeof profile.totalPosts === "number"
+      ? profile.totalPosts
+      : profile.posts?.length ?? 0
+  const accountModeLabel = accountTypeBadgeLabels(toBackendAccountType(profile.accountType))
 
   return (
     <div className="mx-auto max-w-2xl pb-10">
@@ -360,6 +366,10 @@ export default function UserProfilePage() {
                 <Crown className="h-3 w-3" /> Premium
               </span>
             )}
+            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-muted text-foreground border border-border">
+              {accountModeLabel.emoji}{" "}
+              {te(accountModeLabel.labelEs, accountModeLabel.labelEn)}
+            </span>
           </div>
           {profile.username && <p className="text-sm text-muted-foreground mt-0.5">@{profile.username}</p>}
           {profile.bio && <p className="text-sm text-foreground mt-2 leading-relaxed">{profile.bio}</p>}
@@ -405,7 +415,7 @@ export default function UserProfilePage() {
         {/* Stats — clickeables */}
         <div className="mt-4 flex items-center gap-6 border-t border-border pt-4">
           <div className="flex flex-col items-center">
-            <span className="text-lg font-bold text-foreground">{profile.totalPosts}</span>
+            <span className="text-lg font-bold text-foreground">{totalPostsDisplay}</span>
             <span className="text-xs text-muted-foreground">Posts</span>
           </div>
           <button onClick={() => openFollowList('followers')} className="flex flex-col items-center hover:opacity-70 transition-opacity">
@@ -521,8 +531,8 @@ export default function UserProfilePage() {
           <DialogTitle>{te("Eliminar foto", "Delete photo")}</DialogTitle>
           <p className="text-sm text-foreground">{te("¿Seguro que quieres eliminar esta foto?", "Are you sure you want to delete this photo?")}</p>
           <div className="flex justify-end gap-2 mt-4">
-            <button onClick={() => setConfirmOpen(false)} className="px-4 py-2 rounded-lg border border-border text-sm">{te("Cancelar", "Cancel")}</button>
-            <button onClick={confirmDeletePhoto} className="px-4 py-2 rounded-lg bg-destructive text-destructive-foreground text-sm">{te("Eliminar", "Delete")}</button>
+            <button onClick={() => setConfirmOpen(false)} className="px-4 py-2 rounded-lg border border-border text-sm">{t("common.cancel")}</button>
+            <button onClick={confirmDeletePhoto} className="px-4 py-2 rounded-lg bg-destructive text-destructive-foreground text-sm">{t("common.delete")}</button>
           </div>
         </DialogContent>
       </Dialog>

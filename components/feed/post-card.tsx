@@ -71,7 +71,7 @@ interface PostCardProps {
 
 export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highlight, compact = false }: PostCardProps) {
   const normalizedReactions: ReactionSummary = post.reactions || {}
-  const { te } = useI18n()
+  const { te, t } = useI18n()
   const { user } = useAuth()
   const features = useFeatureFlags()
   const { isPremium } = usePremiumStatus()
@@ -539,14 +539,14 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
                 >
                   <DropdownMenuItem onClick={handleEdit} className="cursor-pointer">
                     <Pencil className="mr-2 h-4 w-4" />
-                    {te("Editar", "Edit")}
+                    {t("common.edit")}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => setShowDeleteConfirm(true)}
                     className="text-destructive cursor-pointer"
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
-                    {te("Eliminar", "Delete")}
+                    {t("common.delete")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -600,7 +600,7 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
                   disabled={isSaving}
                   className="border-border text-foreground"
                 >
-                  {te("Cancelar", "Cancel")}
+                  {t("common.cancel")}
                 </Button>
                 <Button
                   size="sm"
@@ -866,10 +866,10 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
             </div>
             <div className="flex gap-3 w-full">
               <Button variant="outline" className="flex-1" onClick={() => setShowDeleteConfirm(false)}>
-                {te("Cancelar", "Cancel")}
+                {t("common.cancel")}
               </Button>
               <Button variant="destructive" className="flex-1" onClick={handleDelete}>
-                {te("Eliminar", "Delete")}
+                {t("common.delete")}
               </Button>
             </div>
           </div>

@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
-import { api } from "@/lib/api"
+import { api, ApiError } from "@/lib/api"
 import type { UserProfile } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -62,7 +62,16 @@ export default function RegisterPage() {
         `/verify-email?email=${encodeURIComponent(email.trim())}&username=${encodeURIComponent(username.trim())}`
       )
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al registrarse")
+      if (err instanceof ApiError && err.status === 429) {
+        const w = err.retryAfterSeconds
+        toast.error(
+          w != null
+            ? `Demasiados intentos. Espera ${w}s o prueba más tarde.`
+            : err.message || "Demasiados intentos. Prueba más tarde."
+        )
+      } else {
+        toast.error(err instanceof Error ? err.message : "Error al registrarse")
+      }
     } finally {
       setIsLoading(false)
     }

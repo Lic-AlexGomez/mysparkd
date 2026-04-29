@@ -46,13 +46,41 @@ export function clearStashedLoginAccountTypeIfSynced(profile: UserProfile) {
 
 /** Alinea nombres del DTO Java (snake_case) con el cliente. */
 function normalizeProfileFromApi(profile: UserProfile): UserProfile {
-  const r = profile as UserProfile & { recovery_email?: string | null }
-  const recovery = profile.recoveryEmail ?? r.recovery_email
-  if (recovery === undefined || recovery === null) {
-    return profile
+  const r = profile as UserProfile & {
+    recovery_email?: string | null
+    total_posts?: number
+    preferred_language?: string
   }
-  if (recovery === profile.recoveryEmail) return profile
-  return { ...profile, recoveryEmail: recovery }
+  const recovery = profile.recoveryEmail ?? r.recovery_email
+  let next: UserProfile = profile
+
+  const totalPosts =
+    typeof profile.totalPosts === "number"
+      ? profile.totalPosts
+      : typeof r.total_posts === "number"
+        ? r.total_posts
+        : undefined
+  if (totalPosts !== undefined && totalPosts !== profile.totalPosts) {
+    next = { ...next, totalPosts }
+  } else if (typeof next.totalPosts !== "number") {
+    const fallback = Array.isArray(profile.posts) ? profile.posts.length : 0
+    next = { ...next, totalPosts: fallback }
+  }
+
+  const preferredLanguage =
+    profile.preferredLanguage ?? r.preferred_language ?? undefined
+  if (
+    preferredLanguage !== undefined &&
+    preferredLanguage !== profile.preferredLanguage
+  ) {
+    next = { ...next, preferredLanguage }
+  }
+
+  if (recovery === undefined || recovery === null) {
+    return next
+  }
+  if (recovery === profile.recoveryEmail) return next
+  return { ...next, recoveryEmail: recovery }
 }
 
 interface AuthContextType {

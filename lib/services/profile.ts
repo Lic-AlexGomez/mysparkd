@@ -31,17 +31,27 @@ export const profileService = {
 export const adminService = {
   async getStats(): Promise<AdminStats | null> {
     try {
-      return await api.get<AdminStats>('/admin/stats')
+      return await api.get<AdminStats>('/api/admin/stats')
     } catch {
-      return null
+      try {
+        // Compatibilidad con backend legado sin prefijo /api
+        return await api.get<AdminStats>('/admin/stats')
+      } catch {
+        return null
+      }
     }
   },
 
   async getGrowth(): Promise<UserGrowth[]> {
     try {
-      return await api.get<UserGrowth[]>('/admin/growth')
+      return await api.get<UserGrowth[]>('/api/admin/growth')
     } catch {
-      return []
+      try {
+        // Compatibilidad con backend legado sin prefijo /api
+        return await api.get<UserGrowth[]>('/admin/growth')
+      } catch {
+        return []
+      }
     }
   }
 }

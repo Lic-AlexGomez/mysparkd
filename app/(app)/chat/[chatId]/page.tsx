@@ -46,7 +46,7 @@ function pinnedAuthorLabel(msg: Message, selfId: string | undefined, otherName: 
 }
 
 export default function ChatRoomPage() {
-  const { te } = useI18n()
+  const { te, t } = useI18n()
   const params = useParams()
   const router = useRouter()
   const { user } = useAuth()
@@ -1145,7 +1145,7 @@ export default function ChatRoomPage() {
                       <button
                         className="h-7 w-7 rounded-full flex items-center justify-center bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                         onClick={(e) => { e.stopPropagation(); handleCopyMessage(actualContent, msgId) }}
-                        title={te("Copiar", "Copy")}
+                        title={t("common.copy")}
                       >
                         {copiedMessageId === msgId ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
                       </button>
@@ -1329,7 +1329,7 @@ export default function ChatRoomPage() {
                       <button
                         className="h-7 w-7 rounded-full flex items-center justify-center bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                         onClick={(e) => { e.stopPropagation(); handleCopyMessage(actualContent, msgId) }}
-                        title={te("Copiar", "Copy")}
+                        title={t("common.copy")}
                       >
                         {copiedMessageId === msgId ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
                       </button>
@@ -1337,7 +1337,7 @@ export default function ChatRoomPage() {
                         <button
                           className="h-7 w-7 rounded-full flex items-center justify-center bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                           onClick={(e) => { e.stopPropagation(); handleStartEdit(msg) }}
-                          title={te("Editar", "Edit")}
+                          title={t("common.edit")}
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
@@ -1356,7 +1356,7 @@ export default function ChatRoomPage() {
                       <button
                         className="h-7 w-7 rounded-full flex items-center justify-center bg-muted/80 hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
                         onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(msgId) }}
-                        title={te("Eliminar", "Delete")}
+                        title={t("common.delete")}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>

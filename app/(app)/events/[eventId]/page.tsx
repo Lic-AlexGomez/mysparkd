@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { eventService } from "@/lib/services/event"
 import { groupService } from "@/lib/services/group"
 import { ApiError } from "@/lib/api"
@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
+import { LocationInput } from "@/components/ui/location-input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeft, Copy, Loader2, MessageCircle, Shield, Trash2, UserMinus, UserX, Volume2, VolumeX } from "lucide-react"
@@ -25,9 +26,10 @@ const normalizeEventId = (raw: any) => String(raw?.eventId || raw?.id || "")
 const normalizeMessageId = (raw: any) => String(raw?.id || raw?.messageId || "")
 
 export default function EventDetailPage() {
-  const { te } = useI18n()
+  const { te, t } = useI18n()
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user } = useAuth()
   const eventId = String(params.eventId || "")
   const { subscribeToEventGroup, subscribeToEventCapacity } = useWebSocket(user?.userId, {})
@@ -51,6 +53,8 @@ export default function EventDetailPage() {
   const [inviteLinks, setInviteLinks] = useState<any[]>([])
   const [inviteRole, setInviteRole] = useState<"GUEST" | "MODERATOR">("GUEST")
   const [inviteMaxUses, setInviteMaxUses] = useState("0")
+  const [officialAddressText, setOfficialAddressText] = useState("")
+  const [isSavingOfficialAddress, setIsSavingOfficialAddress] = useState(false)
   const [pollQuestion, setPollQuestion] = useState("")
   const [pollOptions, setPollOptions] = useState("")
   const [mediaFile, setMediaFile] = useState<File | null>(null)
@@ -69,6 +73,8 @@ export default function EventDetailPage() {
   const mutedUntil = myMember?.mutedUntil ? new Date(myMember.mutedUntil) : null
   const isMuted = Boolean(mutedUntil && mutedUntil.getTime() > Date.now())
   const canSend = !isMuted && (!groupSettings.adminOnlyMode || isAdmin) && (!groupSettings.slowMode || isAdmin || isModerator)
+  const normalizeAddress = (value?: string | null) =>
+    String(value || "").trim().toLowerCase().replace(/\s+/g, " ")
 
   const upsertMessage = (incoming: EventGroupMessage) => {
     const incomingId = normalizeMessageId(incoming)
@@ -142,6 +148,18 @@ export default function EventDetailPage() {
     if (!eventId) return
     void loadEvent()
   }, [eventId])
+
+  useEffect(() => {
+    const tab = String(searchParams.get("tab") || "").toLowerCase()
+    if (tab === "chat" || tab === "members" || tab === "requests" || tab === "settings") {
+      setActiveTab(tab)
+    }
+  }, [searchParams])
+
+  useEffect(() => {
+    const savedOfficial = String((eventData as any)?.officialAddress || "")
+    setOfficialAddressText(savedOfficial)
+  }, [eventData?.eventId, (eventData as any)?.officialAddress])
 
   useEffect(() => {
     if (!eventId || !user?.userId) return
@@ -443,6 +461,21 @@ export default function EventDetailPage() {
   }
 
   const handleApproveParticipant = async (userId: string) => {
+    const officialAddress = String((eventData as any)?.officialAddress || "").trim()
+    const sharedAddress = String((eventData as any)?.sharedAddress || "").trim()
+    const backendMatched = (eventData as any)?.addressMatched
+    const addressMatched = typeof backendMatched === "boolean"
+      ? backendMatched
+      : normalizeAddress(officialAddress) !== "" && normalizeAddress(officialAddress) === normalizeAddress(sharedAddress)
+    if (!officialAddress || !addressMatched) {
+      toast.error(
+        te(
+          "Para aprobar participantes primero configura la dirección oficial y asegúrate de que coincida con la compartida en el chat.",
+          "To approve participants, first set the official address and ensure it matches the one shared in chat."
+        )
+      )
+      return
+    }
     try {
       await eventService.approveParticipant(eventId, userId)
       setPendingParticipants((prev) => prev.filter((p) => p.userId !== userId))
@@ -463,6 +496,21 @@ export default function EventDetailPage() {
   }
 
   const handleApproveGroupRequest = async (requestId: string) => {
+    const officialAddress = String((eventData as any)?.officialAddress || "").trim()
+    const sharedAddress = String((eventData as any)?.sharedAddress || "").trim()
+    const backendMatched = (eventData as any)?.addressMatched
+    const addressMatched = typeof backendMatched === "boolean"
+      ? backendMatched
+      : normalizeAddress(officialAddress) !== "" && normalizeAddress(officialAddress) === normalizeAddress(sharedAddress)
+    if (!officialAddress || !addressMatched) {
+      toast.error(
+        te(
+          "Para aprobar solicitudes grupales primero valida la dirección del meetup.",
+          "To approve group requests, first validate meetup address."
+        )
+      )
+      return
+    }
     try {
       await eventService.groupJoinRequests.approve(eventId, requestId)
       setPendingGroupRequests((prev) => prev.filter((r) => r.id !== requestId))
@@ -520,15 +568,83 @@ export default function EventDetailPage() {
       toast.error(te("Ingresa una dirección", "Enter an address"))
       return
     }
+    const officialAddress = String((eventData as any)?.officialAddress || "").trim()
+    if (!officialAddress) {
+      toast.error(
+        te(
+          "Primero debes guardar la dirección oficial del evento.",
+          "You must save the event official address first."
+        )
+      )
+      return
+    }
     setIsSharingAddress(true)
     try {
-      await eventService.shareAddress(eventId, address)
-      toast.success(te("Dirección compartida en el chat del evento", "Address shared in event chat"))
+      const response = await eventService.shareAddress(eventId, address)
+      const matchedFromBackend = response?.matched
+      const matched =
+        typeof matchedFromBackend === "boolean"
+          ? matchedFromBackend
+          : normalizeAddress(officialAddress) === normalizeAddress(address)
+      setEventData((prev: any) => ({
+        ...prev,
+        sharedAddress: address,
+        officialAddress: prev?.officialAddress || officialAddress,
+        addressMatched: matched,
+        locationVerified: matched,
+      }))
+      if (matched) {
+        toast.success(
+          te(
+            "Dirección validada y compartida. Ya puedes aprobar participantes.",
+            "Address validated and shared. You can now approve participants."
+          )
+        )
+      } else {
+        toast.error(
+          response?.message ||
+            te(
+              "La dirección compartida no coincide con la oficial. Actualízala para poder aprobar participantes.",
+              "Shared address does not match official one. Update it before approving participants."
+            )
+        )
+      }
       setShareAddressText("")
     } catch (error: any) {
       toast.error(error?.message || te("No se pudo compartir la dirección", "Could not share address"))
     } finally {
       setIsSharingAddress(false)
+    }
+  }
+
+  const handleSaveOfficialAddress = async () => {
+    const next = officialAddressText.trim()
+    if (!next) {
+      toast.error(
+        te(
+          "La dirección oficial es obligatoria para crear y moderar el meetup.",
+          "Official address is required to create and moderate meetup."
+        )
+      )
+      return
+    }
+    setIsSavingOfficialAddress(true)
+    try {
+      await eventService.setOfficialAddress(eventId, next)
+      setEventData((prev: any) => ({
+        ...prev,
+        officialAddress: next,
+      }))
+      toast.success(
+        te(
+          "Dirección oficial guardada.",
+          "Official address saved."
+        )
+      )
+    } catch (error: any) {
+      toast.error(error?.message || te("No se pudo guardar la dirección oficial.", "Could not save official address."))
+    } finally {
+      setIsSavingOfficialAddress(false)
     }
   }
 
@@ -570,6 +686,21 @@ export default function EventDetailPage() {
 
   const approvedCount = Number(capacity?.currentApprovedCount ?? eventData?.currentApprovedCount ?? 0)
   const maxGuests = Number(capacity?.maxGuests ?? eventData?.maxGuests ?? 0)
+  const officialAddressSaved = String((eventData as any)?.officialAddress || "").trim()
+  const sharedAddressSaved = String((eventData as any)?.sharedAddress || "").trim()
+  const backendMatched = (eventData as any)?.addressMatched
+  const isAddressMatched = typeof backendMatched === "boolean"
+    ? backendMatched
+    : normalizeAddress(officialAddressSaved) !== "" &&
+      normalizeAddress(officialAddressSaved) === normalizeAddress(sharedAddressSaved)
+  const canApproveByAddress = Boolean(officialAddressSaved) && isAddressMatched
+  const canViewAddress = isAdmin || isModerator || isGuest
+  const locationStatus: "pending" | "matched" | "mismatch" =
+    !officialAddressSaved || !sharedAddressSaved
+      ? "pending"
+      : isAddressMatched
+        ? "matched"
+        : "mismatch"
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6">
@@ -591,15 +722,50 @@ export default function EventDetailPage() {
           <Button onClick={handleJoin} disabled={isJoining} className="ml-auto">
             {isJoining ? te("Enviando...", "Sending...") : te("Solicitar participación", "Request participation")}
           </Button>
+          <div className="w-full rounded-lg border border-border/70 bg-muted/20 p-3 text-xs text-muted-foreground">
+            <div className="mb-2 flex items-center gap-2">
+              <Badge
+                className={
+                  locationStatus === "matched"
+                    ? "bg-emerald-500/15 text-emerald-500 border-0"
+                    : locationStatus === "mismatch"
+                      ? "bg-rose-500/15 text-rose-500 border-0"
+                      : "bg-amber-500/15 text-amber-500 border-0"
+                }
+              >
+                {locationStatus === "matched"
+                  ? te("Ubicación: Coincide", "Location: Matched")
+                  : locationStatus === "mismatch"
+                    ? te("Ubicación: No coincide", "Location: Mismatch")
+                    : te("Ubicación: Pendiente", "Location: Pending")}
+              </Badge>
+            </div>
+            <p>
+              {canApproveByAddress
+                ? te(
+                    "Ubicación validada: los participantes aprobados verán la dirección del meetup en el chat.",
+                    "Location validated: approved participants will see meetup address in chat."
+                  )
+                : te(
+                    "Moderación de ubicación activa: hasta validar la coincidencia de direcciones no se podrán aprobar nuevas personas.",
+                    "Location moderation active: new people cannot be approved until address match is validated."
+                  )}
+            </p>
+            {canViewAddress && isAddressMatched && sharedAddressSaved ? (
+              <p className="mt-2 font-medium text-foreground">
+                {te("Ubicación del meetup", "Meetup location")}: {sharedAddressSaved}
+              </p>
+            ) : null}
+          </div>
         </CardContent>
       </Card>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
           <TabsTrigger value="chat">{te("Chat", "Chat")}</TabsTrigger>
-          <TabsTrigger value="members">{te("Miembros", "Members")}</TabsTrigger>
-          <TabsTrigger value="requests">{te("Solicitudes", "Requests")}</TabsTrigger>
-          <TabsTrigger value="settings">{te("Ajustes", "Settings")}</TabsTrigger>
+          <TabsTrigger value="members">{t("common.members")}</TabsTrigger>
+          <TabsTrigger value="requests">{t("common.requests")}</TabsTrigger>
+          <TabsTrigger value="settings">{t("common.settings")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="chat" className="space-y-4 mt-4">
@@ -617,6 +783,12 @@ export default function EventDetailPage() {
                     : groupSettings.slowMode && isGuest
                       ? te("Solo moderadores pueden escribir", "Only moderators can write")
                       : te("Escribe y participa en tiempo real", "Write and participate in real time")}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {te(
+                  "Por seguridad, mantén la coordinación dentro de este chat. Fuera de Spark no podemos verificar ubicación ni asistencia.",
+                  "For safety, keep coordination inside this chat. Outside Spark we cannot verify location or attendance."
+                )}
               </p>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -679,13 +851,13 @@ export default function EventDetailPage() {
                               </div>
                               {canEditMessage(m) && (
                                 <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => handleEditMessage(m)}>
-                                  {te("Editar", "Edit")}
+                                  {t("common.edit")}
                                 </Button>
                               )}
                               {canDeleteMessage(m) && (
                                 <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-red-500" onClick={() => handleDeleteMessage(normalizeMessageId(m))}>
                                   <Trash2 className="h-3.5 w-3.5 mr-1" />
-                                  {te("Eliminar", "Delete")}
+                                  {t("common.delete")}
                                 </Button>
                               )}
                             </div>
@@ -738,7 +910,7 @@ export default function EventDetailPage() {
 
         <TabsContent value="members" className="mt-4">
           <Card>
-            <CardHeader><CardTitle className="text-base">{te("Miembros", "Members")}</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">{t("common.members")}</CardTitle></CardHeader>
             <CardContent className="space-y-2">
               {members.map((m) => {
                 const targetMuted = Boolean(m.mutedUntil && new Date(m.mutedUntil).getTime() > Date.now())
@@ -817,6 +989,14 @@ export default function EventDetailPage() {
               <Card>
                 <CardHeader><CardTitle className="text-base">{te("Pendientes individuales", "Individual pending")}</CardTitle></CardHeader>
                 <CardContent className="space-y-2">
+                  {!canApproveByAddress && (
+                    <p className="text-xs text-amber-500">
+                      {te(
+                        "No puedes aprobar hasta validar coincidencia de ubicación.",
+                        "You cannot approve until location match is validated."
+                      )}
+                    </p>
+                  )}
                   {pendingParticipants.length === 0 ? (
                     <p className="text-sm text-muted-foreground">{te("No hay solicitudes pendientes.", "No pending requests.")}</p>
                   ) : pendingParticipants.map((p) => (
@@ -826,7 +1006,21 @@ export default function EventDetailPage() {
                         <p className="text-xs text-muted-foreground">{p.role}</p>
                       </div>
                       <div className="flex gap-2">
-                        <Button size="sm" onClick={() => handleApproveParticipant(p.userId)}>{te("Aprobar", "Approve")}</Button>
+                        <Button
+                          size="sm"
+                          onClick={() => handleApproveParticipant(p.userId)}
+                          disabled={!canApproveByAddress}
+                          title={
+                            canApproveByAddress
+                              ? undefined
+                              : te(
+                                  "Valida dirección oficial y compartida para aprobar",
+                                  "Validate official/shared address before approving"
+                                )
+                          }
+                        >
+                          {te("Aprobar", "Approve")}
+                        </Button>
                         <Button size="sm" variant="outline" onClick={() => handleRejectParticipant(p.userId)}>{te("Rechazar", "Reject")}</Button>
                       </div>
                     </div>
@@ -837,6 +1031,14 @@ export default function EventDetailPage() {
               <Card>
                 <CardHeader><CardTitle className="text-base">{te("Solicitudes grupales", "Group requests")}</CardTitle></CardHeader>
                 <CardContent className="space-y-2">
+                  {!canApproveByAddress && (
+                    <p className="text-xs text-amber-500">
+                      {te(
+                        "La aprobación grupal está bloqueada hasta validar la ubicación.",
+                        "Group approval is blocked until location is validated."
+                      )}
+                    </p>
+                  )}
                   {pendingGroupRequests.length === 0 ? (
                     <p className="text-sm text-muted-foreground">{te("No hay solicitudes grupales pendientes.", "No pending group requests.")}</p>
                   ) : pendingGroupRequests.map((r) => (
@@ -844,7 +1046,21 @@ export default function EventDetailPage() {
                       <p className="font-medium">{r.inviterUsername} · {r.status}</p>
                       <p className="text-xs text-muted-foreground">{r.members.map((m) => `${m.username} (${m.status})`).join(", ")}</p>
                       <div className="flex gap-2">
-                        <Button size="sm" onClick={() => handleApproveGroupRequest(r.id)}>{te("Aprobar", "Approve")}</Button>
+                        <Button
+                          size="sm"
+                          onClick={() => handleApproveGroupRequest(r.id)}
+                          disabled={!canApproveByAddress}
+                          title={
+                            canApproveByAddress
+                              ? undefined
+                              : te(
+                                  "Valida dirección oficial y compartida para aprobar",
+                                  "Validate official/shared address before approving"
+                                )
+                          }
+                        >
+                          {te("Aprobar", "Approve")}
+                        </Button>
                         <Button size="sm" variant="outline" onClick={() => handleRejectGroupRequest(r.id)}>{te("Rechazar", "Reject")}</Button>
                       </div>
                     </div>
@@ -913,7 +1129,7 @@ export default function EventDetailPage() {
                       </SelectContent>
                     </Select>
                     <Input value={inviteMaxUses} onChange={(e) => setInviteMaxUses(e.target.value)} placeholder={te("máx usos (0 ilimitado)", "max uses (0 unlimited)")} />
-                    <Button onClick={handleCreateInvite}>{te("Crear link", "Create link")}</Button>
+                    <Button onClick={handleCreateInvite}>{t("common.createLink")}</Button>
                   </div>
                   <div className="space-y-2">
                     {inviteLinks.length === 0 ? (
@@ -934,11 +1150,11 @@ export default function EventDetailPage() {
                             }}
                           >
                             <Copy className="h-3.5 w-3.5 mr-1" />
-                            {te("Copiar", "Copy")}
+                            {t("common.copy")}
                           </Button>
                           <Button size="sm" variant="destructive" onClick={() => handleDeleteInvite(link.inviteId)}>
                             <UserX className="h-3.5 w-3.5 mr-1" />
-                            {te("Desactivar", "Disable")}
+                            {t("common.disable")}
                           </Button>
                         </div>
                       </div>
@@ -948,19 +1164,52 @@ export default function EventDetailPage() {
               </Card>
 
               <Card>
+                <CardHeader><CardTitle className="text-base">{te("Dirección oficial del meetup", "Official meetup address")}</CardTitle></CardHeader>
+                <CardContent className="space-y-2">
+                  <LocationInput
+                    value={officialAddressText}
+                    onChange={(value) => setOfficialAddressText(value)}
+                    placeholder={te("Ej: Calle 123 #45-67, Bogotá", "Ex: 123 Main St, City")}
+                    valueFormat="full"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {te(
+                      "Obligatoria. Esta dirección es la referencia para moderación y debe coincidir con la compartida en el chat.",
+                      "Required. This address is moderation reference and must match the one shared in chat."
+                    )}
+                  </p>
+                  <Button onClick={handleSaveOfficialAddress} disabled={isSavingOfficialAddress || !officialAddressText.trim()}>
+                    {isSavingOfficialAddress ? te("Guardando...", "Saving...") : t("common.save")}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
                 <CardHeader><CardTitle className="text-base">{te("Compartir dirección del evento", "Share event address")}</CardTitle></CardHeader>
                 <CardContent className="space-y-2">
-                  <Input
+                  <LocationInput
                     value={shareAddressText}
-                    onChange={(e) => setShareAddressText(e.target.value)}
+                    onChange={(value) => setShareAddressText(value)}
                     placeholder={te("Ej: Calle 123 #45-67, Bogotá", "Ex: 123 Main St, City")}
+                    valueFormat="full"
                   />
                   <p className="text-xs text-muted-foreground">
                     {te("Solo ADMIN. El backend valida que coincida con la dirección oficial del evento.", "ADMIN only. Backend validates it matches the official event address.")}
                   </p>
-                  <Button onClick={handleShareAddress} disabled={isSharingAddress || !shareAddressText.trim()}>
+                  <Button onClick={handleShareAddress} disabled={isSharingAddress || !shareAddressText.trim() || !officialAddressSaved}>
                     {isSharingAddress ? te("Compartiendo...", "Sharing...") : te("Compartir en chat", "Share in chat")}
                   </Button>
+                  {officialAddressSaved ? (
+                    <p className={`text-xs ${isAddressMatched ? "text-emerald-500" : "text-amber-500"}`}>
+                      {isAddressMatched
+                        ? te("Dirección compartida validada.", "Shared address validated.")
+                        : te("Pendiente validar coincidencia entre dirección oficial y compartida.", "Pending address match between official and shared address.")}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-rose-500">
+                      {te("Debes guardar la dirección oficial antes de compartirla con el grupo.", "You must save official address before sharing it with the group.")}
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             </>

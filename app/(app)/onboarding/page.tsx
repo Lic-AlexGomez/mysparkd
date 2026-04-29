@@ -225,6 +225,7 @@ export default function OnboardingPage() {
         dateOfBirth,
         ...(telefono.trim() ? { telefono: telefono.trim() } : {}),
         accountType: accountTypeByAppMode[appMode],
+        preferredLanguage: language,
       }
       if (location) {
         body.latitude = location.latitude
@@ -531,7 +532,7 @@ export default function OnboardingPage() {
                   onClick={() => setStep(1)}
                   className="mt-auto h-11 w-full shrink-0 bg-primary text-primary-foreground shadow-lg shadow-primary/25 hover:bg-primary/90 lg:h-10"
                 >
-                  {te("Continuar", "Continue")}
+                  {t("common.continue")}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </CardContent>
@@ -695,7 +696,7 @@ export default function OnboardingPage() {
                     className="h-12 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground sm:h-11 sm:flex-1 lg:h-10"
                   >
                     <ArrowLeft className="mr-2 h-4 w-4" />
-                    {te("Atrás", "Back")}
+                    {t("common.back")}
                   </Button>
                   <Button
                     type="button"
@@ -708,7 +709,7 @@ export default function OnboardingPage() {
                     ) : (
                       <ArrowRight className="mr-2 h-4 w-4" />
                     )}
-                    {te("Siguiente", "Next")}
+                    {t("common.next")}
                   </Button>
                 </div>
               </CardContent>
@@ -840,7 +841,7 @@ export default function OnboardingPage() {
                     className="h-12 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground sm:h-11 sm:flex-1 lg:h-10"
                   >
                     <ArrowLeft className="mr-2 h-4 w-4" />
-                    {te("Atrás", "Back")}
+                    {t("common.back")}
                   </Button>
                   <Button
                     type="button"
@@ -853,7 +854,7 @@ export default function OnboardingPage() {
                     ) : (
                       <ArrowRight className="mr-2 h-4 w-4" />
                     )}
-                    {te("Siguiente", "Next")}
+                    {t("common.next")}
                   </Button>
                 </div>
               </CardContent>
@@ -936,7 +937,7 @@ export default function OnboardingPage() {
                     className="h-11 flex-1 border-border lg:h-10"
                   >
                     <ArrowLeft className="mr-2 h-4 w-4" />
-                    {te("Atrás", "Back")}
+                    {t("common.back")}
                   </Button>
                   <Button
                     type="button"

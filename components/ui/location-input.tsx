@@ -17,6 +17,9 @@ function formatLocation(location: string): string {
 interface LocationSuggestion {
   place_id: string
   description: string
+  lat: number
+  lon: number
+  address?: Record<string, string>
   structured_formatting: {
     main_text: string
     secondary_text: string
@@ -28,9 +31,16 @@ interface LocationInputProps {
   onChange: (value: string, coordinates?: { latitude: number; longitude: number }) => void
   placeholder?: string
   className?: string
+  valueFormat?: "region" | "full"
 }
 
-export function LocationInput({ value, onChange, placeholder = "Ciudad, País", className }: LocationInputProps) {
+export function LocationInput({
+  value,
+  onChange,
+  placeholder = "Ciudad, País",
+  className,
+  valueFormat = "region",
+}: LocationInputProps) {
   const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
@@ -111,14 +121,19 @@ export function LocationInput({ value, onChange, placeholder = "Ciudad, País", 
     }, 300)
   }
 
-  const handleSelectSuggestion = (suggestion: any) => {
-    // Construir location con solo provincia/estado y país
-    const addr = suggestion.address || {}
-    const parts = [
-      addr.state || addr.province || addr.region || addr.county,
-      addr.country
-    ].filter(Boolean)
-    const locationLabel = parts.length > 0 ? parts.join(', ') : suggestion.structured_formatting.main_text
+  const handleSelectSuggestion = (suggestion: LocationSuggestion) => {
+    let locationLabel = suggestion.structured_formatting.main_text
+    if (valueFormat === "full") {
+      locationLabel = suggestion.description
+    } else {
+      // Construir location con solo provincia/estado y país
+      const addr = suggestion.address || {}
+      const parts = [
+        addr.state || addr.province || addr.region || addr.county,
+        addr.country
+      ].filter(Boolean)
+      locationLabel = parts.length > 0 ? parts.join(", ") : suggestion.structured_formatting.main_text
+    }
 
     onChange(locationLabel, {
       latitude: suggestion.lat,

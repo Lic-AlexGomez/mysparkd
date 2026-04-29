@@ -20,7 +20,7 @@ import { VoiceNoteRecorder, type VoiceNoteRecorderHandle } from "@/components/ui
 import { useI18n } from "@/lib/i18n"
 
 export default function EditProfilePage() {
-  const { te } = useI18n()
+  const { te, t, language } = useI18n()
   const router = useRouter()
   const { user, isLoading: authLoading, refreshProfile, updateUser } = useAuth()
   const [loading, setLoading] = useState(false)
@@ -113,6 +113,7 @@ export default function EditProfilePage() {
         url: formData.url || null,
         visibility: formData.visibility,
         showPremiumBadge,
+        preferredLanguage: language,
       }
       // Solo mandar coords si el usuario seleccionó una ubicación
       if (formData.latitude && formData.longitude) {
@@ -345,7 +346,7 @@ export default function EditProfilePage() {
 
           <div className="flex gap-3">
             <Button type="button" variant="outline" onClick={() => router.back()} className="flex-1">
-              {te("Cancelar", "Cancel")}
+              {t("common.cancel")}
             </Button>
             <Button
               type="button"
@@ -357,7 +358,7 @@ export default function EditProfilePage() {
                 ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{te("Guardando...", "Saving...")}</>
                 : isVoiceRecording
                 ? <><Square className="mr-2 h-4 w-4" />{te("Detener y guardar", "Stop and save")}</>
-                : <><Save className="mr-2 h-4 w-4" />{te("Guardar", "Save")}</>
+                : <><Save className="mr-2 h-4 w-4" />{t("common.save")}</>
               }
             </Button>
           </div>

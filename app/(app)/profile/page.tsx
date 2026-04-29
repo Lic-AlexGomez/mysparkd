@@ -25,9 +25,10 @@ import {
 } from "@/components/ui/voice-note"
 import { DialogTitle } from "@/components/ui/dialog"
 import { useI18n } from "@/lib/i18n"
+import { accountTypeBadgeLabels, toBackendAccountType } from "@/lib/account-type"
 
 export default function ProfilePage() {
-  const { te } = useI18n()
+  const { te, t } = useI18n()
   const { user, refreshProfile, updateUser, isLoading } = useAuth()
   const router = useRouter()
 
@@ -87,6 +88,14 @@ export default function ProfilePage() {
       <p className="text-muted-foreground">{te('No se pudo cargar el perfil', 'Could not load profile')}</p>
     </div>
   )
+
+  const totalPostsCount =
+    typeof user.totalPosts === "number"
+      ? user.totalPosts
+      : Array.isArray(user.posts)
+        ? user.posts.length
+        : 0
+  const accountModeLabel = accountTypeBadgeLabels(toBackendAccountType(user.accountType))
 
   return (
     <div className="mx-auto max-w-2xl pb-10">
@@ -170,7 +179,7 @@ export default function ProfilePage() {
             onClick={() => router.push('/profile/edit')}
             className="flex items-center gap-1.5 px-4 h-9 rounded-full bg-background border border-border text-sm font-semibold hover:bg-muted transition-colors shadow-lg"
           >
-            <Pencil className="h-3.5 w-3.5" /> {te("Editar", "Edit")}
+            <Pencil className="h-3.5 w-3.5" /> {t("common.edit")}
           </button>
           <button
             onClick={() => router.push('/settings')}
@@ -321,7 +330,7 @@ export default function ProfilePage() {
         {/* Stats */}
         <div className="mt-5 flex items-center gap-6">
           {[
-            { value: user.totalPosts, label: "Posts" },
+            { value: totalPostsCount, label: "Posts" },
             { value: followersCount, label: "Seguidores" },
             { value: followingCount, label: "Siguiendo" },
           ].map(stat => (
@@ -465,7 +474,7 @@ export default function ProfilePage() {
         <div className="flex items-center gap-2 mb-4">
           <Newspaper className="h-4 w-4 text-muted-foreground" />
           <h2 className="text-sm font-bold text-foreground">Posts</h2>
-          <span className="text-xs text-muted-foreground ml-auto">{user.totalPosts}</span>
+          <span className="text-xs text-muted-foreground ml-auto">{totalPostsCount}</span>
         </div>
         {user.posts && user.posts.length > 0 ? (
           user.posts.map(post => <PostCard key={post.id} post={post} />)

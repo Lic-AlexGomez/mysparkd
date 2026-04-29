@@ -273,6 +273,78 @@ const TRANSLATIONS: Record<string, Record<SupportedLanguage, string>> = {
   "bottomNav.profile": {
     en: "Profile", zh: "资料", hi: "प्रोफ़ाइल", es: "Perfil", fr: "Profil", ar: "الملف الشخصي", bn: "প্রোফাইল", pt: "Perfil", ru: "Профиль", ur: "پروفائل",
   },
+  "storiesBar.yourStory": {
+    en: "Your story", zh: "你的动态", hi: "आपकी स्टोरी", es: "Tu historia", fr: "Votre story", ar: "قصتك", bn: "আপনার স্টোরি", pt: "Seu story", ru: "Ваша история", ur: "آپ کی اسٹوری",
+  },
+  "groups.feedOption.global": {
+    en: "Global", zh: "全局", hi: "वैश्विक", es: "Global", fr: "Global", ar: "عالمي", bn: "গ্লোবাল", pt: "Global", ru: "Глобальный", ur: "گلوبل",
+  },
+  "groups.feedOption.local": {
+    en: "Local", zh: "本地", hi: "स्थानीय", es: "Local", fr: "Local", ar: "محلي", bn: "লোকাল", pt: "Local", ru: "Локальный", ur: "لوکل",
+  },
+  "groups.feedOption.following": {
+    en: "Following", zh: "关注中", hi: "फॉलोइंग", es: "Siguiendo", fr: "Abonnements", ar: "المتابَعون", bn: "ফলো করা", pt: "Seguindo", ru: "Подписки", ur: "فالوئنگ",
+  },
+  "groups.feedOption.groupsOnly": {
+    en: "Groups only", zh: "仅群组", hi: "केवल समूह", es: "Solo grupos", fr: "Groupes seulement", ar: "المجموعات فقط", bn: "শুধু গ্রুপ", pt: "Somente grupos", ru: "Только группы", ur: "صرف گروپس",
+  },
+  "common.global": {
+    en: "Global", zh: "全局", hi: "वैश्विक", es: "Global", fr: "Global", ar: "عالمي", bn: "গ্লোবাল", pt: "Global", ru: "Глобальный", ur: "گلوبل",
+  },
+  "common.local": {
+    en: "Local", zh: "本地", hi: "स्थानीय", es: "Local", fr: "Local", ar: "محلي", bn: "লোকাল", pt: "Local", ru: "Локальный", ur: "لوکل",
+  },
+  "common.following": {
+    en: "Following", zh: "关注中", hi: "फॉलोइंग", es: "Siguiendo", fr: "Abonnements", ar: "المتابَعون", bn: "ফলো করা", pt: "Seguindo", ru: "Подписки", ur: "فالوئنگ",
+  },
+  "common.back": {
+    en: "Back", zh: "返回", hi: "पीछे", es: "Atrás", fr: "Retour", ar: "رجوع", bn: "পিছনে", pt: "Voltar", ru: "Назад", ur: "واپس",
+  },
+  "common.next": {
+    en: "Next", zh: "下一步", hi: "अगला", es: "Siguiente", fr: "Suivant", ar: "التالي", bn: "পরবর্তী", pt: "Próximo", ru: "Далее", ur: "اگلا",
+  },
+  "common.continue": {
+    en: "Continue", zh: "继续", hi: "जारी रखें", es: "Continuar", fr: "Continuer", ar: "متابعة", bn: "চালিয়ে যান", pt: "Continuar", ru: "Продолжить", ur: "جاری رکھیں",
+  },
+  "common.cancel": {
+    en: "Cancel", zh: "取消", hi: "रद्द करें", es: "Cancelar", fr: "Annuler", ar: "إلغاء", bn: "বাতিল", pt: "Cancelar", ru: "Отмена", ur: "منسوخ",
+  },
+  "common.save": {
+    en: "Save", zh: "保存", hi: "सहेजें", es: "Guardar", fr: "Enregistrer", ar: "حفظ", bn: "সংরক্ষণ", pt: "Salvar", ru: "Сохранить", ur: "محفوظ کریں",
+  },
+  "common.edit": {
+    en: "Edit", zh: "编辑", hi: "संपादित करें", es: "Editar", fr: "Modifier", ar: "تعديل", bn: "এডিট", pt: "Editar", ru: "Редактировать", ur: "ترمیم کریں",
+  },
+  "common.delete": {
+    en: "Delete", zh: "删除", hi: "हटाएं", es: "Eliminar", fr: "Supprimer", ar: "حذف", bn: "মুছুন", pt: "Excluir", ru: "Удалить", ur: "حذف کریں",
+  },
+  "common.members": {
+    en: "Members", zh: "成员", hi: "सदस्य", es: "Miembros", fr: "Membres", ar: "الأعضاء", bn: "সদস্য", pt: "Membros", ru: "Участники", ur: "اراکین",
+  },
+  "common.requests": {
+    en: "Requests", zh: "请求", hi: "अनुरोध", es: "Solicitudes", fr: "Demandes", ar: "الطلبات", bn: "অনুরোধ", pt: "Solicitações", ru: "Запросы", ur: "درخواستیں",
+  },
+  "common.settings": {
+    en: "Settings", zh: "设置", hi: "सेटिंग्स", es: "Ajustes", fr: "Paramètres", ar: "الإعدادات", bn: "সেটিংস", pt: "Configurações", ru: "Настройки", ur: "ترتیبات",
+  },
+  "common.send": {
+    en: "Send", zh: "发送", hi: "भेजें", es: "Enviar", fr: "Envoyer", ar: "إرسال", bn: "পাঠান", pt: "Enviar", ru: "Отправить", ur: "بھیجیں",
+  },
+  "common.copy": {
+    en: "Copy", zh: "复制", hi: "कॉपी", es: "Copiar", fr: "Copier", ar: "نسخ", bn: "কপি", pt: "Copiar", ru: "Копировать", ur: "کاپی",
+  },
+  "common.disable": {
+    en: "Disable", zh: "禁用", hi: "अक्षम", es: "Desactivar", fr: "Désactiver", ar: "تعطيل", bn: "নিষ্ক্রিয়", pt: "Desativar", ru: "Отключить", ur: "غیر فعال",
+  },
+  "common.createLink": {
+    en: "Create link", zh: "创建链接", hi: "लिंक बनाएं", es: "Crear link", fr: "Créer un lien", ar: "إنشاء رابط", bn: "লিংক তৈরি", pt: "Criar link", ru: "Создать ссылку", ur: "لنک بنائیں",
+  },
+  "common.view": {
+    en: "View", zh: "查看", hi: "देखें", es: "Ver", fr: "Voir", ar: "عرض", bn: "দেখুন", pt: "Ver", ru: "Просмотр", ur: "دیکھیں",
+  },
+  "common.reload": {
+    en: "Reload", zh: "重新加载", hi: "रीलोड", es: "Recargar", fr: "Recharger", ar: "إعادة التحميل", bn: "রিলোড", pt: "Recarregar", ru: "Обновить", ur: "دوبارہ لوڈ",
+  },
   "swipes.title": {
     en: "Swipes", zh: "滑动", hi: "स्वाइप्स", es: "Swipes", fr: "Swipes", ar: "السحب", bn: "সুইপস", pt: "Swipes", ru: "Свайпы", ur: "سوائپس",
   },

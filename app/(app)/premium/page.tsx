@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dialog"
 
 export default function PremiumPage() {
-  const { te, language } = useI18n()
+  const { te, t, language } = useI18n()
   const { user } = useAuth()
   const { isPremium } = usePremiumStatus()
   const [isLoading, setIsLoading] = useState(false)
@@ -113,7 +113,7 @@ export default function PremiumPage() {
               onClick={() => toast.error(te("Próximamente: Cancelar suscripción", "Coming soon: Cancel subscription"))}
               className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
             >
-              {te("Cancelar", "Cancel")}
+              {t("common.cancel")}
             </Button>
           </div>
         </div>

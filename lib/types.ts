@@ -95,6 +95,7 @@ export interface UserProfile {
   interests?: string[] | Interest[]
   compatibilityScore?: number
   visibility?: 'PUBLIC' | 'PRIVATE'
+  preferredLanguage?: string
 }
 
 export interface CreateProfileRequest {
@@ -108,6 +109,7 @@ export interface CreateProfileRequest {
   accountType?: AccountType | string
   latitude?: number
   longitude?: number
+  preferredLanguage?: string
 }
 
 export interface UpdateProfileRequest {
@@ -125,6 +127,7 @@ export interface UpdateProfileRequest {
   location?: string
   latitude?: number
   longitude?: number
+  preferredLanguage?: string
 }
 
 // FastDate
@@ -443,6 +446,11 @@ export interface Event {
   startsAt?: string
   endsAt?: string
   createdAt?: string
+  officialAddress?: string
+  sharedAddress?: string
+  addressMatched?: boolean
+  locationVerified?: boolean
+  locationMismatchReason?: string
 }
 
 export interface EventFilters {
