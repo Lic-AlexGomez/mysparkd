@@ -1,0 +1,65 @@
+{
+  "list": {
+    "id": "69bb3d3c12d0d5b375cd486b",
+    "name": "Pendiente de hacer frontend"
+  },
+  "updatedCards": [
+    {
+      "id": "69f182f46d7732309208d818",
+      "idShort": 210,
+      "name": "Endpoint backend: subir foto portada de grupo (cover)",
+      "url": "https://trello.com/c/KTYz4ree",
+      "comment": "Frontend update\n\nQue se implemento:\n- Upload de portada de grupo en detalle de grupo (boton para ADMIN) y en flujo de creacion.\n- Integracion del endpoint /api/groups/{id}/cover con fallback de compatibilidad a Cloudinary + update del grupo.\n- Resolucion centralizada de portada (servidor o fallback configurable) en listado y detalle.\n\nEstado: completo\n\nPendiente siguiente:\n- Validar con QA el comportamiento en entornos donde /cover no este desplegado y revisar set final de imagenes fallback.\n\nReferencia de archivos principales:\n- app/(app)/groups/page.tsx\n- app/(app)/groups/[id]/page.tsx\n- lib/services/group.ts\n- lib/group-cover.ts\n- lib/types.ts"
+    },
+    {
+      "id": "69f2a9c39da3e598e33904f9",
+      "idShort": 222,
+      "name": "Links de Invitación al Grupo",
+      "url": "https://trello.com/c/TVSnYAq0",
+      "comment": "Frontend update\n\nQue se implemento:\n- Flujo de compartir grupo con generacion/reuso de invite link y copia rapida del link.\n- Generacion de QR para invitacion y auto-join al abrir URL con token.\n- Compartir invitacion por chat y publicacion en feed global desde modal de share.\n\nEstado: parcial\n\nPendiente siguiente:\n- Completar gestion avanzada de links (configurar expiracion/max usos por UI, listar activos y desactivar links existentes).\n\nReferencia de archivos principales:\n- app/(app)/groups/page.tsx\n- lib/services/group.ts"
+    },
+    {
+      "id": "69f2b64ae9648d86a14ea017",
+      "idShort": 227,
+      "name": "Fix: Discover recarga en cada swipe (stale closure en fetchProfiles)",
+      "url": "https://trello.com/c/eBhAfw8h",
+      "comment": "Frontend update\n\nQue se implemento:\n- Fix del stale closure en Discover: swipedIds y discoverPage se movieron a refs para evitar resets/recargas en cada swipe.\n- Ajuste de fetchProfiles para mantener estado entre swipes y cargar mas solo cuando corresponde.\n\nEstado: completo\n\nPendiente siguiente:\n- Monitorear en QA que no reaparezcan llamadas extra a /api/discover bajo uso intensivo.\n\nReferencia de archivos principales:\n- app/(app)/swipes/page.tsx"
+    },
+    {
+      "id": "69f2bdeb8d64ab63d2b86dad",
+      "idShort": 228,
+      "name": "\"They like you\"(personas que me dieron likes), esa sesión debe ser blur para los premium y mostrase mas o menos las cartas de atrás pero con un blur tipo panel encima de todos los resultados, luego implementaremos un plan de pago para usuarios que quieran acceder 1 time",
+      "url": "https://trello.com/c/raYDrNyZ",
+      "comment": "Frontend update\n\nQue se implemento:\n- Se agrego preview visual blur de cards en la pantalla de Likes cuando aplica paywall (teaser de contenido bloqueado).\n\nEstado: parcial\n\nPendiente siguiente:\n- Integrar logica final de monetizacion/desbloqueo one-time y reglas exactas por tipo de plan.\n\nReferencia de archivos principales:\n- app/(app)/likes/page.tsx"
+    },
+    {
+      "id": "69eed1af47cae34c2347b017",
+      "idShort": 195,
+      "name": "[API] Manager actividad — feed de actividad en vivo (o WebSocket/ SSE)",
+      "url": "https://trello.com/c/fw35H8UP",
+      "comment": "Frontend update\n\nQue se implemento:\n- Capa base de servicio manager en frontend para activity feed, users y moderation queue.\n- Tipado y normalizacion de respuestas paginadas para acelerar implementacion de vistas manager.\n\nEstado: parcial\n\nPendiente siguiente:\n- Consumir managerService desde UI del panel manager y cerrar flujo visual de actividad en vivo.\n\nReferencia de archivos principales:\n- lib/services/manager.ts"
+    },
+    {
+      "id": "69eed1b00fda1390cfcd3d18",
+      "idShort": 196,
+      "name": "[API] Manager usuarios — listado con permisos manager (reutilizar o variante de admin users)",
+      "url": "https://trello.com/c/A3pTXZ0T",
+      "comment": "Frontend update\n\nQue se implemento:\n- Capa base de servicio manager para endpoint de usuarios con paginacion y query por username.\n\nEstado: parcial\n\nPendiente siguiente:\n- Conectar managerService.users a tabla/filtros de Manager Usuarios en UI.\n\nReferencia de archivos principales:\n- lib/services/manager.ts"
+    },
+    {
+      "id": "69eed1b0088f8500a1b78cf9",
+      "idShort": 197,
+      "name": "[API] Manager contenido — cola o listado de posts a moderar (ocultar, restaurar, eliminar)",
+      "url": "https://trello.com/c/3K4x9c5c",
+      "comment": "Frontend update\n\nQue se implemento:\n- Capa base de servicio manager para cola de moderacion de posts y acciones hide/restore/delete.\n\nEstado: parcial\n\nPendiente siguiente:\n- Implementar vista de moderacion con acciones por fila y refresh post-accion.\n\nReferencia de archivos principales:\n- lib/services/manager.ts"
+    }
+  ],
+  "newCard": {
+    "id": "69f2cd43f6924960139c5364",
+    "idShort": 229,
+    "name": "[UPDATE FE] Mejoras UX en Groups Discover",
+    "url": "https://trello.com/c/7LUfn4El",
+    "reusedExisting": false
+  },
+  "missingCards": []
+}

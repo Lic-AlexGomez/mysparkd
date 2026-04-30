@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { api, ApiError } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
@@ -29,8 +29,10 @@ export default function SwipesPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [showMatch, setShowMatch] = useState(false)
   const [matchedUser, setMatchedUser] = useState<{ id: string; name: string } | null>(null)
-  const [swipedIds, setSwipedIds] = useState<Set<string>>(new Set())
-  const [discoverPage, setDiscoverPage] = useState(0)
+  const swipedIdsRef = useRef<Set<string>>(new Set())
+  const discoverPageRef = useRef(0)
+  const hasMoreProfilesRef = useRef(true)
+  const isFetchingMoreRef = useRef(false)
   const [hasMoreProfiles, setHasMoreProfiles] = useState(true)
   const [isFetchingMore, setIsFetchingMore] = useState(false)
   const [isSwiping, setIsSwiping] = useState(false)
@@ -56,20 +58,22 @@ export default function SwipesPage() {
   }, [])
 
   const fetchProfiles = useCallback(async (reset = false) => {
-    const targetPage = reset ? 0 : discoverPage + 1
-    if (!reset && (!hasMoreProfiles || isFetchingMore)) return
+    const targetPage = reset ? 0 : discoverPageRef.current + 1
+    if (!reset && (!hasMoreProfilesRef.current || isFetchingMoreRef.current)) return
 
     try {
       if (reset) {
         setIsLoading(true)
         setCurrentIndex(0)
+        discoverPageRef.current = 0
       } else {
+        isFetchingMoreRef.current = true
         setIsFetchingMore(true)
       }
 
       const response = await api.get<any>(`/api/discover?page=${targetPage}&size=${DISCOVER_PAGE_SIZE}`)
       const discoverProfiles = Array.isArray(response?.content) ? response.content : []
-      const mapped = mapProfiles(discoverProfiles).filter((p) => !swipedIds.has(p.userId))
+      const mapped = mapProfiles(discoverProfiles).filter((p) => !swipedIdsRef.current.has(p.userId))
 
       setProfiles((prev) => {
         const base = reset ? [] : prev
@@ -91,15 +95,17 @@ export default function SwipesPage() {
           ? nextPage < totalPages - 1
           : discoverProfiles.length === DISCOVER_PAGE_SIZE
 
-      setDiscoverPage(nextPage)
+      discoverPageRef.current = nextPage
+      hasMoreProfilesRef.current = nextHasMore
       setHasMoreProfiles(nextHasMore)
     } catch {
       if (reset) setProfiles([])
     } finally {
       if (reset) setIsLoading(false)
+      isFetchingMoreRef.current = false
       setIsFetchingMore(false)
     }
-  }, [discoverPage, hasMoreProfiles, isFetchingMore, mapProfiles, swipedIds])
+  }, [mapProfiles])
 
   const fetchRemainingSwipes = useCallback(async () => {
     if (!user?.userId) return
@@ -172,7 +178,7 @@ export default function SwipesPage() {
         setMatchedUser({ id: currentProfile.userId, name: `${currentProfile.nombres} ${currentProfile.apellidos}` })
         setShowMatch(true)
       }
-      setSwipedIds((prev) => new Set(prev).add(currentProfile.userId))
+      swipedIdsRef.current.add(currentProfile.userId)
       if (typeof navigator !== "undefined" && "vibrate" in navigator) {
         navigator.vibrate(10)
       }

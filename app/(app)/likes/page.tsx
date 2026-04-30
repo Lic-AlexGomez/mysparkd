@@ -50,6 +50,22 @@ function LikesPaywall({ backendMessage }: { backendMessage?: string | null }) {
   )
 }
 
+function LikesBlurPreview() {
+  return (
+    <div className="relative mx-4 mt-4 overflow-hidden rounded-3xl border border-primary/20 bg-card/70 p-4">
+      <div className="grid grid-cols-2 gap-3 opacity-90">
+        {Array.from({ length: 6 }).map((_, idx) => (
+          <div
+            key={idx}
+            className="h-36 rounded-2xl bg-gradient-to-br from-primary/20 via-secondary/15 to-muted/40"
+          />
+        ))}
+      </div>
+      <div className="pointer-events-none absolute inset-0 backdrop-blur-md bg-background/30" />
+    </div>
+  )
+}
+
 export default function LikesPage() {
   const { te } = useI18n()
   const router = useRouter()
@@ -149,6 +165,7 @@ export default function LikesPage() {
       <div className="flex justify-center min-h-screen bg-gradient-to-b from-background to-muted/20">
         <div className="w-full max-w-[680px]">
           <LikesPageHeader count={0} showCount={false} />
+          <LikesBlurPreview />
           <LikesPaywall />
         </div>
       </div>

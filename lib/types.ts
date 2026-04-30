@@ -604,6 +604,9 @@ export interface CreateGroupRequest {
   isPublic?: boolean
   category?: string
   topics?: string[]
+  /** Portada; el backend puede mapear a `coverPhotoUrl` / `coverPhoto`. */
+  coverPhotoUrl?: string
+  coverPhoto?: string
 }
 
 export interface GroupMember {

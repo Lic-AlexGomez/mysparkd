@@ -34,6 +34,7 @@ import {
   UserPlus,
   QrCode,
   Share2,
+  ImageIcon,
 } from "lucide-react"
 import { toast } from "sonner"
 import type { Group, GroupInviteLink, GroupMember, GroupMessage, GroupMessageMediaType } from "@/lib/types"
@@ -43,6 +44,12 @@ import { useAuth } from "@/lib/auth-context"
 import { useWebSocket } from "@/hooks/use-websocket"
 import { useI18n } from "@/lib/i18n"
 import QRCode from "qrcode"
+import {
+  getStoredFallbackStyle,
+  GROUP_COVER_FALLBACK_STORAGE_KEY,
+  type GroupCoverFallbackStyle,
+  resolveGroupCoverUrl,
+} from "@/lib/group-cover"
 
 export default function GroupDetailPage() {
   const { te, t } = useI18n()
@@ -89,7 +96,11 @@ export default function GroupDetailPage() {
   const [group, setGroup] = useState<Group | null>(null)
   const [members, setMembers] = useState<GroupMember[]>([])
   const [messages, setMessages] = useState<GroupMessage[]>([])
+  const [coverFallbackStyle, setCoverFallbackStyle] =
+    useState<GroupCoverFallbackStyle>("MOMENTS")
+  const [isUploadingCover, setIsUploadingCover] = useState(false)
   const bottomRef = useRef<HTMLDivElement | null>(null)
+  const coverInputRef = useRef<HTMLInputElement | null>(null)
 
   const groupId = String(params.id)
   const isAdmin = group?.myRole === "ADMIN"
@@ -238,6 +249,22 @@ export default function GroupDetailPage() {
     if (!features.groupsPage) return
     void loadGroup()
   }, [features.groupsPage, groupId])
+
+  useEffect(() => {
+    setCoverFallbackStyle(getStoredFallbackStyle())
+  }, [])
+
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== GROUP_COVER_FALLBACK_STORAGE_KEY || !e.newValue) return
+      const v = e.newValue
+      if (v === "MOMENTS" || v === "AURA" || v === "NIGHT" || v === "MINIMAL") {
+        setCoverFallbackStyle(v)
+      }
+    }
+    window.addEventListener("storage", onStorage)
+    return () => window.removeEventListener("storage", onStorage)
+  }, [])
 
   useEffect(() => {
     const value = newMemberId.trim()
@@ -692,6 +719,10 @@ export default function GroupDetailPage() {
   }
 
   const renderedMessages = useMemo(() => dedupeMessages(messages), [messages])
+  const groupCover = useMemo(
+    () => (group ? resolveGroupCoverUrl(group, coverFallbackStyle) : ""),
+    [group, coverFallbackStyle]
+  )
 
   const pinnedMessages = useMemo(() => {
     const pinnedSet = new Set(pinnedIds)
@@ -715,6 +746,45 @@ export default function GroupDetailPage() {
     }
   }
 
+  const handleCoverFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ""
+    if (!file || !group || !isAdmin) return
+    if (!file.type.startsWith("image/")) {
+      toast.error(te("Selecciona una imagen", "Please select an image"))
+      return
+    }
+    setIsUploadingCover(true)
+    try {
+      let uploadedUrl = ""
+      let updated = null as Group | null
+      try {
+        const uploaded = await groupService.uploadCover(groupId, file)
+        uploadedUrl = uploaded.coverPhotoUrl
+        updated = await groupService.getById(groupId)
+      } catch {
+        const { uploadToCloudinary } = await import("@/lib/cloudinary")
+        uploadedUrl = await uploadToCloudinary(file)
+        updated = await groupService.update(groupId, { coverPhotoUrl: uploadedUrl })
+      }
+      setGroup((prev) =>
+        prev
+          ? {
+              ...prev,
+              ...(updated || {}),
+              coverPhotoUrl: updated?.coverPhotoUrl || uploadedUrl,
+              coverPhoto: updated?.coverPhoto || prev.coverPhoto,
+            }
+          : prev
+      )
+      toast.success(te("Portada actualizada", "Cover updated"))
+    } catch (error: any) {
+      toast.error(error?.message || te("No se pudo subir la portada", "Could not upload cover"))
+    } finally {
+      setIsUploadingCover(false)
+    }
+  }
+
   if (!features.groupsPage) return null
 
   if (isLoading || !group) {
@@ -728,6 +798,36 @@ export default function GroupDetailPage() {
   return (
     <div className="mx-auto max-w-2xl px-3 py-4 sm:px-4 sm:py-6">
       <div className="mb-6">
+        <div className="mb-4 overflow-hidden rounded-2xl border border-border/60">
+          <div className="relative h-40 sm:h-52">
+            <img src={groupCover} alt={group.name} className="h-full w-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
+            {isAdmin && (
+              <>
+                <input
+                  ref={coverInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleCoverFileChange}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  className="absolute bottom-3 right-3 shadow-md"
+                  disabled={isUploadingCover}
+                  onClick={() => coverInputRef.current?.click()}
+                >
+                  <ImageIcon className="h-4 w-4 mr-1.5" />
+                  {isUploadingCover
+                    ? te("Subiendo…", "Uploading…")
+                    : te("Cambiar portada", "Change cover")}
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
         <Button variant="ghost" size="icon" onClick={() => router.back()} className="mb-4">
           <ArrowLeft className="h-5 w-5" />
         </Button>
@@ -767,6 +867,36 @@ export default function GroupDetailPage() {
               {te("Eliminar grupo", "Delete group")}
             </Button>
           )}
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="rounded-lg border border-border bg-card/70 p-3">
+            <p className="text-xs text-muted-foreground">{te("Miembros", "Members")}</p>
+            <p className="text-lg font-bold">{group.memberCount}</p>
+          </div>
+          <div className="rounded-lg border border-border bg-card/70 p-3">
+            <p className="text-xs text-muted-foreground">{te("Mensajes", "Messages")}</p>
+            <p className="text-lg font-bold">{messages.length}</p>
+          </div>
+          <div className="rounded-lg border border-border bg-card/70 p-3">
+            <p className="text-xs text-muted-foreground">{te("Tu rol", "Your role")}</p>
+            <p className="text-sm font-semibold">
+              {group.myRole === "ADMIN"
+                ? "Admin"
+                : group.myRole === "MODERATOR"
+                  ? te("Moderador", "Moderator")
+                  : te("Miembro", "Member")}
+            </p>
+          </div>
+          <div className="rounded-lg border border-border bg-card/70 p-3">
+            <p className="text-xs text-muted-foreground">{te("Chat", "Chat")}</p>
+            <p className="text-sm font-semibold">
+              {group.whoCanTalk === "ALL"
+                ? te("Abierto", "Open")
+                : group.whoCanTalk === "MODS_AND_ADMINS"
+                  ? te("Moderado", "Moderated")
+                  : te("Solo admin", "Admin only")}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -1372,7 +1502,7 @@ export default function GroupDetailPage() {
                         onClick={() => handleChangeRole(member.userId, 'MODERATOR')}
                       >
                         <UserPlus className="h-3.5 w-3.5 mr-1" />
-                        {roleUpdatingUserId === member.userId ? "Guardando..." : "Hacer MOD"}
+                        {roleUpdatingUserId === member.userId ? te("Guardando...", "Saving...") : te("Hacer moderador", "Make moderator")}
                       </Button>
                     )}
                     {isAdmin && member.role === 'MODERATOR' && (
@@ -1384,7 +1514,7 @@ export default function GroupDetailPage() {
                         onClick={() => handleChangeRole(member.userId, 'GUEST')}
                       >
                         <UserMinus className="h-3.5 w-3.5 mr-1" />
-                        {roleUpdatingUserId === member.userId ? "Guardando..." : "Quitar MOD"}
+                        {roleUpdatingUserId === member.userId ? te("Guardando...", "Saving...") : te("Quitar moderador", "Remove moderator")}
                       </Button>
                     )}
                     {canMuteThisMember && (
@@ -1396,7 +1526,11 @@ export default function GroupDetailPage() {
                       onClick={() => handleMuteToggle(member)}
                     >
                       {member.muted ? <Volume2 className="h-3.5 w-3.5 mr-1" /> : <VolumeX className="h-3.5 w-3.5 mr-1" />}
-                      {muteUpdatingUserId === member.userId ? "Guardando..." : member.muted ? "Quitar mute" : "Silenciar"}
+                      {muteUpdatingUserId === member.userId
+                        ? te("Guardando...", "Saving...")
+                        : member.muted
+                          ? te("Quitar silencio", "Unmute")
+                          : te("Silenciar", "Mute")}
                     </Button>
                     )}
                     {isAdmin && member.role !== "ADMIN" && (
@@ -1407,7 +1541,7 @@ export default function GroupDetailPage() {
                         className="w-full sm:w-auto"
                         onClick={() => handleRemoveMember(member.userId)}
                       >
-                        {removingMemberUserId === member.userId ? "Removiendo..." : "Remover"}
+                        {removingMemberUserId === member.userId ? te("Removiendo...", "Removing...") : te("Expulsar", "Remove")}
                       </Button>
                     )}
                   </div>

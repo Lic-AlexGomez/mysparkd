@@ -97,6 +97,15 @@ export const groupService = {
   update: (groupId: string, payload: Partial<CreateGroupRequest>) =>
     api.put<Group>(`/api/groups/${groupId}`, payload),
 
+  uploadCover: (groupId: string, file: File) => {
+    const formData = new FormData()
+    formData.append("file", file)
+    return api.put<{ coverPhotoUrl: string; coverPhotoPublicId?: string }>(
+      `/api/groups/${groupId}/cover`,
+      formData
+    )
+  },
+
   remove: (groupId: string) =>
     api.delete<void>(`/api/groups/${groupId}`),
 
