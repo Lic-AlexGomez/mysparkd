@@ -9,6 +9,7 @@ import { blockService } from "@/lib/services/block"
 import { reputationService } from "@/lib/services/reputation"
 import { privacyService } from "@/lib/services/privacy"
 import type { UserProfile, Photo, Chat, SwipeResponse } from "@/lib/types"
+import { normalizeProfilePosts } from "@/lib/normalize-profile-posts"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
@@ -74,7 +75,7 @@ export default function UserProfilePage() {
   const fetchProfile = useCallback(async () => {
     try {
       const data = await api.get<UserProfile>(`/api/profile/${userId}`)
-      setProfile(data)
+      setProfile({ ...data, posts: normalizeProfilePosts(data.posts) })
     } catch {} finally {
       setIsLoading(false)
     }
@@ -219,7 +220,7 @@ export default function UserProfilePage() {
     const pid = photoToDelete.photoId ?? photoToDelete.id
     if (!pid) { setConfirmOpen(false); return }
     try {
-      await api.delete(`/api/profile/${user?.userId}/photos/${pid}`)
+      await api.delete(`/api/photos/delete/${pid}`)
       await fetchProfile()
     } catch {
       toast.error(te("Error al eliminar la foto", "Error deleting photo"))

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { StatCard, ProgressRow } from "./shared"
+import { AdminHorizontalBarChart } from "@/components/dashboard/charts/admin-recharts"
 import { Globe, Loader2, MapPin, Smartphone, TrendingUp, Users } from "lucide-react"
 import { adminService, type AdminGeoStats } from "@/lib/services/admin"
 import { toast } from "sonner"
@@ -22,9 +23,13 @@ export function AdminGeo() {
 
   const topRegion = useMemo(() => data?.byRegion[0]?.region || "—", [data])
   const topCount = useMemo(() => data?.byRegion[0]?.count || 0, [data])
-  const maxRegion = useMemo(
-    () => Math.max(...(data?.byRegion.map((r) => r.count) || [1])),
-    [data]
+  const regionChartData = useMemo(
+    () =>
+      (data?.byRegion || []).map((r) => ({
+        name: r.region.length > 14 ? `${r.region.slice(0, 14)}…` : r.region,
+        value: r.count,
+      })),
+    [data],
   )
 
   if (loading) {
@@ -58,26 +63,19 @@ export function AdminGeo() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="border-border">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Card className="border-border/80 shadow-md shadow-black/10 lg:col-span-2">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
-              <Globe className="h-4 w-4 text-primary" /> Usuarios por región
+              <Globe className="h-4 w-4 text-primary" /> Usuarios por región (top 12)
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2.5">
-            {data.byRegion.length === 0 && (
+          <CardContent>
+            {data.byRegion.length === 0 ? (
               <p className="text-xs text-muted-foreground">Sin datos de región.</p>
+            ) : (
+              <AdminHorizontalBarChart data={regionChartData} barColor="#00e5ff" />
             )}
-            {data.byRegion.map((c) => (
-              <div key={c.region} className="flex items-center gap-3">
-                <span className="text-xs text-foreground w-32 shrink-0">{c.region}</span>
-                <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-primary rounded-full" style={{ width: `${(c.count / maxRegion) * 100}%` }} />
-                </div>
-                <span className="text-xs font-semibold text-foreground w-12 text-right">{c.count.toLocaleString()}</span>
-              </div>
-            ))}
           </CardContent>
         </Card>
 

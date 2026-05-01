@@ -93,11 +93,41 @@ export default function EventDetailPage() {
   const loadEvent = async () => {
     setIsLoading(true)
     try {
-      const [detail, msgRows, memberRows] = await Promise.all([
-        eventService.getById(eventId),
-        eventService.groupMessages.list(eventId),
-        eventService.groupMembers.list(eventId),
-      ])
+      const detail = await eventService.getById(eventId)
+
+      let msgRows: EventGroupMessage[] = []
+      let memberRows: EventGroupMember[] = []
+      let groupCatalogMissing = false
+
+      try {
+        msgRows = await eventService.groupMessages.list(eventId)
+      } catch (err: unknown) {
+        if (err instanceof ApiError && err.status === 404) {
+          groupCatalogMissing = true
+        } else {
+          console.warn("[events] group/messages", err)
+        }
+      }
+
+      try {
+        memberRows = await eventService.groupMembers.list(eventId)
+      } catch (err: unknown) {
+        if (err instanceof ApiError && err.status === 404) {
+          groupCatalogMissing = true
+        } else {
+          console.warn("[events] group/members", err)
+        }
+      }
+
+      if (groupCatalogMissing) {
+        toast.message(
+          te(
+            "El servidor aún no expone el chat o los miembros del grupo de este evento (404). Puedes ver el evento; cuando existan los endpoints se cargarán solos.",
+            "Group chat/members endpoints returned 404. Event details load; chat and member list stay empty until the backend adds these routes."
+          ),
+          { id: "event-group-endpoints-missing", duration: 7000 }
+        )
+      }
 
       setEventData(detail)
       setMessages((Array.isArray(msgRows) ? msgRows : []).map((m) => ({ ...m, id: normalizeMessageId(m) })))

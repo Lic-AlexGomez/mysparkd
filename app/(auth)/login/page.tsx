@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
-import { api } from "@/lib/api"
+import { api, ApiError, rateLimitHint } from "@/lib/api"
 import type { UserProfile } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -44,6 +44,10 @@ export default function LoginPage() {
         router.push("/onboarding")
       }
     } catch (err) {
+      if (err instanceof ApiError && err.status === 429) {
+        toast.error(rateLimitHint(err))
+        return
+      }
       const message = err instanceof Error ? err.message : "Error al iniciar sesion"
       const msgLower = message.toLowerCase()
       if (
@@ -79,7 +83,11 @@ export default function LoginPage() {
         router.push("/onboarding")
       }
     } catch (err) {
-      toast.error("Error al iniciar sesión con Google")
+      if (err instanceof ApiError && err.status === 429) {
+        toast.error(rateLimitHint(err))
+      } else {
+        toast.error("Error al iniciar sesión con Google")
+      }
     } finally {
       setIsLoading(false)
     }

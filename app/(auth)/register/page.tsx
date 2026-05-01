@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
-import { api, ApiError } from "@/lib/api"
+import { api, ApiError, rateLimitHint } from "@/lib/api"
 import type { UserProfile } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -63,12 +63,7 @@ export default function RegisterPage() {
       )
     } catch (err) {
       if (err instanceof ApiError && err.status === 429) {
-        const w = err.retryAfterSeconds
-        toast.error(
-          w != null
-            ? `Demasiados intentos. Espera ${w}s o prueba más tarde.`
-            : err.message || "Demasiados intentos. Prueba más tarde."
-        )
+        toast.error(rateLimitHint(err))
       } else {
         toast.error(err instanceof Error ? err.message : "Error al registrarse")
       }
@@ -92,7 +87,11 @@ export default function RegisterPage() {
         router.push("/onboarding")
       }
     } catch (err) {
-      toast.error("Error al registrarse con Google")
+      if (err instanceof ApiError && err.status === 429) {
+        toast.error(rateLimitHint(err))
+      } else {
+        toast.error("Error al registrarse con Google")
+      }
     } finally {
       setIsLoading(false)
     }

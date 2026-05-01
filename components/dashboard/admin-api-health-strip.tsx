@@ -46,7 +46,7 @@ export function AdminApiHealthStrip() {
 
   return (
     <div className="space-y-2">
-    <div className="flex flex-col gap-2 rounded-xl border border-border/80 bg-card/50 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+    <div className="flex flex-col gap-2 rounded-2xl border border-border/70 bg-card/60 px-3 py-3 shadow-md shadow-black/15 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-4">
       <div className="flex min-w-0 flex-1 items-start gap-2.5 sm:items-center">
         <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted/80">
           <Server className="h-3.5 w-3.5 text-muted-foreground" />

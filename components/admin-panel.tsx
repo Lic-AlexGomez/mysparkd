@@ -34,6 +34,7 @@ import {
 } from "@/lib/dashboard-section-integration"
 import { IntegrationBanner } from "@/components/dashboard/integration-banner"
 import { AdminApiHealthStrip } from "@/components/dashboard/admin-api-health-strip"
+import { DASHBOARD_ADMIN_NAV_GROUPS } from "@/lib/dashboard-admin-nav-groups"
 
 type Role = "admin" | "manager"
 
@@ -97,57 +98,75 @@ export function AdminPanel({ role }: AdminPanelProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-[15rem] flex-col border-r border-border/80 bg-card/95 backdrop-blur-sm transition-transform duration-300 lg:translate-x-0 lg:static lg:z-auto",
+          "fixed inset-y-0 left-0 z-50 flex w-[17.5rem] flex-col border-r border-border/70 bg-sidebar/90 shadow-[8px_0_32px_-12px_rgba(0,0,0,0.55)] backdrop-blur-xl transition-transform duration-300 ease-out lg:translate-x-0 lg:static lg:z-auto",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
+        <div
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_45%_at_50%_-10%,var(--primary)_0%,transparent_55%)] opacity-[0.07]"
+          aria-hidden
+        />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-background/80 to-transparent" aria-hidden />
+
         {/* Logo */}
-        <div className="flex h-14 shrink-0 items-center gap-2 border-b border-border/80 px-4">
-          <div className={cn(
-            "flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br",
-            isAdmin ? "from-primary to-secondary" : "from-secondary to-accent"
-          )}>
-            <Zap className={cn("h-4 w-4", isAdmin ? "text-black" : "text-white")} />
+        <div className="relative flex h-[4.25rem] shrink-0 items-center gap-3 border-b border-sidebar-border/80 px-4">
+          <div
+            className={cn(
+              "relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br shadow-lg ring-2 ring-background/80",
+              isAdmin ? "from-primary to-secondary shadow-primary/25" : "from-secondary to-accent shadow-secondary/25"
+            )}
+          >
+            <Zap className={cn("h-[1.15rem] w-[1.15rem]", isAdmin ? "text-black" : "text-white")} />
           </div>
-          <div>
-            <p className="text-sm font-black text-foreground">Sparkd</p>
-            <p className="text-[10px] text-muted-foreground leading-none">
-              {isAdmin ? "Admin Panel" : "Manager Panel"}
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-black tracking-tight text-foreground">Sparkd</p>
+            <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+              {isAdmin ? "Admin" : "Manager"}
             </p>
           </div>
-          <button className="ml-auto lg:hidden" onClick={() => setSidebarOpen(false)}>
+          <button type="button" className="relative shrink-0 rounded-lg p-1.5 hover:bg-muted/50 lg:hidden" onClick={() => setSidebarOpen(false)}>
             <X className="h-4 w-4 text-muted-foreground" />
           </button>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
-          {/* Grupo Admin */}
-          {isAdmin && adminSections.length > 0 && (
-            <>
-              <p className="px-3 pt-2 pb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                Admin
-              </p>
-              {adminSections.map((s) => (
-                <NavButton
-                  key={s.id}
-                  section={s}
-                  active={active}
-                  isAdmin={isAdmin}
-                  integration={DASHBOARD_SECTION_INTEGRATION[s.id]}
-                  onSelect={(id) => {
-                    setActive(id)
-                    setSidebarOpen(false)
-                  }}
-                />
-              ))}
-            </>
-          )}
+        <nav className="relative flex-1 space-y-1 overflow-y-auto px-2 py-3">
+          {/* Admin: subgrupos */}
+          {isAdmin &&
+            DASHBOARD_ADMIN_NAV_GROUPS.map((group, gi) => (
+              <div key={group.label} className="space-y-0.5 pb-2">
+                <p
+                  className={cn(
+                    "px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground/90",
+                    gi === 0 ? "pt-1" : "pt-3",
+                  )}
+                >
+                  {group.label}
+                </p>
+                {group.ids.map((id) => {
+                  const s = adminSections.find((x) => x.id === id)
+                  if (!s) return null
+                  return (
+                    <NavButton
+                      key={s.id}
+                      section={s}
+                      active={active}
+                      isAdmin={isAdmin}
+                      integration={DASHBOARD_SECTION_INTEGRATION[s.id]}
+                      onSelect={(sid) => {
+                        setActive(sid)
+                        setSidebarOpen(false)
+                      }}
+                    />
+                  )
+                })}
+              </div>
+            ))}
 
           {/* Grupo Manager */}
           {managerSections.length > 0 && (
             <>
-              <p className="px-3 pt-3 pb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+              <p className="px-3 pb-1.5 pt-3 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground/90">
                 Manager
               </p>
               {managerSections.map((s) => (
@@ -167,22 +186,28 @@ export function AdminPanel({ role }: AdminPanelProps) {
             </>
           )}
         </nav>
-        <div className="shrink-0 border-t border-border/60 p-3 text-[10px] leading-relaxed text-muted-foreground">
-          <p className="mb-1.5 font-semibold uppercase tracking-wide text-foreground/70">
-            Conexión API
+        <div className="relative shrink-0 border-t border-sidebar-border/70 bg-muted/15 p-3">
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+            Leyenda API
           </p>
-          <div className="space-y-1">
-            <p>
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" /> API — datos
-              reales
+          <div className="space-y-2 rounded-xl border border-border/50 bg-card/50 p-2.5 backdrop-blur-sm">
+            <p className="flex items-start gap-2 text-[10px] leading-snug text-muted-foreground">
+              <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]" />
+              <span>
+                <span className="font-semibold text-emerald-200/90">API</span> — datos en vivo
+              </span>
             </p>
-            <p>
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400" /> Parcial — API
-              real, datos poco duraderos en servidor
+            <p className="flex items-start gap-2 text-[10px] leading-snug text-muted-foreground">
+              <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)]" />
+              <span>
+                <span className="font-semibold text-amber-100/90">Parcial</span> — datos efímeros en servidor
+              </span>
             </p>
-            <p>
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-muted-foreground" /> Demo —
-              maqueta
+            <p className="flex items-start gap-2 text-[10px] leading-snug text-muted-foreground">
+              <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground/70" />
+              <span>
+                <span className="font-semibold text-foreground/75">Demo</span> — maqueta sin API
+              </span>
             </p>
           </div>
         </div>
@@ -190,13 +215,25 @@ export function AdminPanel({ role }: AdminPanelProps) {
 
       {/* Overlay móvil */}
       {sidebarOpen && (
-        <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        <div
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-[2px] lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
       )}
 
       {/* Main */}
-      <div className="flex min-w-0 flex-1 flex-col bg-gradient-to-b from-background to-muted/10">
-        <header className="z-10 shrink-0 border-b border-border/80 bg-card/90 backdrop-blur-md">
-          <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-4 sm:py-2.5">
+      <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
+        <div
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_100%_55%_at_50%_-15%,rgba(0,229,255,0.07),transparent_52%)]"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-muted/25"
+          aria-hidden
+        />
+
+        <header className="relative z-10 shrink-0 border-b border-border/60 bg-background/55 shadow-sm shadow-black/20 backdrop-blur-xl supports-[backdrop-filter]:bg-background/40">
+          <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-3 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5 sm:py-4">
             <div className="flex min-w-0 items-start gap-3 sm:items-center">
               <button
                 className="mt-0.5 shrink-0 rounded-lg p-1.5 text-muted-foreground hover:bg-muted/60 lg:hidden"
@@ -207,11 +244,14 @@ export function AdminPanel({ role }: AdminPanelProps) {
                 <Menu className="h-5 w-5" />
               </button>
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-base font-bold tracking-tight text-foreground sm:text-lg">
+           {/*      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  Sparkd · {isAdmin ? "Panel de administración" : "Panel de manager"}
+                </p> */}
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <h1 className="text-lg font-bold tracking-tight text-foreground sm:text-xl">
                     {activeSection?.label}
                   </h1>
-                  {activeSection && DASHBOARD_SECTION_INTEGRATION[activeSection.id] && (
+               {/*    {activeSection && DASHBOARD_SECTION_INTEGRATION[activeSection.id] && (
                     <Badge
                       className={cn(
                         "border-0 text-[10px] font-semibold",
@@ -225,13 +265,8 @@ export function AdminPanel({ role }: AdminPanelProps) {
                     >
                       {DASHBOARD_SECTION_INTEGRATION[activeSection.id].shortLabel}
                     </Badge>
-                  )}
+                  )} */}
                 </div>
-                <p className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground sm:line-clamp-1 sm:max-w-2xl">
-                  {activeSection && DASHBOARD_SECTION_INTEGRATION[activeSection.id]?.detail
-                    ? DASHBOARD_SECTION_INTEGRATION[activeSection.id].detail
-                    : `Sparkd · ${isAdmin ? "Panel de Administración" : "Panel de Manager"}`}
-                </p>
               </div>
             </div>
             <div className="flex shrink-0 items-center justify-end gap-2 pl-8 sm:pl-0">
@@ -283,8 +318,8 @@ export function AdminPanel({ role }: AdminPanelProps) {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-4 lg:px-6 lg:py-6">
-          <div className="mx-auto w-full max-w-6xl space-y-4">
+        <main className="relative flex-1 overflow-y-auto px-3 py-5 sm:px-4 lg:px-6 lg:py-8">
+          <div className="mx-auto w-full max-w-6xl space-y-5">
             {isAdmin && <AdminApiHealthStrip />}
             {activeIntegration && (
               <IntegrationBanner
@@ -356,12 +391,15 @@ function NavButton({
       type="button"
       onClick={() => onSelect(section.id)}
       className={cn(
-        "flex w-full items-center gap-2 rounded-xl px-2.5 py-2.5 text-sm font-medium transition-all",
+        "flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
         isActive
-          ? isAdmin && section.group === "admin"
-            ? "bg-primary/12 text-primary shadow-sm"
-            : "bg-secondary/12 text-secondary shadow-sm"
-          : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+          ? cn(
+              "border-l-2 shadow-inner shadow-black/10 ring-1 ring-white/[0.04]",
+              isAdmin && section.group === "admin"
+                ? "border-primary bg-primary/[0.09] text-primary"
+                : "border-secondary bg-secondary/[0.09] text-secondary",
+            )
+          : "border-l-2 border-transparent text-muted-foreground hover:bg-muted/45 hover:text-foreground",
       )}
     >
       <span

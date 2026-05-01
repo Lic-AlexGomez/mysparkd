@@ -30,14 +30,14 @@ type Props = {
   className?: string
 }
 
-export function IntegrationBanner({ source, detail, className }: Props) {
+export function IntegrationBanner({ source, detail: _detail, className }: Props) {
   const s = STYLES[source]
   const Icon = s.icon
   return (
     <div
       role="status"
       className={cn(
-        "flex gap-3 rounded-2xl border px-4 py-3 text-sm leading-snug",
+        "flex gap-3 rounded-2xl border px-4 py-2.5 text-sm leading-snug shadow-lg shadow-black/20 backdrop-blur-sm",
         s.className,
         className
       )}
@@ -45,9 +45,6 @@ export function IntegrationBanner({ source, detail, className }: Props) {
       <Icon className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
       <div className="min-w-0">
         <p className="font-semibold tracking-tight">{s.title}</p>
-        <p className="mt-0.5 text-xs opacity-90 [&_strong]:font-medium [&_strong]:text-inherit">
-          {detail}
-        </p>
       </div>
     </div>
   )

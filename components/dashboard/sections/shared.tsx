@@ -42,7 +42,8 @@ export function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 export function MiniBar({ data, color = "bg-primary" }: { data: number[], color?: string }) {
-  const max = Math.max(...data)
+  if (!data.length) return null
+  const max = Math.max(...data, 1)
   return (
     <div className="flex items-end gap-1 h-12">
       {data.map((v, i) => (

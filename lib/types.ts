@@ -765,11 +765,15 @@ export interface Notification {
 export interface UserSubscription {
   id: string
   userId: string
-  stripeCustomerId: string
-  stripeSubscriptionId: string
-  status: 'ACTIVE' | 'CANCELED' | 'PAST_DUE'
+  stripeCustomerId?: string
+  stripeSubscriptionId?: string
+  status?: 'ACTIVE' | 'CANCELED' | 'PAST_DUE' | string
   currentPeriodEnd: string
   active: boolean
+  trial?: boolean
+  cancelAtPeriodEnd?: boolean
+  /** Mensaje informativo del backend (p. ej. tras solicitar cancelación). */
+  message?: string | null
 }
 
 // Auth state

@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { StatCard, MiniBar, ProgressRow } from "./shared"
+import { StatCard, ProgressRow } from "./shared"
+import { AdminAreaChart, AdminEngagementComboChart } from "@/components/dashboard/charts/admin-recharts"
+import { chartDayLabel } from "@/lib/chart-day-label"
 import { BarChart3, Heart, Loader2, TrendingUp, Zap } from "lucide-react"
 import { adminService, type AdminEngagementStats } from "@/lib/services/admin"
 import { toast } from "sonner"
@@ -21,8 +23,24 @@ export function AdminEngagement() {
       .finally(() => setLoading(false))
   }, [days])
 
-  const likesSeries = useMemo(() => data?.likesSeries.map((p) => p.count) || [], [data])
-  const matchesSeries = useMemo(() => data?.matchesSeries.map((p) => p.count) || [], [data])
+  const dualSeries = useMemo(() => {
+    const likes = data?.likesSeries || []
+    const matches = data?.matchesSeries || []
+    return likes.map((p, i) => ({
+      name: chartDayLabel(p.date),
+      likes: p.count,
+      matches: matches[i]?.count ?? 0,
+    }))
+  }, [data])
+
+  const likesOnlyChart = useMemo(
+    () =>
+      (data?.likesSeries || []).map((p) => ({
+        name: chartDayLabel(p.date),
+        value: p.count,
+      })),
+    [data],
+  )
 
   if (loading) {
     return (
@@ -74,44 +92,53 @@ export function AdminEngagement() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-border">
-          <CardHeader className="pb-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Card className="border-border/80 shadow-md shadow-black/10 lg:col-span-2">
+          <CardHeader className="pb-0">
             <CardTitle className="text-sm flex items-center gap-2">
-              <Heart className="h-4 w-4 text-rose-500" /> Likes ({days}d)
+              <Heart className="h-4 w-4 text-rose-500" /> Likes vs matches ({days}d)
             </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-black mb-3">{data.recentLikes.toLocaleString()}</p>
-            <MiniBar data={likesSeries.length ? likesSeries : [0]} color="bg-rose-500" />
-          </CardContent>
-        </Card>
-
-        <Card className="border-border">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Zap className="h-4 w-4 text-primary" /> Dislikes ({days}d)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-black mb-3">{data.recentDislikes.toLocaleString()}</p>
-            <p className="text-[11px] text-muted-foreground">
-              Serie temporal de dislikes no expuesta por el backend; aquí se muestra el total reciente.
+            <p className="pt-1 text-[11px] font-normal text-muted-foreground">
+              Recientes: {data.recentLikes.toLocaleString()} likes · {data.recentMatches.toLocaleString()} matches
             </p>
+          </CardHeader>
+          <CardContent className="pt-3">
+            <AdminEngagementComboChart data={dualSeries} height={280} />
           </CardContent>
         </Card>
 
-        <Card className="border-border">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-blue-500" /> Matches ({days}d)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-black mb-3">{data.recentMatches.toLocaleString()}</p>
-            <MiniBar data={matchesSeries.length ? matchesSeries : [0]} color="bg-blue-500" />
-          </CardContent>
-        </Card>
+        <div className="flex flex-col gap-4">
+          <Card className="border-border/80 shadow-md shadow-black/10">
+            <CardHeader className="pb-0">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Heart className="h-4 w-4 text-rose-500" /> Likes por día
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-3">
+              <AdminAreaChart
+                data={likesOnlyChart}
+                gradientId={`eg-likes-${days}`}
+                color="#fb7185"
+                valueLabel="Likes"
+                height={200}
+              />
+            </CardContent>
+          </Card>
+
+          <Card className="border-border">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Zap className="h-4 w-4 text-primary" /> Dislikes ({days}d)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-black">{data.recentDislikes.toLocaleString()}</p>
+              <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+                Serie temporal de dislikes no expuesta por el backend; solo total reciente.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

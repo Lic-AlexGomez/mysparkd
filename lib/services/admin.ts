@@ -1,8 +1,8 @@
 import { api } from "@/lib/api"
 import type { AdminStats, UserGrowth } from "@/lib/types"
 
-type DailyPoint = { date: string; count: number }
-type RevenuePoint = { date: string; amountCents: number; amountUsd: string }
+export type DailyPoint = { date: string; count: number }
+export type RevenueDailyPoint = { date: string; amountCents: number; amountUsd: string }
 
 export type AdminContentStats = {
   activePosts: number
@@ -152,7 +152,7 @@ export const adminService = {
     }
   },
 
-  async getRevenueDaily(): Promise<RevenuePoint[]> {
+  async getRevenueDaily(): Promise<RevenueDailyPoint[]> {
     const raw = await api.get<Array<Record<string, unknown>>>("/api/admin/analytics/revenue-daily")
     if (!Array.isArray(raw)) return []
     return raw.map((row) => ({

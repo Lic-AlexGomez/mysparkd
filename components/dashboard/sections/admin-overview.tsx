@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { StatCard, MiniBar, ProgressRow } from "./shared"
+import { StatCard, ProgressRow } from "./shared"
+import { AdminAreaChart } from "@/components/dashboard/charts/admin-recharts"
+import { chartDayLabel } from "@/lib/chart-day-label"
+import type { DailyPoint, RevenueDailyPoint } from "@/lib/services/admin"
 import {
   Users, Heart, DollarSign,
   Activity, Shield, UserPlus, Crown, Globe, Loader2
@@ -14,8 +17,8 @@ import { toast } from "sonner"
 export function AdminOverview() {
   const [stats, setStats] = useState<AdminStats | null>(null)
   const [growth, setGrowth] = useState<UserGrowth[]>([])
-  const [matchesDaily, setMatchesDaily] = useState<number[]>([])
-  const [revenueDaily, setRevenueDaily] = useState<number[]>([])
+  const [matchPoints, setMatchPoints] = useState<DailyPoint[]>([])
+  const [revenuePoints, setRevenuePoints] = useState<RevenueDailyPoint[]>([])
   const [matchesLast7, setMatchesLast7] = useState<number>(0)
   const [revenueLast7, setRevenueLast7] = useState<string>("$0.00")
   const [loading, setLoading] = useState(true)
@@ -31,10 +34,10 @@ export function AdminOverview() {
       setStats(s)
       setGrowth(g)
       if (!s) setForbidden(true)
-      const matchSeries = matches.series.map((p) => p.count)
-      const revenueSeries = revenue.slice(-7).map((p) => Number(p.amountCents || 0) / 100)
-      setMatchesDaily(matchSeries.length ? matchSeries : [0, 0, 0, 0, 0, 0, 0])
-      setRevenueDaily(revenueSeries.length ? revenueSeries : [0, 0, 0, 0, 0, 0, 0])
+      const mPts = matches.series.slice(-7)
+      setMatchPoints(mPts.length ? mPts : [])
+      const rPts = revenue.slice(-7)
+      setRevenuePoints(rPts.length ? rPts : [])
       setMatchesLast7(matches.totalLastDays || 0)
       const cents7 = revenue.slice(-7).reduce((sum, p) => sum + Number(p.amountCents || 0), 0)
       setRevenueLast7(`$${(cents7 / 100).toFixed(2)}`)
@@ -43,8 +46,18 @@ export function AdminOverview() {
     }).finally(() => setLoading(false))
   }, [])
 
-  // Últimos 7 días de crecimiento para el mini bar
-  const growthData = growth.slice(-7).map(g => g.count)
+  const growthChart = growth.slice(-7).map((g) => ({
+    name: chartDayLabel(g.date),
+    value: g.count,
+  }))
+  const matchesChart = matchPoints.map((p) => ({
+    name: chartDayLabel(p.date),
+    value: p.count,
+  }))
+  const revenueChart = revenuePoints.map((p) => ({
+    name: chartDayLabel(p.date),
+    value: Number(p.amountCents || 0) / 100,
+  }))
 
   const KPI = [
     { label: "Usuarios totales",      value: stats ? stats.totalUsers.toLocaleString()          : "—", change: 0, icon: Users,    color: "bg-violet-500" },
@@ -74,65 +87,72 @@ export function AdminOverview() {
           <p className="text-xs text-muted-foreground">Tu cuenta no tiene rol ADMIN para ver estas estadísticas</p>
         </div>
       ) : (
+        <>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {KPI.map(k => <StatCard key={k.label} {...k} />)}
         </div>
-      )}
 
       {/* Gráficas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-border">
-          <CardHeader className="pb-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Card className="border-border/80 shadow-md shadow-black/10">
+          <CardHeader className="pb-0">
             <CardTitle className="text-sm flex items-center gap-2">
               <Users className="h-4 w-4 text-primary" /> Crecimiento de usuarios (7d)
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-black text-foreground mb-3">
+          <CardContent className="pt-3">
+            <p className="text-2xl font-black text-foreground mb-1">
               {stats ? stats.totalUsers.toLocaleString() : "—"}
             </p>
-            <MiniBar data={growthData.length > 0 ? growthData : [0,0,0,0,0,0,0]} color="bg-primary" />
-            <div className="flex justify-between mt-1">
-              {growth.slice(-7).map((g, i) => (
-                <span key={i} className="text-[10px] text-muted-foreground flex-1 text-center">
-                  {new Date(g.date).getDate()}
-                </span>
-              ))}
-            </div>
+            <p className="text-[11px] text-muted-foreground mb-2">Altas por día</p>
+            <AdminAreaChart
+              data={growthChart}
+              gradientId="ov-growth"
+              color="#00e5ff"
+              valueLabel="Usuarios"
+              height={232}
+            />
           </CardContent>
         </Card>
 
-        <Card className="border-border/80">
-          <CardHeader className="pb-2">
+        <Card className="border-border/80 shadow-md shadow-black/10">
+          <CardHeader className="pb-0">
             <CardTitle className="text-sm flex items-center gap-2">
               <Heart className="h-4 w-4 text-rose-500" /> Matches (7d)
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-black text-foreground mb-3">{matchesLast7.toLocaleString()}</p>
-            <MiniBar data={matchesDaily} color="bg-rose-500" />
-            <div className="flex justify-between mt-1">
-              {["L","M","X","J","V","S","D"].map(d => (
-                <span key={d} className="text-[10px] text-muted-foreground flex-1 text-center">{d}</span>
-              ))}
-            </div>
+          <CardContent className="pt-3">
+            <p className="text-2xl font-black text-foreground mb-1">{matchesLast7.toLocaleString()}</p>
+            <p className="text-[11px] text-muted-foreground mb-2">Matches por día</p>
+            <AdminAreaChart
+              data={matchesChart}
+              gradientId="ov-matches"
+              color="#fb7185"
+              valueLabel="Matches"
+              height={232}
+            />
           </CardContent>
         </Card>
 
-        <Card className="border-border/80">
-          <CardHeader className="pb-2">
+        <Card className="border-border/80 shadow-md shadow-black/10">
+          <CardHeader className="pb-0">
             <CardTitle className="text-sm flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-amber-500" /> Ingresos diarios (7d)
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-black text-foreground mb-3">{revenueLast7}</p>
-            <MiniBar data={revenueDaily} color="bg-amber-500" />
-            <div className="flex justify-between mt-1">
-              {["L","M","X","J","V","S","D"].map(d => (
-                <span key={d} className="text-[10px] text-muted-foreground flex-1 text-center">{d}</span>
-              ))}
-            </div>
+          <CardContent className="pt-3">
+            <p className="text-2xl font-black text-foreground mb-1">{revenueLast7}</p>
+            <p className="text-[11px] text-muted-foreground mb-2">USD estimado por día</p>
+            <AdminAreaChart
+              data={revenueChart}
+              gradientId="ov-revenue"
+              color="#fbbf24"
+              valueLabel="USD"
+              height={232}
+              formatValue={(n) =>
+                n.toLocaleString("es-ES", { style: "currency", currency: "USD", maximumFractionDigits: 2 })
+              }
+            />
           </CardContent>
         </Card>
       </div>
@@ -177,6 +197,8 @@ export function AdminOverview() {
           </CardContent>
         </Card>
       </div>
+        </>
+      )}
     </div>
   )
 }

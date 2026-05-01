@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { api } from "@/lib/api"
+import { api, ApiError, rateLimitHint } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -27,7 +27,11 @@ export default function ForgotPasswordPage() {
       setSent(true)
       toast.success("Revisa tu correo")
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al enviar")
+      if (err instanceof ApiError && err.status === 429) {
+        toast.error(rateLimitHint(err))
+      } else {
+        toast.error(err instanceof Error ? err.message : "Error al enviar")
+      }
     } finally {
       setIsLoading(false)
     }

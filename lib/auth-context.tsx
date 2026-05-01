@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react"
 import { api } from "@/lib/api"
+import { normalizeProfilePosts } from "@/lib/normalize-profile-posts"
 import type {
   User,
   UserProfile,
@@ -77,10 +78,17 @@ function normalizeProfileFromApi(profile: UserProfile): UserProfile {
   }
 
   if (recovery === undefined || recovery === null) {
+    next = { ...next, posts: normalizeProfilePosts(next.posts) }
     return next
   }
-  if (recovery === profile.recoveryEmail) return next
-  return { ...next, recoveryEmail: recovery }
+  if (recovery === profile.recoveryEmail) {
+    return { ...next, posts: normalizeProfilePosts(next.posts) }
+  }
+  return {
+    ...next,
+    recoveryEmail: recovery,
+    posts: normalizeProfilePosts(next.posts),
+  }
 }
 
 interface AuthContextType {

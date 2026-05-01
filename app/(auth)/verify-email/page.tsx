@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { toast } from "sonner"
 import { CheckCircle2, Loader2, Mail } from "lucide-react"
 import { emailVerificationService } from "@/lib/services/email-verification"
-import { api } from "@/lib/api"
+import { api, ApiError, rateLimitHint } from "@/lib/api"
 import type { UserProfile } from "@/lib/types"
 import {
   stashLoginAccountType,
@@ -92,7 +92,11 @@ function VerifyEmailForm() {
       setVerified(true)
       toast.success("Email verificado correctamente")
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo verificar el código")
+      if (error instanceof ApiError && error.status === 429) {
+        toast.error(rateLimitHint(error))
+      } else {
+        toast.error(error instanceof Error ? error.message : "No se pudo verificar el código")
+      }
     } finally {
       setIsVerifying(false)
     }
@@ -111,7 +115,11 @@ function VerifyEmailForm() {
       })
       toast.success("Te enviamos un nuevo correo de verificación")
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo reenviar")
+      if (error instanceof ApiError && error.status === 429) {
+        toast.error(rateLimitHint(error))
+      } else {
+        toast.error(error instanceof Error ? error.message : "No se pudo reenviar")
+      }
     } finally {
       setIsResending(false)
     }

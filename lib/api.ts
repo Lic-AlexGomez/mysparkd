@@ -233,4 +233,13 @@ export const api = {
     }),
 }
 
+/** Mensaje para toasts cuando `status === 429` (incluye Retry-After si viene). */
+export function rateLimitHint(err: ApiError): string {
+  const base =
+    err.message?.trim() ||
+    "Demasiados intentos en poco tiempo. Espera un momento e inténtalo de nuevo."
+  const w = err.retryAfterSeconds
+  return w != null ? `${base} Espera ${w}s.` : base
+}
+
 export { ApiError }

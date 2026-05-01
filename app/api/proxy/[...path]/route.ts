@@ -4,9 +4,11 @@ const normalizeBackend = (raw: string) =>
 const PRIMARY_BACKEND_URL = normalizeBackend(
   process.env.NEXT_PUBLIC_API_URL || "https://sparkd1-0.onrender.com"
 )
-const EVENTS_READONLY_BACKEND_URL = normalizeBackend(
-  process.env.NEXT_PUBLIC_READONLY_EVENTS_API_URL || PRIMARY_BACKEND_URL
-)
+
+/** Desactivado: antes GET /api/events* se mandaba a un backend externo de solo lectura (NEXT_PUBLIC_READONLY_EVENTS_API_URL). Usamos solo Sparkd. */
+// const EVENTS_READONLY_BACKEND_URL = normalizeBackend(
+//   process.env.NEXT_PUBLIC_READONLY_EVENTS_API_URL || PRIMARY_BACKEND_URL
+// )
 
 async function handler(
   request: Request,
@@ -16,14 +18,8 @@ async function handler(
   const { path } = params
   let endpoint = `/${path.join("/")}`
 
-  // Rule:
-  // - GET /api/events... -> readonly events backend
-  // - Any non-GET method (POST/PUT/PATCH/DELETE) -> primary backend
-  const isEventsPath = endpoint.startsWith("/api/events")
-  const useReadonlyEventsBackend = request.method === "GET" && isEventsPath
-  const selectedBackend = useReadonlyEventsBackend
-    ? EVENTS_READONLY_BACKEND_URL
-    : PRIMARY_BACKEND_URL
+  // Todas las rutas (incl. GET /api/events*) van al backend Sparkd (PRIMARY_BACKEND_URL).
+  const selectedBackend = PRIMARY_BACKEND_URL
 
   const url = new URL(request.url)
   const searchParams = new URLSearchParams(url.search)

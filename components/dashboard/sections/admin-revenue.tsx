@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { StatCard, MiniBar, ProgressRow } from "./shared"
+import { StatCard, ProgressRow } from "./shared"
+import { AdminAreaChart, AdminColumnBarChart } from "@/components/dashboard/charts/admin-recharts"
+import { chartDayLabel } from "@/lib/chart-day-label"
 import { AlertCircle, Crown, DollarSign, Loader2, PieChart, TrendingDown, TrendingUp } from "lucide-react"
 import { adminService } from "@/lib/services/admin"
 import { toast } from "sonner"
@@ -34,9 +36,23 @@ export function AdminRevenue() {
       .finally(() => setLoading(false))
   }, [])
 
-  const revenueSeries = useMemo(
-    () => (dailyRevenue.length ? dailyRevenue.slice(-14).map((r) => Number(r.amountCents || 0) / 100) : [0]),
-    [dailyRevenue]
+  const revenueStripeChart = useMemo(
+    () =>
+      dailyRevenue.slice(-14).map((r) => ({
+        name: chartDayLabel(r.date),
+        value: Number(r.amountCents || 0) / 100,
+      })),
+    [dailyRevenue],
+  )
+
+  const subscribersMixChart = useMemo(
+    () => [
+      { name: "Pagas", value: Number(active?.activePaid || 0) },
+      { name: "Trial", value: Number(active?.activeTrial || 0) },
+      { name: "Past due", value: Number(active?.pastDue || 0) },
+      { name: "Cancel.", value: Number(active?.cancelled || 0) },
+    ],
+    [active],
   )
 
   if (loading) {
@@ -131,8 +147,20 @@ export function AdminRevenue() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-black mb-1">{String(mrr.mrrUsd || "$0.00")}</p>
-            <p className="text-xs text-muted-foreground mb-3">Precio mensual: {String(mrr.pricePerMonthUsd || "$0.00")}</p>
-            <MiniBar data={revenueSeries} color="bg-emerald-500" />
+            <p className="text-xs text-muted-foreground mb-2">
+              Precio mensual: {String(mrr.pricePerMonthUsd || "$0.00")}
+            </p>
+            <p className="text-[11px] text-muted-foreground mb-2">Ingresos diarios (Stripe, últimos 14d)</p>
+            <AdminAreaChart
+              data={revenueStripeChart}
+              gradientId="rev-stripe-daily"
+              color="#34d399"
+              valueLabel="USD"
+              height={220}
+              formatValue={(n) =>
+                n.toLocaleString("es-ES", { style: "currency", currency: "USD", maximumFractionDigits: 2 })
+              }
+            />
           </CardContent>
         </Card>
 
@@ -144,17 +172,15 @@ export function AdminRevenue() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-black mb-1">{Number(active.activeTotal || 0).toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground mb-3">
+            <p className="text-xs text-muted-foreground mb-2">
               Pagas: {Number(active.activePaid || 0)} · Trial: {Number(active.activeTrial || 0)}
             </p>
-            <MiniBar
-              data={[
-                Number(active.activePaid || 0),
-                Number(active.activeTrial || 0),
-                Number(active.pastDue || 0),
-                Number(active.cancelled || 0),
-              ]}
-              color="bg-amber-500"
+            <p className="text-[11px] text-muted-foreground mb-2">Desglose de estado</p>
+            <AdminColumnBarChart
+              data={subscribersMixChart}
+              color="#fbbf24"
+              height={216}
+              valueLabel="Suscriptores"
             />
           </CardContent>
         </Card>
