@@ -15,7 +15,7 @@ const STYLES: Record<
   partial: {
     icon: AlertCircle,
     className: "border-amber-500/30 bg-amber-500/10 text-amber-100 [&_svg]:text-amber-400",
-    title: "Parcialmente conectado",
+    title: "API con persistencia limitada",
   },
   demo: {
     icon: LayoutTemplate,

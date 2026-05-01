@@ -1,151 +1,273 @@
 "use client"
 
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import { StatCard } from "./shared"
-import { FlaskConical, TrendingUp, Users, CheckCircle, Clock } from "lucide-react"
-
-const STATS = [
-  { label: "Tests activos",    value: "4",     icon: FlaskConical, color: "bg-primary" },
-  { label: "Usuarios en test", value: "3,240", icon: Users,        color: "bg-secondary" },
-  { label: "Tests ganadores",  value: "7",     icon: CheckCircle,  color: "bg-emerald-500" },
-  { label: "En progreso",      value: "4",     icon: Clock,        color: "bg-amber-500" },
-]
-
-const TESTS = [
-  {
-    name: "Botón de match — color",
-    hypothesis: "El botón verde convierte más que el rosa",
-    variantA: { name: "Rosa (control)", users: 820, conversions: 55, rate: 6.7 },
-    variantB: { name: "Verde (test)",   users: 810, conversions: 72, rate: 8.9 },
-    status: "ganador_b",
-    confidence: 94,
-    started: "hace 14 días",
-  },
-  {
-    name: "Onboarding — pasos",
-    hypothesis: "Menos pasos = más completados",
-    variantA: { name: "5 pasos (control)", users: 620, conversions: 434, rate: 70.0 },
-    variantB: { name: "3 pasos (test)",    users: 618, conversions: 494, rate: 79.9 },
-    status: "ganador_b",
-    confidence: 97,
-    started: "hace 21 días",
-  },
-  {
-    name: "Precio premium — display",
-    hypothesis: "Mostrar precio/día convierte más",
-    variantA: { name: "$4.99/mes (control)", users: 480, conversions: 33, rate: 6.9 },
-    variantB: { name: "$0.17/día (test)",    users: 475, conversions: 38, rate: 8.0 },
-    status: "en_progreso",
-    confidence: 71,
-    started: "hace 7 días",
-  },
-  {
-    name: "Feed — algoritmo",
-    hypothesis: "Feed personalizado retiene más",
-    variantA: { name: "Cronológico",    users: 760, conversions: 320, rate: 42.1 },
-    variantB: { name: "Personalizado",  users: 755, conversions: 356, rate: 47.2 },
-    status: "en_progreso",
-    confidence: 83,
-    started: "hace 10 días",
-  },
-]
-
-const PAST_WINNERS = [
-  { test: "CTA perfil incompleto",    improvement: "+18% completados",  date: "hace 1 mes" },
-  { test: "Foto obligatoria en reg.", improvement: "+12% matches",       date: "hace 2 meses" },
-  { test: "Notif. match inmediata",   improvement: "+31% apertura",      date: "hace 3 meses" },
-]
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { FlaskConical, Loader2, Plus, Trash2 } from "lucide-react"
+import { adminService, type FeatureFlagInput, type FeatureFlagRow } from "@/lib/services/admin"
+import { toast } from "sonner"
 
 export function AdminABTesting() {
+  const [rows, setRows] = useState<FeatureFlagRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [savingId, setSavingId] = useState<string | null>(null)
+  const [createOpen, setCreateOpen] = useState(false)
+  const [createForm, setCreateForm] = useState<FeatureFlagInput>({
+    name: "",
+    description: "",
+    enabled: false,
+    rolloutPercent: 0,
+  })
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const list = await adminService.getFeatureFlags()
+      setRows(Array.isArray(list) ? list : [])
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "No se pudieron cargar feature flags"
+      toast.error(msg)
+      setRows([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  const summary = useMemo(() => {
+    const total = rows.length
+    const enabled = rows.filter((r) => r.enabled).length
+    const rolloutAvg =
+      total > 0 ? Math.round(rows.reduce((s, r) => s + (r.rolloutPercent || 0), 0) / total) : 0
+    return { total, enabled, rolloutAvg }
+  }, [rows])
+
+  const persist = async (id: string, body: FeatureFlagInput) => {
+    setSavingId(id)
+    try {
+      await adminService.updateFeatureFlag(id, body)
+      toast.success("Flag actualizado")
+      await load()
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "No se pudo guardar"
+      toast.error(msg)
+    } finally {
+      setSavingId(null)
+    }
+  }
+
+  const handleToggle = async (row: FeatureFlagRow, enabled: boolean) => {
+    await persist(row.id, {
+      name: row.name,
+      description: row.description || "",
+      enabled,
+      rolloutPercent: row.rolloutPercent ?? 0,
+    })
+  }
+
+  const handleRolloutChange = async (row: FeatureFlagRow, value: string) => {
+    const n = Number(value)
+    if (Number.isNaN(n) || n < 0 || n > 100) return
+    await persist(row.id, {
+      name: row.name,
+      description: row.description || "",
+      enabled: row.enabled,
+      rolloutPercent: Math.floor(n),
+    })
+  }
+
+  const handleDelete = async (row: FeatureFlagRow) => {
+    if (!window.confirm(`¿Eliminar el flag "${row.name}"?`)) return
+    setSavingId(row.id)
+    try {
+      await adminService.deleteFeatureFlag(row.id)
+      toast.success("Flag eliminado")
+      await load()
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "No se pudo eliminar"
+      toast.error(msg)
+    } finally {
+      setSavingId(null)
+    }
+  }
+
+  const handleCreate = async () => {
+    const name = createForm.name.trim()
+    if (!name) {
+      toast.error("El nombre es obligatorio")
+      return
+    }
+    try {
+      await adminService.createFeatureFlag({
+        name,
+        description: (createForm.description ?? "").trim(),
+        enabled: createForm.enabled,
+        rolloutPercent: Math.min(100, Math.max(0, Math.floor(createForm.rolloutPercent || 0))),
+      })
+      toast.success("Flag creado")
+      setCreateOpen(false)
+      setCreateForm({ name: "", description: "", enabled: false, rolloutPercent: 0 })
+      await load()
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "No se pudo crear"
+      toast.error(msg)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-10">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {STATS.map(s => <StatCard key={s.label} {...s} />)}
+        <StatCard label="Flags totales" value={String(summary.total)} icon={FlaskConical} color="bg-primary" />
+        <StatCard label="Activos" value={String(summary.enabled)} icon={FlaskConical} color="bg-emerald-500" />
+        <StatCard label="Rollout medio" value={`${summary.rolloutAvg}%`} icon={FlaskConical} color="bg-secondary" />
+        <StatCard label="En edición" value={savingId ? "Sí" : "No"} icon={FlaskConical} color="bg-amber-500" />
       </div>
 
-      {/* Tests activos */}
-      <div className="space-y-4">
-        {TESTS.map((t, i) => (
-          <Card key={i} className="border-border">
-            <CardHeader className="pb-2">
-              <div className="flex items-start justify-between gap-2 flex-wrap">
-                <div>
-                  <CardTitle className="text-sm">{t.name}</CardTitle>
-                  <p className="text-xs text-muted-foreground mt-0.5">{t.hypothesis}</p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[11px] text-muted-foreground">{t.started}</span>
-                  <Badge className={`text-[10px] border-0 ${
-                    t.status === "ganador_b"   ? "bg-emerald-500/15 text-emerald-500" :
-                    t.status === "ganador_a"   ? "bg-blue-500/15 text-blue-500" :
-                    "bg-amber-500/15 text-amber-500"
-                  }`}>
-                    {t.status === "ganador_b" ? "✓ B gana" : t.status === "ganador_a" ? "✓ A gana" : "En progreso"}
-                  </Badge>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                {[t.variantA, t.variantB].map((v, vi) => (
-                  <div key={vi} className={`p-3 rounded-xl border ${
-                    (t.status === "ganador_b" && vi === 1) || (t.status === "ganador_a" && vi === 0)
-                      ? "border-emerald-500/40 bg-emerald-500/5"
-                      : "border-border bg-muted/20"
-                  }`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[11px] font-bold text-muted-foreground uppercase">{vi === 0 ? "A" : "B"}</span>
-                      {((t.status === "ganador_b" && vi === 1) || (t.status === "ganador_a" && vi === 0)) && (
-                        <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
-                      )}
-                    </div>
-                    <p className="text-xs text-foreground font-medium mb-2">{v.name}</p>
-                    <p className="text-xl font-black text-foreground">{v.rate}%</p>
-                    <p className="text-[11px] text-muted-foreground">{v.conversions} / {v.users} usuarios</p>
-                    <div className="mt-2 h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${vi === 1 && t.status === "ganador_b" ? "bg-emerald-500" : "bg-primary"}`}
-                        style={{ width: `${Math.min(v.rate * 5, 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-3 flex items-center gap-2">
-                <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full ${t.confidence >= 95 ? "bg-emerald-500" : t.confidence >= 80 ? "bg-amber-500" : "bg-rose-500"}`}
-                    style={{ width: `${t.confidence}%` }}
-                  />
-                </div>
-                <span className="text-xs text-muted-foreground shrink-0">
-                  Confianza: <span className={`font-bold ${t.confidence >= 95 ? "text-emerald-500" : t.confidence >= 80 ? "text-amber-500" : "text-rose-500"}`}>{t.confidence}%</span>
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="flex justify-end">
+        <Button type="button" size="sm" onClick={() => setCreateOpen(true)}>
+          <Plus className="h-4 w-4 mr-1.5" />
+          Nuevo flag
+        </Button>
       </div>
 
-      {/* Tests ganadores históricos */}
       <Card className="border-border">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-emerald-500" /> Mejoras implementadas
-          </CardTitle>
+          <CardTitle className="text-sm">Feature flags (API)</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
-          {PAST_WINNERS.map((w, i) => (
-            <div key={i} className="flex items-center gap-3 p-2.5 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
-              <CheckCircle className="h-4 w-4 text-emerald-500 shrink-0" />
-              <span className="text-xs text-foreground flex-1">{w.test}</span>
-              <Badge className="text-[10px] border-0 bg-emerald-500/15 text-emerald-500">{w.improvement}</Badge>
-              <span className="text-[11px] text-muted-foreground shrink-0">{w.date}</span>
-            </div>
-          ))}
+        <CardContent className="p-0">
+          <div className="grid grid-cols-12 gap-2 px-4 py-2 border-b border-border text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+            <span className="col-span-3">Nombre</span>
+            <span className="col-span-4">Descripción</span>
+            <span className="col-span-2">Activo</span>
+            <span className="col-span-2">Rollout %</span>
+            <span className="col-span-1 text-right">Acciones</span>
+          </div>
+          <div className="divide-y divide-border">
+            {rows.length === 0 ? (
+              <div className="px-4 py-8 text-center text-xs text-muted-foreground">No hay flags todavía.</div>
+            ) : (
+              rows.map((row) => (
+                <div key={row.id} className="grid grid-cols-12 gap-2 px-4 py-3 items-center text-xs">
+                  <div className="col-span-3 font-semibold text-foreground truncate">{row.name}</div>
+                  <div className="col-span-4 text-muted-foreground line-clamp-2">{row.description || "—"}</div>
+                  <div className="col-span-2 flex items-center gap-2">
+                    <Switch
+                      checked={Boolean(row.enabled)}
+                      disabled={savingId === row.id}
+                      onCheckedChange={(v) => void handleToggle(row, v)}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      className="h-8 text-xs"
+                      value={row.rolloutPercent}
+                      disabled={savingId === row.id}
+                      onChange={(e) => void handleRolloutChange(row, e.target.value)}
+                    />
+                  </div>
+                  <div className="col-span-1 flex justify-end">
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 text-rose-500"
+                      disabled={savingId === row.id}
+                      onClick={() => void handleDelete(row)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </CardContent>
       </Card>
+
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nuevo feature flag</DialogTitle>
+            <DialogDescription>Crea un flag con rollout gradual (0–100%).</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor="ff-name">Nombre</Label>
+              <Input
+                id="ff-name"
+                className="mt-1"
+                value={createForm.name}
+                onChange={(e) => setCreateForm((p) => ({ ...p, name: e.target.value }))}
+                placeholder="ej: premium_likes_blur"
+              />
+            </div>
+            <div>
+              <Label htmlFor="ff-desc">Descripción</Label>
+              <Input
+                id="ff-desc"
+                className="mt-1"
+                value={createForm.description}
+                onChange={(e) => setCreateForm((p) => ({ ...p, description: e.target.value }))}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <Label>Activado</Label>
+              <Switch
+                checked={createForm.enabled}
+                onCheckedChange={(v) => setCreateForm((p) => ({ ...p, enabled: v }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="ff-roll">Rollout %</Label>
+              <Input
+                id="ff-roll"
+                type="number"
+                min={0}
+                max={100}
+                className="mt-1"
+                value={createForm.rolloutPercent}
+                onChange={(e) =>
+                  setCreateForm((p) => ({ ...p, rolloutPercent: Number(e.target.value) }))
+                }
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="button" onClick={() => void handleCreate()}>
+              Crear
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

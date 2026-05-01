@@ -2,32 +2,44 @@
 
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { StatCard, MiniBar, ProgressRow } from "./shared"
 import {
-  Users, Heart, MessageCircle, DollarSign,
-  Activity, FileText, Shield, UserPlus, Crown, Globe, Loader2
+  Users, Heart, DollarSign,
+  Activity, Shield, UserPlus, Crown, Globe, Loader2
 } from "lucide-react"
-import { adminService } from "@/lib/services/profile"
+import { adminService } from "@/lib/services/admin"
 import type { AdminStats, UserGrowth } from "@/lib/types"
-
-const DAILY_MATCHES = [1800, 2100, 1950, 2400, 2800, 3100, 2341]
-const DAILY_REVENUE = [120, 145, 130, 160, 175, 190, 143]
+import { toast } from "sonner"
 
 export function AdminOverview() {
   const [stats, setStats] = useState<AdminStats | null>(null)
   const [growth, setGrowth] = useState<UserGrowth[]>([])
+  const [matchesDaily, setMatchesDaily] = useState<number[]>([])
+  const [revenueDaily, setRevenueDaily] = useState<number[]>([])
+  const [matchesLast7, setMatchesLast7] = useState<number>(0)
+  const [revenueLast7, setRevenueLast7] = useState<string>("$0.00")
   const [loading, setLoading] = useState(true)
   const [forbidden, setForbidden] = useState(false)
 
   useEffect(() => {
     Promise.all([
       adminService.getStats(),
-      adminService.getGrowth()
-    ]).then(([s, g]) => {
+      adminService.getGrowth(),
+      adminService.getMatchesDaily(7),
+      adminService.getRevenueDaily(),
+    ]).then(([s, g, matches, revenue]) => {
       setStats(s)
       setGrowth(g)
       if (!s) setForbidden(true)
+      const matchSeries = matches.series.map((p) => p.count)
+      const revenueSeries = revenue.slice(-7).map((p) => Number(p.amountCents || 0) / 100)
+      setMatchesDaily(matchSeries.length ? matchSeries : [0, 0, 0, 0, 0, 0, 0])
+      setRevenueDaily(revenueSeries.length ? revenueSeries : [0, 0, 0, 0, 0, 0, 0])
+      setMatchesLast7(matches.totalLastDays || 0)
+      const cents7 = revenue.slice(-7).reduce((sum, p) => sum + Number(p.amountCents || 0), 0)
+      setRevenueLast7(`$${(cents7 / 100).toFixed(2)}`)
+    }).catch((error: any) => {
+      toast.error(error?.message || "No se pudieron cargar métricas de overview")
     }).finally(() => setLoading(false))
   }, [])
 
@@ -92,18 +104,13 @@ export function AdminOverview() {
 
         <Card className="border-border/80">
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center justify-between gap-2 text-sm">
-              <span className="flex items-center gap-2">
-                <Heart className="h-4 w-4 text-rose-500" /> Matches (7d)
-              </span>
-              <Badge variant="secondary" className="text-[9px] font-normal text-muted-foreground">
-                Demo
-              </Badge>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Heart className="h-4 w-4 text-rose-500" /> Matches (7d)
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-black text-foreground mb-3">—</p>
-            <MiniBar data={DAILY_MATCHES} color="bg-rose-500" />
+            <p className="text-2xl font-black text-foreground mb-3">{matchesLast7.toLocaleString()}</p>
+            <MiniBar data={matchesDaily} color="bg-rose-500" />
             <div className="flex justify-between mt-1">
               {["L","M","X","J","V","S","D"].map(d => (
                 <span key={d} className="text-[10px] text-muted-foreground flex-1 text-center">{d}</span>
@@ -114,18 +121,13 @@ export function AdminOverview() {
 
         <Card className="border-border/80">
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center justify-between gap-2 text-sm">
-              <span className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-amber-500" /> Ingresos diarios ($)
-              </span>
-              <Badge variant="secondary" className="text-[9px] font-normal text-muted-foreground">
-                Demo
-              </Badge>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-amber-500" /> Ingresos diarios (7d)
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-black text-foreground mb-3">—</p>
-            <MiniBar data={DAILY_REVENUE} color="bg-amber-500" />
+            <p className="text-2xl font-black text-foreground mb-3">{revenueLast7}</p>
+            <MiniBar data={revenueDaily} color="bg-amber-500" />
             <div className="flex justify-between mt-1">
               {["L","M","X","J","V","S","D"].map(d => (
                 <span key={d} className="text-[10px] text-muted-foreground flex-1 text-center">{d}</span>

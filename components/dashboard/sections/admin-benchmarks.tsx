@@ -1,165 +1,282 @@
 "use client"
 
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { StatCard } from "./shared"
-import { BarChart3, TrendingUp, TrendingDown, Minus, Crown, Users, Heart, DollarSign } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { BarChart3, Loader2, Plus, Trash2 } from "lucide-react"
+import { adminService, type BenchmarkRow } from "@/lib/services/admin"
+import { toast } from "sonner"
 
-const STATS = [
-  { label: "Posición mercado",  value: "#3",    icon: BarChart3,  color: "bg-primary" },
-  { label: "NPS score",         value: "67",    icon: TrendingUp, color: "bg-emerald-500" },
-  { label: "Rating app",        value: "4.3★",  icon: Crown,      color: "bg-amber-500" },
-  { label: "Reseñas totales",   value: "1,240", icon: Users,      color: "bg-blue-500" },
-]
+type EditableBenchmark = {
+  id: number
+  metric: string
+  value: string
+  source: string
+  notes: string
+}
 
-const COMPETITORS = [
-  {
-    name: "Tinder",
-    users: "75M",
-    mrr: "$50M+",
-    matchRate: "1.2%",
-    retention: "35%",
-    rating: "3.8",
-    premium: "$12.99",
-    strengths: ["Marca global", "Base enorme"],
-    weaknesses: ["Caro", "Superficial"],
-  },
-  {
-    name: "Bumble",
-    users: "42M",
-    mrr: "$20M+",
-    matchRate: "2.1%",
-    retention: "38%",
-    rating: "4.1",
-    premium: "$9.99",
-    strengths: ["Seguridad", "Mujeres primero"],
-    weaknesses: ["Menos usuarios LATAM"],
-  },
-  {
-    name: "Badoo",
-    users: "28M",
-    mrr: "$8M+",
-    matchRate: "3.4%",
-    retention: "31%",
-    rating: "3.9",
-    premium: "$7.99",
-    strengths: ["Popular LATAM", "Gratis"],
-    weaknesses: ["UX anticuada", "Spam"],
-  },
-  {
-    name: "✨ Sparkd",
-    users: "12.8K",
-    mrr: "$4,460",
-    matchRate: "6.7%",
-    retention: "42%",
-    rating: "4.3",
-    premium: "$4.99",
-    strengths: ["Precio", "Retención", "Match rate"],
-    weaknesses: ["Base pequeña", "Solo LATAM"],
-    isUs: true,
-  },
-]
-
-const METRICS_COMPARE = [
-  { metric: "Match rate",    sparkd: 6.7,  industry: 2.1,  unit: "%",  better: true },
-  { metric: "Retención 7d", sparkd: 42,   industry: 35,   unit: "%",  better: true },
-  { metric: "Precio premium",sparkd: 4.99, industry: 9.99, unit: "$",  better: true },
-  { metric: "Rating app",   sparkd: 4.3,  industry: 3.9,  unit: "★",  better: true },
-  { metric: "Usuarios",     sparkd: 12847, industry: 1000000, unit: "", better: false },
-  { metric: "MRR",          sparkd: 4460, industry: 500000, unit: "$", better: false },
-]
+const toEditable = (row: BenchmarkRow): EditableBenchmark => ({
+  id: row.id,
+  metric: String(row.metric ?? ""),
+  value: String(row.value ?? ""),
+  source: String(row.source ?? ""),
+  notes: String(row.notes ?? ""),
+})
 
 export function AdminBenchmarks() {
+  const [rows, setRows] = useState<EditableBenchmark[]>([])
+  const [loading, setLoading] = useState(true)
+  const [savingId, setSavingId] = useState<number | null>(null)
+  const [createOpen, setCreateOpen] = useState(false)
+  const [draft, setDraft] = useState({ metric: "", value: "", source: "", notes: "" })
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const list = await adminService.getBenchmarks()
+      setRows((Array.isArray(list) ? list : []).map(toEditable))
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "No se pudieron cargar benchmarks"
+      toast.error(msg)
+      setRows([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  const summary = useMemo(() => ({ total: rows.length }), [rows])
+
+  const saveRow = async (row: EditableBenchmark) => {
+    setSavingId(row.id)
+    try {
+      await adminService.updateBenchmark(row.id, {
+        metric: row.metric,
+        value: row.value,
+        source: row.source,
+        notes: row.notes,
+      })
+      toast.success("Benchmark guardado")
+      await load()
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "No se pudo guardar"
+      toast.error(msg)
+    } finally {
+      setSavingId(null)
+    }
+  }
+
+  const deleteRow = async (id: number) => {
+    if (!window.confirm("¿Eliminar este benchmark?")) return
+    setSavingId(id)
+    try {
+      await adminService.deleteBenchmark(id)
+      toast.success("Eliminado")
+      await load()
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "No se pudo eliminar"
+      toast.error(msg)
+    } finally {
+      setSavingId(null)
+    }
+  }
+
+  const createRow = async () => {
+    const metric = draft.metric.trim()
+    if (!metric) {
+      toast.error("La métrica es obligatoria")
+      return
+    }
+    try {
+      await adminService.createBenchmark({
+        metric,
+        value: draft.value.trim(),
+        source: draft.source.trim(),
+        notes: draft.notes.trim(),
+      })
+      toast.success("Benchmark creado")
+      setCreateOpen(false)
+      setDraft({ metric: "", value: "", source: "", notes: "" })
+      await load()
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "No se pudo crear"
+      toast.error(msg)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-10">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {STATS.map(s => <StatCard key={s.label} {...s} />)}
+        <StatCard label="Entradas" value={String(summary.total)} icon={BarChart3} color="bg-primary" />
+        <StatCard label="Fuente" value="Manual" icon={BarChart3} color="bg-secondary" />
+        <StatCard label="Persistencia" value="Memoria (BE)" icon={BarChart3} color="bg-amber-500" />
+        <StatCard label="Estado" value={savingId ? "Guardando…" : "Listo"} icon={BarChart3} color="bg-emerald-500" />
       </div>
 
-      {/* Tabla comparativa */}
+      <div className="flex justify-end">
+        <Button type="button" size="sm" onClick={() => setCreateOpen(true)}>
+          <Plus className="h-4 w-4 mr-1.5" />
+          Agregar
+        </Button>
+      </div>
+
       <Card className="border-border overflow-x-auto">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-primary" /> Comparativa de competidores
+            <BarChart3 className="h-4 w-4 text-primary" /> Benchmarks (API)
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
-          <div className="min-w-[600px]">
-            <div className="grid grid-cols-6 gap-2 px-4 py-2 border-b border-border text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
-              <span>App</span><span>Usuarios</span><span>Match rate</span><span>Retención</span><span>Premium</span><span>Rating</span>
-            </div>
-            <div className="divide-y divide-border">
-              {COMPETITORS.map((c, i) => (
-                <div key={i} className={`grid grid-cols-6 gap-2 px-4 py-3 items-center ${c.isUs ? "bg-primary/5 border-l-2 border-primary" : "hover:bg-muted/20"}`}>
-                  <span className={`text-xs font-bold ${c.isUs ? "text-primary" : "text-foreground"}`}>{c.name}</span>
-                  <span className="text-xs text-foreground">{c.users}</span>
-                  <span className={`text-xs font-semibold ${c.isUs ? "text-emerald-500" : "text-foreground"}`}>{c.matchRate}</span>
-                  <span className={`text-xs font-semibold ${c.isUs ? "text-emerald-500" : "text-foreground"}`}>{c.retention}</span>
-                  <span className={`text-xs font-semibold ${c.isUs ? "text-emerald-500" : "text-foreground"}`}>{c.premium}/mes</span>
-                  <span className={`text-xs font-semibold ${c.isUs ? "text-emerald-500" : "text-foreground"}`}>{c.rating}★</span>
+        <CardContent className="p-0 min-w-[720px]">
+          <div className="grid grid-cols-12 gap-2 px-4 py-2 border-b border-border text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+            <span className="col-span-3">Métrica</span>
+            <span className="col-span-2">Valor</span>
+            <span className="col-span-3">Fuente</span>
+            <span className="col-span-3">Notas</span>
+            <span className="col-span-1 text-right">Acciones</span>
+          </div>
+          <div className="divide-y divide-border">
+            {rows.length === 0 ? (
+              <div className="px-4 py-8 text-center text-xs text-muted-foreground">Sin benchmarks.</div>
+            ) : (
+              rows.map((row) => (
+                <div key={row.id} className="grid grid-cols-12 gap-2 px-4 py-3 items-start text-xs">
+                  <Input
+                    className="col-span-3 h-8 text-xs"
+                    value={row.metric}
+                    disabled={savingId === row.id}
+                    onChange={(e) =>
+                      setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, metric: e.target.value } : r)))
+                    }
+                  />
+                  <Input
+                    className="col-span-2 h-8 text-xs"
+                    value={row.value}
+                    disabled={savingId === row.id}
+                    onChange={(e) =>
+                      setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, value: e.target.value } : r)))
+                    }
+                  />
+                  <Input
+                    className="col-span-3 h-8 text-xs"
+                    value={row.source}
+                    disabled={savingId === row.id}
+                    onChange={(e) =>
+                      setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, source: e.target.value } : r)))
+                    }
+                  />
+                  <Input
+                    className="col-span-3 h-8 text-xs"
+                    value={row.notes}
+                    disabled={savingId === row.id}
+                    onChange={(e) =>
+                      setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, notes: e.target.value } : r)))
+                    }
+                  />
+                  <div className="col-span-1 flex flex-col gap-1 items-end">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      className="h-8 px-2 text-[11px]"
+                      disabled={savingId === row.id}
+                      onClick={() => void saveRow(row)}
+                    >
+                      Guardar
+                    </Button>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 text-rose-500"
+                      disabled={savingId === row.id}
+                      onClick={() => void deleteRow(row.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-              ))}
-            </div>
+              ))
+            )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Sparkd vs industria */}
-      <Card className="border-border">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-emerald-500" /> Sparkd vs promedio industria
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {METRICS_COMPARE.map(m => (
-            <div key={m.metric} className="flex items-center gap-3">
-              <span className="text-xs text-muted-foreground w-32 shrink-0">{m.metric}</span>
-              <div className="flex-1 flex items-center gap-2">
-                <span className={`text-xs font-bold w-16 ${m.better ? "text-emerald-500" : "text-rose-500"}`}>
-                  {m.unit === "$" && m.metric !== "MRR" ? "$" : ""}{typeof m.sparkd === "number" && m.sparkd > 999 ? m.sparkd.toLocaleString() : m.sparkd}{m.unit !== "$" || m.metric === "MRR" ? m.unit : ""}
-                </span>
-                <span className="text-[10px] text-muted-foreground">vs</span>
-                <span className="text-xs text-muted-foreground w-20">
-                  {m.unit === "$" && m.metric !== "MRR" ? "$" : ""}{typeof m.industry === "number" && m.industry > 999 ? m.industry.toLocaleString() : m.industry}{m.unit !== "$" || m.metric === "MRR" ? m.unit : ""} industria
-                </span>
-              </div>
-              {m.better
-                ? <Badge className="text-[10px] border-0 bg-emerald-500/15 text-emerald-500 shrink-0 flex items-center gap-0.5"><TrendingUp className="h-2.5 w-2.5" />Mejor</Badge>
-                : <Badge className="text-[10px] border-0 bg-rose-500/15 text-rose-500 shrink-0 flex items-center gap-0.5"><TrendingDown className="h-2.5 w-2.5" />Por crecer</Badge>
-              }
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nuevo benchmark</DialogTitle>
+            <DialogDescription>Datos manuales para comparativas internas.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor="bm-metric">Métrica</Label>
+              <Input
+                id="bm-metric"
+                className="mt-1"
+                value={draft.metric}
+                onChange={(e) => setDraft((p) => ({ ...p, metric: e.target.value }))}
+              />
             </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      {/* FODA */}
-      <div className="grid grid-cols-2 gap-4">
-        {[
-          { title: "Fortalezas", color: "border-emerald-500/30 bg-emerald-500/5", badge: "bg-emerald-500/15 text-emerald-500",
-            items: ["Match rate 6.7% (3x industria)", "Precio más competitivo ($4.99)", "Retención 42% (mejor que Tinder)", "Comunidad LATAM enfocada", "Moderación IA activa"] },
-          { title: "Debilidades", color: "border-rose-500/30 bg-rose-500/5", badge: "bg-rose-500/15 text-rose-500",
-            items: ["Base de usuarios pequeña", "Redis inestable (free tier)", "Sin app nativa (solo PWA)", "Equipo pequeño", "Sin marketing pagado aún"] },
-          { title: "Oportunidades", color: "border-blue-500/30 bg-blue-500/5", badge: "bg-blue-500/15 text-blue-500",
-            items: ["Mercado LATAM sin líder claro", "Crecimiento orgánico fuerte", "Expansión a más países", "Partnerships con influencers", "Funciones de comunidad (grupos)"] },
-          { title: "Amenazas", color: "border-amber-500/30 bg-amber-500/5", badge: "bg-amber-500/15 text-amber-500",
-            items: ["Tinder expandiéndose a LATAM", "Costos de infraestructura", "Regulaciones de privacidad", "Competidores locales", "Dependencia de Render free"] },
-        ].map(s => (
-          <Card key={s.title} className={`border ${s.color}`}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">{s.title}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-1.5">
-              {s.items.map((item, i) => (
-                <div key={i} className="flex items-start gap-2">
-                  <div className={`h-1.5 w-1.5 rounded-full mt-1.5 shrink-0 ${s.badge.includes("emerald") ? "bg-emerald-500" : s.badge.includes("rose") ? "bg-rose-500" : s.badge.includes("blue") ? "bg-blue-500" : "bg-amber-500"}`} />
-                  <span className="text-xs text-foreground">{item}</span>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+            <div>
+              <Label htmlFor="bm-value">Valor</Label>
+              <Input
+                id="bm-value"
+                className="mt-1"
+                value={draft.value}
+                onChange={(e) => setDraft((p) => ({ ...p, value: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="bm-source">Fuente</Label>
+              <Input
+                id="bm-source"
+                className="mt-1"
+                value={draft.source}
+                onChange={(e) => setDraft((p) => ({ ...p, source: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="bm-notes">Notas</Label>
+              <Input
+                id="bm-notes"
+                className="mt-1"
+                value={draft.notes}
+                onChange={(e) => setDraft((p) => ({ ...p, notes: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="button" onClick={() => void createRow()}>
+              Crear
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

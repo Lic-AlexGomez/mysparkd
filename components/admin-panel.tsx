@@ -177,8 +177,8 @@ export function AdminPanel({ role }: AdminPanelProps) {
               reales
             </p>
             <p>
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400" /> Parcial — parte
-              demo
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400" /> Parcial — API
+              real, datos poco duraderos en servidor
             </p>
             <p>
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-muted-foreground" /> Demo —

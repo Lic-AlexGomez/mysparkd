@@ -1,6 +1,8 @@
 /**
  * Estado de integración con el backend (solo documentación usada en UI).
- * “live” = llama a API en este repo; “partial” = mezcla API + datos fijos; “demo” = maquetado sin API.
+ * “live” = API con persistencia/alcance esperado en producción.
+ * “partial” = API real, pero con limitación conocida en backend (p. ej. datos en memoria o no persistentes).
+ * “demo” = maquetado sin API.
  */
 export type DashboardIntegrationSource = "live" | "partial" | "demo"
 
@@ -15,31 +17,32 @@ export type DashboardSectionIntegration = {
 export const DASHBOARD_SECTION_INTEGRATION: Record<string, DashboardSectionIntegration> = {
   // Admin
   overview: {
-    source: "partial",
-    shortLabel: "Parcial",
+    source: "live",
+    shortLabel: "API",
     detail:
-      "KPIs y crecimiento 7d vía adminService: GET /admin/stats y /admin/growth. Gráficos «Matches (7d)» e «Ingresos diarios» aún con series demo.",
+      "KPIs y crecimiento vía GET /api/admin/stats y /api/admin/growth; series de matches e ingresos vía GET /api/admin/analytics/matches-daily y /revenue-daily.",
   },
   users: {
-    source: "partial",
-    shortLabel: "Parcial",
+    source: "live",
+    shortLabel: "API",
     detail:
-      "Solo GET /api/admin/users (p. ej. ?page=0&size=200). No «/admin/users» a secas (suele 404 static resource en Spring). Acciones: POST …/users/{id}/enable|disable, roles vía /api/administrator/user-roles/assign.",
+      "Listado GET /api/admin/users. Acciones: POST …/users/{id}/enable|disable, roles vía POST /api/administrator/user-roles/assign.",
   },
   content: {
-    source: "demo",
-    shortLabel: "Demo",
-    detail: "Números y listas fijas en el front; hace falta un endpoint (p. ej. /api/admin/content-stats).",
+    source: "live",
+    shortLabel: "API",
+    detail: "GET /api/admin/analytics/content-stats — contadores y serie temporal de posts.",
   },
   revenue: {
-    source: "demo",
-    shortLabel: "Demo",
-    detail: "MRR, transacciones y cancelaciones de ejemplo. Falta conectar facturación/suscripciones reales.",
+    source: "live",
+    shortLabel: "API",
+    detail:
+      "Stripe metrics: GET /api/admin/metrics/stripe/subscriptions/*, /revenue/daily, /churn (requiere datos Stripe en el backend).",
   },
   engagement: {
-    source: "demo",
-    shortLabel: "Demo",
-    detail: "Swipes, matches, funnel: datos estáticos. Requiere endpoints de analítica.",
+    source: "live",
+    shortLabel: "API",
+    detail: "GET /api/admin/analytics/engagement?days= — KPIs, embudo y series likes/matches.",
   },
   moderation: {
     source: "live",
@@ -47,50 +50,51 @@ export const DASHBOARD_SECTION_INTEGRATION: Record<string, DashboardSectionInteg
     detail: "Misma API de reportes que Manager: listado, resolver y descartar (reportService).",
   },
   geo: {
-    source: "demo",
-    shortLabel: "Demo",
-    detail: "Geografía, idiomas e IDs: demostración. Requiere agregación geo en backend.",
+    source: "live",
+    shortLabel: "API",
+    detail: "GET /api/admin/analytics/geo — cobertura y distribución por región (sin PII).",
   },
   notifications: {
-    source: "demo",
-    shortLabel: "Demo",
-    detail: "Métricas y campañas de ejemplo. Sin envío a Firebase/analytics aún.",
+    source: "live",
+    shortLabel: "API",
+    detail: "GET /api/admin/analytics/notifications — tokens FCM y cobertura de push.",
   },
   abtesting: {
-    source: "demo",
-    shortLabel: "Demo",
-    detail: "Pruebas A/B simuladas.",
+    source: "live",
+    shortLabel: "API",
+    detail: "CRUD feature flags: GET/POST/PUT/DELETE /api/admin/feature-flags.",
   },
   benchmarks: {
-    source: "demo",
-    shortLabel: "Demo",
-    detail: "Comparativas de referencia, no conectan a servicios externos.",
+    source: "live",
+    shortLabel: "API",
+    detail:
+      "CRUD GET/POST/PUT/DELETE /api/admin/benchmarks. Nota operativa: el backend actual guarda estos datos en memoria (se pierden al reiniciar el servidor).",
   },
   auditlog: {
-    source: "demo",
-    shortLabel: "Demo",
-    detail: "Línea de auditoría con filas fijas. Falta GET /api/admin/audit-log o similar.",
+    source: "live",
+    shortLabel: "API",
+    detail: "GET /api/admin/audit-log con filtros (from/to/actorId/action) y paginación.",
   },
   system: {
-    source: "demo",
-    shortLabel: "Demo",
-    detail: "Salud, logs y tráfico: datos de ejemplo. Requiere observabilidad real (metrics/logs).",
+    source: "live",
+    shortLabel: "API",
+    detail: "GET /api/admin/system/health — DB, Redis, heap JVM y uptime; polling cada 30s.",
   },
   // Manager
   "m-activity": {
-    source: "demo",
-    shortLabel: "Demo",
-    detail: "Actividad en vivo simulada (feed fijo).",
+    source: "live",
+    shortLabel: "API",
+    detail: "GET /api/manager/activity — feed paginado de reportes/actividad.",
   },
   "m-users": {
-    source: "demo",
-    shortLabel: "Demo",
-    detail: "Tabla de usuarios de ejemplo. Podría reutilizar /api/admin/users con permisos de manager.",
+    source: "live",
+    shortLabel: "API",
+    detail: "GET /api/manager/users — listado paginado para rol MANAGER.",
   },
   "m-content": {
-    source: "demo",
-    shortLabel: "Demo",
-    detail: "Posts de demostración. Falta endpoint de moderación de contenido.",
+    source: "live",
+    shortLabel: "API",
+    detail: "GET /api/manager/posts y acciones hide/restore/delete.",
   },
   "m-reports": {
     source: "live",

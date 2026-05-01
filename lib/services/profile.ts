@@ -1,6 +1,6 @@
 import { api } from '../api'
 import { toBackendAccountType } from '../account-type'
-import type { AdminStats, UpdateProfileRequest, UserGrowth } from '../types'
+import type { UpdateProfileRequest } from '../types'
 
 export const profileService = {
   async getProfile(userId: string) {
@@ -26,32 +26,4 @@ export const profileService = {
     const accountType = toBackendAccountType(body.accountType)
     await api.put("/api/profile", { ...body, accountType })
   },
-}
-
-export const adminService = {
-  async getStats(): Promise<AdminStats | null> {
-    try {
-      return await api.get<AdminStats>('/api/admin/stats')
-    } catch {
-      try {
-        // Compatibilidad con backend legado sin prefijo /api
-        return await api.get<AdminStats>('/admin/stats')
-      } catch {
-        return null
-      }
-    }
-  },
-
-  async getGrowth(): Promise<UserGrowth[]> {
-    try {
-      return await api.get<UserGrowth[]>('/api/admin/growth')
-    } catch {
-      try {
-        // Compatibilidad con backend legado sin prefijo /api
-        return await api.get<UserGrowth[]>('/admin/growth')
-      } catch {
-        return []
-      }
-    }
-  }
 }

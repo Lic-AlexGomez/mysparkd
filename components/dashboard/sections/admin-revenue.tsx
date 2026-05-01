@@ -1,44 +1,126 @@
 "use client"
 
+import { useEffect, useMemo, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { StatCard, MiniBar, ProgressRow } from "./shared"
-import { DollarSign, Crown, TrendingUp, TrendingDown, CreditCard, Users, AlertCircle } from "lucide-react"
-
-const STATS = [
-  { label: "MRR",              value: "$4,460",  change: +5,  icon: DollarSign, color: "bg-emerald-500" },
-  { label: "ARR proyectado",   value: "$53,520", change: +5,  icon: TrendingUp, color: "bg-teal-500" },
-  { label: "Suscriptores",     value: "892",     change: +5,  icon: Crown,      color: "bg-amber-500" },
-  { label: "Churn mensual",    value: "3.2%",    change: -1,  icon: TrendingDown, color: "bg-rose-500" },
-]
-
-const MRR_WEEKLY = [3800, 3950, 4100, 4050, 4200, 4380, 4460]
-const SUBS_WEEKLY = [820, 835, 848, 855, 867, 880, 892]
-
-const TRANSACTIONS = [
-  { user: "sofia_m",   amount: "$4.99", plan: "Premium",  date: "hace 2h",   status: "exitoso" },
-  { user: "pedro_g",   amount: "$4.99", plan: "Premium",  date: "hace 5h",   status: "exitoso" },
-  { user: "jose_r",    amount: "$4.99", plan: "Premium",  date: "hace 8h",   status: "exitoso" },
-  { user: "ana_lopez", amount: "$4.99", plan: "Premium",  date: "hace 1d",   status: "exitoso" },
-  { user: "luis_m",    amount: "$4.99", plan: "Premium",  date: "hace 1d",   status: "fallido" },
-  { user: "carmen_v",  amount: "$4.99", plan: "Premium",  date: "hace 2d",   status: "exitoso" },
-  { user: "roberto_k", amount: "$4.99", plan: "Premium",  date: "hace 2d",   status: "reembolso" },
-]
-
-const CANCELLATIONS = [
-  { reason: "Muy caro",           pct: 38 },
-  { reason: "No encontré pareja", pct: 27 },
-  { reason: "Usé otra app",       pct: 18 },
-  { reason: "Problemas técnicos", pct: 10 },
-  { reason: "Otro",               pct: 7  },
-]
+import { AlertCircle, Crown, DollarSign, Loader2, PieChart, TrendingDown, TrendingUp } from "lucide-react"
+import { adminService } from "@/lib/services/admin"
+import { toast } from "sonner"
 
 export function AdminRevenue() {
+  const [loading, setLoading] = useState(true)
+  const [mrr, setMrr] = useState<any>(null)
+  const [active, setActive] = useState<any>(null)
+  const [cancellations, setCancellations] = useState<any>(null)
+  const [dailyRevenue, setDailyRevenue] = useState<Array<{ date: string; amountCents: number; amountUsd: string }>>([])
+  const [churn, setChurn] = useState<any>(null)
+
+  useEffect(() => {
+    Promise.all([
+      adminService.getStripeMrr(),
+      adminService.getStripeActiveSubscriptions(),
+      adminService.getStripeCancellations(),
+      adminService.getStripeDailyRevenue(),
+      adminService.getStripeChurn(),
+    ])
+      .then(([mrrData, activeData, cancelData, revenueData, churnData]) => {
+        setMrr(mrrData)
+        setActive(activeData)
+        setCancellations(cancelData)
+        setDailyRevenue(Array.isArray(revenueData) ? revenueData : [])
+        setChurn(churnData)
+      })
+      .catch((error: any) => toast.error(error?.message || "No se pudo cargar métricas de Stripe"))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const revenueSeries = useMemo(
+    () => (dailyRevenue.length ? dailyRevenue.slice(-14).map((r) => Number(r.amountCents || 0) / 100) : [0]),
+    [dailyRevenue]
+  )
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-10">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (!mrr || !active || !cancellations || !churn) {
+    return (
+      <Card className="border-border">
+        <CardContent className="py-8 text-center text-sm text-muted-foreground">
+          Sin datos de Stripe para mostrar.
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const mrrUsdNum = Number(mrr.mrrCents || 0) / 100
+  const arrProjection = Number((Number(mrr.mrrCents || 0) * 12) / 100).toFixed(2)
+  const fmtUsd = (n: number) =>
+    new Intl.NumberFormat("es-ES", { style: "currency", currency: "USD" }).format(n)
+  const alexPct = 0.45
+  const johanPct = 0.55
+  const alexShareUsd = mrrUsdNum * alexPct
+  const johanShareUsd = mrrUsdNum * johanPct
+  const stats = [
+    { label: "MRR", value: String(mrr.mrrUsd || "$0.00"), icon: DollarSign, color: "bg-emerald-500" },
+    { label: "ARR proyectado", value: `$${arrProjection}`, icon: TrendingUp, color: "bg-teal-500" },
+    { label: "Suscriptores activos", value: String(active.activeTotal ?? 0), icon: Crown, color: "bg-amber-500" },
+    { label: "Churn mensual", value: `${Number(churn.churnRate || 0).toFixed(2)}%`, icon: TrendingDown, color: "bg-rose-500" },
+  ]
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {STATS.map(s => <StatCard key={s.label} {...s} />)}
+        {stats.map((s) => (
+          <StatCard key={s.label} label={s.label} value={s.value} icon={s.icon} color={s.color} />
+        ))}
       </div>
+
+      <Card className="border-border border-emerald-500/20 bg-emerald-500/[0.03]">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <PieChart className="h-4 w-4 text-emerald-500" />
+            Reparto de ganancias (Alex / Johan)
+          </CardTitle>
+          <p className="text-[11px] text-muted-foreground font-normal leading-snug">
+            Sobre la ganancia total mensual (MRR): Alex 45%, Johan 55%.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border/60 pb-3">
+            <span className="text-xs text-muted-foreground uppercase tracking-wide">Ganancia total (MRR)</span>
+            <span className="text-xl font-black tabular-nums text-emerald-600 dark:text-emerald-400">
+              {fmtUsd(mrrUsdNum)}
+            </span>
+          </div>
+          <div className="h-3 w-full overflow-hidden rounded-full bg-muted flex">
+            <div
+              className="h-full bg-sky-500/90"
+              style={{ width: `${alexPct * 100}%` }}
+              title="Alex 45%"
+            />
+            <div
+              className="h-full bg-violet-500/90"
+              style={{ width: `${johanPct * 100}%` }}
+              title="Johan 55%"
+            />
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border border-border/80 bg-card/80 px-4 py-3">
+              <p className="text-xs font-semibold text-sky-600 dark:text-sky-400">Alex — 45%</p>
+              <p className="mt-1 text-lg font-black tabular-nums">{fmtUsd(alexShareUsd)}</p>
+            </div>
+            <div className="rounded-xl border border-border/80 bg-card/80 px-4 py-3">
+              <p className="text-xs font-semibold text-violet-600 dark:text-violet-400">Johan — 55%</p>
+              <p className="mt-1 text-lg font-black tabular-nums">{fmtUsd(johanShareUsd)}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="border-border">
@@ -48,9 +130,9 @@ export function AdminRevenue() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-black mb-1">$4,460</p>
-            <p className="text-xs text-emerald-500 mb-3">+$80 vs semana pasada</p>
-            <MiniBar data={MRR_WEEKLY} color="bg-emerald-500" />
+            <p className="text-2xl font-black mb-1">{String(mrr.mrrUsd || "$0.00")}</p>
+            <p className="text-xs text-muted-foreground mb-3">Precio mensual: {String(mrr.pricePerMonthUsd || "$0.00")}</p>
+            <MiniBar data={revenueSeries} color="bg-emerald-500" />
           </CardContent>
         </Card>
 
@@ -61,30 +143,39 @@ export function AdminRevenue() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-black mb-1">892</p>
-            <p className="text-xs text-emerald-500 mb-3">+12 esta semana</p>
-            <MiniBar data={SUBS_WEEKLY} color="bg-amber-500" />
+            <p className="text-2xl font-black mb-1">{Number(active.activeTotal || 0).toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground mb-3">
+              Pagas: {Number(active.activePaid || 0)} · Trial: {Number(active.activeTrial || 0)}
+            </p>
+            <MiniBar
+              data={[
+                Number(active.activePaid || 0),
+                Number(active.activeTrial || 0),
+                Number(active.pastDue || 0),
+                Number(active.cancelled || 0),
+              ]}
+              color="bg-amber-500"
+            />
           </CardContent>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Métricas clave */}
         <Card className="border-border">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">Métricas Stripe</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {[
-              { label: "Precio mensual",      value: "$4.99" },
-              { label: "LTV promedio",         value: "$34.93" },
-              { label: "CAC estimado",         value: "$2.10" },
-              { label: "LTV/CAC ratio",        value: "16.6x" },
-              { label: "Nuevos este mes",      value: "47" },
-              { label: "Cancelaciones mes",    value: "18" },
-              { label: "Reembolsos mes",       value: "3" },
-              { label: "Tasa conversión free→premium", value: "6.9%" },
-            ].map(m => (
+              { label: "Precio mensual", value: String(mrr.pricePerMonthUsd || "$0.00") },
+              { label: "MRR", value: String(mrr.mrrUsd || "$0.00") },
+              { label: "Activas pagas", value: String(active.activePaid || 0) },
+              { label: "Activas trial", value: String(active.activeTrial || 0) },
+              { label: "Past due", value: String(active.pastDue || 0) },
+              { label: "Canceladas totales", value: String(cancellations.totalCancellations || 0) },
+              { label: "Cancelaciones mes", value: String(cancellations.cancellationsThisMonth || 0) },
+              { label: "Churn mensual", value: `${Number(churn.churnRate || 0).toFixed(2)}%` },
+            ].map((m) => (
               <div key={m.label} className="flex justify-between items-center">
                 <span className="text-xs text-muted-foreground">{m.label}</span>
                 <span className="text-sm font-bold text-foreground">{m.value}</span>
@@ -93,7 +184,6 @@ export function AdminRevenue() {
           </CardContent>
         </Card>
 
-        {/* Razones de cancelación */}
         <Card className="border-border">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
@@ -101,67 +191,47 @@ export function AdminRevenue() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2.5">
-            {CANCELLATIONS.map(c => (
-              <ProgressRow key={c.reason} label={c.reason} value={c.pct} max={38} color="bg-rose-500" />
-            ))}
+            <ProgressRow label="Mes actual" value={Number(cancellations.cancellationsThisMonth || 0)} max={Math.max(Number(cancellations.totalCancellations || 1), 1)} color="bg-rose-500" />
+            <ProgressRow label="Totales" value={Number(cancellations.totalCancellations || 0)} max={Math.max(Number(cancellations.totalCancellations || 1), 1)} color="bg-amber-500" />
+            <ProgressRow label="Past due" value={Number(active.pastDue || 0)} max={Math.max(Number(active.activeTotal || 1), 1)} color="bg-orange-500" />
           </CardContent>
         </Card>
 
-        {/* Proyección */}
         <Card className="border-border">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">Proyección 12 meses</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {[
-              { label: "MRR objetivo",     value: "$12,000", color: "text-emerald-500" },
-              { label: "Suscriptores obj.", value: "2,400",  color: "text-amber-500" },
-              { label: "Crecimiento req.",  value: "+169%",  color: "text-primary" },
-              { label: "Crecimiento actual","value": "+5%/mes", color: "text-foreground" },
-            ].map(m => (
+              { label: "MRR actual", value: String(mrr.mrrUsd || "$0.00"), color: "text-emerald-500" },
+              { label: "ARR proyectado", value: `$${arrProjection}`, color: "text-amber-500" },
+              { label: "Activas inicio mes", value: String(churn.activeAtStartOfMonth || 0), color: "text-primary" },
+              { label: "Activas ahora", value: String(churn.currentActive || 0), color: "text-foreground" },
+            ].map((m) => (
               <div key={m.label} className="flex justify-between items-center py-1 border-b border-border last:border-0">
                 <span className="text-xs text-muted-foreground">{m.label}</span>
                 <span className={`text-sm font-black ${m.color}`}>{m.value}</span>
               </div>
             ))}
             <div className="pt-2">
-              <p className="text-xs text-muted-foreground mb-1.5">Progreso hacia objetivo MRR</p>
+              <p className="text-xs text-muted-foreground mb-1.5">Indicador de churn</p>
               <div className="h-2 bg-muted rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full" style={{ width: "37%" }} />
+                <div
+                  className={`h-full rounded-full ${
+                    Number(churn.churnRate || 0) > 8
+                      ? "bg-rose-500"
+                      : Number(churn.churnRate || 0) > 4
+                        ? "bg-amber-500"
+                        : "bg-emerald-500"
+                  }`}
+                  style={{ width: `${Math.min(Number(churn.churnRate || 0), 100)}%` }}
+                />
               </div>
-              <p className="text-[11px] text-muted-foreground mt-1">37% del objetivo ($4,460 / $12,000)</p>
+              <p className="text-[11px] text-muted-foreground mt-1">{Number(churn.churnRate || 0).toFixed(2)}% del mes</p>
             </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Transacciones recientes */}
-      <Card className="border-border">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <CreditCard className="h-4 w-4 text-primary" /> Transacciones recientes
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="grid grid-cols-4 gap-2 px-4 py-2 border-b border-border text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
-            <span>Usuario</span><span>Monto</span><span>Fecha</span><span>Estado</span>
-          </div>
-          <div className="divide-y divide-border">
-            {TRANSACTIONS.map((t, i) => (
-              <div key={i} className="grid grid-cols-4 gap-2 px-4 py-3 items-center hover:bg-muted/20">
-                <span className="text-xs font-semibold text-foreground">@{t.user}</span>
-                <span className="text-xs font-bold text-emerald-500">{t.amount}</span>
-                <span className="text-xs text-muted-foreground">{t.date}</span>
-                <Badge className={`text-[10px] border-0 w-fit ${
-                  t.status === "exitoso"   ? "bg-emerald-500/15 text-emerald-500" :
-                  t.status === "fallido"   ? "bg-rose-500/15 text-rose-500" :
-                  "bg-amber-500/15 text-amber-500"
-                }`}>{t.status}</Badge>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }
