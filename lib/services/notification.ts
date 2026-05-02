@@ -36,8 +36,11 @@ class NotificationService {
 
   async getUnreadCount(userId: string): Promise<number> {
     try {
-      const count = await api.get<number>(`/api/notifications/${userId}/count`)
-      return count
+      const res = await api.get<{ unread: number } | number>(`/api/notifications/${userId}/count`)
+      // backend devuelve { unread: N }
+      if (typeof res === 'object' && res !== null && 'unread' in res) return res.unread
+      if (typeof res === 'number') return res
+      return this.notifications.filter(n => n.receiverId === userId && !n.read).length
     } catch {
       return this.notifications.filter(n => n.receiverId === userId && !n.read).length
     }

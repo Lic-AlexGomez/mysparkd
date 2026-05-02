@@ -45,6 +45,27 @@ export function clearStashedLoginAccountTypeIfSynced(profile: UserProfile) {
   }
 }
 
+/** Normaliza reactions de un post crudo del backend al formato que espera PostCard */
+function normalizePostFromProfile(post: any): any {
+  const reactionsObj: Record<string, { type: string; count: number; userReacted: boolean }> = {}
+  if (Array.isArray(post?.reactions)) {
+    post.reactions.forEach((r: any) => {
+      reactionsObj[r.reaction] = {
+        type: r.reaction,
+        count: r.count,
+        userReacted: post.myReaction === r.reaction,
+      }
+    })
+  }
+  return {
+    ...post,
+    body: post.body ?? null,
+    userId: post.userId ? String(post.userId) : '',
+    userReaction: post.myReaction ?? null,
+    reactions: Object.keys(reactionsObj).length > 0 ? reactionsObj : (post.reactions || {}),
+  }
+}
+
 /** Alinea nombres del DTO Java (snake_case) con el cliente. */
 function normalizeProfileFromApi(profile: UserProfile): UserProfile {
   const r = profile as UserProfile & {
@@ -52,6 +73,10 @@ function normalizeProfileFromApi(profile: UserProfile): UserProfile {
     total_posts?: number
     preferred_language?: string
   }
+  if (Array.isArray(next.posts)) {
+    next = { ...next, posts: next.posts.map(normalizePostFromProfile) }
+  }
+
   const recovery = profile.recoveryEmail ?? r.recovery_email
   let next: UserProfile = profile
 

@@ -103,7 +103,11 @@ export default function EventsPage() {
     description: "",
     category: "OTHER",
     free: true,
+    price: "",
+    minGuests: "",
     maxGuests: "",
+    minAge: "18",
+    maxAge: "99",
     startsAt: "",
     endsAt: "",
     officialAddress: "",
@@ -200,7 +204,11 @@ export default function EventsPage() {
       description: "",
       category: "OTHER",
       free: true,
+      price: "",
+      minGuests: "",
       maxGuests: "",
+      minAge: "18",
+      maxAge: "99",
       startsAt: "",
       endsAt: "",
       officialAddress: "",
@@ -248,12 +256,20 @@ export default function EventsPage() {
     setIsCreating(true)
     try {
       const maxGuestsValue = Number(createForm.maxGuests || 0)
+      const minGuestsValue = Number(createForm.minGuests || 1)
+      const minAgeValue = Number(createForm.minAge || 18)
+      const maxAgeValue = Number(createForm.maxAge || 99)
+      const priceValue = !createForm.free ? Number(createForm.price || 0) : undefined
       const basePayload: Record<string, unknown> = {
         title,
         description: createForm.description.trim() || undefined,
         category: createForm.category as any,
         free: createForm.free,
+        price: priceValue,
+        minGuests: minGuestsValue > 0 ? minGuestsValue : 1,
         maxGuests: maxGuestsValue > 0 ? maxGuestsValue : undefined,
+        minAge: minAgeValue,
+        maxAge: maxAgeValue,
         startsAt: toLocalDateTimeApi(startsDate),
         startAt: toLocalDateTimeApi(startsDate),
         startDateTime: toLocalDateTimeApi(startsDate),
@@ -427,6 +443,68 @@ export default function EventsPage() {
                   onChange={(e) => setCreateForm((prev) => ({ ...prev, maxGuests: e.target.value }))}
                   placeholder={te("Opcional (si vacío = ilimitado)", "Optional (empty = unlimited)")}
                 />
+              </div>
+              {!createForm.free && (
+                <div>
+                  <label className="text-sm font-medium">{te("Precio", "Price")}</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    className="mt-1"
+                    value={createForm.price}
+                    onChange={(e) => setCreateForm((prev) => ({ ...prev, price: e.target.value }))}
+                    placeholder="0.00"
+                  />
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium">{te("Cupos mínimos", "Min guests")}</label>
+                  <Input
+                    type="number"
+                    min={1}
+                    className="mt-1"
+                    value={createForm.minGuests}
+                    onChange={(e) => setCreateForm((prev) => ({ ...prev, minGuests: e.target.value }))}
+                    placeholder="1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">{te("Cupos máximos", "Max guests")}</label>
+                  <Input
+                    type="number"
+                    min={1}
+                    className="mt-1"
+                    value={createForm.maxGuests}
+                    onChange={(e) => setCreateForm((prev) => ({ ...prev, maxGuests: e.target.value }))}
+                    placeholder={te("Ilimitado", "Unlimited")}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium">{te("Edad mínima", "Min age")}</label>
+                  <Input
+                    type="number"
+                    min={18}
+                    max={99}
+                    className="mt-1"
+                    value={createForm.minAge}
+                    onChange={(e) => setCreateForm((prev) => ({ ...prev, minAge: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">{te("Edad máxima", "Max age")}</label>
+                  <Input
+                    type="number"
+                    min={18}
+                    max={99}
+                    className="mt-1"
+                    value={createForm.maxAge}
+                    onChange={(e) => setCreateForm((prev) => ({ ...prev, maxAge: e.target.value }))}
+                  />
+                </div>
               </div>
               <div>
                 <label className="text-sm font-medium">{te("Dirección oficial meetup", "Official meetup address")} *</label>

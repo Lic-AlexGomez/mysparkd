@@ -17,7 +17,8 @@ import { Badge } from "@/components/ui/badge"
 import { LocationInput } from "@/components/ui/location-input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, Copy, Loader2, MessageCircle, Shield, Trash2, UserMinus, UserX, Volume2, VolumeX } from "lucide-react"
+import { ArrowLeft, Copy, Loader2, MessageCircle, Shield, Star, Trash2, UserMinus, UserX, Volume2, VolumeX } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import type { EventCapacityUpdate, EventGroupJoinRequest, EventGroupMember, EventGroupMessage, EventParticipant, ReactionType } from "@/lib/types"
 import { toast } from "sonner"
 import { useI18n } from "@/lib/i18n"
@@ -63,7 +64,10 @@ export default function EventDetailPage() {
   const [inviteeQuery, setInviteeQuery] = useState("")
   const [inviteeSuggestions, setInviteeSuggestions] = useState<Array<{ userId: string; username: string; fullName?: string; photo?: string }>>([])
   const [selectedInvitees, setSelectedInvitees] = useState<Array<{ userId: string; username: string; fullName?: string; photo?: string }>>([])
-
+  const [showRatingModal, setShowRatingModal] = useState(false)
+  const [ratingScore, setRatingScore] = useState(0)
+  const [ratingComment, setRatingComment] = useState("")
+  const [isSubmittingRating, setIsSubmittingRating] = useState(false)
   const myUserId = String(user?.userId || "")
   const myMember = members.find((m) => String(m.userId) === myUserId)
   const myRole = (myMember?.role || "").toUpperCase()
@@ -647,8 +651,7 @@ export default function EventDetailPage() {
     }
   }
 
-  const handleSaveOfficialAddress = async () => {
-    const next = officialAddressText.trim()
+  const handleSaveOfficialAddress = async () => {    const next = officialAddressText.trim()
     if (!next) {
       toast.error(
         te(

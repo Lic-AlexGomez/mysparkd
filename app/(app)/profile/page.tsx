@@ -10,7 +10,7 @@ import { reputationService } from "@/lib/services/reputation"
 import { followService } from "@/lib/services/follow"
 import { bookmarkService } from "@/lib/services/bookmark"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
-import { Pencil, Loader2, Camera, Newspaper, Bookmark, Heart, Crown, MapPin, Globe, Zap, Settings, Trash2, MicOff, Paperclip } from "lucide-react"
+import { Pencil, Loader2, Camera, Newspaper, Bookmark, Heart, Crown, MapPin, Globe, Zap, Settings, Trash2, MicOff, Paperclip, CalendarDays } from "lucide-react"
 import { toast } from "sonner"
 import { PostCard } from "@/components/feed/post-card"
 import { useRouter } from "next/navigation"
@@ -26,6 +26,8 @@ import {
 import { DialogTitle } from "@/components/ui/dialog"
 import { useI18n } from "@/lib/i18n"
 import { accountTypeBadgeLabels, toBackendAccountType } from "@/lib/account-type"
+import { eventService } from "@/lib/services/event"
+import type { Event } from "@/lib/types"
 
 export default function ProfilePage() {
   const { te, t } = useI18n()
@@ -36,6 +38,10 @@ export default function ProfilePage() {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [localPhotos, setLocalPhotos] = useState(user?.photos || [])
   const [viewPhotoUrl, setViewPhotoUrl] = useState<string | null>(null)
+  const [myCreatedEvents, setMyCreatedEvents] = useState<Event[]>([])
+  const [myParticipatingEvents, setMyParticipatingEvents] = useState<Event[]>([])
+  const [eventsTab, setEventsTab] = useState<'created' | 'participating'>('created')
+  const [eventsLoading, setEventsLoading] = useState(false)
 
   const showPremiumBadge = typeof window !== 'undefined'
     ? localStorage.getItem(`sparkd_show_premium_${user?.userId}`) !== 'false'
@@ -45,6 +51,18 @@ export default function ProfilePage() {
 
   useEffect(() => { setLocalPhotos(user?.photos || []) }, [user?.photos])
   useEffect(() => { setCoverPhoto(user?.coverPictureUrl || null) }, [user?.coverPictureUrl])
+
+  useEffect(() => {
+    if (!user?.userId) return
+    setEventsLoading(true)
+    Promise.all([eventService.myCreated(), eventService.myParticipating()])
+      .then(([created, participating]) => {
+        setMyCreatedEvents(Array.isArray(created) ? created : [])
+        setMyParticipatingEvents(Array.isArray(participating) ? participating : [])
+      })
+      .catch(() => {})
+      .finally(() => setEventsLoading(false))
+  }, [user?.userId])
 
   const handleDragStart = (index: number) => setDraggedIndex(index)
   const handleDragOver = (e: React.DragEvent) => e.preventDefault()
@@ -341,6 +359,23 @@ export default function ProfilePage() {
           ))}
         </div>
 
+        {/* Reputación */}
+        <div className="mt-4">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-semibold text-muted-foreground">Reputación</span>
+            <span className="text-xs font-black" style={{ color: reputationColor }}>{reputation}/100</span>
+          </div>
+          <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-700"
+              style={{ width: `${reputation}%`, backgroundColor: reputationColor }}
+            />
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-1">
+            {reputation >= 75 ? "⭐ Excelente reputación" : reputation >= 50 ? "👍 Buena reputación" : "⚠️ Reputación baja"}
+          </p>
+        </div>
+
         {/* Intereses */}
         {profileInterests.length > 0 && (
           <div className="mt-5">
@@ -467,6 +502,102 @@ export default function ProfilePage() {
             </div>
           </button>
         ))}
+      </div>
+
+      {/* ── MIS EVENTOS ──────────────────────────────────────────────── */}
+      <div className="mt-6 px-5">
+        <div className="flex items-center gap-2 mb-3">
+          <CalendarDays className="h-4 w-4 text-muted-foreground" />
+          <h2 className="text-sm font-bold text-foreground">Mis Eventos</h2>
+        </div>
+        <div className="flex gap-2 mb-3">
+          {(['created', 'participating'] as const).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setEventsTab(tab)}
+              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                eventsTab === tab ? 'bg-primary text-black border-primary' : 'border-border text-muted-foreground hover:border-primary/40'
+              }`}
+            >
+              {tab === 'created' ? `Creados (${myCreatedEvents.length})` : `Participando (${myParticipatingEvents.length})`}
+            </button>
+          ))}
+        </div>
+        {eventsLoading ? (
+          <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+        ) : (
+          <div className="space-y-2">
+            {(eventsTab === 'created' ? myCreatedEvents : myParticipatingEvents).length === 0 ? (
+              <p className="text-xs text-muted-foreground py-4 text-center">
+                {eventsTab === 'created' ? 'No has creado eventos aún' : 'No estás participando en eventos'}
+              </p>
+            ) : (
+              (eventsTab === 'created' ? myCreatedEvents : myParticipatingEvents).map((ev: any) => (
+                <button
+                  key={ev.eventId || ev.id}
+                  onClick={() => router.push(`/events/${ev.eventId || ev.id}`)}
+                  className="w-full flex items-center justify-between p-3 rounded-xl border border-border hover:border-primary/40 bg-card text-left transition-colors"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate">{ev.title || ev.name}</p>
+                    <p className="text-xs text-muted-foreground">{ev.category} · {ev.status || 'OPEN'}</p>
+                  </div>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full border-0 ml-2 shrink-0 ${
+                    String(ev.status || 'OPEN').toUpperCase() === 'OPEN' ? 'bg-emerald-500/15 text-emerald-500' : 'bg-muted text-muted-foreground'
+                  }`}>{ev.status || 'OPEN'}</span>
+                </button>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── MIS EVENTOS ─────────────────────────────────────────────── */}
+      <div className="mt-6 px-5">
+        <div className="flex items-center gap-2 mb-3">
+          <CalendarDays className="h-4 w-4 text-muted-foreground" />
+          <h2 className="text-sm font-bold text-foreground">Mis Eventos</h2>
+        </div>
+        <div className="flex gap-2 mb-3">
+          {(['created', 'participating'] as const).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setEventsTab(tab)}
+              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                eventsTab === tab ? 'bg-primary text-black border-primary' : 'border-border text-muted-foreground hover:border-primary/40'
+              }`}
+            >
+              {tab === 'created' ? `Creados (${myCreatedEvents.length})` : `Participando (${myParticipatingEvents.length})`}
+            </button>
+          ))}
+        </div>
+        {eventsLoading ? (
+          <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+        ) : (
+          <div className="space-y-2">
+            {(eventsTab === 'created' ? myCreatedEvents : myParticipatingEvents).length === 0 ? (
+              <p className="text-xs text-muted-foreground py-4 text-center">
+                {eventsTab === 'created' ? 'No has creado eventos aún' : 'No estás participando en eventos'}
+              </p>
+            ) : (
+              (eventsTab === 'created' ? myCreatedEvents : myParticipatingEvents).map((ev: any) => (
+                <button
+                  key={ev.eventId || ev.id}
+                  onClick={() => router.push(`/events/${ev.eventId || ev.id}`)}
+                  className="w-full flex items-center justify-between p-3 rounded-xl border border-border hover:border-primary/40 bg-card text-left transition-colors"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate">{ev.title || ev.name}</p>
+                    <p className="text-xs text-muted-foreground">{ev.category} · {ev.status || 'OPEN'}</p>
+                  </div>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full ml-2 shrink-0 ${
+                    String(ev.status || 'OPEN').toUpperCase() === 'OPEN' ? 'bg-emerald-500/15 text-emerald-500' : 'bg-muted text-muted-foreground'
+                  }`}>{ev.status || 'OPEN'}</span>
+                </button>
+              ))
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── POSTS ────────────────────────────────────────────────────── */}
