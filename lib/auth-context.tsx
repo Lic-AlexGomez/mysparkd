@@ -73,12 +73,13 @@ function normalizeProfileFromApi(profile: UserProfile): UserProfile {
     total_posts?: number
     preferred_language?: string
   }
+  // Initialize next before using it
+  let next: UserProfile = profile
   if (Array.isArray(next.posts)) {
     next = { ...next, posts: next.posts.map(normalizePostFromProfile) }
   }
 
   const recovery = profile.recoveryEmail ?? r.recovery_email
-  let next: UserProfile = profile
 
   const totalPosts =
     typeof profile.totalPosts === "number"
