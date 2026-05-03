@@ -390,7 +390,8 @@ export function GroupsSection() {
     sp.set("maxUses", String(invite.maxUses))
     sp.set("usedCount", String(invite.usedCount))
     if (invite.expiresAt) sp.set("expiresAt", invite.expiresAt)
-    return `${window.location.origin}/groups?${sp.toString()}`
+    const base = process.env.NEXT_PUBLIC_APP_URL || "https://www.mysparkd.com"
+    return `${base}/groups?${sp.toString()}`
   }
 
   const openShareModal = async (group: Group) => {
@@ -443,17 +444,21 @@ export function GroupsSection() {
 
   const postToGlobalFeed = async (formData: FormData) => {
     const token = localStorage.getItem("sparkd_token")
-    const response = await new Promise<Response>((resolve, reject) => {
+    const res = await new Promise<{ status: number; text: string }>((resolve, reject) => {
       const xhr = new XMLHttpRequest()
       xhr.open("POST", "/api/proxy/api/posts/new")
       if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`)
-      xhr.onload = () => resolve(new Response(xhr.responseText, { status: xhr.status }))
-      xhr.onerror = () => reject(new Error("Network error"))
+      xhr.onload = () => resolve({ status: xhr.status, text: xhr.responseText })
+      xhr.onerror = () => reject(new Error("Error de red"))
       xhr.send(formData)
     })
-    if (!response.ok) {
-      const txt = await response.text()
-      throw new Error(txt || "Post failed")
+    if (res.status < 200 || res.status >= 300) {
+      let msg = "Error al publicar en el feed"
+      try {
+        const data = JSON.parse(res.text)
+        msg = data.detail || data.message || msg
+      } catch { if (res.text) msg = res.text }
+      throw new Error(msg)
     }
   }
 
@@ -464,8 +469,8 @@ export function GroupsSection() {
     setIsPostingShare(true)
     try {
       const base = te(
-        `Únete al grupo "${shareGroup.name}" en Sparkd.\n${inviteUrl}`,
-        `Join the group "${shareGroup.name}" on Sparkd.\n${inviteUrl}`
+        `Únete al grupo "${shareGroup.name}" en Sparkd. 🚀\n${inviteUrl}`,
+        `Join the group "${shareGroup.name}" on Sparkd. 🚀\n${inviteUrl}`
       )
       const custom = shareCaption.trim()
       const body = custom ? `${custom}\n\n${base}` : base
@@ -752,7 +757,7 @@ export function GroupsSection() {
         </Card>
       </div>
       <Dialog open={shareOpen} onOpenChange={setShareOpen}>
-        <DialogContent className="bg-card border-border sm:max-w-xl">
+        <DialogContent className="bg-card border-border sm:max-w-xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{te("Compartir grupo", "Share group")}</DialogTitle>
             <DialogDescription>
@@ -768,7 +773,7 @@ export function GroupsSection() {
               {te("Preparando opciones de compartir...", "Preparing sharing options...")}
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-4 overflow-y-auto flex-1 pr-1">
               <div className="rounded-lg border border-border bg-muted/30 p-3">
                 <p className="text-sm font-semibold">{shareGroup.name}</p>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -1110,32 +1115,14 @@ export function GroupsSection() {
             </h2>
             <div className="flex items-center gap-1">
               <div className="flex items-center gap-1 rounded-md border border-border bg-card px-1">
-                <Button
-                  type="button"
-                  size="icon"
-                  variant={viewMode === "GRID" ? "secondary" : "ghost"}
-                  onClick={() => setViewMode("GRID")}
-                  className="h-8 w-8"
-                >
+                <Button type="button" size="icon" variant={viewMode === "GRID" ? "secondary" : "ghost"} onClick={() => setViewMode("GRID")} className="h-8 w-8">
                   <LayoutGrid className="h-4 w-4" />
                 </Button>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant={viewMode === "LIST" ? "secondary" : "ghost"}
-                  onClick={() => setViewMode("LIST")}
-                  className="h-8 w-8"
-                >
+                <Button type="button" size="icon" variant={viewMode === "LIST" ? "secondary" : "ghost"} onClick={() => setViewMode("LIST")} className="h-8 w-8">
                   <List className="h-4 w-4" />
                 </Button>
               </div>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => loadGroups(discoverCategory, discoverFeed)}
-                disabled={isLoading}
-                className="h-9 w-9 shrink-0"
-              >
+              <Button variant="outline" size="icon" onClick={() => loadGroups(discoverCategory, discoverFeed)} disabled={isLoading} className="h-9 w-9 shrink-0">
                 <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
               </Button>
             </div>
@@ -1163,6 +1150,12 @@ export function GroupsSection() {
                 ))}
               </SelectContent>
             </Select>
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={te("Buscar por nombre/tema", "Search by name/topic")}
+              className="w-full"
+            />
             <Select value={discoverSort} onValueChange={(v: any) => setDiscoverSort(v)}>
               <SelectTrigger className="w-full">
                 <ArrowUpDown className="mr-2 h-4 w-4 text-muted-foreground shrink-0" />
@@ -1174,12 +1167,6 @@ export function GroupsSection() {
                 <SelectItem value="A_TO_Z">{te("A-Z", "A-Z")}</SelectItem>
               </SelectContent>
             </Select>
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={te("Buscar...", "Search...")}
-              className="w-full"
-            />
           </div>
         </div>
         <div className={`${viewMode === "GRID" ? "grid md:grid-cols-2 gap-4" : "space-y-3"}`}>
