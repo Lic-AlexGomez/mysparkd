@@ -60,7 +60,7 @@ export function getFeatureFlags(userEmail?: string | null, username?: string | n
     searchPage: true,
     storiesPage: true,
     analyticsPage: true,
-    groupsPage: isAdmin,
+    groupsPage: true,
     dashboard:    isAdmin,          // 🔒 Solo admin (test1)
     managerPanel: isMgr || isAdmin, // 🔒 Manager + admin
     trelloPage: isTrelloAllowed,    // 🔒 Solo login con test1
