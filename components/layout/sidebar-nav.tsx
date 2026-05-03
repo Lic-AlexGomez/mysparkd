@@ -27,7 +27,6 @@ const navItems = [
   { href: "/events", labelKey: "sidebar.events", icon: CalendarDays },
   { href: "/matches", labelKey: "sidebar.matches", icon: Heart },
   { href: "/chat", labelKey: "sidebar.chat", icon: MessageCircle },
-  { href: "/groups", labelKey: "sidebar.groups", icon: Users },
   { href: "/trello", labelKey: "sidebar.trello", icon: LayoutList },
   { href: "/profile", labelKey: "sidebar.profile", icon: User },
   { href: "/premium", labelKey: "sidebar.premium", icon: Crown },
@@ -41,7 +40,6 @@ export function SidebarNav() {
 
   const filteredNavItems = navItems.filter(item => {
     if (item.href === '/search' && !features.searchPage) return false
-    if (item.href === '/groups' && !features.groupsPage) return false
     if (item.href === '/trello' && !features.trelloPage) return false
     return true
   })
