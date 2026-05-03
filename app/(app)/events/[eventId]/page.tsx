@@ -70,8 +70,8 @@ export default function EventDetailPage() {
   const [isSubmittingRating, setIsSubmittingRating] = useState(false)
   const myUserId = String(user?.userId || "")
   const myMember = members.find((m) => String(m.userId) === myUserId)
-  const myRole = (myMember?.role || "").toUpperCase()
-  const isAdmin = myRole === "ADMIN"
+  const myRole = (myMember?.role || (eventData as any)?.myRole || "").toUpperCase()
+  const isAdmin = myRole === "ADMIN" || String((eventData as any)?.creatorId || "") === myUserId || Boolean((eventData as any)?.isAdmin)
   const isModerator = myRole === "MODERATOR" || isAdmin
   const isGuest = myRole === "GUEST"
   const mutedUntil = myMember?.mutedUntil ? new Date(myMember.mutedUntil) : null
