@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useEffect, useState, useCallback, useId, useRef } from "react"
+import { createPortal } from "react-dom"
 import { api } from "@/lib/api"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
 import { formatDistanceToNow } from "date-fns"
@@ -325,7 +326,7 @@ export function TopNavbar() {
             <span className="sr-only">{t("nav.notifications")}</span>
           </Button>
 
-          {showNotifications && (
+          {showNotifications && typeof document !== 'undefined' && createPortal(
             <>
               <div
                 className="fixed top-16 left-0 right-0 bottom-0 z-[55] bg-black/45 backdrop-blur-sm md:hidden"
@@ -340,7 +341,7 @@ export function TopNavbar() {
                 aria-modal={isNarrowViewport}
                 aria-labelledby={notificationsTitleId}
                 tabIndex={-1}
-                className="fixed left-0 right-0 top-16 bottom-0 z-[60] flex flex-col overflow-hidden border-x border-b border-border bg-card px-2 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] shadow-2xl shadow-black/25 outline-none [padding-left:max(0.5rem,env(safe-area-inset-left,0px))] [padding-right:max(0.5rem,env(safe-area-inset-right,0px))] rounded-b-2xl sm:px-3 md:bottom-auto md:absolute md:left-auto md:right-0 md:top-full md:z-50 md:mt-2 md:max-h-[min(420px,80vh)] md:w-96 md:rounded-2xl md:border md:px-0 md:pb-0 md:pt-0"
+                className="fixed left-0 right-0 top-16 bottom-0 z-[60] flex flex-col overflow-hidden border-x border-b border-border bg-card px-2 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] shadow-2xl shadow-black/25 outline-none [padding-left:max(0.5rem,env(safe-area-inset-left,0px))] [padding-right:max(0.5rem,env(safe-area-inset-right,0px))] rounded-b-2xl sm:px-3 md:bottom-auto md:fixed md:left-auto md:right-4 md:top-16 md:z-[60] md:mt-2 md:max-h-[min(420px,80vh)] md:w-96 md:rounded-2xl md:border md:px-0 md:pb-0 md:pt-0"
                 data-notifications-dropdown
               >
               {/* Header */}
@@ -431,7 +432,8 @@ export function TopNavbar() {
                 )}
               </div>
               </div>
-            </>
+            </>,
+            document.body
           )}
         </div>
 
