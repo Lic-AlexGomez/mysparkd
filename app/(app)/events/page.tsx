@@ -592,7 +592,7 @@ export default function EventsPage() {
         </Card>
       </div>
 
-      <Card className="mb-6">
+      <Card className="mb-6 hidden">
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Link2 className="h-4 w-4" />
@@ -611,57 +611,66 @@ export default function EventsPage() {
         </CardContent>
       </Card>
 
-      <Card className="mb-4 border-border/70">
-        <CardContent className="pt-4">
-          <div className="mb-3 flex items-center justify-between">
-            <p className="text-sm font-medium text-foreground flex items-center gap-2">
-              <SlidersHorizontal className="h-4 w-4 text-primary" />
-              {te("Filtros", "Filters")}
-            </p>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setQuery("")
-                setCategory("ALL")
-                setFreeOnly("ALL")
-              }}
+      <div className="mb-4 space-y-3">
+        {/* Search */}
+        <div className="relative">
+          <SlidersHorizontal className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={te("Buscar eventos...", "Search events...")}
+            className="pl-9 pr-9 h-11 bg-muted/40 border-border/60 focus:bg-background"
+          />
+          {query && (
+            <button
+              onClick={() => setQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          )}
+        </div>
+
+        {/* Chips gratis/pago */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {(["ALL", "TRUE", "FALSE"] as const).map((val) => (
+            <button
+              key={val}
+              onClick={() => setFreeOnly(val)}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                freeOnly === val
+                  ? "bg-primary text-black border-primary shadow-sm"
+                  : "bg-muted/40 text-muted-foreground border-border/60 hover:border-primary/40 hover:text-foreground"
+              }`}
+            >
+              {val === "ALL" ? te("Todos", "All") : val === "TRUE" ? te("Gratis", "Free") : te("Pago", "Paid")}
+            </button>
+          ))}
+          <div className="w-px h-4 bg-border/60 mx-1" />
+          {/* Chips categoría */}
+          {(["ALL", ...eventService.enums.categories] as const).map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setCategory(cat)}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                category === cat
+                  ? "bg-secondary text-black border-secondary shadow-sm"
+                  : "bg-muted/40 text-muted-foreground border-border/60 hover:border-secondary/40 hover:text-foreground"
+              }`}
+            >
+              {cat === "ALL" ? te("Todas", "All categories") : cat}
+            </button>
+          ))}
+          {(query || category !== "ALL" || freeOnly !== "ALL") && (
+            <button
+              onClick={() => { setQuery(""); setCategory("ALL"); setFreeOnly("ALL") }}
+              className="ml-auto text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
             >
               {te("Limpiar", "Clear")}
-            </Button>
-          </div>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={te("Buscar por título/categoría", "Search by title/category")}
-              className="sm:col-span-2"
-            />
-            <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger>
-                <SelectValue placeholder={te("Categoría", "Category")} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">{te("Todas", "All")}</SelectItem>
-                {eventService.enums.categories.map((cat) => (
-                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={freeOnly} onValueChange={setFreeOnly}>
-              <SelectTrigger>
-                <SelectValue placeholder={te("Gratis/Pago", "Free/Paid")} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">{te("Todos", "All")}</SelectItem>
-                <SelectItem value="TRUE">{te("Gratis", "Free")}</SelectItem>
-                <SelectItem value="FALSE">{te("Pago", "Paid")}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+            </button>
+          )}
+        </div>
+      </div>
 
       <div className="mb-4 rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
         <p className="flex items-center gap-2 font-medium text-foreground">

@@ -404,7 +404,7 @@ export function GroupsSection() {
       await Promise.all([
         chatService.getMyChats().then((rows) => {
           setChatList(rows)
-          if (!selectedChatId && rows[0]?.chatId) setSelectedChatId(rows[0].chatId)
+          setSelectedChatId(rows[0]?.chatId ?? "")
         }),
         loadInviteLinksForShare(group.id),
       ])
@@ -516,13 +516,31 @@ export function GroupsSection() {
         `Te comparto este grupo: ${shareGroup.name}\n${inviteUrl}`,
         `Sharing this group with you: ${shareGroup.name}\n${inviteUrl}`
       )
-      await chatService.sendMessage({
-        chatId: selectedChatId,
-        content: custom ? `${custom}\n\n${base}` : base,
-      })
+      const content = custom ? `${custom}\n\n${base}` : base
+      await chatService.sendMessage({ chatId: selectedChatId, content })
       toast.success(te("Grupo compartido por chat", "Group shared via chat"))
     } catch (error: any) {
-      toast.error(error?.message || te("No se pudo compartir por chat", "Could not share via chat"))
+      // Fallback con FormData
+      try {
+        const custom = shareCaption.trim()
+        const base = te(
+          `Te comparto este grupo: ${shareGroup.name}\n${inviteUrlFor(shareGroup.id)}`,
+          `Sharing this group with you: ${shareGroup.name}\n${inviteUrlFor(shareGroup.id)}`
+        )
+        const content = custom ? `${custom}\n\n${base}` : base
+        const formData = new FormData()
+        formData.append('message', JSON.stringify({ chatId: selectedChatId, content }))
+        const token = typeof window !== 'undefined' ? localStorage.getItem('sparkd_token') : null
+        const res = await fetch('/api/proxy/api/chat/send', {
+          method: 'POST',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: formData,
+        })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        toast.success(te("Grupo compartido por chat", "Group shared via chat"))
+      } catch (fallbackError: any) {
+        toast.error(fallbackError?.message || te("No se pudo compartir por chat", "Could not share via chat"))
+      }
     } finally {
       setIsSendingChatShare(false)
     }
@@ -757,272 +775,252 @@ export function GroupsSection() {
         </Card>
       </div>
       <Dialog open={shareOpen} onOpenChange={setShareOpen}>
-        <DialogContent className="bg-card border-border sm:max-w-xl max-h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>{te("Compartir grupo", "Share group")}</DialogTitle>
-            <DialogDescription>
-              {te(
-                "Comparte en feed global, chat, o con link/QR de acceso automático.",
-                "Share in global feed, chat, or with auto-join link/QR."
-              )}
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="bg-card border-border sm:max-w-md max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center gap-3 px-5 pt-5 pb-4 border-b border-border/60">
+            {shareGroup && (
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                <Users className="h-5 w-5 text-primary" />
+              </div>
+            )}
+            <div className="min-w-0">
+              <p className="font-semibold text-foreground truncate">{shareGroup?.name}</p>
+              <p className="text-xs text-muted-foreground">{te("Compartir grupo", "Share group")}</p>
+            </div>
+          </div>
+
           {!shareGroup || isPreparingShare ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
               <RefreshCw className="h-4 w-4 animate-spin" />
-              {te("Preparando opciones de compartir...", "Preparing sharing options...")}
+              {te("Preparando...", "Preparing...")}
             </div>
           ) : (
-            <div className="space-y-4 overflow-y-auto flex-1 pr-1">
-              <div className="rounded-lg border border-border bg-muted/30 p-3">
-                <p className="text-sm font-semibold">{shareGroup.name}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {shareGroup.description || te("Sin descripción", "No description")}
-                </p>
-              </div>
-              <div className="grid gap-2 sm:grid-cols-2">
-                <Button onClick={shareToFeed} disabled={isPostingShare}>
-                  <TrendingUp className="h-4 w-4 mr-2" />
-                  {isPostingShare ? te("Publicando...", "Posting...") : te("Compartir en feed global", "Share in global feed")}
-                </Button>
-                <Button
-                  variant="outline"
+            <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
+
+              {/* Acciones rápidas */}
+              <div className="grid grid-cols-3 gap-2">
+                <button
                   onClick={async () => {
                     const url = inviteUrlFor(shareGroup.id)
                     if (!url) return
                     await navigator.clipboard.writeText(url)
                     toast.success(te("Link copiado", "Link copied"))
                   }}
+                  className="flex flex-col items-center gap-1.5 rounded-xl border border-border/60 bg-muted/30 p-3 hover:bg-muted/60 hover:border-primary/30 transition-all"
                 >
-                  <Copy className="h-4 w-4 mr-2" />
-                  {te("Copiar link", "Copy link")}
-                </Button>
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-background border border-border/60">
+                    <Copy className="h-4 w-4 text-foreground" />
+                  </div>
+                  <span className="text-[11px] font-medium text-muted-foreground">{te("Copiar link", "Copy link")}</span>
+                </button>
+                <button
+                  onClick={shareToFeed}
+                  disabled={isPostingShare}
+                  className="flex flex-col items-center gap-1.5 rounded-xl border border-border/60 bg-muted/30 p-3 hover:bg-muted/60 hover:border-primary/30 transition-all disabled:opacity-50"
+                >
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-background border border-border/60">
+                    {isPostingShare ? <RefreshCw className="h-4 w-4 animate-spin" /> : <TrendingUp className="h-4 w-4 text-foreground" />}
+                  </div>
+                  <span className="text-[11px] font-medium text-muted-foreground">{te("Feed global", "Global feed")}</span>
+                </button>
+                <button
+                  onClick={() => void generateShareQr(shareGroup.id)}
+                  className="flex flex-col items-center gap-1.5 rounded-xl border border-border/60 bg-muted/30 p-3 hover:bg-muted/60 hover:border-primary/30 transition-all"
+                >
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-background border border-border/60">
+                    <QrCode className="h-4 w-4 text-foreground" />
+                  </div>
+                  <span className="text-[11px] font-medium text-muted-foreground">{te("Generar QR", "QR code")}</span>
+                </button>
               </div>
 
-              <div className="space-y-3 rounded-lg border border-border p-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-medium">{te("Links de invitación", "Invite links")}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {te(
-                        "Configura rol, expiración y usos. Puedes desactivar links antiguos.",
-                        "Configure role, expiration, and uses. You can deactivate older links."
-                      )}
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-8"
-                    onClick={() => void loadInviteLinksForShare(shareGroup.id)}
-                    disabled={Boolean(isInviteLinksLoadingByGroupId[shareGroup.id])}
-                  >
-                    <RefreshCw className={`h-4 w-4 ${isInviteLinksLoadingByGroupId[shareGroup.id] ? "animate-spin" : ""}`} />
-                  </Button>
+              {/* QR */}
+              {shareQrByGroupId[shareGroup.id] && (
+                <div className="flex justify-center">
+                  <img
+                    src={shareQrByGroupId[shareGroup.id]}
+                    alt={te("QR para unirse al grupo", "QR to join group")}
+                    className="h-40 w-40 rounded-xl bg-white p-2 shadow-sm"
+                  />
                 </div>
+              )}
 
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    {te("Link activo para compartir", "Active link used for sharing")}
-                  </p>
-                  <Select
-                    value={shareInviteByGroupId[shareGroup.id]?.inviteId || ""}
-                    onValueChange={(inviteId) => {
-                      const list = shareInviteLinksByGroupId[shareGroup.id] || []
-                      const picked = list.find((l) => l.inviteId === inviteId)
-                      if (picked) setShareInviteByGroupId((prev) => ({ ...prev, [shareGroup.id]: picked }))
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={te("Selecciona un link", "Pick a link")} />
+              {/* Enviar por chat */}
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{te("Enviar por chat", "Send via chat")}</p>
+                <div className="flex gap-2">
+                  <Select value={selectedChatId} onValueChange={setSelectedChatId}>
+                    <SelectTrigger className="flex-1 h-9">
+                      <SelectValue placeholder={te("Selecciona un chat", "Select a chat")} />
                     </SelectTrigger>
                     <SelectContent>
-                      {(shareInviteLinksByGroupId[shareGroup.id] || []).map((l) => {
-                        const uses =
-                          l.maxUses && l.maxUses > 0 ? `${l.usedCount}/${l.maxUses}` : te("ilimitado", "unlimited")
-                        const exp = l.expiresAt ? new Date(l.expiresAt).toLocaleString() : te("sin expirar", "no expiry")
-                        return (
-                          <SelectItem key={l.inviteId} value={l.inviteId}>
-                            {`${l.targetRole} · ${uses} · ${exp}`}
-                          </SelectItem>
-                        )
-                      })}
+                      {chatList.map((c) => (
+                        <SelectItem key={c.chatId} value={c.chatId}>{c.otherUsername}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={async () => {
-                        const current = shareInviteByGroupId[shareGroup.id]
-                        if (!current) return
-                        const ok = window.confirm(
-                          te("¿Desactivar este link? La invitación dejará de funcionar.", "Deactivate this link? It will stop working.")
-                        )
-                        if (!ok) return
-                        try {
-                          await groupService.inviteLinks.remove(shareGroup.id, current.inviteId)
-                          toast.success(te("Link desactivado", "Link deactivated"))
-                          const list = await loadInviteLinksForShare(shareGroup.id)
-                          setShareInviteByGroupId((prev) => {
-                            const next = { ...prev }
-                            if (next[shareGroup.id]?.inviteId === current.inviteId) {
-                              if (list[0]) next[shareGroup.id] = list[0]
-                              else delete next[shareGroup.id]
-                            }
-                            return next
-                          })
-                        } catch (error: any) {
-                          toast.error(error?.message || te("No se pudo desactivar el link", "Could not deactivate link"))
-                        }
-                      }}
-                      disabled={!shareInviteByGroupId[shareGroup.id]}
-                    >
-                      {te("Desactivar", "Deactivate")}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      onClick={async () => {
-                        try {
-                          const maxUses = Number(inviteMaxUsesDraft || "0")
-                          const expiresAt = inviteExpiresAtDraft
-                            ? new Date(inviteExpiresAtDraft).toISOString()
-                            : undefined
-                          const created = await groupService.inviteLinks.create(shareGroup.id, {
-                            targetRole: inviteRoleDraft,
-                            maxUses: Number.isFinite(maxUses) ? maxUses : 0,
-                            ...(expiresAt ? { expiresAt } : {}),
-                          })
-                          toast.success(te("Link creado", "Link created"))
-                          setShareInviteByGroupId((prev) => ({ ...prev, [shareGroup.id]: created }))
-                          await loadInviteLinksForShare(shareGroup.id)
-                        } catch (error: any) {
-                          toast.error(error?.message || te("No se pudo crear el link", "Could not create link"))
-                        }
-                      }}
-                    >
-                      {te("Crear nuevo", "Create new")}
-                    </Button>
-                  </div>
+                  <Button
+                    size="sm"
+                    className="h-9 shrink-0"
+                    disabled={!selectedChatId || isSendingChatShare}
+                    onClick={shareToChat}
+                  >
+                    {isSendingChatShare ? <RefreshCw className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
+                  </Button>
                 </div>
-
-                <div className="grid gap-2 sm:grid-cols-3">
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium">{te("Rol", "Role")}</p>
-                    <Select value={inviteRoleDraft} onValueChange={(v) => setInviteRoleDraft(v as any)}>
-                      <SelectTrigger className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="GUEST">{te("Invitado", "Guest")}</SelectItem>
-                        <SelectItem value="MODERATOR">{te("Moderador", "Moderator")}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium">{te("Máx. usos (0 = ilimitado)", "Max uses (0 = unlimited)")}</p>
-                    <Input
-                      value={inviteMaxUsesDraft}
-                      onChange={(e) => setInviteMaxUsesDraft(e.target.value.replace(/[^\d]/g, ""))}
-                      inputMode="numeric"
-                      className="h-9"
-                      placeholder="0"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium">{te("Expira (opcional)", "Expires (optional)")}</p>
-                    <Input
-                      value={inviteExpiresAtDraft}
-                      onChange={(e) => setInviteExpiresAtDraft(e.target.value)}
-                      className="h-9"
-                      type="datetime-local"
-                    />
-                  </div>
-                </div>
-
-                {shareInviteByGroupId[shareGroup.id] ? (
-                  <div className="rounded-md border border-border bg-muted/20 p-2">
-                    <p className="text-[11px] text-muted-foreground break-all">
-                      {inviteUrlFor(shareGroup.id)}
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground">
-                    {te("No hay link activo todavía. Crea uno para poder copiar/compartir.", "No active link yet. Create one to share/copy.")}
-                  </p>
-                )}
               </div>
 
-              <div className="space-y-2 rounded-lg border border-border p-3">
-                <p className="text-sm font-medium">{te("Texto opcional", "Optional text")}</p>
+              {/* Mensaje opcional */}
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{te("Mensaje (opcional)", "Message (optional)")}</p>
                 <Textarea
                   value={shareCaption}
                   onChange={(e) => setShareCaption(e.target.value)}
                   placeholder={te("Agrega un mensaje personal...", "Add a personal message...")}
-                  className="min-h-20"
+                  className="min-h-16 resize-none text-sm"
                   maxLength={250}
                 />
                 <div className="flex items-center justify-between">
-                  <p className="text-xs text-muted-foreground">
-                    {te("Incluir QR en el post del feed", "Include QR in feed post")}
-                  </p>
-                  <Button
-                    type="button"
-                    variant={includeQrInPost ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setIncludeQrInPost((prev) => !prev)}
+                  <span className="text-xs text-muted-foreground">{shareCaption.length}/250</span>
+                  <button
+                    onClick={() => setIncludeQrInPost((p) => !p)}
+                    className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border transition-all ${
+                      includeQrInPost
+                        ? "bg-primary text-black border-primary"
+                        : "bg-muted/40 text-muted-foreground border-border/60 hover:border-primary/40"
+                    }`}
                   >
-                    {includeQrInPost ? te("Con QR", "With QR") : te("Sin QR", "Without QR")}
-                  </Button>
+                    <QrCode className="h-3 w-3" />
+                    {te("Incluir QR", "Include QR")}
+                  </button>
                 </div>
               </div>
-              <div className="space-y-2 rounded-lg border border-border p-3">
-                <p className="text-sm font-medium">{te("Compartir por chat", "Share via chat")}</p>
-                <Select value={selectedChatId} onValueChange={setSelectedChatId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={te("Selecciona un chat", "Select a chat")} />
+
+              {/* Links de invitación */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{te("Links de invitación", "Invite links")}</p>
+                  <button
+                    onClick={() => void loadInviteLinksForShare(shareGroup.id)}
+                    disabled={Boolean(isInviteLinksLoadingByGroupId[shareGroup.id])}
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${isInviteLinksLoadingByGroupId[shareGroup.id] ? "animate-spin" : ""}`} />
+                  </button>
+                </div>
+
+                {shareInviteByGroupId[shareGroup.id] ? (
+                  <div className="flex items-center gap-2 rounded-lg bg-muted/40 border border-border/60 px-3 py-2">
+                    <Link2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    <p className="text-[11px] text-muted-foreground truncate flex-1">{inviteUrlFor(shareGroup.id)}</p>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">{te("No hay link activo. Crea uno.", "No active link. Create one.")}</p>
+                )}
+
+                <Select
+                  value={shareInviteByGroupId[shareGroup.id]?.inviteId || ""}
+                  onValueChange={(inviteId) => {
+                    const list = shareInviteLinksByGroupId[shareGroup.id] || []
+                    const picked = list.find((l) => l.inviteId === inviteId)
+                    if (picked) setShareInviteByGroupId((prev) => ({ ...prev, [shareGroup.id]: picked }))
+                  }}
+                >
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder={te("Selecciona un link activo", "Select active link")} />
                   </SelectTrigger>
                   <SelectContent>
-                    {chatList.map((c) => (
-                      <SelectItem key={c.chatId} value={c.chatId}>
-                        {c.otherUsername}
-                      </SelectItem>
-                    ))}
+                    {(shareInviteLinksByGroupId[shareGroup.id] || []).map((l) => {
+                      const uses = l.maxUses && l.maxUses > 0 ? `${l.usedCount}/${l.maxUses}` : te("∞", "∞")
+                      return (
+                        <SelectItem key={l.inviteId} value={l.inviteId}>
+                          {`${l.targetRole} · ${uses}`}
+                        </SelectItem>
+                      )
+                    })}
                   </SelectContent>
                 </Select>
-                <Button
-                  className="w-full"
-                  variant="secondary"
-                  disabled={!selectedChatId || isSendingChatShare || chatList.length === 0}
-                  onClick={shareToChat}
-                >
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  {isSendingChatShare ? te("Enviando...", "Sending...") : te("Enviar al chat", "Send to chat")}
-                </Button>
-              </div>
-              <div className="space-y-3 rounded-lg border border-border p-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium">{te("Código QR de invitación", "Invitation QR code")}</p>
-                  <Button variant="outline" size="sm" onClick={() => void generateShareQr(shareGroup.id)}>
-                    <QrCode className="h-4 w-4 mr-1" />
-                    {te("Generar QR", "Generate QR")}
+
+                {/* Crear nuevo link */}
+                <div className="grid grid-cols-3 gap-2">
+                  <Select value={inviteRoleDraft} onValueChange={(v) => setInviteRoleDraft(v as any)}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="GUEST">{te("Invitado", "Guest")}</SelectItem>
+                      <SelectItem value="MODERATOR">{te("Mod", "Mod")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    value={inviteMaxUsesDraft}
+                    onChange={(e) => setInviteMaxUsesDraft(e.target.value.replace(/[^\d]/g, ""))}
+                    inputMode="numeric"
+                    className="h-8 text-xs"
+                    placeholder={te("Usos (0=∞)", "Uses (0=∞)")}
+                  />
+                  <Input
+                    value={inviteExpiresAtDraft}
+                    onChange={(e) => setInviteExpiresAtDraft(e.target.value)}
+                    className="h-8 text-xs"
+                    type="datetime-local"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="flex-1 h-8 text-xs"
+                    onClick={async () => {
+                      try {
+                        const maxUses = Number(inviteMaxUsesDraft || "0")
+                        const expiresAt = inviteExpiresAtDraft ? new Date(inviteExpiresAtDraft).toISOString() : undefined
+                        const created = await groupService.inviteLinks.create(shareGroup.id, {
+                          targetRole: inviteRoleDraft,
+                          maxUses: Number.isFinite(maxUses) ? maxUses : 0,
+                          ...(expiresAt ? { expiresAt } : {}),
+                        })
+                        toast.success(te("Link creado", "Link created"))
+                        setShareInviteByGroupId((prev) => ({ ...prev, [shareGroup.id]: created }))
+                        await loadInviteLinksForShare(shareGroup.id)
+                      } catch (error: any) {
+                        toast.error(error?.message || te("No se pudo crear el link", "Could not create link"))
+                      }
+                    }}
+                  >
+                    {te("Crear link", "Create link")}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs"
+                    disabled={!shareInviteByGroupId[shareGroup.id]}
+                    onClick={async () => {
+                      const current = shareInviteByGroupId[shareGroup.id]
+                      if (!current) return
+                      const ok = window.confirm(te("¿Desactivar este link?", "Deactivate this link?"))
+                      if (!ok) return
+                      try {
+                        await groupService.inviteLinks.remove(shareGroup.id, current.inviteId)
+                        toast.success(te("Link desactivado", "Link deactivated"))
+                        const list = await loadInviteLinksForShare(shareGroup.id)
+                        setShareInviteByGroupId((prev) => {
+                          const next = { ...prev }
+                          if (next[shareGroup.id]?.inviteId === current.inviteId) {
+                            if (list[0]) next[shareGroup.id] = list[0]
+                            else delete next[shareGroup.id]
+                          }
+                          return next
+                        })
+                      } catch (error: any) {
+                        toast.error(error?.message || te("No se pudo desactivar el link", "Could not deactivate link"))
+                      }
+                    }}
+                  >
+                    {te("Desactivar", "Deactivate")}
                   </Button>
                 </div>
-                {shareQrByGroupId[shareGroup.id] ? (
-                  <img
-                    src={shareQrByGroupId[shareGroup.id]}
-                    alt={te("QR para unirse al grupo", "QR to join group")}
-                    className="mx-auto h-44 w-44 rounded bg-white p-1"
-                  />
-                ) : (
-                  <p className="text-xs text-muted-foreground">
-                    {te("Genera el QR para compartirlo rápidamente.", "Generate QR for quick sharing.")}
-                  </p>
-                )}
               </div>
             </div>
           )}

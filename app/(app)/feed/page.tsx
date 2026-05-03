@@ -435,13 +435,13 @@ export default function FeedPage() {
 
       {/* Header with Tabs */}
       <div className="sticky top-16 z-20 border-b border-border/80 bg-background/90 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-background/75">
-        <div className="flex flex-col gap-3 px-3 py-3 sm:px-4 sm:py-2.5 overflow-hidden">
+        <div className="flex flex-col gap-3 px-3 py-3 sm:px-4 sm:py-2.5">
             <div className="flex flex-col gap-3 min-[600px]:flex-row min-[600px]:items-center min-[600px]:justify-between min-[600px]:gap-4">
               {features.personalizedFeed ? (
                 <Tabs
                   value={feedTab}
                   onValueChange={(v) => setFeedTab(v as "global" | "local" | "following")}
-                  className="w-full min-w-0 flex items-center gap-2 min-[600px]:flex-1"
+                  className="w-full min-w-0 flex-row items-center gap-2 min-[600px]:flex-1"
                 >
                   <TabsList className="grid h-11 w-full flex-1 grid-cols-3 gap-0.5 rounded-xl border border-border/60 bg-gradient-to-b from-muted/80 to-muted/50 p-1 shadow-inner sm:h-10">
                     <TabsTrigger
@@ -560,7 +560,6 @@ export default function FeedPage() {
                   {te('Feed', 'Feed')}
                 </h2>
               )}
-
             </div>
         </div>
       </div>
