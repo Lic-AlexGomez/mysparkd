@@ -9,15 +9,29 @@ import { useWebSocket } from "@/hooks/use-websocket"
 import type { Chat } from "@/lib/types"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { MessageCircle, EyeOff, Trash2, MoreVertical, Eye } from "lucide-react"
+import { MessageCircle, EyeOff, Trash2, MoreVertical, Eye, Users } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
 import { toast } from "sonner"
+import { useSearchParams } from "next/navigation"
+import dynamic from "next/dynamic"
 import { useI18n } from "@/lib/i18n"
+
+const GroupsPage = dynamic(
+  async () => {
+    const mod = await import("@/components/chat/groups-section-content")
+    return { default: mod.GroupsSection }
+  },
+  { ssr: false }
+)
 
 export default function ChatListPage() {
   const { te, t } = useI18n()
   const { user } = useAuth()
+  const searchParams = useSearchParams()
+  const [mainTab, setMainTab] = useState<'chats' | 'groups'>(() =>
+    typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tab') === 'groups' ? 'groups' : 'chats'
+  )
   const [chats, setChats] = useState<Chat[]>([])
   const [hiddenChats, setHiddenChats] = useState<Chat[]>([])
   const [showHidden, setShowHidden] = useState(false)
@@ -180,21 +194,50 @@ export default function ChatListPage() {
       <div className="w-full max-w-[680px]">
         <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-xl border-b border-primary/20 shadow-lg shadow-primary/5">
           <div className="px-6 py-4">
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent">{te("Mensajes", "Messages")}</h1>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent">
+              {mainTab === 'chats' ? te("Mensajes", "Messages") : te("Grupos", "Groups")}
+            </h1>
             <div className="flex items-center justify-between mt-1">
-              <p className="text-sm text-muted-foreground">{chats.length} {chats.length === 1 ? te('conversación', 'conversation') : te('conversaciones', 'conversations')}</p>
-              {hiddenChats.length > 0 && (
+              {mainTab === 'chats' && (
+                <p className="text-sm text-muted-foreground">{chats.length} {chats.length === 1 ? te('conversación', 'conversation') : te('conversaciones', 'conversations')}</p>
+              )}
+              {mainTab === 'chats' && hiddenChats.length > 0 && (
                 <button
                   onClick={() => setShowHidden(!showHidden)}
                   className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <EyeOff className="h-3.5 w-3.5" />
-                  {hiddenChats.length} {te(hiddenChats.length > 1 ? 'ocultos' : 'oculto', hiddenChats.length > 1 ? 'hidden' : 'hidden')}
+                  {hiddenChats.length} {te(hiddenChats.length > 1 ? 'ocultos' : 'oculto', 'hidden')}
                 </button>
               )}
             </div>
+            {/* Selector */}
+            <div className="flex gap-1 mt-3 p-1 bg-muted rounded-xl w-fit">
+              <button
+                onClick={() => setMainTab('chats')}
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                  mainTab === 'chats' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <MessageCircle className="h-4 w-4" />{te("Chats", "Chats")}
+              </button>
+              <button
+                onClick={() => setMainTab('groups')}
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                  mainTab === 'groups' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Users className="h-4 w-4" />{te("Grupos", "Groups")}
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* Grupos */}
+        {mainTab === 'groups' && <GroupsPage />}
+
+        {/* Chats */}
+        {mainTab === 'chats' && (<>
 
         {chats.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-4 py-20 px-6">
@@ -289,6 +332,7 @@ export default function ChatListPage() {
             </div>
           </div>
         )}
+        </>)}
       </div>
     </div>
   )

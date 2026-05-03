@@ -59,15 +59,8 @@ function ensureConnected(userId: string) {
     },
 
     onStompError: (frame) => console.error('[WS] STOMP error:', frame),
-    onWebSocketError: (event) => {
-      // SockJS can emit an empty object during transient reconnects; avoid noisy logs.
-      const hasUsefulPayload =
-        !!event && (Object.keys(event as Record<string, unknown>).length > 0)
-      if (hasUsefulPayload) {
-        console.error('[WS] WebSocket error:', event)
-      } else if (process.env.NODE_ENV === 'development') {
-        console.warn('[WS] WebSocket transient reconnect')
-      }
+    onWebSocketError: () => {
+      // Reconexiones transitorias de SockJS — ignorar silenciosamente
     },
   })
 

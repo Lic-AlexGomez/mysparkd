@@ -11,10 +11,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { LocationInput } from "@/components/ui/location-input"
-import { CalendarDays, Link2, Loader2, MapPin, Plus, ShieldCheck, SlidersHorizontal, Users } from "lucide-react"
+import { CalendarDays, Link2, Loader2, MapPin, Plus, ShieldCheck, SlidersHorizontal, Users, Zap } from "lucide-react"
 import type { Event } from "@/lib/types"
 import { toast } from "sonner"
 import { useI18n } from "@/lib/i18n"
+import { FastDateSection } from "@/components/events/fast-date-section"
 
 type EventView = Event & {
   _id: string
@@ -91,6 +92,13 @@ export default function EventsPage() {
   const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = useState(false)
   const [items, setItems] = useState<EventView[]>([])
+  const [mainTab, setMainTab] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      return params.get('tab') === 'fastdate' ? 'fastdate' : 'events'
+    }
+    return 'events'
+  })
   const [joinToken, setJoinToken] = useState("")
   const [query, setQuery] = useState("")
   const [category, setCategory] = useState<string>("ALL")
@@ -338,14 +346,45 @@ export default function EventsPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6">
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      {/* Header con selector principal */}
+      <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <CalendarDays className="h-6 w-6 text-primary" />
-            {te("Eventos", "Events")}
+            {mainTab === 'events' ? <CalendarDays className="h-6 w-6 text-primary" /> : <Zap className="h-6 w-6 text-primary" />}
+            {mainTab === 'events' ? te("Eventos", "Events") : "Fast Date"}
           </h1>
-          <p className="text-muted-foreground">{te("Explora eventos y su chat grupal en tiempo real.", "Explore events and their real-time group chat.")}</p>
+          <p className="text-muted-foreground text-sm">
+            {mainTab === 'events' ? te("Explora eventos y su chat grupal en tiempo real.", "Explore events and their real-time group chat.") : "Citas 1 a 1 con expiración"}
+          </p>
         </div>
+      </div>
+
+      {/* Selector de sección */}
+      <div className="flex gap-2 mb-6 p-1 bg-muted rounded-xl w-fit">
+        <button
+          onClick={() => setMainTab('events')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+            mainTab === 'events' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <CalendarDays className="h-4 w-4" />{te("Eventos", "Events")}
+        </button>
+        <button
+          onClick={() => setMainTab('fastdate')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+            mainTab === 'fastdate' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <Zap className="h-4 w-4" />Fast Date
+        </button>
+      </div>
+
+      {/* Fast Date */}
+      {mainTab === 'fastdate' && <FastDateSection />}
+
+      {/* Eventos */}
+      {mainTab === 'events' && (<>
+      <div className="mb-4 flex justify-end">
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
             <Button className="h-10 w-full sm:w-auto">
@@ -767,6 +806,8 @@ export default function EventsPage() {
           })}
         </div>
       )}
+      </>)}
     </div>
   )
 }
+

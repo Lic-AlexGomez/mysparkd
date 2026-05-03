@@ -8,7 +8,6 @@ import {
   Heart,
   MessageCircle,
   User,
-  Calendar,
   CalendarDays,
   ThumbsUp,
   LayoutDashboard,
@@ -26,8 +25,6 @@ const navItems = [
   { href: "/feed", labelKey: "sidebar.feed", icon: Newspaper },
   { href: "/swipes", labelKey: "sidebar.swipes", icon: Zap },
   { href: "/events", labelKey: "sidebar.events", icon: CalendarDays },
-  { href: "/fastdate", labelKey: "sidebar.fastDate", icon: Calendar },
-  { href: "/likes", labelKey: "sidebar.likes", icon: ThumbsUp },
   { href: "/matches", labelKey: "sidebar.matches", icon: Heart },
   { href: "/chat", labelKey: "sidebar.chat", icon: MessageCircle },
   { href: "/groups", labelKey: "sidebar.groups", icon: Users },
@@ -78,7 +75,7 @@ export function SidebarNav() {
         <ul className="flex flex-col gap-3">
           {allNavItems.map((item) => {
             const isActive =
-              pathname === item.href || pathname.startsWith(item.href + "/")
+              pathname === item.href || pathname.startsWith(item.href + "/") || (item.href === '/events' && pathname.startsWith('/fastdate')) || (item.href === '/matches' && pathname.startsWith('/likes'))
             return (
               <li key={item.href}>
                 <Link
