@@ -1201,22 +1201,11 @@ export function GroupsSection() {
               }}
             >
               <div className="relative h-28 overflow-hidden">
-                {group.coverPhotoUrl || group.coverPhoto ? (
-                  <img
-                    src={resolveGroupCoverUrl(group, coverFallbackStyle)}
-                    alt={group.name}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="relative h-full w-full">
-                    <img
-                      src={resolveGroupCoverUrl(group, coverFallbackStyle)}
-                      alt={te("Foto genérica del grupo", "Generic group photo")}
-                      className="h-full w-full object-cover"
-                    />
-                    <div className={`absolute inset-0 bg-gradient-to-br ${getGroupCoverClass(group)}`} />
-                  </div>
-                )}
+                <img
+                  src={resolveGroupCoverUrl(group, coverFallbackStyle)}
+                  alt={group.name}
+                  className="h-full w-full object-cover"
+                />
                 <div className="absolute inset-0 bg-gradient-to-t from-background/70 via-background/5 to-transparent" />
                 <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
                   {group.category ? (
@@ -1340,22 +1329,11 @@ export function GroupsSection() {
               onClick={() => router.push(`/groups/${group.id}`)}
             >
               <div className="relative h-24 overflow-hidden">
-                {group.coverPhotoUrl || group.coverPhoto ? (
-                  <img
-                    src={resolveGroupCoverUrl(group, coverFallbackStyle)}
-                    alt={group.name}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="relative h-full w-full">
-                    <img
-                      src={resolveGroupCoverUrl(group, coverFallbackStyle)}
-                      alt={te("Foto genérica del grupo", "Generic group photo")}
-                      className="h-full w-full object-cover"
-                    />
-                    <div className={`absolute inset-0 bg-gradient-to-br ${getGroupCoverClass(group)}`} />
-                  </div>
-                )}
+                <img
+                  src={resolveGroupCoverUrl(group, coverFallbackStyle)}
+                  alt={group.name}
+                  className="h-full w-full object-cover"
+                />
                 <div className="absolute inset-0 bg-gradient-to-t from-background/75 via-background/10 to-transparent" />
               </div>
               <CardHeader className="pb-2">

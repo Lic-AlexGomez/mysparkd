@@ -752,9 +752,11 @@ export default function EventDetailPage() {
           <Badge className="bg-secondary/10 text-secondary border-0">
             {te("Cupos", "Spots")}: {maxGuests ? `${approvedCount}/${maxGuests}` : approvedCount}
           </Badge>
+          {!isAdmin && !isModerator && !isGuest && (
           <Button onClick={handleJoin} disabled={isJoining} className="ml-auto">
             {isJoining ? te("Enviando...", "Sending...") : te("Solicitar participación", "Request participation")}
           </Button>
+          )}
           <div className="w-full rounded-lg border border-border/70 bg-muted/20 p-3 text-xs text-muted-foreground">
             <div className="mb-2 flex items-center gap-2">
               <Badge
