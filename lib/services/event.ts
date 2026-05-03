@@ -236,7 +236,7 @@ export const eventService = {
 
   // 10) Share event address
   setOfficialAddress: (eventId: string, officialAddress: string) =>
-    api.patch<Event>(`/api/events/${eventId}`, { officialAddress }),
+    api.put<Event>(`/api/events/${eventId}`, { officialAddress }),
 
   shareAddress: (eventId: string, address: string) =>
     api.post<{
