@@ -613,7 +613,7 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
               </div>
             </div>
           ) : (
-            <div className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+            <div className="text-sm text-foreground leading-relaxed whitespace-pre-wrap break-words overflow-hidden">
               {shouldShowLocked ? (
                 <div className="relative select-none cursor-pointer py-4" onClick={() => setShowUnlockModal(true)}>
                   {/* Texto ficticio con blur */}

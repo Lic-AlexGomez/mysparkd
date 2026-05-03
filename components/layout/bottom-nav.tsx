@@ -9,7 +9,6 @@ import {
   CalendarDays,
   MessageCircle,
   User,
-  Users,
   LayoutList,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -22,7 +21,6 @@ const navItems = [
   { href: "/swipes", labelKey: "bottomNav.swipes", icon: Zap },
   { href: "/events", labelKey: "bottomNav.events", icon: CalendarDays },
   { href: "/chat", labelKey: "bottomNav.chat", icon: MessageCircle },
-  { href: "/groups", labelKey: "bottomNav.groups", icon: Users, featureFlag: "groupsPage" },
   { href: "/trello", labelKey: "bottomNav.trello", icon: LayoutList },
   { href: "/profile", labelKey: "bottomNav.profile", icon: User },
 ]
@@ -34,7 +32,6 @@ export function BottomNav() {
   const { t } = useI18n()
 
   const visibleNavItems = navItems.filter((item) => {
-    if ('featureFlag' in item && item.featureFlag && !features[item.featureFlag as keyof typeof features]) return false
     if (item.href === "/trello" && !features.trelloPage) return false
     return true
   })
@@ -42,8 +39,8 @@ export function BottomNav() {
   if (pathname.startsWith('/chat/')) return null
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur-md lg:hidden">
-      <div className="flex items-center justify-around py-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur-md lg:hidden overflow-hidden">
+      <div className="flex items-center justify-around py-2 w-full">
         {visibleNavItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + "/") || (item.href === '/events' && pathname.startsWith('/fastdate')) || (item.href === '/matches' && pathname.startsWith('/likes'))
           const showBadge = item.href === '/chat' && unreadChats > 0
