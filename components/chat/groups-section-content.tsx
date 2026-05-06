@@ -488,7 +488,7 @@ export function GroupsSection() {
         let dataUrl = shareQrByGroupId[shareGroup.id]
         if (!dataUrl) {
           dataUrl = await QRCode.toDataURL(inviteUrl, {
-            width: 1200,
+            width: 400,
             margin: 2,
             color: { dark: "#000000", light: "#ffffff" },
           })
@@ -840,7 +840,7 @@ export function GroupsSection() {
                   <img
                     src={shareQrByGroupId[shareGroup.id]}
                     alt={te("QR para unirse al grupo", "QR to join group")}
-                    className="h-40 w-40 rounded-xl bg-white p-2 shadow-sm"
+                    className="h-40 w-40 rounded-xl bg-white p-2 shadow-sm mx-auto"
                   />
                 </div>
               )}

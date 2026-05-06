@@ -15,6 +15,7 @@ import { CalendarDays, Link2, Loader2, MapPin, Plus, ShieldCheck, SlidersHorizon
 import type { Event } from "@/lib/types"
 import { toast } from "sonner"
 import { useI18n } from "@/lib/i18n"
+import { useAuth } from "@/lib/auth-context"
 import { FastDateSection } from "@/components/events/fast-date-section"
 
 type EventView = Event & {
@@ -88,6 +89,7 @@ const toOffsetDateTimeApi = (date: Date) => {
 
 export default function EventsPage() {
   const { te } = useI18n()
+  const { user } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = useState(false)
@@ -723,7 +725,8 @@ export default function EventsPage() {
               Boolean((event as any).isMember) ||
               myRole === "ADMIN" ||
               myRole === "MODERATOR" ||
-              myRole === "GUEST"
+              myRole === "GUEST" ||
+              String((event as any).creatorId || "") === (user?.userId ?? "__")
             const showJoinButton = !alreadyInEvent
             const actionCols = canManageMeetup
               ? showJoinButton
