@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
 import { useUnreadChats } from "@/hooks/use-unread-chats"
 import { useI18n } from "@/lib/i18n"
+import { useExperienceMode, shouldShowNavItem } from "@/hooks/use-experience-mode"
 
 const navItems = [
   { href: "/feed", labelKey: "sidebar.feed", icon: Newspaper },
@@ -37,10 +38,12 @@ export function SidebarNav() {
   const features = useFeatureFlags()
   const unreadChats = useUnreadChats()
   const { t } = useI18n()
+  const experienceMode = useExperienceMode()
 
   const filteredNavItems = navItems.filter(item => {
     if (item.href === '/search' && !features.searchPage) return false
     if (item.href === '/trello' && !features.trelloPage) return false
+    if (!shouldShowNavItem(item.href, experienceMode)) return false
     return true
   })
 

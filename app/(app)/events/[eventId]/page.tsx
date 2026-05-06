@@ -59,8 +59,10 @@ export default function EventDetailPage() {
   const [pollQuestion, setPollQuestion] = useState("")
   const [pollOptions, setPollOptions] = useState("")
   const [mediaFile, setMediaFile] = useState<File | null>(null)
-  const [shareAddressText, setShareAddressText] = useState("")
-  const [isSharingAddress, setIsSharingAddress] = useState(false)
+  const [locationZone, setLocationZone] = useState("")
+  const [locationExact, setLocationExact] = useState("")
+  const [locationCoords, setLocationCoords] = useState<{ latitude: number; longitude: number } | null>(null)
+  const [isUpdatingLocation, setIsUpdatingLocation] = useState(false)
   const [inviteeQuery, setInviteeQuery] = useState("")
   const [inviteeSuggestions, setInviteeSuggestions] = useState<Array<{ userId: string; username: string; fullName?: string; photo?: string }>>([])
   const [selectedInvitees, setSelectedInvitees] = useState<Array<{ userId: string; username: string; fullName?: string; photo?: string }>>([])
@@ -596,58 +598,38 @@ export default function EventDetailPage() {
     }
   }
 
-  const handleShareAddress = async () => {
-    const address = shareAddressText.trim()
-    if (!address) {
-      toast.error(te("Ingresa una dirección", "Enter an address"))
+  const handleUpdateLocation = async () => {
+    const exact = locationExact.trim()
+    const zone = locationZone.trim() || exact.split(",")[0]?.trim() || ""
+    if (!exact || !zone) {
+      toast.error(te("Ingresa la dirección exacta", "Enter the exact address"))
       return
     }
-    const officialAddress = String((eventData as any)?.officialAddress || "").trim()
-    if (!officialAddress) {
-      toast.error(
-        te(
-          "Primero debes guardar la dirección oficial del evento.",
-          "You must save the event official address first."
-        )
-      )
-      return
-    }
-    setIsSharingAddress(true)
+    setIsUpdatingLocation(true)
     try {
-      const response = await eventService.shareAddress(eventId, address)
-      const matchedFromBackend = response?.matched
-      const matched =
-        typeof matchedFromBackend === "boolean"
-          ? matchedFromBackend
-          : normalizeAddress(officialAddress) === normalizeAddress(address)
+      await eventService.updateLocation(eventId, {
+        zone,
+        exactAddress: exact,
+        latitude: locationCoords?.latitude ?? 0,
+        longitude: locationCoords?.longitude ?? 0,
+      })
       setEventData((prev: any) => ({
         ...prev,
-        sharedAddress: address,
-        officialAddress: prev?.officialAddress || officialAddress,
-        addressMatched: matched,
-        locationVerified: matched,
+        zone,
+        exactAddress: exact,
+        sharedAddress: exact,
+        addressMatched: true,
+        locationVerified: true,
+        locationChangeCount: (prev?.locationChangeCount ?? 0) + 1,
       }))
-      if (matched) {
-        toast.success(
-          te(
-            "Dirección validada y compartida. Ya puedes aprobar participantes.",
-            "Address validated and shared. You can now approve participants."
-          )
-        )
-      } else {
-        toast.error(
-          response?.message ||
-            te(
-              "La dirección compartida no coincide con la oficial. Actualízala para poder aprobar participantes.",
-              "Shared address does not match official one. Update it before approving participants."
-            )
-        )
-      }
-      setShareAddressText("")
+      toast.success(te("Ubicación actualizada y publicada en el chat", "Location updated and posted in chat"))
+      setLocationExact("")
+      setLocationZone("")
+      setLocationCoords(null)
     } catch (error: any) {
-      toast.error(error?.message || te("No se pudo compartir la dirección", "Could not share address"))
+      toast.error(error?.message || te("No se pudo actualizar la ubicación", "Could not update location"))
     } finally {
-      setIsSharingAddress(false)
+      setIsUpdatingLocation(false)
     }
   }
 
@@ -1220,31 +1202,42 @@ export default function EventDetailPage() {
               </Card>
 
               <Card>
-                <CardHeader><CardTitle className="text-base">{te("Compartir dirección del evento", "Share event address")}</CardTitle></CardHeader>
+                <CardHeader>
+                  <CardTitle className="text-base">{te("Actualizar ubicación del evento", "Update event location")}</CardTitle>
+                </CardHeader>
                 <CardContent className="space-y-2">
                   <LocationInput
-                    value={shareAddressText}
-                    onChange={(value) => setShareAddressText(value)}
-                    placeholder={te("Ej: Calle 123 #45-67, Bogotá", "Ex: 123 Main St, City")}
+                    value={locationExact}
+                    onChange={(value, coords) => {
+                      setLocationExact(value)
+                      if (coords) setLocationCoords(coords)
+                      if (!locationZone) setLocationZone(value.split(",")[0]?.trim() || "")
+                    }}
+                    placeholder={te("Dirección exacta del meetup", "Exact meetup address")}
                     valueFormat="full"
                   />
+                  <Input
+                    value={locationZone}
+                    onChange={(e) => setLocationZone(e.target.value)}
+                    placeholder={te("Zona / barrio (ej: Chapinero, Bogotá)", "Zone / neighborhood (e.g. Downtown, NYC)")}
+                  />
                   <p className="text-xs text-muted-foreground">
-                    {te("Solo ADMIN. El backend valida que coincida con la dirección oficial del evento.", "ADMIN only. Backend validates it matches the official event address.")}
+                    {te(
+                      "Solo ADMIN. Máximo 2 cambios. No disponible después de 5h del evento. Se publica automáticamente en el chat.",
+                      "ADMIN only. Max 2 changes. Not available after 5h from event start. Auto-posted in chat."
+                    )}
                   </p>
-                  <Button onClick={handleShareAddress} disabled={isSharingAddress || !shareAddressText.trim() || !officialAddressSaved}>
-                    {isSharingAddress ? te("Compartiendo...", "Sharing...") : te("Compartir en chat", "Share in chat")}
-                  </Button>
-                  {officialAddressSaved ? (
-                    <p className={`text-xs ${isAddressMatched ? "text-emerald-500" : "text-amber-500"}`}>
-                      {isAddressMatched
-                        ? te("Dirección compartida validada.", "Shared address validated.")
-                        : te("Pendiente validar coincidencia entre dirección oficial y compartida.", "Pending address match between official and shared address.")}
-                    </p>
-                  ) : (
-                    <p className="text-xs text-rose-500">
-                      {te("Debes guardar la dirección oficial antes de compartirla con el grupo.", "You must save official address before sharing it with the group.")}
+                  {(eventData as any)?.locationChangeCount >= 2 && (
+                    <p className="text-xs text-destructive">
+                      {te("Límite de cambios alcanzado (2/2).", "Change limit reached (2/2).")}
                     </p>
                   )}
+                  <Button
+                    onClick={handleUpdateLocation}
+                    disabled={isUpdatingLocation || !locationExact.trim() || (eventData as any)?.locationChangeCount >= 2}
+                  >
+                    {isUpdatingLocation ? te("Actualizando...", "Updating...") : te("Actualizar ubicación", "Update location")}
+                  </Button>
                 </CardContent>
               </Card>
             </>

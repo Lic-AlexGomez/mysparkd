@@ -93,6 +93,7 @@ export default function EventsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = useState(false)
+  const [loadError, setLoadError] = useState(false)
   const [items, setItems] = useState<EventView[]>([])
   const [mainTab, setMainTab] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -125,14 +126,15 @@ export default function EventsPage() {
 
   const loadEvents = async () => {
     setIsLoading(true)
+    setLoadError(false)
     try {
       const rows = await eventService.list({
         category: category !== "ALL" ? (category as any) : undefined,
         free: freeOnly === "ALL" ? undefined : freeOnly === "TRUE",
       })
       setItems((Array.isArray(rows) ? rows : []).map(normalizeEvent))
-    } catch (error: any) {
-      toast.error(error?.message || te("No se pudieron cargar los eventos", "Could not load events"))
+    } catch {
+      setLoadError(true)
       setItems([])
     } finally {
       setIsLoading(false)
@@ -690,6 +692,15 @@ export default function EventsPage() {
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
+      ) : loadError ? (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-10 text-center space-y-3">
+          <p className="text-sm text-muted-foreground">
+            {te("No se pudieron cargar los eventos. El servidor puede estar iniciando.", "Could not load events. The server may be starting up.")}
+          </p>
+          <Button variant="outline" size="sm" onClick={() => void loadEvents()}>
+            {te("Reintentar", "Retry")}
+          </Button>
         </div>
       ) : filtered.length === 0 ? (
         <div className="rounded-xl border border-border p-10 text-center text-muted-foreground">

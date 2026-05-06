@@ -249,6 +249,9 @@ const TRANSLATIONS: Record<string, Record<SupportedLanguage, string>> = {
   "sidebar.managerPanel": {
     en: "Manager Panel", zh: "管理者面板", hi: "मैनेजर पैनल", es: "Panel Manager", fr: "Panneau manager", ar: "لوحة المدير", bn: "ম্যানেজার প্যানেল", pt: "Painel Manager", ru: "Панель менеджера", ur: "منیجر پینل",
   },
+  "sidebar.activityFeed": {
+    en: "Activities", zh: "活动", hi: "गतिविधियां", es: "Actividades", fr: "Activités", ar: "الأنشطة", bn: "কার্যক্রম", pt: "Atividades", ru: "Активности", ur: "سرگرمیاں",
+  },
   "bottomNav.feed": {
     en: "Feed", zh: "动态", hi: "फ़ीड", es: "Feed", fr: "Fil", ar: "الخلاصة", bn: "ফিড", pt: "Feed", ru: "Лента", ur: "فیڈ",
   },

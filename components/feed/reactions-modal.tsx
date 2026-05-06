@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ReactionType } from "@/lib/types"
 import { getReactionEmoji } from "./reaction-picker"
+import { api } from "@/lib/api"
 import Link from "next/link"
 
 interface ReactionsModalProps {
@@ -18,6 +19,7 @@ interface ReactionsModalProps {
 interface ReactorUser {
   userId: string
   username: string
+  profilePictureUrl?: string
   reactionType: ReactionType
 }
 
@@ -27,20 +29,12 @@ export function ReactionsModal({ open, onOpenChange, postId }: ReactionsModalPro
   const [activeTab, setActiveTab] = useState<'all' | ReactionType>('all')
 
   useEffect(() => {
-    if (open) {
-      // TODO: Implementar endpoint en backend
-      // fetchReactions()
-      
-      // Mock data para demostración
-      setTimeout(() => {
-        setReactions([
-          { userId: '1', username: 'usuario1', reactionType: 'LOVE' },
-          { userId: '2', username: 'usuario2', reactionType: 'LAUGH' },
-          { userId: '3', username: 'usuario3', reactionType: 'WOW' },
-        ])
-        setLoading(false)
-      }, 500)
-    }
+    if (!open) return
+    setLoading(true)
+    api.get<ReactorUser[]>(`/api/reactions/users/${postId}`)
+      .then(data => setReactions(Array.isArray(data) ? data : []))
+      .catch(() => setReactions([]))
+      .finally(() => setLoading(false))
   }, [open, postId])
 
   const filteredReactions = activeTab === 'all' 
@@ -99,6 +93,7 @@ export function ReactionsModal({ open, onOpenChange, postId }: ReactionsModalPro
                     onClick={() => onOpenChange(false)}
                   >
                     <Avatar className="h-10 w-10 border-2 border-primary">
+                      <AvatarImage src={reactor.profilePictureUrl} />
                       <AvatarFallback className="bg-primary/10 text-primary">
                         {reactor.username[0]?.toUpperCase()}
                       </AvatarFallback>

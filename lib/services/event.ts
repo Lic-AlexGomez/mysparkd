@@ -238,14 +238,14 @@ export const eventService = {
   setOfficialAddress: (eventId: string, officialAddress: string) =>
     api.put<Event>(`/api/events/${eventId}`, { officialAddress }),
 
-  shareAddress: (eventId: string, address: string) =>
-    api.post<{
-      matched?: boolean
-      requiresUpdate?: boolean
-      message?: string
-      officialAddress?: string
-      sharedAddress?: string
-    }>(`/api/events/${eventId}/group/share-address`, { address }),
+  // PUT /api/events/{eventId}/group/location — actualizar ubicación del evento (admin, máx 2 veces)
+  updateLocation: (eventId: string, payload: {
+    zone: string
+    exactAddress: string
+    latitude: number
+    longitude: number
+  }) =>
+    api.put<EventGroupMessage>(`/api/events/${eventId}/group/location`, payload),
 
   // Reuse existing backend upload endpoint for media
   uploadMedia: async (file: File): Promise<{ mediaUrl: string; mediaPublicId: string }> => {

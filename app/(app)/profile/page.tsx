@@ -24,11 +24,13 @@ import { useI18n } from "@/lib/i18n"
 import { accountTypeBadgeLabels, toBackendAccountType } from "@/lib/account-type"
 import { eventService } from "@/lib/services/event"
 import type { Event } from "@/lib/types"
+import { useExperienceMode } from "@/hooks/use-experience-mode"
 
 export default function ProfilePage() {
   const { te, t } = useI18n()
   const { user, refreshProfile, updateUser, isLoading } = useAuth()
   const router = useRouter()
+  const experienceMode = useExperienceMode()
 
   const [coverPhoto, setCoverPhoto] = useState<string | null>(null)
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
@@ -342,10 +344,13 @@ export default function ProfilePage() {
       {/* ── ACCESOS RÁPIDOS ── */}
       <div className="mt-6 px-5 grid grid-cols-3 gap-3">
         {[
-          { icon: Bookmark, label: "Guardados", value: savedPostsCount, path: '/saved', color: "text-primary", bg: "bg-primary/10" },
-          { icon: Heart, label: "Matches", value: null, path: '/matches', color: "text-pink-500", bg: "bg-pink-500/10" },
-          { icon: Heart, label: "Likes", value: null, path: '/likes', color: "text-rose-500", bg: "bg-rose-500/10" },
-        ].map(item => (
+          // Guardados - común para todos
+          { icon: Bookmark, label: "Guardados", value: savedPostsCount, path: '/saved', color: "text-primary", bg: "bg-primary/10", modes: ['SOCIAL', 'DATING', 'BOTH'] },
+          // Matches - solo DATING y BOTH
+          { icon: Heart, label: "Matches", value: null, path: '/matches', color: "text-pink-500", bg: "bg-pink-500/10", modes: ['DATING', 'BOTH'] },
+          // Likes - solo DATING y BOTH
+          { icon: Heart, label: "Likes", value: null, path: '/likes', color: "text-rose-500", bg: "bg-rose-500/10", modes: ['DATING', 'BOTH'] },
+        ].filter(item => item.modes.includes(experienceMode)).map(item => (
           <button key={item.label} onClick={() => router.push(item.path)}
             className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-card border border-border hover:border-primary/30 hover:bg-muted/30 transition-all group"
           >
@@ -435,67 +440,71 @@ export default function ProfilePage() {
       </div>
 
       {/* ── MIS EVENTOS ── */}
-      <div className="mt-6 px-5">
-        <div className="flex items-center gap-2 mb-3">
-          <CalendarDays className="h-4 w-4 text-muted-foreground" />
-          <h2 className="text-sm font-bold">Mis Eventos</h2>
-        </div>
-        <div className="flex gap-2 mb-3">
-          {(['created', 'participating'] as const).map(tab => (
-            <button key={tab} onClick={() => setEventsTab(tab)}
-              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
-                eventsTab === tab ? 'bg-primary text-black border-primary font-semibold' : 'border-border text-muted-foreground hover:border-primary/40'
-              }`}
-            >
-              {tab === 'created' ? `Creados (${myCreatedEvents.length})` : `Participando (${myParticipatingEvents.length})`}
-            </button>
-          ))}
-        </div>
-        {eventsLoading ? (
-          <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
-        ) : activeEvents.length === 0 ? (
-          <p className="text-xs text-muted-foreground py-6 text-center">
-            {eventsTab === 'created' ? 'No has creado eventos aún' : 'No estás participando en eventos'}
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {activeEvents.map((ev: any) => (
-              <button key={ev.eventId || ev.id}
-                onClick={() => router.push(`/events/${ev.eventId || ev.id}`)}
-                className="w-full flex items-center justify-between p-3 rounded-xl border border-border hover:border-primary/40 bg-card text-left transition-colors group"
+      {(experienceMode === 'SOCIAL' || experienceMode === 'BOTH') && (
+        <div className="mt-6 px-5">
+          <div className="flex items-center gap-2 mb-3">
+            <CalendarDays className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-sm font-bold">Mis Eventos</h2>
+          </div>
+          <div className="flex gap-2 mb-3">
+            {(['created', 'participating'] as const).map(tab => (
+              <button key={tab} onClick={() => setEventsTab(tab)}
+                className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                  eventsTab === tab ? 'bg-primary text-black border-primary font-semibold' : 'border-border text-muted-foreground hover:border-primary/40'
+                }`}
               >
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold truncate">{ev.title || ev.name}</p>
-                  <p className="text-xs text-muted-foreground">{ev.category} · {ev.status || 'OPEN'}</p>
-                </div>
-                <div className="flex items-center gap-2 ml-2 shrink-0">
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-                    String(ev.status || 'OPEN').toUpperCase() === 'OPEN' ? 'bg-emerald-500/15 text-emerald-500' : 'bg-muted text-muted-foreground'
-                  }`}>{ev.status || 'OPEN'}</span>
-                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                </div>
+                {tab === 'created' ? `Creados (${myCreatedEvents.length})` : `Participando (${myParticipatingEvents.length})`}
               </button>
             ))}
           </div>
-        )}
-      </div>
+          {eventsLoading ? (
+            <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+          ) : activeEvents.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-6 text-center">
+              {eventsTab === 'created' ? 'No has creado eventos aún' : 'No estás participando en eventos'}
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {activeEvents.map((ev: any) => (
+                <button key={ev.eventId || ev.id}
+                  onClick={() => router.push(`/events/${ev.eventId || ev.id}`)}
+                  className="w-full flex items-center justify-between p-3 rounded-xl border border-border hover:border-primary/40 bg-card text-left transition-colors group"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold truncate">{ev.title || ev.name}</p>
+                    <p className="text-xs text-muted-foreground">{ev.category} · {ev.status || 'OPEN'}</p>
+                  </div>
+                  <div className="flex items-center gap-2 ml-2 shrink-0">
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+                      String(ev.status || 'OPEN').toUpperCase() === 'OPEN' ? 'bg-emerald-500/15 text-emerald-500' : 'bg-muted text-muted-foreground'
+                    }`}>{ev.status || 'OPEN'}</span>
+                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── POSTS ── */}
-      <div className="mt-6 px-5">
-        <div className="flex items-center gap-2 mb-4">
-          <Newspaper className="h-4 w-4 text-muted-foreground" />
-          <h2 className="text-sm font-bold">Posts</h2>
-          <span className="text-xs text-muted-foreground ml-auto">{totalPostsCount}</span>
-        </div>
-        {user.posts && user.posts.length > 0 ? (
-          user.posts.map(post => <PostCard key={post.id} post={post} />)
-        ) : (
-          <div className="flex flex-col items-center justify-center py-12 gap-3">
-            <Newspaper className="h-10 w-10 text-muted-foreground/30" />
-            <p className="text-sm text-muted-foreground">No has publicado nada aún</p>
+      {(experienceMode === 'SOCIAL' || experienceMode === 'BOTH') && (
+        <div className="mt-6 px-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Newspaper className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-sm font-bold">Posts</h2>
+            <span className="text-xs text-muted-foreground ml-auto">{totalPostsCount}</span>
           </div>
-        )}
-      </div>
+          {user.posts && user.posts.length > 0 ? (
+            user.posts.map(post => <PostCard key={post.id} post={post} />)
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 gap-3">
+              <Newspaper className="h-10 w-10 text-muted-foreground/30" />
+              <p className="text-sm text-muted-foreground">No has publicado nada aún</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── PHOTO VIEWER ── */}
       <Dialog open={!!viewPhotoUrl} onOpenChange={() => setViewPhotoUrl(null)}>

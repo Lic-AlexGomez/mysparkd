@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils"
 import { useUnreadChats } from "@/hooks/use-unread-chats"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
 import { useI18n } from "@/lib/i18n"
+import { useExperienceMode, shouldShowNavItem } from "@/hooks/use-experience-mode"
 
 const navItems = [
   { href: "/feed", labelKey: "bottomNav.feed", icon: Newspaper },
@@ -30,9 +31,11 @@ export function BottomNav() {
   const unreadChats = useUnreadChats()
   const features = useFeatureFlags()
   const { t } = useI18n()
+  const experienceMode = useExperienceMode()
 
   const visibleNavItems = navItems.filter((item) => {
     if (item.href === "/trello" && !features.trelloPage) return false
+    if (!shouldShowNavItem(item.href, experienceMode)) return false
     return true
   })
 

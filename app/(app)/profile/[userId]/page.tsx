@@ -21,6 +21,7 @@ import { toast } from "sonner"
 import { VoiceNotePlayer } from "@/components/ui/voice-note"
 import { useI18n } from "@/lib/i18n"
 import { accountTypeBadgeLabels, toBackendAccountType } from "@/lib/account-type"
+import { useExperienceMode } from "@/hooks/use-experience-mode"
 
 function getAge(dateOfBirth?: string): number | null {
   if (!dateOfBirth) return null
@@ -42,6 +43,7 @@ export default function UserProfilePage() {
   const searchParams = useSearchParams()
   const userId = params.userId as string
   const compatibilityFromUrl = searchParams.get("compatibility")
+  const experienceMode = useExperienceMode()
 
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -259,6 +261,9 @@ export default function UserProfilePage() {
       ? profile.totalPosts
       : profile.posts?.length ?? 0
   const accountModeLabel = accountTypeBadgeLabels(toBackendAccountType(profile.accountType))
+  const profileExperienceMode = profile.accountType?.toUpperCase() === 'SOCIAL' ? 'SOCIAL'
+    : profile.accountType?.toUpperCase() === 'DATING' ? 'DATING'
+    : 'BOTH'
 
   return (
     <div className="mx-auto max-w-2xl pb-10">
@@ -480,7 +485,7 @@ export default function UserProfilePage() {
             </div>
           )}
 
-          {profile.posts && profile.posts.length > 0 && (
+          {profile.posts && profile.posts.length > 0 && (profileExperienceMode === 'SOCIAL' || profileExperienceMode === 'BOTH') && (
             <div className="mt-6 px-4">
               <h2 className="text-sm font-semibold text-foreground mb-3">{te("Posts", "Posts")}</h2>
               {profile.posts.map((post) => (
