@@ -25,19 +25,24 @@ export function useExperienceMode(): ExperienceMode {
   }
 }
 
+/**
+ * @deprecated Use modes array in navItems instead
+ * Esta función se mantiene por compatibilidad pero ya no se usa
+ */
 export function shouldShowNavItem(href: string, mode: ExperienceMode): boolean {
   // Elementos exclusivos de SOCIAL
-  const socialOnlyItems = ['/feed', '/events', '/trello']
+  const socialOnlyItems = ['/feed', '/events', '/stories', '/groups', '/activity-feed']
   
   // Elementos exclusivos de DATING
-  const datingOnlyItems = ['/swipes', '/matches', '/premium']
+  const datingOnlyItems = ['/swipes', '/matches', '/premium', '/likes', '/fastdate', '/date-cards']
   
   // Elementos comunes a todos los modos
   const commonItems = ['/chat', '/profile']
   
-  // Paneles administrativos siempre visibles
-  const adminItems = ['/dashboard', '/manager']
+  // Paneles administrativos y herramientas (controlados por feature flags, no por modo)
+  const adminItems = ['/dashboard', '/manager', '/trello']
   
+  // Los items admin siempre se muestran si el feature flag lo permite
   if (adminItems.includes(href)) return true
   if (commonItems.includes(href)) return true
   

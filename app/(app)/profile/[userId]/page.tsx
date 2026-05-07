@@ -232,6 +232,14 @@ export default function UserProfilePage() {
     }
   }
 
+  const formatLocation = (loc: string | undefined) => {
+    if (!loc || loc === "Unknown location") return null
+    // Remover Plus Codes (formato: A1B2+CD3)
+    const withoutPlusCode = loc.replace(/[A-Z0-9]{4}\+[A-Z0-9]{2,3},?\s*/g, '').trim()
+    // Limpiar comas múltiples y espacios
+    return withoutPlusCode.replace(/,\s*,/g, ',').trim()
+  }
+
   if (isLoading) return (
     <div className="flex h-[60vh] items-center justify-center">
       <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -384,8 +392,8 @@ export default function UserProfilePage() {
               <VoiceNotePlayer url={profile.voiceIntroUrl || (profile as any).voiceNoteUrl} />
             </div>
           )}
-          {profile.location && profile.location !== "Unknown location" && (
-            <p className="text-xs text-muted-foreground mt-1">📍 {profile.location}</p>
+          {formatLocation(profile.location) && (
+            <p className="text-xs text-muted-foreground mt-1">📍 {formatLocation(profile.location)}</p>
           )}
           {(profile.url || profile.website) && (
             <a href={profile.url || profile.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-primary hover:underline mt-1">

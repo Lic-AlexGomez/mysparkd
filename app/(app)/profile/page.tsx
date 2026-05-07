@@ -85,13 +85,19 @@ export default function ProfilePage() {
     : user?.photos?.find((p) => p.isPrimary || p.primary)
   const initials = user ? `${user.nombres?.[0] || ""}${user.apellidos?.[0] || ""}`.toUpperCase() : "?"
   const reputation = user?.reputation || 75
+  console.log('[Profile] Reputación del usuario:', user?.reputation, '(usando:', reputation, ')')
   const reputationColor = reputationService.getReputationColor(reputation)
   const followersCount = user?.followersCount ?? (user?.userId ? followService.getFollowersCount(user.userId) : 0)
   const followingCount = user?.followingCount ?? (user?.userId ? followService.getFollowingCount(user.userId) : 0)
   const savedPostsCount = user?.userId ? bookmarkService.getBookmarkedPosts(user.userId).length : 0
-  const location = user?.location && user.location !== "Unknown location"
-    ? (user.location.split(',').length > 2 ? user.location.split(',').slice(-2).map(p => p.trim()).join(', ') : user.location)
-    : null
+  const formatLocation = (loc: string | undefined) => {
+    if (!loc || loc === "Unknown location") return null
+    // Remover Plus Codes (formato: A1B2+CD3)
+    const withoutPlusCode = loc.replace(/[A-Z0-9]{4}\+[A-Z0-9]{2,3},?\s*/g, '').trim()
+    // Limpiar comas múltiples y espacios
+    return withoutPlusCode.replace(/,\s*,/g, ',').trim()
+  }
+  const location = formatLocation(user?.location)
 
   if (isLoading) return (
     <div className="flex h-screen items-center justify-center">

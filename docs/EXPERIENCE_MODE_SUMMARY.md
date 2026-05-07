@@ -69,10 +69,11 @@ Se ha implementado un sistema completo que adapta la interfaz de usuario según 
 #### Navegación
 - ✅ Feed
 - ✅ Events
-- ✅ Trello
 - ✅ Chat
 - ✅ Profile
 - ❌ Premium
+- ❌ Swipes
+- ❌ Matches
 
 #### Perfil
 - ✅ Guardados
@@ -91,6 +92,8 @@ Se ha implementado un sistema completo que adapta la interfaz de usuario según 
 - ✅ Premium
 - ✅ Chat
 - ✅ Profile
+- ❌ Feed
+- ❌ Events
 
 #### Perfil
 - ✅ Guardados
@@ -109,7 +112,6 @@ Se ha implementado un sistema completo que adapta la interfaz de usuario según 
 - ✅ Events
 - ✅ Matches
 - ✅ Chat
-- ✅ Trello
 - ✅ Profile
 - ✅ Premium
 
@@ -122,8 +124,16 @@ Se ha implementado un sistema completo que adapta la interfaz de usuario según 
 
 - Chat
 - Profile
-- Dashboard (admin)
-- Manager (manager)
+
+---
+
+### 🔑 Elementos Administrativos (Controlados por Feature Flags)
+
+Estos elementos NO dependen del modo de experiencia, sino del rol del usuario:
+
+- **Dashboard** - Solo visible para `test1` (admin)
+- **Manager Panel** - Solo visible para `manager1` o `test1`
+- **Trello** - Solo visible para `test1` (admin)
 
 ---
 
@@ -147,17 +157,20 @@ Se ha implementado un sistema completo que adapta la interfaz de usuario según 
 
 ### Caso 1: Usuario solo quiere red social
 - Selecciona **🤝 Social** en Settings
-- Ve: Feed, Events, Posts, Trello
+- Ve: Feed, Events, Chat, Profile
 - No ve: Swipes, Matches, Premium
+- Si es admin (test1): También ve Dashboard y Trello
 
 ### Caso 2: Usuario solo quiere dating
 - Selecciona **💫 Conexión** en Settings
-- Ve: Swipes, Matches, Likes, Premium
-- No ve: Feed, Events, Posts
+- Ve: Swipes, Matches, Premium, Chat, Profile
+- No ve: Feed, Events
+- Si es admin (test1): También ve Dashboard y Trello
 
 ### Caso 3: Usuario quiere todo
 - Selecciona **⚡ Ambos** en Settings
 - Ve: Todos los elementos disponibles
+- Si es admin (test1): También ve Dashboard y Trello
 
 ---
 
@@ -197,11 +210,12 @@ Cuando visitas el perfil de otro usuario:
 2. Buscar sección **"Experiencia"**
 3. Seleccionar **🤝 Social**
 4. Guardar
-5. Verificar que sidebar/bottom nav solo muestra: Feed, Events, Trello, Chat, Profile (SIN Premium)
+5. Verificar que sidebar/bottom nav solo muestra: Feed, Events, Chat, Profile (SIN Premium, SIN Trello a menos que seas test1)
 6. Ir a tu perfil y verificar que solo ves: Guardados, Eventos, Posts
 7. Cambiar a **💫 Conexión**
-8. Verificar que ahora ves: Swipes, Matches, Premium, Chat, Profile
+8. Verificar que ahora ves: Swipes, Matches, Premium, Chat, Profile (SIN Feed, SIN Events)
 9. Repetir con **⚡ Ambos** y verificar que ves todo
+10. Si eres test1: Verificar que Trello y Dashboard aparecen en todos los modos
 
 ---
 

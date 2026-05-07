@@ -812,7 +812,26 @@ export default function EventDetailPage() {
               <div className="max-h-[420px] overflow-y-auto rounded-lg border border-border p-3 space-y-2">
                 {sortedMessages.map((m, idx) => {
                   const mine = String(m.senderId || "") === myUserId
+                  const isSystemMessage = Boolean(m.system)
                   const key = normalizeMessageId(m) || `${m.senderId || "system"}-${m.sentAt}-${idx}`
+                  
+                  // Renderizado especial para mensajes de sistema
+                  if (isSystemMessage) {
+                    return (
+                      <div key={key} className="flex justify-center">
+                        <div className="max-w-[90%] rounded-lg bg-muted/50 border border-border/50 px-4 py-2 text-center">
+                          <p className="text-xs text-muted-foreground mb-1">
+                            {te("Sistema", "System")} · {formatTime(m.sentAt)}
+                          </p>
+                          <p className="text-sm font-medium">
+                            {m.deleted ? te("Mensaje eliminado", "Message deleted") : m.content || ""}
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  }
+                  
+                  // Renderizado normal para mensajes de usuarios
                   return (
                     <div key={key} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                       <div className={`max-w-[85%] rounded-xl border p-2.5 ${mine ? "bg-primary/10 border-primary/30" : "bg-card border-border"}`}>
@@ -1203,41 +1222,64 @@ export default function EventDetailPage() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">{te("Actualizar ubicación del evento", "Update event location")}</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base">{te("Actualizar ubicación del evento", "Update event location")}</CardTitle>
+                    <Badge variant="outline" className="text-xs">
+                      {te("Cambios", "Changes")}: {(eventData as any)?.locationChangeCount ?? 0}/2
+                    </Badge>
+                  </div>
                 </CardHeader>
-                <CardContent className="space-y-2">
-                  <LocationInput
-                    value={locationExact}
-                    onChange={(value, coords) => {
-                      setLocationExact(value)
-                      if (coords) setLocationCoords(coords)
-                      if (!locationZone) setLocationZone(value.split(",")[0]?.trim() || "")
-                    }}
-                    placeholder={te("Dirección exacta del meetup", "Exact meetup address")}
-                    valueFormat="full"
-                  />
-                  <Input
-                    value={locationZone}
-                    onChange={(e) => setLocationZone(e.target.value)}
-                    placeholder={te("Zona / barrio (ej: Chapinero, Bogotá)", "Zone / neighborhood (e.g. Downtown, NYC)")}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {te(
-                      "Solo ADMIN. Máximo 2 cambios. No disponible después de 5h del evento. Se publica automáticamente en el chat.",
-                      "ADMIN only. Max 2 changes. Not available after 5h from event start. Auto-posted in chat."
-                    )}
-                  </p>
-                  {(eventData as any)?.locationChangeCount >= 2 && (
-                    <p className="text-xs text-destructive">
-                      {te("Límite de cambios alcanzado (2/2).", "Change limit reached (2/2).")}
-                    </p>
+                <CardContent className="space-y-3">
+                  {(eventData as any)?.locationChangeCount >= 2 ? (
+                    <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-center">
+                      <p className="text-sm font-medium text-destructive">
+                        {te("Límite de cambios alcanzado (2/2)", "Change limit reached (2/2)")}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {te("No puedes cambiar más la ubicación de este evento.", "You cannot change this event's location anymore.")}
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <LocationInput
+                        value={locationExact}
+                        onChange={(value, coords) => {
+                          setLocationExact(value)
+                          if (coords) setLocationCoords(coords)
+                          if (!locationZone) setLocationZone(value.split(",")[0]?.trim() || "")
+                        }}
+                        placeholder={te("Dirección exacta del evento", "Exact event address")}
+                        valueFormat="full"
+                      />
+                      <Input
+                        value={locationZone}
+                        onChange={(e) => setLocationZone(e.target.value)}
+                        placeholder={te("Zona / barrio (ej: Chapinero, Bogotá)", "Zone / neighborhood (e.g. Downtown, NYC)")}
+                      />
+                      <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3">
+                        <p className="text-xs text-amber-700 dark:text-amber-400">
+                          ⚠️ {te(
+                            "Restricciones: Máximo 2 cambios por evento. No disponible después de 5h del inicio. El cambio se publicará automáticamente en el chat del grupo.",
+                            "Restrictions: Max 2 changes per event. Not available after 5h from start. Change will be auto-posted in group chat."
+                          )}
+                        </p>
+                      </div>
+                      <Button
+                        onClick={handleUpdateLocation}
+                        disabled={isUpdatingLocation || !locationExact.trim()}
+                        className="w-full"
+                      >
+                        {isUpdatingLocation ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            {te("Actualizando...", "Updating...")}
+                          </>
+                        ) : (
+                          te("Actualizar y publicar en chat", "Update and post in chat")
+                        )}
+                      </Button>
+                    </>
                   )}
-                  <Button
-                    onClick={handleUpdateLocation}
-                    disabled={isUpdatingLocation || !locationExact.trim() || (eventData as any)?.locationChangeCount >= 2}
-                  >
-                    {isUpdatingLocation ? te("Actualizando...", "Updating...") : te("Actualizar ubicación", "Update location")}
-                  </Button>
                 </CardContent>
               </Card>
             </>

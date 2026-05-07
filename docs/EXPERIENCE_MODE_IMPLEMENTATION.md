@@ -16,7 +16,6 @@ Hook personalizado que:
 #### SOCIAL (🤝 Social - Solo red social)
 - ✅ `/feed` - Feed de noticias
 - ✅ `/events` - Eventos
-- ✅ `/trello` - Trello
 - ✅ `/chat` - Chat
 - ✅ `/profile` - Perfil
 - ❌ `/swipes` - Swipes
@@ -31,7 +30,6 @@ Hook personalizado que:
 - ✅ `/profile` - Perfil
 - ❌ `/feed` - Feed
 - ❌ `/events` - Eventos
-- ❌ `/trello` - Trello
 
 #### BOTH (⚡ Ambos - Experiencia completa)
 - ✅ Todos los elementos disponibles
@@ -39,8 +37,11 @@ Hook personalizado que:
 #### Elementos comunes (siempre visibles)
 - `/chat` - Comunicación
 - `/profile` - Perfil
-- `/dashboard` - Panel admin (si aplica)
-- `/manager` - Panel manager (si aplica)
+
+#### Elementos administrativos (controlados por feature flags, NO por modo)
+- `/dashboard` - Panel admin (solo test1)
+- `/manager` - Panel manager (solo manager1)
+- `/trello` - Trello (solo test1)
 
 ### 2. `components/ui/experience-selector.tsx`
 Componente reutilizable para seleccionar el modo de experiencia:

@@ -128,12 +128,24 @@ export default function EventsPage() {
     setIsLoading(true)
     setLoadError(false)
     try {
-      const rows = await eventService.list({
-        category: category !== "ALL" ? (category as any) : undefined,
-        free: freeOnly === "ALL" ? undefined : freeOnly === "TRUE",
-      })
+      console.log('[Events] Cargando eventos...')
+      const rows = await eventService.list({})
+      console.log('[Events] Eventos recibidos:', rows)
       setItems((Array.isArray(rows) ? rows : []).map(normalizeEvent))
-    } catch {
+    } catch (error: any) {
+      console.error('[Events] Error cargando eventos:', {
+        message: error?.message,
+        status: error?.status,
+        details: error?.details
+      })
+      
+      // Si es error 500, mostrar mensaje específico
+      if (error?.status === 500) {
+        toast.error('El servidor tiene un problema. Puede que no haya eventos creados aún o haya un error en la base de datos.')
+      } else {
+        toast.error(error?.message || 'Error al cargar eventos')
+      }
+      
       setLoadError(true)
       setItems([])
     } finally {
@@ -454,26 +466,56 @@ export default function EventsPage() {
                   </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-3">
                 <div>
-                  <label className="text-sm font-medium">{te("Inicio", "Start")}</label>
-                  <Input
-                    type="datetime-local"
-                    className="mt-1"
-                    value={createForm.startsAt}
-                    onChange={(e) => setCreateForm((prev) => ({ ...prev, startsAt: e.target.value }))}
-                    min={toLocalDateTimeInput(new Date(Date.now() + 60_000))}
-                  />
+                  <label className="text-sm font-medium">{te("Fecha y hora de inicio", "Start date and time")} *</label>
+                  <div className="grid grid-cols-2 gap-2 mt-1">
+                    <Input
+                      type="date"
+                      value={createForm.startsAt.split('T')[0] || ''}
+                      onChange={(e) => {
+                        const time = createForm.startsAt.split('T')[1] || '20:00'
+                        setCreateForm((prev) => ({ ...prev, startsAt: `${e.target.value}T${time}` }))
+                      }}
+                      min={new Date().toISOString().split('T')[0]}
+                    />
+                    <Input
+                      type="time"
+                      value={createForm.startsAt.split('T')[1] || ''}
+                      onChange={(e) => {
+                        const date = createForm.startsAt.split('T')[0] || new Date().toISOString().split('T')[0]
+                        setCreateForm((prev) => ({ ...prev, startsAt: `${date}T${e.target.value}` }))
+                      }}
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {te("Selecciona la fecha y hora del evento", "Select event date and time")}
+                  </p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium">{te("Fin", "End")}</label>
-                  <Input
-                    type="datetime-local"
-                    className="mt-1"
-                    value={createForm.endsAt}
-                    onChange={(e) => setCreateForm((prev) => ({ ...prev, endsAt: e.target.value }))}
-                    min={createForm.startsAt || toLocalDateTimeInput(new Date(Date.now() + 120_000))}
-                  />
+                  <label className="text-sm font-medium">{te("Fecha y hora de fin", "End date and time")} ({te("opcional", "optional")})</label>
+                  <div className="grid grid-cols-2 gap-2 mt-1">
+                    <Input
+                      type="date"
+                      value={createForm.endsAt.split('T')[0] || ''}
+                      onChange={(e) => {
+                        const time = createForm.endsAt.split('T')[1] || '23:00'
+                        setCreateForm((prev) => ({ ...prev, endsAt: e.target.value ? `${e.target.value}T${time}` : '' }))
+                      }}
+                      min={createForm.startsAt.split('T')[0] || new Date().toISOString().split('T')[0]}
+                    />
+                    <Input
+                      type="time"
+                      value={createForm.endsAt.split('T')[1] || ''}
+                      onChange={(e) => {
+                        const date = createForm.endsAt.split('T')[0] || createForm.startsAt.split('T')[0] || new Date().toISOString().split('T')[0]
+                        setCreateForm((prev) => ({ ...prev, endsAt: e.target.value ? `${date}T${e.target.value}` : '' }))
+                      }}
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {te("Opcional: hora de finalización del evento", "Optional: event end time")}
+                  </p>
                 </div>
               </div>
               <div>
@@ -695,12 +737,23 @@ export default function EventsPage() {
         </div>
       ) : loadError ? (
         <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-10 text-center space-y-3">
-          <p className="text-sm text-muted-foreground">
-            {te("No se pudieron cargar los eventos. El servidor puede estar iniciando.", "Could not load events. The server may be starting up.")}
+          <p className="text-sm font-medium text-foreground">
+            {te("Error al cargar eventos", "Error loading events")}
           </p>
-          <Button variant="outline" size="sm" onClick={() => void loadEvents()}>
-            {te("Reintentar", "Retry")}
-          </Button>
+          <p className="text-sm text-muted-foreground">
+            {te(
+              "El servidor está teniendo problemas. Esto puede ocurrir si no hay eventos creados aún o si hay un error en la base de datos. Intenta crear un evento nuevo o contacta al administrador.",
+              "The server is having issues. This may happen if there are no events created yet or if there's a database error. Try creating a new event or contact the administrator."
+            )}
+          </p>
+          <div className="flex gap-2 justify-center">
+            <Button variant="outline" size="sm" onClick={() => void loadEvents()}>
+              {te("Reintentar", "Retry")}
+            </Button>
+            <Button size="sm" onClick={() => setCreateOpen(true)}>
+              {te("Crear primer evento", "Create first event")}
+            </Button>
+          </div>
         </div>
       ) : filtered.length === 0 ? (
         <div className="rounded-xl border border-border p-10 text-center text-muted-foreground">
