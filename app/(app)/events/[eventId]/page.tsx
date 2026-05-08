@@ -531,25 +531,36 @@ export default function EventDetailPage() {
 
   const handleApproveParticipant = async (userId: string) => {
     const officialAddress = String((eventData as any)?.officialAddress || "").trim()
-    const sharedAddress = String((eventData as any)?.sharedAddress || "").trim()
-    const backendMatched = (eventData as any)?.addressMatched
-    const addressMatched = typeof backendMatched === "boolean"
-      ? backendMatched
-      : normalizeAddress(officialAddress) !== "" && normalizeAddress(officialAddress) === normalizeAddress(sharedAddress)
-    if (!officialAddress || !addressMatched) {
+    
+    // Permitir aprobar si hay dirección oficial, aunque no esté publicada en chat aún
+    if (!officialAddress) {
       toast.error(
         te(
-          "Para aprobar participantes primero configura la dirección oficial y asegúrate de que coincida con la compartida en el chat.",
-          "To approve participants, first set the official address and ensure it matches the one shared in chat."
+          "Primero configura la dirección oficial del evento en la pestaña 'Settings'.",
+          "First set the official event address in the 'Settings' tab."
         )
       )
       return
     }
+    
     try {
       await eventService.approveParticipant(eventId, userId)
       setPendingParticipants((prev) => prev.filter((p) => p.userId !== userId))
       const refreshedMembers = await eventService.groupMembers.list(eventId)
       setMembers(refreshedMembers)
+      
+      // Si es el primer aprobado y el grupo se acaba de crear, sugerir publicar ubicación
+      if (refreshedMembers.length === 1) {
+        toast.success(
+          te(
+            "Participante aprobado y grupo creado. Ahora puedes publicar la ubicación en el chat desde 'Settings'.",
+            "Participant approved and group created. You can now publish the location in chat from 'Settings'."
+          ),
+          { duration: 6000 }
+        )
+      } else {
+        toast.success(te("Participante aprobado", "Participant approved"))
+      }
     } catch (error: any) {
       toast.error(error?.message || te("No se pudo aprobar", "Could not approve"))
     }
@@ -566,20 +577,18 @@ export default function EventDetailPage() {
 
   const handleApproveGroupRequest = async (requestId: string) => {
     const officialAddress = String((eventData as any)?.officialAddress || "").trim()
-    const sharedAddress = String((eventData as any)?.sharedAddress || "").trim()
-    const backendMatched = (eventData as any)?.addressMatched
-    const addressMatched = typeof backendMatched === "boolean"
-      ? backendMatched
-      : normalizeAddress(officialAddress) !== "" && normalizeAddress(officialAddress) === normalizeAddress(sharedAddress)
-    if (!officialAddress || !addressMatched) {
+    
+    // Permitir aprobar si hay dirección oficial, aunque no esté publicada en chat aún
+    if (!officialAddress) {
       toast.error(
         te(
-          "Para aprobar solicitudes grupales primero valida la dirección del meetup.",
-          "To approve group requests, first validate meetup address."
+          "Primero configura la dirección oficial del evento en la pestaña 'Settings'.",
+          "First set the official event address in the 'Settings' tab."
         )
       )
       return
     }
+    
     try {
       await eventService.groupJoinRequests.approve(eventId, requestId)
       setPendingGroupRequests((prev) => prev.filter((r) => r.id !== requestId))
@@ -664,6 +673,9 @@ export default function EventDetailPage() {
           locationChangeCount: (prev?.locationChangeCount ?? 0) + 1,
         }))
         
+        // 4. Recargar evento para obtener datos actualizados del backend
+        await loadEvent()
+        
         toast.success(te("Ubicación publicada en el chat y guardada como oficial", "Location published in chat and saved as official"))
         setLocationExact("")
         setLocationZone("")
@@ -743,14 +755,18 @@ export default function EventDetailPage() {
     ? backendMatched
     : normalizeAddress(officialAddressSaved) !== "" &&
       normalizeAddress(officialAddressSaved) === normalizeAddress(sharedAddressSaved)
-  const canApproveByAddress = Boolean(officialAddressSaved) && isAddressMatched
+  
+  // Permitir aprobar si hay dirección oficial, aunque no esté publicada en chat
+  const canApproveByAddress = Boolean(officialAddressSaved)
   const canViewAddress = isAdmin || isModerator || isGuest
   const locationStatus: "pending" | "matched" | "mismatch" =
-    !officialAddressSaved || !sharedAddressSaved
+    !officialAddressSaved
       ? "pending"
-      : isAddressMatched
-        ? "matched"
-        : "mismatch"
+      : !sharedAddressSaved
+        ? "pending"
+        : isAddressMatched
+          ? "matched"
+          : "mismatch"
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6">
@@ -795,12 +811,12 @@ export default function EventDetailPage() {
             <p>
               {canApproveByAddress
                 ? te(
-                    "Ubicación validada: los participantes aprobados verán la dirección del meetup en el chat.",
-                    "Location validated: approved participants will see meetup address in chat."
+                    "Dirección oficial configurada. Puedes aprobar participantes. Después publica la ubicación en el chat desde 'Settings'.",
+                    "Official address set. You can approve participants. Then publish location in chat from 'Settings'."
                   )
                 : te(
-                    "Moderación de ubicación activa: hasta validar la coincidencia de direcciones no se podrán aprobar nuevas personas.",
-                    "Location moderation active: new people cannot be approved until address match is validated."
+                    "Configura la dirección oficial en 'Settings' para poder aprobar participantes.",
+                    "Set official address in 'Settings' to approve participants."
                   )}
             </p>
             {canViewAddress && isAddressMatched && sharedAddressSaved ? (
@@ -1063,8 +1079,8 @@ export default function EventDetailPage() {
                   {!canApproveByAddress && (
                     <p className="text-xs text-amber-500">
                       {te(
-                        "No puedes aprobar hasta validar coincidencia de ubicación.",
-                        "You cannot approve until location match is validated."
+                        "Configura la dirección oficial en 'Settings' para poder aprobar.",
+                        "Set official address in 'Settings' to approve."
                       )}
                     </p>
                   )}
@@ -1085,8 +1101,8 @@ export default function EventDetailPage() {
                             canApproveByAddress
                               ? undefined
                               : te(
-                                  "Valida dirección oficial y compartida para aprobar",
-                                  "Validate official/shared address before approving"
+                                  "Configura dirección oficial en Settings",
+                                  "Set official address in Settings"
                                 )
                           }
                         >
@@ -1105,8 +1121,8 @@ export default function EventDetailPage() {
                   {!canApproveByAddress && (
                     <p className="text-xs text-amber-500">
                       {te(
-                        "La aprobación grupal está bloqueada hasta validar la ubicación.",
-                        "Group approval is blocked until location is validated."
+                        "Configura la dirección oficial en 'Settings' para poder aprobar solicitudes grupales.",
+                        "Set official address in 'Settings' to approve group requests."
                       )}
                     </p>
                   )}
@@ -1125,8 +1141,8 @@ export default function EventDetailPage() {
                             canApproveByAddress
                               ? undefined
                               : te(
-                                  "Valida dirección oficial y compartida para aprobar",
-                                  "Validate official/shared address before approving"
+                                  "Configura dirección oficial en Settings",
+                                  "Set official address in Settings"
                                 )
                           }
                         >
