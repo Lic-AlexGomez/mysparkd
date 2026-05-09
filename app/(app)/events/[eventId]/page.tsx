@@ -54,13 +54,13 @@ export default function EventDetailPage() {
   const [inviteLinks, setInviteLinks] = useState<any[]>([])
   const [inviteRole, setInviteRole] = useState<"GUEST" | "MODERATOR">("GUEST")
   const [inviteMaxUses, setInviteMaxUses] = useState("0")
-  const [officialAddressText, setOfficialAddressText] = useState("")
-  const [isSavingOfficialAddress, setIsSavingOfficialAddress] = useState(false)
   const [pollQuestion, setPollQuestion] = useState("")
   const [pollOptions, setPollOptions] = useState("")
   const [mediaFile, setMediaFile] = useState<File | null>(null)
-  const [shareAddressText, setShareAddressText] = useState("")
-  const [isSharingAddress, setIsSharingAddress] = useState(false)
+  const [locationZone, setLocationZone] = useState("")
+  const [locationExact, setLocationExact] = useState("")
+  const [locationCoords, setLocationCoords] = useState<{ latitude: number; longitude: number } | null>(null)
+  const [isUpdatingLocation, setIsUpdatingLocation] = useState(false)
   const [inviteeQuery, setInviteeQuery] = useState("")
   const [inviteeSuggestions, setInviteeSuggestions] = useState<Array<{ userId: string; username: string; fullName?: string; photo?: string }>>([])
   const [selectedInvitees, setSelectedInvitees] = useState<Array<{ userId: string; username: string; fullName?: string; photo?: string }>>([])
@@ -72,6 +72,17 @@ export default function EventDetailPage() {
   const myMember = members.find((m) => String(m.userId) === myUserId)
   const myRole = (myMember?.role || (eventData as any)?.myRole || "").toUpperCase()
   const isAdmin = myRole === "ADMIN" || String((eventData as any)?.creatorId || "") === myUserId || Boolean((eventData as any)?.isAdmin)
+  
+  // Debug: Ver por qué no detecta como admin
+  console.log('[EventDetail] Debug Admin:', {
+    myUserId,
+    creatorId: (eventData as any)?.creatorId,
+    myRole,
+    isAdmin,
+    myMember,
+    eventData: eventData ? { id: eventData.eventId || eventData.id, creatorId: (eventData as any)?.creatorId } : null
+  })
+  
   const isModerator = myRole === "MODERATOR" || isAdmin
   const isGuest = myRole === "GUEST"
   const mutedUntil = myMember?.mutedUntil ? new Date(myMember.mutedUntil) : null
@@ -139,7 +150,19 @@ export default function EventDetailPage() {
       setMembers(normalizedMembers)
 
       const me = normalizedMembers.find((m) => String(m.userId) === myUserId)
-      const isAdminLoaded = (me?.role || "").toUpperCase() === "ADMIN"
+      const isAdminLoaded = (me?.role || "").toUpperCase() === "ADMIN" || 
+                            String((detail as any)?.creatorId) === myUserId ||
+                            (detail as any)?.myRole === "ADMIN"
+      
+      console.log('[EventDetail] Verificación de admin:', {
+        myUserId,
+        creatorId: (detail as any)?.creatorId,
+        myRole: (detail as any)?.myRole,
+        memberRole: me?.role,
+        isAdminLoaded,
+        detailKeys: Object.keys(detail || {})
+      })
+      
       const groupId = String((detail as any)?.groupId || eventId)
       setGroupSettings({
         slowMode: Boolean((detail as any)?.slowMode),
@@ -147,15 +170,32 @@ export default function EventDetailPage() {
       })
 
       if (isAdminLoaded) {
+        console.log('[EventDetail] Cargando datos de admin...')
         const [links, pendingUsers, pendingRequests] = await Promise.all([
-          eventService.inviteLinks.list(eventId).catch(() => []),
-          eventService.participants.pending(eventId).catch(() => []),
-          eventService.groupJoinRequests.pendingAdmin(eventId).catch(() => []),
+          eventService.inviteLinks.list(eventId).catch((err) => {
+            console.error('[EventDetail] Error cargando invite links:', err)
+            return []
+          }),
+          eventService.participants.pending(eventId).catch((err) => {
+            console.error('[EventDetail] Error cargando pending participants:', err)
+            return []
+          }),
+          eventService.groupJoinRequests.pendingAdmin(eventId).catch((err) => {
+            console.error('[EventDetail] Error cargando pending group requests:', err)
+            return []
+          }),
         ])
+        console.log('[EventDetail] Datos de admin cargados:', {
+          inviteLinks: links.length,
+          pendingParticipants: pendingUsers.length,
+          pendingGroupRequests: pendingRequests.length,
+          pendingUsersData: pendingUsers
+        })
         setInviteLinks(links)
         setPendingParticipants(pendingUsers)
         setPendingGroupRequests(pendingRequests)
       } else {
+        console.log('[EventDetail] Usuario no es admin, no se cargan datos de admin')
         setInviteLinks([])
         setPendingParticipants([])
         setPendingGroupRequests([])
@@ -189,11 +229,6 @@ export default function EventDetailPage() {
       setActiveTab(tab)
     }
   }, [searchParams])
-
-  useEffect(() => {
-    const savedOfficial = String((eventData as any)?.officialAddress || "")
-    setOfficialAddressText(savedOfficial)
-  }, [eventData?.eventId, (eventData as any)?.officialAddress])
 
   useEffect(() => {
     if (!eventId || !user?.userId) return
@@ -496,25 +531,36 @@ export default function EventDetailPage() {
 
   const handleApproveParticipant = async (userId: string) => {
     const officialAddress = String((eventData as any)?.officialAddress || "").trim()
-    const sharedAddress = String((eventData as any)?.sharedAddress || "").trim()
-    const backendMatched = (eventData as any)?.addressMatched
-    const addressMatched = typeof backendMatched === "boolean"
-      ? backendMatched
-      : normalizeAddress(officialAddress) !== "" && normalizeAddress(officialAddress) === normalizeAddress(sharedAddress)
-    if (!officialAddress || !addressMatched) {
+    
+    // Permitir aprobar si hay dirección oficial, aunque no esté publicada en chat aún
+    if (!officialAddress) {
       toast.error(
         te(
-          "Para aprobar participantes primero configura la dirección oficial y asegúrate de que coincida con la compartida en el chat.",
-          "To approve participants, first set the official address and ensure it matches the one shared in chat."
+          "Primero configura la dirección oficial del evento en la pestaña 'Settings'.",
+          "First set the official event address in the 'Settings' tab."
         )
       )
       return
     }
+    
     try {
       await eventService.approveParticipant(eventId, userId)
       setPendingParticipants((prev) => prev.filter((p) => p.userId !== userId))
       const refreshedMembers = await eventService.groupMembers.list(eventId)
       setMembers(refreshedMembers)
+      
+      // Si es el primer aprobado y el grupo se acaba de crear, sugerir publicar ubicación
+      if (refreshedMembers.length === 1) {
+        toast.success(
+          te(
+            "Participante aprobado y grupo creado. Ahora puedes publicar la ubicación en el chat desde 'Settings'.",
+            "Participant approved and group created. You can now publish the location in chat from 'Settings'."
+          ),
+          { duration: 6000 }
+        )
+      } else {
+        toast.success(te("Participante aprobado", "Participant approved"))
+      }
     } catch (error: any) {
       toast.error(error?.message || te("No se pudo aprobar", "Could not approve"))
     }
@@ -531,20 +577,18 @@ export default function EventDetailPage() {
 
   const handleApproveGroupRequest = async (requestId: string) => {
     const officialAddress = String((eventData as any)?.officialAddress || "").trim()
-    const sharedAddress = String((eventData as any)?.sharedAddress || "").trim()
-    const backendMatched = (eventData as any)?.addressMatched
-    const addressMatched = typeof backendMatched === "boolean"
-      ? backendMatched
-      : normalizeAddress(officialAddress) !== "" && normalizeAddress(officialAddress) === normalizeAddress(sharedAddress)
-    if (!officialAddress || !addressMatched) {
+    
+    // Permitir aprobar si hay dirección oficial, aunque no esté publicada en chat aún
+    if (!officialAddress) {
       toast.error(
         te(
-          "Para aprobar solicitudes grupales primero valida la dirección del meetup.",
-          "To approve group requests, first validate meetup address."
+          "Primero configura la dirección oficial del evento en la pestaña 'Settings'.",
+          "First set the official event address in the 'Settings' tab."
         )
       )
       return
     }
+    
     try {
       await eventService.groupJoinRequests.approve(eventId, requestId)
       setPendingGroupRequests((prev) => prev.filter((r) => r.id !== requestId))
@@ -596,88 +640,73 @@ export default function EventDetailPage() {
     }
   }
 
-  const handleShareAddress = async () => {
-    const address = shareAddressText.trim()
-    if (!address) {
-      toast.error(te("Ingresa una dirección", "Enter an address"))
+  const handleUpdateLocation = async () => {
+    const exact = locationExact.trim()
+    const zone = locationZone.trim() || exact.split(",")[0]?.trim() || ""
+    if (!exact || !zone) {
+      toast.error(te("Ingresa la dirección exacta", "Enter the exact address"))
       return
     }
-    const officialAddress = String((eventData as any)?.officialAddress || "").trim()
-    if (!officialAddress) {
-      toast.error(
-        te(
-          "Primero debes guardar la dirección oficial del evento.",
-          "You must save the event official address first."
-        )
-      )
-      return
-    }
-    setIsSharingAddress(true)
+    setIsUpdatingLocation(true)
     try {
-      const response = await eventService.shareAddress(eventId, address)
-      const matchedFromBackend = response?.matched
-      const matched =
-        typeof matchedFromBackend === "boolean"
-          ? matchedFromBackend
-          : normalizeAddress(officialAddress) === normalizeAddress(address)
-      setEventData((prev: any) => ({
-        ...prev,
-        sharedAddress: address,
-        officialAddress: prev?.officialAddress || officialAddress,
-        addressMatched: matched,
-        locationVerified: matched,
-      }))
-      if (matched) {
-        toast.success(
-          te(
-            "Dirección validada y compartida. Ya puedes aprobar participantes.",
-            "Address validated and shared. You can now approve participants."
-          )
-        )
-      } else {
-        toast.error(
-          response?.message ||
+      // 1. Guardar como dirección oficial primero
+      await eventService.setOfficialAddress(eventId, exact)
+      
+      // 2. Intentar actualizar ubicación y publicar en chat
+      try {
+        await eventService.updateLocation(eventId, {
+          zone,
+          exactAddress: exact,
+          latitude: locationCoords?.latitude ?? 0,
+          longitude: locationCoords?.longitude ?? 0,
+        })
+        
+        // 3. Actualizar estado local
+        setEventData((prev: any) => ({
+          ...prev,
+          zone,
+          exactAddress: exact,
+          officialAddress: exact,
+          sharedAddress: exact,
+          addressMatched: true,
+          locationVerified: true,
+          locationChangeCount: (prev?.locationChangeCount ?? 0) + 1,
+        }))
+        
+        // 4. Recargar evento para obtener datos actualizados del backend
+        await loadEvent()
+        
+        toast.success(te("Ubicación publicada en el chat y guardada como oficial", "Location published in chat and saved as official"))
+        setLocationExact("")
+        setLocationZone("")
+        setLocationCoords(null)
+      } catch (groupError: any) {
+        // Si el grupo no existe (404), solo guardar como oficial
+        if (groupError?.status === 404 || groupError?.message?.includes("grupo")) {
+          setEventData((prev: any) => ({
+            ...prev,
+            zone,
+            exactAddress: exact,
+            officialAddress: exact,
+          }))
+          toast.info(
             te(
-              "La dirección compartida no coincide con la oficial. Actualízala para poder aprobar participantes.",
-              "Shared address does not match official one. Update it before approving participants."
-            )
-        )
+              "Ubicación guardada. Para publicarla en el chat, primero aprueba participantes en la pestaña 'Solicitudes'.",
+              "Location saved. To publish it in chat, first approve participants in the 'Requests' tab."
+            ),
+            { duration: 6000 }
+          )
+          setLocationExact("")
+          setLocationZone("")
+          setLocationCoords(null)
+        } else {
+          throw groupError
+        }
       }
-      setShareAddressText("")
     } catch (error: any) {
-      toast.error(error?.message || te("No se pudo compartir la dirección", "Could not share address"))
+      toast.error(error?.message || te("No se pudo guardar la ubicación", "Could not save location"))
     } finally {
-      setIsSharingAddress(false)
-    }
-  }
-
-  const handleSaveOfficialAddress = async () => {    const next = officialAddressText.trim()
-    if (!next) {
-      toast.error(
-        te(
-          "La dirección oficial es obligatoria para crear y moderar el meetup.",
-          "Official address is required to create and moderate meetup."
-        )
-      )
-      return
-    }
-    setIsSavingOfficialAddress(true)
-    try {
-      await eventService.setOfficialAddress(eventId, next)
-      setEventData((prev: any) => ({
-        ...prev,
-        officialAddress: next,
-      }))
-      toast.success(
-        te(
-          "Dirección oficial guardada.",
-          "Official address saved."
-        )
-      )
-    } catch (error: any) {
-      toast.error(error?.message || te("No se pudo guardar la dirección oficial.", "Could not save official address."))
-    } finally {
-      setIsSavingOfficialAddress(false)
+      setIsUpdatingLocation(false)
     }
   }
 
@@ -726,14 +755,18 @@ export default function EventDetailPage() {
     ? backendMatched
     : normalizeAddress(officialAddressSaved) !== "" &&
       normalizeAddress(officialAddressSaved) === normalizeAddress(sharedAddressSaved)
-  const canApproveByAddress = Boolean(officialAddressSaved) && isAddressMatched
+  
+  // Permitir aprobar si hay dirección oficial, aunque no esté publicada en chat
+  const canApproveByAddress = Boolean(officialAddressSaved)
   const canViewAddress = isAdmin || isModerator || isGuest
   const locationStatus: "pending" | "matched" | "mismatch" =
-    !officialAddressSaved || !sharedAddressSaved
+    !officialAddressSaved
       ? "pending"
-      : isAddressMatched
-        ? "matched"
-        : "mismatch"
+      : !sharedAddressSaved
+        ? "pending"
+        : isAddressMatched
+          ? "matched"
+          : "mismatch"
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6">
@@ -778,12 +811,12 @@ export default function EventDetailPage() {
             <p>
               {canApproveByAddress
                 ? te(
-                    "Ubicación validada: los participantes aprobados verán la dirección del meetup en el chat.",
-                    "Location validated: approved participants will see meetup address in chat."
+                    "Dirección oficial configurada. Puedes aprobar participantes. Después publica la ubicación en el chat desde 'Settings'.",
+                    "Official address set. You can approve participants. Then publish location in chat from 'Settings'."
                   )
                 : te(
-                    "Moderación de ubicación activa: hasta validar la coincidencia de direcciones no se podrán aprobar nuevas personas.",
-                    "Location moderation active: new people cannot be approved until address match is validated."
+                    "Configura la dirección oficial en 'Settings' para poder aprobar participantes.",
+                    "Set official address in 'Settings' to approve participants."
                   )}
             </p>
             {canViewAddress && isAddressMatched && sharedAddressSaved ? (
@@ -830,7 +863,26 @@ export default function EventDetailPage() {
               <div className="max-h-[420px] overflow-y-auto rounded-lg border border-border p-3 space-y-2">
                 {sortedMessages.map((m, idx) => {
                   const mine = String(m.senderId || "") === myUserId
+                  const isSystemMessage = Boolean(m.system)
                   const key = normalizeMessageId(m) || `${m.senderId || "system"}-${m.sentAt}-${idx}`
+                  
+                  // Renderizado especial para mensajes de sistema
+                  if (isSystemMessage) {
+                    return (
+                      <div key={key} className="flex justify-center">
+                        <div className="max-w-[90%] rounded-lg bg-muted/50 border border-border/50 px-4 py-2 text-center">
+                          <p className="text-xs text-muted-foreground mb-1">
+                            {te("Sistema", "System")} · {formatTime(m.sentAt)}
+                          </p>
+                          <p className="text-sm font-medium">
+                            {m.deleted ? te("Mensaje eliminado", "Message deleted") : m.content || ""}
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  }
+                  
+                  // Renderizado normal para mensajes de usuarios
                   return (
                     <div key={key} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                       <div className={`max-w-[85%] rounded-xl border p-2.5 ${mine ? "bg-primary/10 border-primary/30" : "bg-card border-border"}`}>
@@ -1027,8 +1079,8 @@ export default function EventDetailPage() {
                   {!canApproveByAddress && (
                     <p className="text-xs text-amber-500">
                       {te(
-                        "No puedes aprobar hasta validar coincidencia de ubicación.",
-                        "You cannot approve until location match is validated."
+                        "Configura la dirección oficial en 'Settings' para poder aprobar.",
+                        "Set official address in 'Settings' to approve."
                       )}
                     </p>
                   )}
@@ -1049,8 +1101,8 @@ export default function EventDetailPage() {
                             canApproveByAddress
                               ? undefined
                               : te(
-                                  "Valida dirección oficial y compartida para aprobar",
-                                  "Validate official/shared address before approving"
+                                  "Configura dirección oficial en Settings",
+                                  "Set official address in Settings"
                                 )
                           }
                         >
@@ -1069,8 +1121,8 @@ export default function EventDetailPage() {
                   {!canApproveByAddress && (
                     <p className="text-xs text-amber-500">
                       {te(
-                        "La aprobación grupal está bloqueada hasta validar la ubicación.",
-                        "Group approval is blocked until location is validated."
+                        "Configura la dirección oficial en 'Settings' para poder aprobar solicitudes grupales.",
+                        "Set official address in 'Settings' to approve group requests."
                       )}
                     </p>
                   )}
@@ -1089,8 +1141,8 @@ export default function EventDetailPage() {
                             canApproveByAddress
                               ? undefined
                               : te(
-                                  "Valida dirección oficial y compartida para aprobar",
-                                  "Validate official/shared address before approving"
+                                  "Configura dirección oficial en Settings",
+                                  "Set official address in Settings"
                                 )
                           }
                         >
@@ -1199,51 +1251,80 @@ export default function EventDetailPage() {
               </Card>
 
               <Card>
-                <CardHeader><CardTitle className="text-base">{te("Dirección oficial del meetup", "Official meetup address")}</CardTitle></CardHeader>
-                <CardContent className="space-y-2">
-                  <LocationInput
-                    value={officialAddressText}
-                    onChange={(value) => setOfficialAddressText(value)}
-                    placeholder={te("Ej: Calle 123 #45-67, Bogotá", "Ex: 123 Main St, City")}
-                    valueFormat="full"
-                  />
-                  <p className="text-xs text-muted-foreground">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base">{te("Ubicación del evento", "Event location")}</CardTitle>
+                    <Badge variant="outline" className="text-xs">
+                      {te("Cambios", "Changes")}: {(eventData as any)?.locationChangeCount ?? 0}/2
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
                     {te(
-                      "Obligatoria. Esta dirección es la referencia para moderación y debe coincidir con la compartida en el chat.",
-                      "Required. This address is moderation reference and must match the one shared in chat."
+                      "Configura la ubicación del evento. Se publicará automáticamente en el chat del grupo.",
+                      "Set the event location. It will be automatically posted in the group chat."
                     )}
                   </p>
-                  <Button onClick={handleSaveOfficialAddress} disabled={isSavingOfficialAddress || !officialAddressText.trim()}>
-                    {isSavingOfficialAddress ? te("Guardando...", "Saving...") : t("common.save")}
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader><CardTitle className="text-base">{te("Compartir dirección del evento", "Share event address")}</CardTitle></CardHeader>
-                <CardContent className="space-y-2">
-                  <LocationInput
-                    value={shareAddressText}
-                    onChange={(value) => setShareAddressText(value)}
-                    placeholder={te("Ej: Calle 123 #45-67, Bogotá", "Ex: 123 Main St, City")}
-                    valueFormat="full"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {te("Solo ADMIN. El backend valida que coincida con la dirección oficial del evento.", "ADMIN only. Backend validates it matches the official event address.")}
-                  </p>
-                  <Button onClick={handleShareAddress} disabled={isSharingAddress || !shareAddressText.trim() || !officialAddressSaved}>
-                    {isSharingAddress ? te("Compartiendo...", "Sharing...") : te("Compartir en chat", "Share in chat")}
-                  </Button>
-                  {officialAddressSaved ? (
-                    <p className={`text-xs ${isAddressMatched ? "text-emerald-500" : "text-amber-500"}`}>
-                      {isAddressMatched
-                        ? te("Dirección compartida validada.", "Shared address validated.")
-                        : te("Pendiente validar coincidencia entre dirección oficial y compartida.", "Pending address match between official and shared address.")}
-                    </p>
+                  {members.length === 0 && (
+                    <div className="mt-2 rounded-lg bg-amber-500/10 border border-amber-500/20 p-3">
+                      <p className="text-xs text-amber-700 dark:text-amber-400">
+                        ⚠️ {te(
+                          "El grupo del evento aún no existe. Primero aprueba participantes en la pestaña 'Solicitudes' para crear el grupo.",
+                          "The event group doesn't exist yet. First approve participants in the 'Requests' tab to create the group."
+                        )}
+                      </p>
+                    </div>
+                  )}
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {(eventData as any)?.locationChangeCount >= 2 ? (
+                    <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-center">
+                      <p className="text-sm font-medium text-destructive">
+                        {te("Límite de cambios alcanzado (2/2)", "Change limit reached (2/2)")}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {te("No puedes cambiar más la ubicación de este evento.", "You cannot change this event's location anymore.")}
+                      </p>
+                    </div>
                   ) : (
-                    <p className="text-xs text-rose-500">
-                      {te("Debes guardar la dirección oficial antes de compartirla con el grupo.", "You must save official address before sharing it with the group.")}
-                    </p>
+                    <>
+                      <LocationInput
+                        value={locationExact}
+                        onChange={(value, coords) => {
+                          setLocationExact(value)
+                          if (coords) setLocationCoords(coords)
+                          if (!locationZone) setLocationZone(value.split(",")[0]?.trim() || "")
+                        }}
+                        placeholder={te("Dirección exacta del evento", "Exact event address")}
+                        valueFormat="full"
+                      />
+                      <Input
+                        value={locationZone}
+                        onChange={(e) => setLocationZone(e.target.value)}
+                        placeholder={te("Zona / barrio (ej: Chapinero, Bogotá)", "Zone / neighborhood (e.g. Downtown, NYC)")}
+                      />
+                      <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-3">
+                        <p className="text-xs text-blue-700 dark:text-blue-400">
+                          ℹ️ {te(
+                            "Al publicar, la ubicación se guardará como oficial y se compartirá automáticamente en el chat. Máximo 2 cambios por evento.",
+                            "When published, the location will be saved as official and automatically shared in chat. Max 2 changes per event."
+                          )}
+                        </p>
+                      </div>
+                      <Button
+                        onClick={handleUpdateLocation}
+                        disabled={isUpdatingLocation || !locationExact.trim()}
+                        className="w-full"
+                      >
+                        {isUpdatingLocation ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            {te("Publicando...", "Publishing...")}
+                          </>
+                        ) : (
+                          te("Publicar ubicación en el chat", "Publish location in chat")
+                        )}
+                      </Button>
+                    </>
                   )}
                 </CardContent>
               </Card>

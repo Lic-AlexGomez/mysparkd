@@ -21,6 +21,7 @@ import { toast } from "sonner"
 import { VoiceNotePlayer } from "@/components/ui/voice-note"
 import { useI18n } from "@/lib/i18n"
 import { accountTypeBadgeLabels, toBackendAccountType } from "@/lib/account-type"
+import { useExperienceMode } from "@/hooks/use-experience-mode"
 
 function getAge(dateOfBirth?: string): number | null {
   if (!dateOfBirth) return null
@@ -42,6 +43,7 @@ export default function UserProfilePage() {
   const searchParams = useSearchParams()
   const userId = params.userId as string
   const compatibilityFromUrl = searchParams.get("compatibility")
+  const experienceMode = useExperienceMode()
 
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -230,6 +232,14 @@ export default function UserProfilePage() {
     }
   }
 
+  const formatLocation = (loc: string | undefined) => {
+    if (!loc || loc === "Unknown location") return null
+    // Remover Plus Codes (formato: A1B2+CD3)
+    const withoutPlusCode = loc.replace(/[A-Z0-9]{4}\+[A-Z0-9]{2,3},?\s*/g, '').trim()
+    // Limpiar comas múltiples y espacios
+    return withoutPlusCode.replace(/,\s*,/g, ',').trim()
+  }
+
   if (isLoading) return (
     <div className="flex h-[60vh] items-center justify-center">
       <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -259,6 +269,9 @@ export default function UserProfilePage() {
       ? profile.totalPosts
       : profile.posts?.length ?? 0
   const accountModeLabel = accountTypeBadgeLabels(toBackendAccountType(profile.accountType))
+  const profileExperienceMode = profile.accountType?.toUpperCase() === 'SOCIAL' ? 'SOCIAL'
+    : profile.accountType?.toUpperCase() === 'DATING' ? 'DATING'
+    : 'BOTH'
 
   return (
     <div className="mx-auto max-w-2xl pb-10">
@@ -379,8 +392,8 @@ export default function UserProfilePage() {
               <VoiceNotePlayer url={profile.voiceIntroUrl || (profile as any).voiceNoteUrl} />
             </div>
           )}
-          {profile.location && profile.location !== "Unknown location" && (
-            <p className="text-xs text-muted-foreground mt-1">📍 {profile.location}</p>
+          {formatLocation(profile.location) && (
+            <p className="text-xs text-muted-foreground mt-1">📍 {formatLocation(profile.location)}</p>
           )}
           {(profile.url || profile.website) && (
             <a href={profile.url || profile.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-primary hover:underline mt-1">
@@ -480,7 +493,7 @@ export default function UserProfilePage() {
             </div>
           )}
 
-          {profile.posts && profile.posts.length > 0 && (
+          {profile.posts && profile.posts.length > 0 && (profileExperienceMode === 'SOCIAL' || profileExperienceMode === 'BOTH') && (
             <div className="mt-6 px-4">
               <h2 className="text-sm font-semibold text-foreground mb-3">{te("Posts", "Posts")}</h2>
               {profile.posts.map((post) => (

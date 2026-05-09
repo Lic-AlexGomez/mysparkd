@@ -74,29 +74,45 @@ export function LocationInput({
 
     setIsLoading(true)
     try {
-      // Usar Nominatim (OpenStreetMap) - API gratuita
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(input)}&limit=5&addressdetails=1`,
-        {
-          headers: {
-            'Accept-Language': 'es'
-          }
-        }
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(input)}&limit=7&addressdetails=1&featuretype=settlement`,
+        { headers: { 'Accept-Language': 'es,en' } }
       )
-      
       const data = await response.json()
-      
-      const formattedSuggestions: LocationSuggestion[] = data.map((item: any) => ({
-        place_id: item.place_id,
-        description: item.display_name,
-        structured_formatting: {
-          main_text: item.name || item.display_name.split(',')[0],
-          secondary_text: item.display_name.split(',').slice(1).join(',').trim()
-        },
-        lat: parseFloat(item.lat),
-        lon: parseFloat(item.lon)
-      }))
-      
+
+      // Filtrar solo tipos relevantes
+      const relevantTypes = ['city', 'town', 'village', 'suburb', 'neighbourhood', 'road', 'house', 'residential', 'street', 'municipality', 'county', 'state', 'postcode']
+      const filtered = data.filter((item: any) => {
+        const type = (item.type || item.class || '').toLowerCase()
+        const cls = (item.class || '').toLowerCase()
+        return relevantTypes.includes(type) || cls === 'highway' || cls === 'place' || cls === 'boundary' || cls === 'building'
+      })
+
+      const formattedSuggestions: LocationSuggestion[] = (filtered.length > 0 ? filtered : data).slice(0, 5).map((item: any) => {
+        const addr = item.address || {}
+        const mainParts = [
+          addr.road || addr.pedestrian || addr.footway,
+          addr.house_number,
+        ].filter(Boolean)
+        const main = mainParts.length > 0
+          ? mainParts.join(' ')
+          : addr.city || addr.town || addr.village || addr.suburb || item.display_name.split(',')[0]
+        const secondary = [
+          addr.city || addr.town || addr.village || addr.county,
+          addr.state || addr.region,
+          addr.country
+        ].filter(Boolean).join(', ')
+
+        return {
+          place_id: item.place_id,
+          description: item.display_name,
+          structured_formatting: { main_text: main, secondary_text: secondary },
+          lat: parseFloat(item.lat),
+          lon: parseFloat(item.lon),
+          address: addr,
+        }
+      })
+
       setSuggestions(formattedSuggestions)
       setShowSuggestions(true)
     } catch (error) {
@@ -122,11 +138,18 @@ export function LocationInput({
   }
 
   const handleSelectSuggestion = (suggestion: LocationSuggestion) => {
-    let locationLabel = suggestion.structured_formatting.main_text
+    let locationLabel: string
     if (valueFormat === "full") {
-      locationLabel = suggestion.description
+      const addr = suggestion.address || {}
+      const parts = [
+        addr.road || addr.pedestrian,
+        addr.house_number,
+        addr.city || addr.town || addr.village || addr.suburb,
+        addr.state || addr.region,
+        addr.country,
+      ].filter(Boolean)
+      locationLabel = parts.length > 0 ? parts.join(', ') : suggestion.description
     } else {
-      // Construir location con solo provincia/estado y país
       const addr = suggestion.address || {}
       const parts = [
         addr.state || addr.province || addr.region || addr.county,

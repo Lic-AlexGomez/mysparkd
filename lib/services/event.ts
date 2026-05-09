@@ -26,7 +26,7 @@ const withQuery = (base: string, params: Record<string, string | number | boolea
 
 export const eventService = {
   // 1) Events
-  create: (payload: Record<string, unknown>) => {
+  create: async (payload: Record<string, unknown>) => {
     const officialAddress = String(
       payload.officialAddress ??
       payload.address ??
@@ -79,33 +79,124 @@ export const eventService = {
       coverPhotoPublicId: payload.coverPhotoPublicId || undefined,
     }
 
-    return api.post<Event>("/api/events", backendPayload)
+    const response = await api.post<any>("/api/events", backendPayload)
+    // Mapear respuesta del backend
+    return {
+      ...response,
+      eventId: response.id || response.eventId,
+      startsAt: response.eventDate || response.startsAt,
+      officialAddress: response.exactAddress || response.officialAddress,
+    }
   },
 
-  list: (filters?: EventFilters) =>
-    api.get<Event[]>(
-      withQuery("/api/events", {
-        category: filters?.category,
-        free: filters?.free,
-        minAge: filters?.minAge,
-        maxAge: filters?.maxAge,
-        lat: filters?.lat,
-        lng: filters?.lng,
-        radiusKm: filters?.radiusKm,
+  list: async (filters?: EventFilters) => {
+    try {
+      console.log('[EventService] Llamando GET /api/activity-feed con filtros:', filters)
+      
+      // Construir query params según documentación del backend
+      // IMPORTANTE: El backend usa type=MEETUP para eventos grupales (no EVENT)
+      const queryParams: Record<string, string | number | boolean> = {
+        type: 'MEETUP' // Eventos grupales en el backend se llaman MEETUP
+      }
+      
+      if (filters?.category) queryParams.eventCategory = filters.category
+      if (filters?.free !== undefined) queryParams.free = filters.free
+      if (filters?.minAge) queryParams.minAge = filters.minAge
+      if (filters?.maxAge) queryParams.maxAge = filters.maxAge
+      if (filters?.lat) queryParams.lat = filters.lat
+      if (filters?.lng) queryParams.lng = filters.lng
+      if (filters?.radiusKm) queryParams.radiusKm = filters.radiusKm
+      
+      console.log('[EventService] Query params:', queryParams)
+      const response = await api.get<any[]>(withQuery("/api/activity-feed", queryParams))
+      console.log('[EventService] Respuesta recibida:', response)
+      
+      // Si la respuesta no es un array, devolver array vacío
+      if (!Array.isArray(response)) {
+        console.warn('[EventService] La respuesta no es un array:', response)
+        return []
+      }
+      
+      // Mapear UnifiedFeedItemDTO del backend a Event del frontend
+      return response
+        .filter((item: any) => item.type === 'MEETUP') // Filtrar solo eventos (MEETUP en el backend)
+        .map((item: any) => {
+          try {
+            return {
+              eventId: item.id,
+              startsAt: item.dateTime,
+              title: item.title || 'Sin título',
+              description: item.description || '',
+              category: item.category,
+              status: item.status || 'OPEN',
+              free: item.free ?? true,
+              price: item.price,
+              minGuests: item.minGuests || 1,
+              maxGuests: item.maxGuests || 0,
+              currentApprovedCount: item.currentApprovedCount || 0,
+              zone: item.locationZone,
+              coverPhotoUrl: item.coverPhotoUrl,
+              creatorId: item.creatorId,
+              creatorUsername: item.creatorUsername,
+              creatorProfilePictureUrl: item.creatorPhotoUrl,
+              creatorReputation: item.creatorReputation,
+              full: item.full ?? false,
+            }
+          } catch (mapError) {
+            console.error('[EventService] Error mapeando item:', item, mapError)
+            return null
+          }
+        })
+        .filter(Boolean) // Filtrar items null
+    } catch (error: any) {
+      console.error('[EventService] Error en list():', {
+        message: error?.message,
+        status: error?.status,
+        details: error?.details,
+        stack: error?.stack
       })
-    ),
+      throw error
+    }
+  },
 
-  getById: (eventId: string) =>
-    api.get<Event>(`/api/events/${eventId}`),
+  getById: async (eventId: string) => {
+    const response = await api.get<any>(`/api/events/${eventId}`)
+    // Mapear EventResponseDTO del backend a Event del frontend
+    return {
+      ...response,
+      eventId: response.id || response.eventId,
+      startsAt: response.eventDate || response.startsAt,
+      officialAddress: response.exactAddress || response.officialAddress,
+    }
+  },
 
-  myCreated: () =>
-    api.get<Event[]>("/api/events/me/created"),
+  myCreated: async () => {
+    const response = await api.get<any[]>("/api/events/me/created")
+    return response.map((item: any) => ({
+      ...item,
+      eventId: item.id || item.eventId,
+      startsAt: item.eventDate || item.startsAt,
+    }))
+  },
 
-  myParticipating: () =>
-    api.get<Event[]>("/api/events/me/participating"),
+  myParticipating: async () => {
+    const response = await api.get<any[]>("/api/events/me/participating")
+    return response.map((item: any) => ({
+      ...item,
+      eventId: item.id || item.eventId,
+      startsAt: item.eventDate || item.startsAt,
+    }))
+  },
 
-  update: (eventId: string, payload: Record<string, unknown>) =>
-    api.put<Event>(`/api/events/${eventId}`, payload),
+  update: async (eventId: string, payload: Record<string, unknown>) => {
+    const response = await api.put<any>(`/api/events/${eventId}`, payload)
+    return {
+      ...response,
+      eventId: response.id || response.eventId,
+      startsAt: response.eventDate || response.startsAt,
+      officialAddress: response.exactAddress || response.officialAddress,
+    }
+  },
 
   remove: (eventId: string) =>
     api.delete<void>(`/api/events/${eventId}`),
@@ -238,14 +329,14 @@ export const eventService = {
   setOfficialAddress: (eventId: string, officialAddress: string) =>
     api.put<Event>(`/api/events/${eventId}`, { officialAddress }),
 
-  shareAddress: (eventId: string, address: string) =>
-    api.post<{
-      matched?: boolean
-      requiresUpdate?: boolean
-      message?: string
-      officialAddress?: string
-      sharedAddress?: string
-    }>(`/api/events/${eventId}/group/share-address`, { address }),
+  // PUT /api/events/{eventId}/group/location — actualizar ubicación del evento (admin, máx 2 veces)
+  updateLocation: (eventId: string, payload: {
+    zone: string
+    exactAddress: string
+    latitude: number
+    longitude: number
+  }) =>
+    api.put<EventGroupMessage>(`/api/events/${eventId}/group/location`, payload),
 
   // Reuse existing backend upload endpoint for media
   uploadMedia: async (file: File): Promise<{ mediaUrl: string; mediaPublicId: string }> => {

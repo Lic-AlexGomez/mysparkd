@@ -2,21 +2,60 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Newspaper, Zap, Calendar, MessageCircle, User } from "lucide-react"
+import {
+  Newspaper,
+  Zap,
+  Calendar,
+  CalendarDays,
+  MessageCircle,
+  User,
+  LayoutList,
+  Clapperboard,
+  Users,
+  Activity,
+  Heart,
+  ThumbsUp,
+  Clock,
+  Crown,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useUnreadChats } from "@/hooks/use-unread-chats"
+import { useFeatureFlags } from "@/hooks/use-feature-flags"
+import { useI18n } from "@/lib/i18n"
+import { useExperienceMode, shouldShowNavItem } from "@/hooks/use-experience-mode"
 
 const navItems = [
-  { href: "/feed",     label: "Feed",    icon: Newspaper },
-  { href: "/swipes",   label: "Swipes",  icon: Zap },
-  { href: "/fastdate", label: "Citas",   icon: Calendar },
-  { href: "/chat",     label: "Chat",    icon: MessageCircle },
-  { href: "/profile",  label: "Perfil",  icon: User },
+  // SOCIAL items
+  { href: "/feed", labelKey: "bottomNav.feed", icon: Newspaper, modes: ['SOCIAL', 'BOTH'] },
+  { href: "/stories", labelKey: "bottomNav.stories", icon: Clapperboard, modes: ['SOCIAL', 'BOTH'] },
+  { href: "/groups", labelKey: "bottomNav.groups", icon: Users, modes: ['SOCIAL', 'BOTH'] },
+  { href: "/events", labelKey: "bottomNav.events", icon: CalendarDays, modes: ['SOCIAL', 'BOTH'] },
+  
+  // DATING items
+  { href: "/swipes", labelKey: "bottomNav.swipes", icon: Zap, modes: ['DATING', 'BOTH'] },
+  { href: "/matches", labelKey: "bottomNav.matches", icon: Heart, modes: ['DATING', 'BOTH'] },
+  { href: "/likes", labelKey: "bottomNav.likes", icon: ThumbsUp, modes: ['DATING', 'BOTH'] },
+  { href: "/fastdate", labelKey: "bottomNav.fastdate", icon: Clock, modes: ['DATING', 'BOTH'] },
+  
+  // Common
+  { href: "/chat", labelKey: "bottomNav.chat", icon: MessageCircle, modes: ['SOCIAL', 'DATING', 'BOTH'] },
+  { href: "/profile", labelKey: "bottomNav.profile", icon: User, modes: ['SOCIAL', 'DATING', 'BOTH'] },
 ]
 
 export function BottomNav() {
   const pathname = usePathname()
   const unreadChats = useUnreadChats()
+  const features = useFeatureFlags()
+  const { t } = useI18n()
+  const experienceMode = useExperienceMode()
+
+  const visibleNavItems = navItems.filter((item) => {
+    if (item.href === "/trello" && !features.trelloPage) return false
+    if (item.href === "/stories" && !features.storiesPage) return false
+    if (item.href === "/groups" && !features.groupsPage) return false
+    if (!item.modes.includes(experienceMode)) return false
+    return true
+  })
 
   if (pathname.startsWith('/chat/')) return null
 

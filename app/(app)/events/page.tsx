@@ -15,6 +15,7 @@ import { CalendarDays, Link2, Loader2, MapPin, Plus, ShieldCheck, SlidersHorizon
 import type { Event } from "@/lib/types"
 import { toast } from "sonner"
 import { useI18n } from "@/lib/i18n"
+import { useAuth } from "@/lib/auth-context"
 import { FastDateSection } from "@/components/events/fast-date-section"
 
 type EventView = Event & {
@@ -88,9 +89,11 @@ const toOffsetDateTimeApi = (date: Date) => {
 
 export default function EventsPage() {
   const { te } = useI18n()
+  const { user } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = useState(false)
+  const [loadError, setLoadError] = useState(false)
   const [items, setItems] = useState<EventView[]>([])
   const [mainTab, setMainTab] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -110,27 +113,35 @@ export default function EventsPage() {
     title: "",
     description: "",
     category: "OTHER",
-    free: true,
-    price: "",
-    minGuests: "",
+    startsAtDate: "",
+    startsAtTime: "",
     maxGuests: "",
-    minAge: "18",
-    maxAge: "99",
-    startsAt: "",
-    endsAt: "",
     officialAddress: "",
   })
 
   const loadEvents = async () => {
     setIsLoading(true)
+    setLoadError(false)
     try {
-      const rows = await eventService.list({
-        category: category !== "ALL" ? (category as any) : undefined,
-        free: freeOnly === "ALL" ? undefined : freeOnly === "TRUE",
-      })
+      console.log('[Events] Cargando eventos...')
+      const rows = await eventService.list({})
+      console.log('[Events] Eventos recibidos:', rows)
       setItems((Array.isArray(rows) ? rows : []).map(normalizeEvent))
     } catch (error: any) {
-      toast.error(error?.message || te("No se pudieron cargar los eventos", "Could not load events"))
+      console.error('[Events] Error cargando eventos:', {
+        message: error?.message,
+        status: error?.status,
+        details: error?.details
+      })
+      
+      // Si es error 500, mostrar mensaje específico
+      if (error?.status === 500) {
+        toast.error('El servidor tiene un problema. Puede que no haya eventos creados aún o haya un error en la base de datos.')
+      } else {
+        toast.error(error?.message || 'Error al cargar eventos')
+      }
+      
+      setLoadError(true)
       setItems([])
     } finally {
       setIsLoading(false)
@@ -211,14 +222,9 @@ export default function EventsPage() {
       title: "",
       description: "",
       category: "OTHER",
-      free: true,
-      price: "",
-      minGuests: "",
+      startsAtDate: "",
+      startsAtTime: "",
       maxGuests: "",
-      minAge: "18",
-      maxAge: "99",
-      startsAt: "",
-      endsAt: "",
       officialAddress: "",
     })
   }
@@ -226,119 +232,59 @@ export default function EventsPage() {
   const handleCreateEvent = async () => {
     const title = createForm.title.trim()
     const officialAddress = createForm.officialAddress.trim()
+    
     if (!title) {
       toast.error(te("El título es obligatorio", "Title is required"))
       return
     }
+    if (!createForm.startsAtDate || !createForm.startsAtTime) {
+      toast.error(te("La fecha y hora son obligatorias", "Date and time are required"))
+      return
+    }
     if (!officialAddress) {
-      toast.error(te("La dirección oficial es obligatoria", "Official address is required"))
+      toast.error(te("La dirección es obligatoria", "Address is required"))
       return
     }
 
-    const startsDate = parseLocalDateTime(createForm.startsAt)
-    const endsDate = parseLocalDateTime(createForm.endsAt)
-    const now = Date.now()
-
+    const startsDate = parseLocalDateTime(`${createForm.startsAtDate}T${createForm.startsAtTime}`)
     if (!startsDate) {
-      toast.error(te("La fecha de inicio es obligatoria", "Start date is required"))
+      toast.error(te("Fecha inválida", "Invalid date"))
       return
     }
-    if (startsDate.getTime() <= now + 60_000) {
-      toast.error(
-        te(
-          "La fecha de inicio debe ser al menos 1 minuto en el futuro",
-          "Start date must be at least 1 minute in the future"
-        )
-      )
-      return
-    }
-    if (createForm.endsAt && !endsDate) {
-      toast.error(te("La fecha de fin no es válida", "End date is not valid"))
-      return
-    }
-    if (startsDate && endsDate && endsDate <= startsDate) {
-      toast.error(te("La fecha de fin debe ser mayor que la de inicio", "End time must be after start time"))
+    
+    if (startsDate.getTime() <= Date.now() + 60_000) {
+      toast.error(te("La fecha debe ser al menos 1 minuto en el futuro", "Date must be at least 1 minute in the future"))
       return
     }
 
     setIsCreating(true)
     try {
-      const maxGuestsValue = Number(createForm.maxGuests || 0)
-      const minGuestsValue = Number(createForm.minGuests || 1)
-      const minAgeValue = Number(createForm.minAge || 18)
-      const maxAgeValue = Number(createForm.maxAge || 99)
-      const priceValue = !createForm.free ? Number(createForm.price || 0) : undefined
-      const basePayload: Record<string, unknown> = {
+      const payload: Record<string, unknown> = {
         title,
         description: createForm.description.trim() || undefined,
-        category: createForm.category as any,
-        free: createForm.free,
-        price: priceValue,
-        minGuests: minGuestsValue > 0 ? minGuestsValue : 1,
-        maxGuests: maxGuestsValue > 0 ? maxGuestsValue : undefined,
-        minAge: minAgeValue,
-        maxAge: maxAgeValue,
+        category: createForm.category,
+        free: true,
+        maxGuests: Number(createForm.maxGuests || 0) || undefined,
+        minGuests: 1,
+        minAge: 18,
+        maxAge: 99,
         startsAt: toLocalDateTimeApi(startsDate),
-        startAt: toLocalDateTimeApi(startsDate),
-        startDateTime: toLocalDateTimeApi(startsDate),
-        dateTime: toLocalDateTimeApi(startsDate),
-        endsAt: endsDate ? toLocalDateTimeApi(endsDate) : undefined,
-        endAt: endsDate ? toLocalDateTimeApi(endsDate) : undefined,
-        endDateTime: endsDate ? toLocalDateTimeApi(endsDate) : undefined,
         officialAddress,
       }
-      let created: any
-      try {
-        created = await eventService.create(basePayload)
-      } catch (error: any) {
-        const message = String(error?.message || "").toLowerCase()
-        const looksLikeFutureValidation =
-          message.includes("future") ||
-          message.includes("futura") ||
-          message.includes("must be")
-
-        if (!looksLikeFutureValidation) {
-          throw error
-        }
-
-        const offsetPayload: Record<string, unknown> = {
-          ...basePayload,
-          startsAt: toOffsetDateTimeApi(startsDate),
-          startAt: toOffsetDateTimeApi(startsDate),
-          startDateTime: toOffsetDateTimeApi(startsDate),
-          dateTime: toOffsetDateTimeApi(startsDate),
-          endsAt: endsDate ? toOffsetDateTimeApi(endsDate) : undefined,
-          endAt: endsDate ? toOffsetDateTimeApi(endsDate) : undefined,
-          endDateTime: endsDate ? toOffsetDateTimeApi(endsDate) : undefined,
-        }
-        try {
-          created = await eventService.create(offsetPayload)
-        } catch {
-          const utcPayload: Record<string, unknown> = {
-            ...basePayload,
-            startsAt: toUtcDateTimeApi(startsDate),
-            startAt: toUtcDateTimeApi(startsDate),
-            startDateTime: toUtcDateTimeApi(startsDate),
-            dateTime: toUtcDateTimeApi(startsDate),
-            endsAt: endsDate ? toUtcDateTimeApi(endsDate) : undefined,
-            endAt: endsDate ? toUtcDateTimeApi(endsDate) : undefined,
-            endDateTime: endsDate ? toUtcDateTimeApi(endsDate) : undefined,
-          }
-          created = await eventService.create(utcPayload)
-        }
-      }
+      
+      const created = await eventService.create(payload)
       const createdId = String((created as any)?.eventId || (created as any)?.id || "")
-      toast.success(te("Evento creado", "Event created"))
+      
+      toast.success(te("¡Evento creado! Ahora configura la ubicación en Settings", "Event created! Now set location in Settings"))
       setCreateOpen(false)
       resetCreateForm()
       await loadEvents()
+      
       if (createdId) {
-        router.push(`/events/${createdId}`)
+        router.push(`/events/${createdId}?tab=settings`)
       }
     } catch (error: any) {
-      const details = String(error?.details || "").trim()
-      const msg = String(error?.message || "").trim()
-      toast.error(details ? `${msg} — ${details}` : (msg || te("No se pudo crear el evento", "Could not create event")))
+      toast.error(error?.message || te("No se pudo crear el evento", "Could not create event"))
     } finally {
       setIsCreating(false)
     }
@@ -396,174 +342,109 @@ export default function EventsPage() {
             <DialogHeader>
               <DialogTitle>{te("Crear evento", "Create event")}</DialogTitle>
               <DialogDescription>
-                {te("Completa los datos del meetup y guarda.", "Fill meetup details and save.")}
+                {te("Solo 4 campos básicos. Después configuras la ubicación.", "Just 4 basic fields. Then set location.")}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
+              {/* Título */}
               <div>
                 <label className="text-sm font-medium">{te("Título", "Title")} *</label>
                 <Input
                   className="mt-1"
                   value={createForm.title}
                   onChange={(e) => setCreateForm((prev) => ({ ...prev, title: e.target.value }))}
-                  placeholder={te("Ej: Meetup de networking", "E.g. Networking meetup")}
+                  placeholder={te("Ej: Fiesta en la playa", "E.g. Beach party")}
                   maxLength={120}
                 />
               </div>
+              
+              {/* Descripción */}
               <div>
-                <label className="text-sm font-medium">{te("Descripción", "Description")}</label>
+                <label className="text-sm font-medium">{te("Descripción", "Description")} ({te("opcional", "optional")})</label>
                 <Textarea
                   className="mt-1 min-h-20 resize-none"
                   value={createForm.description}
                   onChange={(e) => setCreateForm((prev) => ({ ...prev, description: e.target.value }))}
-                  placeholder={te("Describe tu evento", "Describe your event")}
-                  maxLength={800}
+                  placeholder={te("Describe tu evento...", "Describe your event...")}
+                  maxLength={500}
                 />
               </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="text-sm font-medium">{te("Categoría", "Category")}</label>
-                  <Select value={createForm.category} onValueChange={(value) => setCreateForm((prev) => ({ ...prev, category: value }))}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {eventService.enums.categories.map((cat) => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">{te("Tipo", "Type")}</label>
-                  <Select
-                    value={createForm.free ? "TRUE" : "FALSE"}
-                    onValueChange={(value) => setCreateForm((prev) => ({ ...prev, free: value === "TRUE" }))}
-                  >
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="TRUE">{te("Gratis", "Free")}</SelectItem>
-                      <SelectItem value="FALSE">{te("Pago", "Paid")}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="text-sm font-medium">{te("Inicio", "Start")}</label>
-                  <Input
-                    type="datetime-local"
-                    className="mt-1"
-                    value={createForm.startsAt}
-                    onChange={(e) => setCreateForm((prev) => ({ ...prev, startsAt: e.target.value }))}
-                    min={toLocalDateTimeInput(new Date(Date.now() + 60_000))}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">{te("Fin", "End")}</label>
-                  <Input
-                    type="datetime-local"
-                    className="mt-1"
-                    value={createForm.endsAt}
-                    onChange={(e) => setCreateForm((prev) => ({ ...prev, endsAt: e.target.value }))}
-                    min={createForm.startsAt || toLocalDateTimeInput(new Date(Date.now() + 120_000))}
-                  />
-                </div>
-              </div>
+              
+              {/* Categoría */}
               <div>
-                <label className="text-sm font-medium">{te("Cupos máximos", "Max guests")}</label>
+                <label className="text-sm font-medium">{te("Categoría", "Category")}</label>
+                <Select value={createForm.category} onValueChange={(value) => setCreateForm((prev) => ({ ...prev, category: value }))}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {eventService.enums.categories.map((cat) => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Fecha y hora */}
+              <div>
+                <label className="text-sm font-medium">{te("Cuándo", "When")} *</label>
+                <div className="grid grid-cols-2 gap-2 mt-1">
+                  <Input
+                    type="date"
+                    value={createForm.startsAtDate}
+                    onChange={(e) => setCreateForm((prev) => ({ ...prev, startsAtDate: e.target.value }))}
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                  <Input
+                    type="time"
+                    value={createForm.startsAtTime}
+                    onChange={(e) => setCreateForm((prev) => ({ ...prev, startsAtTime: e.target.value }))}
+                  />
+                </div>
+              </div>
+              
+              {/* Cupos */}
+              <div>
+                <label className="text-sm font-medium">{te("Cupos máximos", "Max guests")} ({te("opcional", "optional")})</label>
                 <Input
                   type="number"
                   min={1}
                   className="mt-1"
                   value={createForm.maxGuests}
                   onChange={(e) => setCreateForm((prev) => ({ ...prev, maxGuests: e.target.value }))}
-                  placeholder={te("Opcional (si vacío = ilimitado)", "Optional (empty = unlimited)")}
+                  placeholder={te("Vacío = ilimitado", "Empty = unlimited")}
                 />
               </div>
-              {!createForm.free && (
-                <div>
-                  <label className="text-sm font-medium">{te("Precio", "Price")}</label>
-                  <Input
-                    type="number"
-                    min={0}
-                    step={0.01}
-                    className="mt-1"
-                    value={createForm.price}
-                    onChange={(e) => setCreateForm((prev) => ({ ...prev, price: e.target.value }))}
-                    placeholder="0.00"
-                  />
-                </div>
-              )}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-sm font-medium">{te("Cupos mínimos", "Min guests")}</label>
-                  <Input
-                    type="number"
-                    min={1}
-                    className="mt-1"
-                    value={createForm.minGuests}
-                    onChange={(e) => setCreateForm((prev) => ({ ...prev, minGuests: e.target.value }))}
-                    placeholder="1"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">{te("Cupos máximos", "Max guests")}</label>
-                  <Input
-                    type="number"
-                    min={1}
-                    className="mt-1"
-                    value={createForm.maxGuests}
-                    onChange={(e) => setCreateForm((prev) => ({ ...prev, maxGuests: e.target.value }))}
-                    placeholder={te("Ilimitado", "Unlimited")}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-sm font-medium">{te("Edad mínima", "Min age")}</label>
-                  <Input
-                    type="number"
-                    min={18}
-                    max={99}
-                    className="mt-1"
-                    value={createForm.minAge}
-                    onChange={(e) => setCreateForm((prev) => ({ ...prev, minAge: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">{te("Edad máxima", "Max age")}</label>
-                  <Input
-                    type="number"
-                    min={18}
-                    max={99}
-                    className="mt-1"
-                    value={createForm.maxAge}
-                    onChange={(e) => setCreateForm((prev) => ({ ...prev, maxAge: e.target.value }))}
-                  />
-                </div>
-              </div>
+              
+              {/* Dirección */}
               <div>
-                <label className="text-sm font-medium">{te("Dirección oficial meetup", "Official meetup address")} *</label>
+                <label className="text-sm font-medium">{te("Dirección", "Address")} *</label>
                 <LocationInput
                   className="mt-1"
                   value={createForm.officialAddress}
                   onChange={(value) => setCreateForm((prev) => ({ ...prev, officialAddress: value }))}
-                  placeholder={te("Dirección exacta para validación de seguridad", "Exact address for safety validation")}
+                  placeholder={te("Escribe la dirección del evento", "Type event address")}
                   valueFormat="full"
                 />
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {te("Escribe al menos 3 caracteres para ver sugerencias", "Type at least 3 characters to see suggestions")}
+                  {te("Después podrás publicarla en el chat desde Settings", "You can publish it in chat later from Settings")}
                 </p>
               </div>
-              <div className="flex gap-2">
+              
+              {/* Botones */}
+              <div className="flex gap-2 pt-2">
                 <Button type="button" variant="outline" className="h-10 flex-1" onClick={() => setCreateOpen(false)}>
                   {te("Cancelar", "Cancel")}
                 </Button>
                 <Button type="button" className="h-10 flex-1" onClick={handleCreateEvent} disabled={isCreating}>
-                  {isCreating ? te("Creando...", "Creating...") : te("Crear evento", "Create event")}
+                  {isCreating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      {te("Creando...", "Creating...")}
+                    </>
+                  ) : (
+                    te("Crear evento", "Create event")
+                  )}
                 </Button>
               </div>
             </div>
@@ -689,6 +570,26 @@ export default function EventsPage() {
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
+      ) : loadError ? (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-10 text-center space-y-3">
+          <p className="text-sm font-medium text-foreground">
+            {te("Error al cargar eventos", "Error loading events")}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {te(
+              "El servidor está teniendo problemas. Esto puede ocurrir si no hay eventos creados aún o si hay un error en la base de datos. Intenta crear un evento nuevo o contacta al administrador.",
+              "The server is having issues. This may happen if there are no events created yet or if there's a database error. Try creating a new event or contact the administrator."
+            )}
+          </p>
+          <div className="flex gap-2 justify-center">
+            <Button variant="outline" size="sm" onClick={() => void loadEvents()}>
+              {te("Reintentar", "Retry")}
+            </Button>
+            <Button size="sm" onClick={() => setCreateOpen(true)}>
+              {te("Crear primer evento", "Create first event")}
+            </Button>
+          </div>
+        </div>
       ) : filtered.length === 0 ? (
         <div className="rounded-xl border border-border p-10 text-center text-muted-foreground">
           {te("No hay eventos con esos filtros.", "No events found with those filters.")}
@@ -723,7 +624,8 @@ export default function EventsPage() {
               Boolean((event as any).isMember) ||
               myRole === "ADMIN" ||
               myRole === "MODERATOR" ||
-              myRole === "GUEST"
+              myRole === "GUEST" ||
+              String((event as any).creatorId || "") === (user?.userId ?? "__")
             const showJoinButton = !alreadyInEvent
             const actionCols = canManageMeetup
               ? showJoinButton

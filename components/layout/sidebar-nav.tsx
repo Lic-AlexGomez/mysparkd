@@ -12,7 +12,6 @@ import {
   ThumbsUp,
   LayoutDashboard,
   ShieldCheck,
-  Users,
   Crown,
   LayoutList,
 } from "lucide-react"
@@ -20,16 +19,23 @@ import { cn } from "@/lib/utils"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
 import { useUnreadChats } from "@/hooks/use-unread-chats"
 import { useI18n } from "@/lib/i18n"
+import { useExperienceMode, shouldShowNavItem } from "@/hooks/use-experience-mode"
 
 const navItems = [
-  { href: "/feed", labelKey: "sidebar.feed", icon: Newspaper },
-  { href: "/swipes", labelKey: "sidebar.swipes", icon: Zap },
-  { href: "/events", labelKey: "sidebar.events", icon: CalendarDays },
-  { href: "/matches", labelKey: "sidebar.matches", icon: Heart },
-  { href: "/chat", labelKey: "sidebar.chat", icon: MessageCircle },
-  { href: "/trello", labelKey: "sidebar.trello", icon: LayoutList },
-  { href: "/profile", labelKey: "sidebar.profile", icon: User },
-  { href: "/premium", labelKey: "sidebar.premium", icon: Crown },
+  // SOCIAL items
+  { href: "/feed", labelKey: "sidebar.feed", icon: Newspaper, modes: ['SOCIAL', 'BOTH'] },
+  { href: "/events", labelKey: "sidebar.events", icon: CalendarDays, modes: ['SOCIAL', 'BOTH'] },
+  
+  // DATING items
+  { href: "/swipes", labelKey: "sidebar.swipes", icon: Zap, modes: ['DATING', 'BOTH'] },
+  { href: "/matches", labelKey: "sidebar.matches", icon: Heart, modes: ['DATING', 'BOTH'] },
+  { href: "/likes", labelKey: "sidebar.likes", icon: ThumbsUp, modes: ['DATING', 'BOTH'] },
+  
+  // Common items
+  { href: "/chat", labelKey: "sidebar.chat", icon: MessageCircle, modes: ['SOCIAL', 'DATING', 'BOTH'] },
+  { href: "/trello", labelKey: "sidebar.trello", icon: LayoutList, modes: ['SOCIAL', 'DATING', 'BOTH'] },
+  { href: "/profile", labelKey: "sidebar.profile", icon: User, modes: ['SOCIAL', 'DATING', 'BOTH'] },
+  { href: "/premium", labelKey: "sidebar.premium", icon: Crown, modes: ['DATING', 'BOTH'] },
 ]
 
 export function SidebarNav() {
@@ -37,10 +43,14 @@ export function SidebarNav() {
   const features = useFeatureFlags()
   const unreadChats = useUnreadChats()
   const { t } = useI18n()
+  const experienceMode = useExperienceMode()
 
   const filteredNavItems = navItems.filter(item => {
     if (item.href === '/search' && !features.searchPage) return false
     if (item.href === '/trello' && !features.trelloPage) return false
+    if (item.href === '/stories' && !features.storiesPage) return false
+    if (item.href === '/groups' && !features.groupsPage) return false
+    if (!item.modes.includes(experienceMode)) return false
     return true
   })
 

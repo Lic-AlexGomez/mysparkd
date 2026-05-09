@@ -243,11 +243,29 @@ const TRANSLATIONS: Record<string, Record<SupportedLanguage, string>> = {
   "sidebar.premium": {
     en: "Premium", zh: "高级版", hi: "प्रीमियम", es: "Premium", fr: "Premium", ar: "بريميوم", bn: "প্রিমিয়াম", pt: "Premium", ru: "Премиум", ur: "پریمیم",
   },
+  "sidebar.stories": {
+    en: "Stories", zh: "动态", hi: "स्टोरीज़", es: "Historias", fr: "Stories", ar: "القصص", bn: "স্টোরিজ", pt: "Stories", ru: "Истории", ur: "اسٹوریز",
+  },
+  "sidebar.activity": {
+    en: "Activity", zh: "活动", hi: "गतिविधि", es: "Actividad", fr: "Activité", ar: "النشاط", bn: "কার্যকলাপ", pt: "Atividade", ru: "Активность", ur: "سرگرمی",
+  },
+  "sidebar.discover": {
+    en: "Discover", zh: "发现", hi: "खोजें", es: "Descubrir", fr: "Découvrir", ar: "اكتشف", bn: "আবিষ্কার", pt: "Descobrir", ru: "Открыть", ur: "دریافت کریں",
+  },
+  "sidebar.fastdate": {
+    en: "Fast Date", zh: "快速约会", hi: "फास्ट डेट", es: "Cita Rápida", fr: "Date rapide", ar: "موعد سريع", bn: "ফাস্ট ডেট", pt: "Encontro Rápido", ru: "Быстрое свидание", ur: "فاسٹ ڈیٹ",
+  },
+  "sidebar.dateCards": {
+    en: "Date Cards", zh: "约会卡", hi: "डेट कार्ड्स", es: "Tarjetas de Cita", fr: "Cartes de date", ar: "بطاقات المواعيد", bn: "ডেট কার্ডস", pt: "Cartões de Encontro", ru: "Карточки свиданий", ur: "ڈیٹ کارڈز",
+  },
   "sidebar.adminPanel": {
     en: "Admin Panel", zh: "管理面板", hi: "एडमिन पैनल", es: "Panel Admin", fr: "Panneau admin", ar: "لوحة الإدارة", bn: "অ্যাডমিন প্যানেল", pt: "Painel Admin", ru: "Админ-панель", ur: "ایڈمن پینل",
   },
   "sidebar.managerPanel": {
     en: "Manager Panel", zh: "管理者面板", hi: "मैनेजर पैनल", es: "Panel Manager", fr: "Panneau manager", ar: "لوحة المدير", bn: "ম্যানেজার প্যানেল", pt: "Painel Manager", ru: "Панель менеджера", ur: "منیجر پینل",
+  },
+  "sidebar.activityFeed": {
+    en: "Activities", zh: "活动", hi: "गतिविधियां", es: "Actividades", fr: "Activités", ar: "الأنشطة", bn: "কার্যক্রম", pt: "Atividades", ru: "Активности", ur: "سرگرمیاں",
   },
   "bottomNav.feed": {
     en: "Feed", zh: "动态", hi: "फ़ीड", es: "Feed", fr: "Fil", ar: "الخلاصة", bn: "ফিড", pt: "Feed", ru: "Лента", ur: "فیڈ",
@@ -272,6 +290,21 @@ const TRANSLATIONS: Record<string, Record<SupportedLanguage, string>> = {
   },
   "bottomNav.profile": {
     en: "Profile", zh: "资料", hi: "प्रोफ़ाइल", es: "Perfil", fr: "Profil", ar: "الملف الشخصي", bn: "প্রোফাইল", pt: "Perfil", ru: "Профиль", ur: "پروفائل",
+  },
+  "bottomNav.stories": {
+    en: "Stories", zh: "动态", hi: "स्टोरीज़", es: "Historias", fr: "Stories", ar: "القصص", bn: "স্টোরিজ", pt: "Stories", ru: "Истории", ur: "اسٹوریز",
+  },
+  "bottomNav.discover": {
+    en: "Discover", zh: "发现", hi: "खोजें", es: "Descubrir", fr: "Découvrir", ar: "اكتشف", bn: "আবিষ্কার", pt: "Descobrir", ru: "Открыть", ur: "دریافت کریں",
+  },
+  "bottomNav.matches": {
+    en: "Matches", zh: "匹配", hi: "मैचेस", es: "Matches", fr: "Matches", ar: "المطابقات", bn: "ম্যাচ", pt: "Matches", ru: "Совпадения", ur: "میچز",
+  },
+  "bottomNav.likes": {
+    en: "Likes", zh: "点赞", hi: "लाइक्स", es: "Likes", fr: "Likes", ar: "الإعجابات", bn: "লাইকস", pt: "Curtidas", ru: "Лайки", ur: "لائکس",
+  },
+  "bottomNav.fastdate": {
+    en: "Fast Date", zh: "快速约会", hi: "फास्ट डेट", es: "Cita Rápida", fr: "Date rapide", ar: "موعد سريع", bn: "ফাস্ট ডেট", pt: "Encontro Rápido", ru: "Быстрое свидание", ur: "فاسٹ ڈیٹ",
   },
   "storiesBar.yourStory": {
     en: "Your story", zh: "你的动态", hi: "आपकी स्टोरी", es: "Tu historia", fr: "Votre story", ar: "قصتك", bn: "আপনার স্টোরি", pt: "Seu story", ru: "Ваша история", ur: "آپ کی اسٹوری",
