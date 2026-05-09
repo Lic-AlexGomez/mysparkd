@@ -216,12 +216,7 @@ export default function RegisterPage() {
           text="Registrarse con Google"
         />
         <div className="mt-4 text-center">
-          <p className="text-xs text-muted-foreground mb-2">
-            ¿Ya tienes código de verificación?{" "}
-            <Link href="/verify-email" className="text-primary hover:text-primary/80 font-medium hover:underline transition-colors">
-              Verificar correo
-            </Link>
-          </p>
+
           <p className="text-sm text-muted-foreground">
             ¿Ya tienes cuenta?{" "}
             <Link href="/login" className="text-primary hover:text-primary/80 font-semibold hover:underline transition-colors">
