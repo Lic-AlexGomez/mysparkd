@@ -244,10 +244,13 @@ export const eventService = {
       api.delete<void>(`/api/events/${eventId}/group/messages/${messageId}`),
   },
 
-  // 3) Reactions in group messages
+  // 3) Reactions in group messages (mismo contrato que reactionService: query params)
   reactions: {
     toggleMessageReaction: (messageId: string, reactionType: ReactionType) =>
-      api.post<void>("/api/likes/toggle", { targetId: messageId, reactionType }),
+      api.post<void>(
+        `/api/likes/toggle?targetId=${encodeURIComponent(messageId)}&reaction=${encodeURIComponent(reactionType)}`,
+        {}
+      ),
     statusByMessage: (messageId: string) =>
       api.get<{ reacted: boolean; reactionType?: ReactionType; total: number }>(`/api/likes/status/${messageId}`),
   },

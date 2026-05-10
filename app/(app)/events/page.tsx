@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { eventService } from "@/lib/services/event"
 import { activityFeedService } from "@/lib/services/activity-feed"
 import type { UnifiedFeedItem } from "@/lib/services/activity-feed"
@@ -78,6 +78,7 @@ import {
 } from "@/lib/services/fastdate"
 import { handleDateCardLimitError } from "@/lib/errors/date-card-limits"
 import { useLocalizedCountryCode } from "@/hooks/use-localized-country-code"
+import { useExperienceMode } from "@/hooks/use-experience-mode"
 import { computeAgeFromDateOfBirth } from "@/lib/utils"
 
 const FD_CATEGORY_LABELS: Record<string, string> = {
@@ -179,6 +180,8 @@ const toUtcDateTimeApi = (date: Date) => {
   return `${iso.slice(0, 16)}Z`
 }
 
+type ExploreFilter = "all" | "meetup" | "fastdate"
+
 const toOffsetDateTimeApi = (date: Date) => {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, "0")
@@ -196,7 +199,9 @@ const toOffsetDateTimeApi = (date: Date) => {
 export default function EventsPage() {
   const { te, language } = useI18n()
   const { user } = useAuth()
+  const experienceMode = useExperienceMode()
   const router = useRouter()
+  const pathname = usePathname()
   const searchParams = useSearchParams()
   const countryCode = useLocalizedCountryCode()
   const [isLoading, setIsLoading] = useState(false)
@@ -212,7 +217,7 @@ export default function EventsPage() {
   const [category, setCategory] = useState<string>("ALL")
   const [freeOnly, setFreeOnly] = useState<string>("ALL")
   /** Meetups vienen de `/api/activity-feed` (solo tipo MEETUP). Fast Date de `fastDateService.getFeed`. */
-  const [contentFilter, setContentFilter] = useState<"all" | "meetup" | "fastdate">("all")
+  const [contentFilter, setContentFilter] = useState<ExploreFilter>("all")
   const [joiningEventId, setJoiningEventId] = useState<string | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
   const [createFlow, setCreateFlow] = useState<"choose" | "meetup" | "fastdate">("choose")
@@ -228,6 +233,9 @@ export default function EventsPage() {
     startsAtTime: "",
     maxGuests: "",
     officialAddress: "",
+    /** Si es false, se envía `free: false` y `price` al backend. */
+    meetupFree: true,
+    meetupPrice: "",
   })
   const [fdForm, setFdForm] = useState({
     title: "",
@@ -388,6 +396,29 @@ export default function EventsPage() {
     if (token) setJoinToken(token)
   }, [searchParams])
 
+  const applyContentFilter = useCallback(
+    (next: ExploreFilter) => {
+      setContentFilter(next)
+      const params = new URLSearchParams(searchParams.toString())
+      if (next === "all") {
+        params.delete("explore")
+      } else {
+        params.set("explore", next)
+      }
+      const qs = params.toString()
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+    },
+    [pathname, router, searchParams]
+  )
+
+  /** Deep links / shared URLs: ?explore=meetup|fastdate|all */
+  useEffect(() => {
+    const v = searchParams.get("explore")
+    if (v === "meetup" || v === "fastdate" || v === "all") {
+      setContentFilter(v)
+    }
+  }, [searchParams])
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return items
@@ -453,6 +484,9 @@ export default function EventsPage() {
 
   const exploreLoading =
     (contentFilter !== "fastdate" && isLoading) || (contentFilter !== "meetup" && fdLoading)
+
+  const showFastDateManageSection =
+    contentFilter !== "meetup" && experienceMode !== "SOCIAL"
 
   const handleJoinByLink = async () => {
     const raw = joinToken.trim()
@@ -520,6 +554,8 @@ export default function EventsPage() {
       startsAtTime: "",
       maxGuests: "",
       officialAddress: "",
+      meetupFree: true,
+      meetupPrice: "",
     })
   }
 
@@ -590,13 +626,29 @@ export default function EventsPage() {
       return
     }
 
+    let free = createForm.meetupFree
+    let price: number | undefined
+    if (!createForm.meetupFree) {
+      const raw = createForm.meetupPrice.trim().replace(",", ".")
+      const n = Number(raw)
+      if (!Number.isFinite(n) || n <= 0) {
+        toast.error(
+          te("Indica un precio mayor que cero para entrada de pago.", "Enter a price greater than zero for paid entry.")
+        )
+        return
+      }
+      free = false
+      price = n
+    }
+
     setIsCreating(true)
     try {
       const payload: Record<string, unknown> = {
         title,
         description: createForm.description.trim() || undefined,
         category: createForm.category,
-        free: true,
+        free,
+        ...(price !== undefined ? { price } : {}),
         maxGuests: Number(createForm.maxGuests || 0) || undefined,
         minGuests: 1,
         minAge: 18,
@@ -764,6 +816,43 @@ export default function EventsPage() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className={FORM_LABEL}>{te("Entrada", "Entry")}</Label>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCreateForm((prev) => ({ ...prev, meetupFree: true, meetupPrice: "" }))}
+                    className={cn(FORM_CHIP_BASE, createForm.meetupFree ? FORM_CHIP_PRIMARY_ON : FORM_CHIP_IDLE)}
+                  >
+                    {te("Gratis", "Free")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCreateForm((prev) => ({ ...prev, meetupFree: false }))}
+                    className={cn(FORM_CHIP_BASE, !createForm.meetupFree ? FORM_CHIP_SECONDARY_ON : FORM_CHIP_IDLE)}
+                  >
+                    {te("De pago", "Paid")}
+                  </button>
+                </div>
+                {!createForm.meetupFree && (
+                  <div className="space-y-1.5 pt-1">
+                    <Label htmlFor="wizard-meetup-price" className={FORM_LABEL}>
+                      {te("Precio por persona", "Price per person")} <span className="text-primary">*</span>
+                    </Label>
+                    <Input
+                      id="wizard-meetup-price"
+                      type="number"
+                      inputMode="decimal"
+                      min={0.01}
+                      step={0.01}
+                      className={FORM_CONTROL_INPUT}
+                      value={createForm.meetupPrice}
+                      onChange={(e) => setCreateForm((prev) => ({ ...prev, meetupPrice: e.target.value }))}
+                      placeholder={te("Ej: 10", "E.g. 10")}
+                    />
+                  </div>
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label className={FORM_LABEL}>
@@ -1123,7 +1212,7 @@ export default function EventsPage() {
         <div className="flex w-full gap-1 rounded-xl border border-border/70 bg-muted/45 p-1 sm:w-auto sm:min-w-[280px]">
           <button
             type="button"
-            onClick={() => setContentFilter("all")}
+            onClick={() => applyContentFilter("all")}
             className={cn(
               "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-all sm:flex-initial",
               contentFilter === "all"
@@ -1136,7 +1225,7 @@ export default function EventsPage() {
           </button>
           <button
             type="button"
-            onClick={() => setContentFilter("meetup")}
+            onClick={() => applyContentFilter("meetup")}
             className={cn(
               "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-all sm:flex-initial",
               contentFilter === "meetup"
@@ -1149,7 +1238,7 @@ export default function EventsPage() {
           </button>
           <button
             type="button"
-            onClick={() => setContentFilter("fastdate")}
+            onClick={() => applyContentFilter("fastdate")}
             className={cn(
               "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-all sm:flex-initial",
               contentFilter === "fastdate"
@@ -1268,7 +1357,7 @@ export default function EventsPage() {
                       setQuery("")
                       setCategory("ALL")
                       setFreeOnly("ALL")
-                      setContentFilter("all")
+                      applyContentFilter("all")
                     }}
                   >
                     {te("Limpiar búsqueda y filtros", "Clear search & filters")}
@@ -1324,7 +1413,7 @@ export default function EventsPage() {
                 <Button
                   size="sm"
                   variant="secondary"
-                  onClick={() => setContentFilter("fastdate")}
+                  onClick={() => applyContentFilter("fastdate")}
                 >
                   Fast Date
                 </Button>
@@ -1404,28 +1493,30 @@ export default function EventsPage() {
         </>
       )}
 
-      <section
-        id="fast-date-section"
-        className="relative mt-12 scroll-mt-8"
-        aria-label={te("Fast Date", "Fast Date")}
-      >
-        <div className="mb-8 flex items-center justify-center gap-3 px-4" aria-hidden>
-          <div className="h-px max-w-[42%] flex-1 bg-gradient-to-r from-transparent to-border/80 dark:to-border/60" />
-          <span className="size-2 shrink-0 rounded-full bg-gradient-to-br from-primary to-secondary shadow-sm ring-4 ring-primary/15 dark:ring-primary/25" />
-          <div className="h-px max-w-[42%] flex-1 bg-gradient-to-l from-transparent to-border/80 dark:to-border/60" />
-        </div>
-        <div className="overflow-hidden rounded-3xl border border-border/50 bg-gradient-to-b from-muted/40 via-background to-background p-4 shadow-sm ring-1 ring-black/[0.03] dark:from-muted/15 dark:via-background dark:to-background dark:ring-white/[0.06] sm:p-6">
-          <FastDateSection
-            hidePublicFeed
-            suppressInlineCreate
-            reloadToken={fastDateReload}
-            onRequestCreate={() => {
-              resetWizardState()
-              setCreateOpen(true)
-            }}
-          />
-        </div>
-      </section>
+      {showFastDateManageSection && (
+        <section
+          id="fast-date-section"
+          className="relative mt-12 scroll-mt-8"
+          aria-label={te("Fast Date", "Fast Date")}
+        >
+          <div className="mb-8 flex items-center justify-center gap-3 px-4" aria-hidden>
+            <div className="h-px max-w-[42%] flex-1 bg-gradient-to-r from-transparent to-border/80 dark:to-border/60" />
+            <span className="size-2 shrink-0 rounded-full bg-gradient-to-br from-primary to-secondary shadow-sm ring-4 ring-primary/15 dark:ring-primary/25" />
+            <div className="h-px max-w-[42%] flex-1 bg-gradient-to-l from-transparent to-border/80 dark:to-border/60" />
+          </div>
+          <div className="overflow-hidden rounded-3xl border border-border/50 bg-gradient-to-b from-muted/40 via-background to-background p-4 shadow-sm ring-1 ring-black/[0.03] dark:from-muted/15 dark:via-background dark:to-background dark:ring-white/[0.06] sm:p-6">
+            <FastDateSection
+              hidePublicFeed
+              suppressInlineCreate
+              reloadToken={fastDateReload}
+              onRequestCreate={() => {
+                resetWizardState()
+                setCreateOpen(true)
+              }}
+            />
+          </div>
+        </section>
+      )}
 
       <Dialog open={!!interestCard} onOpenChange={(open) => !open && setInterestCard(null)}>
         <DialogContent className="max-w-sm border-border bg-card">

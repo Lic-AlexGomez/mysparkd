@@ -402,7 +402,7 @@ export function FastDateSection(props?: FastDateSectionProps) {
           )}
         </TabsContent>
 
-        <TabsContent value="sent" className="space-y-2">
+        <TabsContent value="sent">
           {sentInterests.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-border/70 bg-muted/20 px-6 py-16">
               <div className="flex size-14 items-center justify-center rounded-2xl bg-muted/50 ring-1 ring-border/60">
@@ -421,9 +421,11 @@ export function FastDateSection(props?: FastDateSectionProps) {
               </div>
             </div>
           ) : (
-            sentInterests.map((interest) => (
-              <FastDateSentInterestCard key={interest.interestId} interest={interest} router={router} te={te} />
-            ))
+            <div className="mx-auto grid w-full max-w-xl grid-cols-1 gap-2 sm:max-w-3xl sm:grid-cols-2">
+              {sentInterests.map((interest) => (
+                <FastDateSentInterestCard key={interest.interestId} interest={interest} router={router} te={te} />
+              ))}
+            </div>
           )}
         </TabsContent>
       </Tabs>
@@ -552,7 +554,7 @@ function FastDateSentInterestCard({
   te: (es: string, en: string) => string
 }) {
   return (
-    <Card className="gap-0 py-0 overflow-hidden border-border/55 bg-gradient-to-br from-card via-card to-primary/[0.05] shadow-sm ring-1 ring-white/[0.05] dark:to-primary/[0.07] dark:ring-white/[0.07]">
+    <Card className="min-w-0 gap-0 py-0 overflow-hidden border-border/55 bg-gradient-to-br from-card via-card to-primary/[0.05] shadow-sm ring-1 ring-white/[0.05] dark:to-primary/[0.07] dark:ring-white/[0.07]">
       <CardContent className="p-0">
         <div className="flex gap-2 p-2.5 sm:gap-2.5 sm:p-3">
           <button
