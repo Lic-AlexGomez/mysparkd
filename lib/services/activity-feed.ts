@@ -14,6 +14,7 @@ export interface UnifiedFeedItem {
   createdAt?: string
   creatorId?: string
   creatorUsername?: string
+  /** Foto del creador (feed unificado). Se mapea a `creatorProfilePictureUrl` en la vista de evento. */
   creatorPhotoUrl?: string
   creatorReputation?: number
   // DATE only (date cards)
@@ -33,6 +34,8 @@ export interface UnifiedFeedItem {
   maxGuests?: number
   currentApprovedCount?: number
   full?: boolean
+  officialAddress?: string
+  zone?: string
 }
 
 export interface ActivityFeedFilter {

@@ -153,6 +153,16 @@ export interface DateCard {
   userId: string
   username: string
   mainPhotoUrl?: string
+  /** Feed / mis citas: contador para UI rica (opcional). */
+  totalInterests?: number
+  nearbyMatches?: number
+  compatibility?: number
+  coverImageUrl?: string
+  displayName?: string
+  /** Edad del autor de la cita (feed o derivada de fecha de nacimiento). */
+  authorAge?: number
+  /** Intereses de perfil del autor (para compatibilidad en cliente). */
+  authorInterests?: Array<string | Interest>
 }
 
 export interface CreateDateCardRequest {
@@ -457,8 +467,12 @@ export interface Event {
   creatorId?: string
   creatorUsername?: string
   creatorProfilePictureUrl?: string
+  /** Alias que envía `/api/activity-feed` para la foto del creador. */
+  creatorPhotoUrl?: string
   /** Zona / país del feed (p. ej. `locationZone` del backend). */
   zone?: string
+  /** Alias que a veces envía `/api/activity-feed` u otros DTOs. */
+  locationZone?: string
 }
 
 export interface EventFilters {

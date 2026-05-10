@@ -28,8 +28,27 @@ import {
   FORM_LABEL_OPTIONAL_HINT,
 } from "@/lib/form-field-classes"
 import { toast } from "sonner"
+import { useI18n } from "@/lib/i18n"
 import { FastDateOfferCard } from "@/components/events/fast-date-offer-card"
-import { Loader2, Plus, MapPin, Calendar, CalendarClock, Heart, Check, X, Zap, ChevronRight, Send, SlidersHorizontal, ChevronDown, ChevronUp, History } from "lucide-react"
+import {
+  Loader2,
+  Plus,
+  MapPin,
+  Calendar,
+  CalendarClock,
+  Heart,
+  Check,
+  X,
+  Zap,
+  ChevronRight,
+  Send,
+  SlidersHorizontal,
+  ChevronDown,
+  ChevronUp,
+  History,
+  Clock,
+  Sparkles,
+} from "lucide-react"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 
@@ -48,6 +67,9 @@ const PLANS: Plan[] = ['CAFE', 'RESTAURANT', 'BAR', 'PARK', 'BEACH', 'MALL', 'CI
 const WHEN_ICON =
   "pointer-events-none absolute left-3 top-1/2 z-[1] size-4 -translate-y-1/2 text-white drop-shadow-[0_1px_3px_rgb(0_0_0/0.85)]"
 
+const FD_TAB_TRIGGER =
+  "rounded-xl px-2 py-2.5 text-xs font-semibold shadow-none transition-all data-[state=active]:border data-[state=active]:border-primary/35 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm sm:px-3 sm:text-sm dark:data-[state=active]:bg-card"
+
 type FastDateSectionProps = {
   /** Oculta el botón "Crear cita" cuando el padre abre el asistente unificado */
   suppressInlineCreate?: boolean
@@ -63,6 +85,7 @@ export function FastDateSection(props?: FastDateSectionProps) {
   const { suppressInlineCreate, onRequestCreate, reloadToken = 0, hidePublicFeed = false } = props ?? {}
   const { user } = useAuth()
   const router = useRouter()
+  const { te, language } = useI18n()
   const [tab, setTab] = useState(() => (hidePublicFeed ? "mine" : "feed"))
   const [feed, setFeed] = useState<DateCard[]>([])
   const [myCards, setMyCards] = useState<MyDateCard[]>([])
@@ -219,20 +242,45 @@ export function FastDateSection(props?: FastDateSectionProps) {
       )}
 
       {hidePublicFeed && (
-        <div className="mb-4">
-          <h2 className="text-base font-semibold text-foreground">Fast Date</h2>
-          <p className="text-xs text-muted-foreground">
-            Citas que publicaste, intereses recibidos y solicitudes enviadas.
-          </p>
+        <div className="relative mb-5 overflow-hidden rounded-2xl border border-border/55 bg-gradient-to-br from-primary/[0.09] via-card to-secondary/[0.06] p-4 shadow-sm ring-1 ring-black/[0.04] dark:from-primary/[0.12] dark:ring-white/[0.07]">
+          <div className="pointer-events-none absolute -right-10 -top-14 size-36 rounded-full bg-primary/25 blur-3xl dark:bg-primary/20" aria-hidden />
+          <div className="pointer-events-none absolute -bottom-12 -left-8 size-28 rounded-full bg-secondary/20 blur-2xl dark:bg-secondary/15" aria-hidden />
+          <div className="relative flex items-start gap-3">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/25 to-secondary/20 shadow-inner ring-1 ring-white/10 dark:ring-white/15">
+              <Sparkles className="size-5 text-primary" aria-hidden />
+            </div>
+            <div className="min-w-0 flex-1 pt-0.5">
+              <h2 className="text-lg font-bold tracking-tight text-foreground">{te("Fast Date", "Fast Date")}</h2>
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                {te(
+                  "Citas que publicaste, intereses recibidos y solicitudes enviadas.",
+                  "Dates you posted, interests you received, and requests you sent."
+                )}
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
       <Tabs value={tab} onValueChange={setTab}>
         <div className="mb-4 flex items-center gap-2">
-          <TabsList className={`grid flex-1 ${hidePublicFeed ? "grid-cols-2" : "grid-cols-3"}`}>
-            {!hidePublicFeed && <TabsTrigger value="feed">Feed</TabsTrigger>}
-            <TabsTrigger value="mine">Mis citas</TabsTrigger>
-            <TabsTrigger value="sent">Enviados</TabsTrigger>
+          <TabsList
+            className={cn(
+              "grid h-auto min-h-11 flex-1 gap-1 rounded-2xl border border-border/60 bg-muted/35 p-1.5 shadow-inner ring-1 ring-black/[0.03] dark:bg-muted/25 dark:ring-white/[0.06]",
+              hidePublicFeed ? "grid-cols-2" : "grid-cols-3"
+            )}
+          >
+            {!hidePublicFeed && (
+              <TabsTrigger value="feed" className={FD_TAB_TRIGGER}>
+                Feed
+              </TabsTrigger>
+            )}
+            <TabsTrigger value="mine" className={FD_TAB_TRIGGER}>
+              {te("Mis citas", "My dates")}
+            </TabsTrigger>
+            <TabsTrigger value="sent" className={FD_TAB_TRIGGER}>
+              {te("Enviados", "Sent")}
+            </TabsTrigger>
           </TabsList>
           {!hidePublicFeed && (
             <button
@@ -294,7 +342,25 @@ export function FastDateSection(props?: FastDateSectionProps) {
                   onInterest={() => setShowInterestDialog(card)}
                   fastDateLabel="Fast Date"
                   interestLabel="Me interesa"
-                  expiresLabel="Expira"
+                  joinCtaLabel="Unirme ahora"
+                  expiresLabel={te("Expira", "Expires")}
+                  emptyZoneLabel={te("Sin zona indicada", "No zone listed")}
+                  hereLabel={te("Aquí", "Here")}
+                  activeLabel="Activo"
+                  viewProfileLabel="Ver perfil"
+                  compatibleLabel="compatible"
+                  chatVibeLabel="💬 Charlar"
+                  interestedWord="interesados"
+                  potentialMatchesTemplate={(n) =>
+                    te(
+                      `❤️ ${n} matches potenciales cerca`,
+                      `❤️ ${n} potential matches nearby`
+                    )
+                  }
+                  yearsLabel="años"
+                  viewerInterests={user?.interests}
+                  te={te}
+                  localeCode={language === "en" ? "en" : "es"}
                 />
               ))
             )}
@@ -303,10 +369,19 @@ export function FastDateSection(props?: FastDateSectionProps) {
 
         <TabsContent value="mine" className="space-y-4">
           {myCards.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3">
-              <Calendar className="h-12 w-12 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">No has creado citas aún</p>
-              <Button size="sm" variant="outline" onClick={openCreate}>Crear mi primera cita</Button>
+            <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-border/70 bg-muted/20 px-6 py-16">
+              <div className="flex size-14 items-center justify-center rounded-2xl bg-muted/50 ring-1 ring-border/60">
+                <Calendar className="size-7 text-muted-foreground" aria-hidden />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-medium text-foreground">{te("Aún no publicas citas", "You have not posted any dates yet")}</p>
+                <p className="mt-1 max-w-xs text-xs text-muted-foreground">
+                  {te("Crea una y recibirás solicitudes aquí.", "Create one and incoming requests will show up here.")}
+                </p>
+              </div>
+              <Button size="sm" variant="outline" onClick={openCreate}>
+                {te("Crear mi primera cita", "Create my first date")}
+              </Button>
             </div>
           ) : (
             <>
@@ -316,43 +391,40 @@ export function FastDateSection(props?: FastDateSectionProps) {
                 />
               ))}
               {myCards.filter(c => c.status !== 'ACTIVE').length > 0 && (
-                <FDExpiredSection cards={myCards.filter(c => c.status !== 'ACTIVE')} onRespond={handleRespond} router={router} />
+                <FDExpiredSection
+                  cards={myCards.filter((c) => c.status !== "ACTIVE")}
+                  onRespond={handleRespond}
+                  router={router}
+                  te={te}
+                />
               )}
             </>
           )}
         </TabsContent>
 
-        <TabsContent value="sent" className="space-y-3">
+        <TabsContent value="sent" className="space-y-2">
           {sentInterests.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3">
-              <Send className="h-12 w-12 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">No has enviado intereses aún</p>
+            <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-border/70 bg-muted/20 px-6 py-16">
+              <div className="flex size-14 items-center justify-center rounded-2xl bg-muted/50 ring-1 ring-border/60">
+                <Send className="size-7 text-muted-foreground" aria-hidden />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-medium text-foreground">
+                  {te("Aún no envías solicitudes", "You have not sent any requests yet")}
+                </p>
+                <p className="mt-1 max-w-xs text-xs leading-relaxed text-muted-foreground">
+                  {te(
+                    "Explora el feed y pulsa «Me interesa» en una cita que te encaje.",
+                    "Browse the feed and tap “I’m interested” on a date that fits you."
+                  )}
+                </p>
+              </div>
             </div>
-          ) : sentInterests.map(interest => (
-            <Card key={interest.interestId} className="border-border">
-              <CardContent className="p-4 flex items-center gap-3">
-                <Avatar className="h-10 w-10 border border-border cursor-pointer shrink-0" onClick={() => interest.profileId && router.push(`/profile/${interest.profileId}`)}>
-                  <AvatarImage src={interest.profilePicture} />
-                  <AvatarFallback className="bg-primary/10 text-primary text-sm">?</AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold line-clamp-1">{interest.title}</p>
-                  {interest.message && <p className="text-xs text-muted-foreground line-clamp-1">"{interest.message}"</p>}
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge className={`text-[10px] px-2 py-0 border-0 ${interest.status === 'ACCEPTED' ? 'bg-green-500/10 text-green-500' : interest.status === 'REJECTED' ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'}`}>
-                      {interest.status === 'ACCEPTED' ? '✓ Aceptado' : interest.status === 'REJECTED' ? '✗ Rechazado' : '⏳ Pendiente'}
-                    </Badge>
-                    {interest.dateStatus === 'DATE_EXPIRED' && <Badge className="text-[10px] px-2 py-0 border-0 bg-muted text-muted-foreground">Expirada</Badge>}
-                  </div>
-                </div>
-                {interest.status === 'ACCEPTED' && (
-                  <button onClick={() => router.push('/chat')} className="shrink-0 h-8 w-8 rounded-full bg-primary/10 hover:bg-primary/20 flex items-center justify-center transition-colors">
-                    <ChevronRight className="h-4 w-4 text-primary" />
-                  </button>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+          ) : (
+            sentInterests.map((interest) => (
+              <FastDateSentInterestCard key={interest.interestId} interest={interest} router={router} te={te} />
+            ))
+          )}
         </TabsContent>
       </Tabs>
 
@@ -434,16 +506,113 @@ export function FastDateSection(props?: FastDateSectionProps) {
   )
 }
 
+function sentInterestStatusPill(
+  interest: SentInterest,
+  te: (es: string, en: string) => string
+) {
+  const expired = interest.dateStatus === "DATE_EXPIRED"
+  if (interest.status === "ACCEPTED") {
+    return (
+      <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold leading-tight text-emerald-800 dark:text-emerald-400">
+        <Check className="size-2.5 shrink-0 stroke-[2.5]" aria-hidden />
+        {te("Match", "Match")}
+      </span>
+    )
+  }
+  if (interest.status === "REJECTED") {
+    return (
+      <span className="inline-flex items-center gap-0.5 rounded-full bg-destructive/12 px-2 py-0.5 text-[10px] font-semibold leading-tight text-destructive">
+        <X className="size-2.5 shrink-0 stroke-[2.5]" aria-hidden />
+        {te("Rechazado", "Declined")}
+      </span>
+    )
+  }
+  if (expired) {
+    return (
+      <span className="inline-flex max-w-full items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium leading-tight text-amber-950 dark:text-amber-100">
+        <Clock className="size-2.5 shrink-0 opacity-90" aria-hidden />
+        {te("Sin respuesta · cita expirada", "No reply · date expired")}
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-0.5 rounded-full bg-primary/14 px-2 py-0.5 text-[10px] font-semibold leading-tight text-primary">
+      {te("Esperando respuesta", "Awaiting reply")}
+    </span>
+  )
+}
+
+function FastDateSentInterestCard({
+  interest,
+  router,
+  te,
+}: {
+  interest: SentInterest
+  router: ReturnType<typeof useRouter>
+  te: (es: string, en: string) => string
+}) {
+  return (
+    <Card className="gap-0 py-0 overflow-hidden border-border/55 bg-gradient-to-br from-card via-card to-primary/[0.05] shadow-sm ring-1 ring-white/[0.05] dark:to-primary/[0.07] dark:ring-white/[0.07]">
+      <CardContent className="p-0">
+        <div className="flex gap-2 p-2.5 sm:gap-2.5 sm:p-3">
+          <button
+            type="button"
+            className="relative shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+            onClick={() => interest.profileId && router.push(`/profile/${interest.profileId}`)}
+            aria-label={te("Ver perfil del anfitrión", "View host profile")}
+          >
+            <Avatar className="size-9 border border-border/70 shadow-sm ring-1 ring-background sm:size-10">
+              <AvatarImage src={interest.profilePicture} alt="" />
+              <AvatarFallback className="bg-primary/12 text-xs font-semibold text-primary">?</AvatarFallback>
+            </Avatar>
+          </button>
+          <div className="min-w-0 flex-1 space-y-1">
+            <div className="flex items-start justify-between gap-1.5">
+              <div className="min-w-0 flex-1">
+                <p className="line-clamp-2 text-sm font-semibold leading-snug tracking-tight text-foreground">
+                  {interest.title}
+                </p>
+              </div>
+              {interest.status === "ACCEPTED" && (
+                <button
+                  type="button"
+                  onClick={() => router.push("/chat")}
+                  className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary transition-colors hover:bg-primary/20"
+                  aria-label={te("Ir al chat", "Open chat")}
+                >
+                  <ChevronRight className="size-4" aria-hidden />
+                </button>
+              )}
+            </div>
+            {interest.message ? (
+              <div className="rounded-lg border border-border/45 bg-muted/30 px-2 py-1.5 dark:bg-muted/20">
+                <p className="line-clamp-2 text-xs leading-snug text-foreground/90">
+                  <span className="text-muted-foreground/70">{"\u201C"}</span>
+                  {interest.message}
+                  <span className="text-muted-foreground/70">{"\u201D"}</span>
+                </p>
+              </div>
+            ) : (
+              <p className="text-[11px] italic leading-none text-muted-foreground/90">{te("Sin mensaje", "No message")}</p>
+            )}
+            <div className="flex flex-wrap items-center gap-1 pt-0.5">{sentInterestStatusPill(interest, te)}</div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 function FDCardItem({ card, onRespond, router, onDelete }: { card: MyDateCard; onRespond: (id: string, accept: boolean) => void; router: ReturnType<typeof useRouter>; onDelete?: (id: string) => void }) {
   const [expanded, setExpanded] = useState(false)
   const pending = card.interests?.filter((i: any) => i.status === 'PENDING') || []
   return (
-    <Card className="border-border">
-      <CardContent className="p-4">
+    <Card className="gap-0 py-0 overflow-hidden border-border/55 bg-gradient-to-br from-card via-card to-emerald-500/[0.05] shadow-sm ring-1 ring-white/[0.06] dark:to-emerald-500/[0.07] dark:ring-white/[0.08]">
+      <CardContent className="p-4 sm:p-5">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-sm font-bold">{card.title}</h3>
+              <h3 className="text-[15px] font-semibold leading-tight tracking-tight sm:text-base">{card.title}</h3>
               {card.totalInterests != null && card.totalInterests > 0 && <Badge className="text-[10px] px-2 py-0 border-0 bg-primary/10 text-primary">{card.totalInterests} interesado{card.totalInterests > 1 ? 's' : ''}</Badge>}
             </div>
             {card.dateTime && (
@@ -466,17 +635,30 @@ function FDCardItem({ card, onRespond, router, onDelete }: { card: MyDateCard; o
           </button>
         )}
         {expanded && pending.map((interest: any) => (
-          <div key={interest.interestId} className="mt-2 p-3 rounded-xl bg-muted/50 border border-border flex items-center gap-3">
-            <Avatar className="h-9 w-9 shrink-0 cursor-pointer" onClick={() => interest.profileId && router.push(`/profile/${interest.profileId}`)}>
+          <div
+            key={interest.interestId}
+            className="mt-3 flex items-center gap-3 rounded-xl border border-border/60 bg-muted/35 p-3 ring-1 ring-black/[0.03] dark:bg-muted/25 dark:ring-white/[0.05]"
+          >
+            <Avatar className="h-10 w-10 shrink-0 cursor-pointer ring-2 ring-background" onClick={() => interest.profileId && router.push(`/profile/${interest.profileId}`)}>
               <AvatarImage src={interest.profilePicture} />
               <AvatarFallback className="bg-primary/10 text-primary text-xs">?</AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              {interest.message && <p className="text-xs text-muted-foreground line-clamp-2">"{interest.message}"</p>}
+              {interest.message && (
+                <p className="text-xs leading-snug text-muted-foreground line-clamp-3">
+                  <span className="text-muted-foreground/70">{"\u201C"}</span>
+                  {interest.message}
+                  <span className="text-muted-foreground/70">{"\u201D"}</span>
+                </p>
+              )}
             </div>
-            <div className="flex gap-1.5 shrink-0">
-              <button onClick={() => onRespond(interest.interestId, true)} className="h-8 w-8 rounded-full bg-green-500/10 hover:bg-green-500/20 flex items-center justify-center text-green-500 transition-colors"><Check className="h-4 w-4" /></button>
-              <button onClick={() => onRespond(interest.interestId, false)} className="h-8 w-8 rounded-full bg-destructive/10 hover:bg-destructive/20 flex items-center justify-center text-destructive transition-colors"><X className="h-4 w-4" /></button>
+            <div className="flex shrink-0 gap-1.5">
+              <button onClick={() => onRespond(interest.interestId, true)} className="flex size-9 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 transition-colors hover:bg-emerald-500/25 dark:text-emerald-400" aria-label="Aceptar">
+                <Check className="size-4" />
+              </button>
+              <button onClick={() => onRespond(interest.interestId, false)} className="flex size-9 items-center justify-center rounded-full bg-destructive/12 text-destructive transition-colors hover:bg-destructive/20" aria-label="Rechazar">
+                <X className="size-4" />
+              </button>
             </div>
           </div>
         ))}
@@ -485,15 +667,38 @@ function FDCardItem({ card, onRespond, router, onDelete }: { card: MyDateCard; o
   )
 }
 
-function FDExpiredSection({ cards, onRespond, router }: { cards: MyDateCard[]; onRespond: (id: string, accept: boolean) => void; router: ReturnType<typeof useRouter> }) {
+function FDExpiredSection({
+  cards,
+  onRespond,
+  router,
+  te,
+}: {
+  cards: MyDateCard[]
+  onRespond: (id: string, accept: boolean) => void
+  router: ReturnType<typeof useRouter>
+  te: (es: string, en: string) => string
+}) {
   const [open, setOpen] = useState(false)
   return (
-    <div>
-      <button onClick={() => setOpen(!open)} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors mb-2">
-        <History className="h-3.5 w-3.5" />{open ? 'Ocultar' : 'Ver'} historial ({cards.length})
-        {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+    <div className="mt-2">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="flex w-full items-center justify-between gap-2 rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 text-left text-xs font-medium text-muted-foreground transition-colors hover:border-border hover:bg-muted/40 hover:text-foreground"
+      >
+        <span className="flex items-center gap-2">
+          <History className="size-3.5 shrink-0" aria-hidden />
+          {te(`Historial (${cards.length})`, `History (${cards.length})`)}
+        </span>
+        {open ? <ChevronUp className="size-3.5 shrink-0 opacity-70" aria-hidden /> : <ChevronDown className="size-3.5 shrink-0 opacity-70" aria-hidden />}
       </button>
-      {open && <div className="space-y-2 opacity-60">{cards.map(card => <FDCardItem key={card.dateCardId} card={card} onRespond={onRespond} router={router} />)}</div>}
+      {open && (
+        <div className="mt-2 space-y-3 opacity-[0.92]">
+          {cards.map((card) => (
+            <FDCardItem key={card.dateCardId} card={card} onRespond={onRespond} router={router} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

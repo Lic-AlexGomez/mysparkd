@@ -64,21 +64,21 @@ export function ManagerActivity() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Card className="border-border">
+      <div className="grid w-full grid-cols-3 grid-rows-1 gap-2 sm:gap-3 [&>*]:min-w-0">
+        <Card className="col-span-1 min-w-0 border-border">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Eventos visibles</p>
             <p className="text-2xl font-black text-foreground">{events.length}</p>
           </CardContent>
         </Card>
-        <Card className="border-border">
+        <Card className="col-span-1 min-w-0 border-border">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Pendientes</p>
             <p className="text-2xl font-black text-amber-500">{pendingCount}</p>
           </CardContent>
         </Card>
-        <Card className="border-border">
-          <CardContent className="p-4 flex items-center justify-between">
+        <Card className="col-span-1 min-w-0 border-border">
+          <CardContent className="flex items-center justify-between p-4">
             <div>
               <p className="text-xs text-muted-foreground">Actualización</p>
               <p className="text-sm font-semibold text-foreground">
