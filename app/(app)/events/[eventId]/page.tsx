@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { eventService } from "@/lib/services/event"
-import { groupService } from "@/lib/services/group"
-import { ApiError } from "@/lib/api"
+import { followService } from "@/lib/services/follow"
+import { ApiError, api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
 import { useWebSocket } from "@/hooks/use-websocket"
 
@@ -46,6 +46,7 @@ import {
   Star,
   Trash2,
   UserMinus,
+  UserPlus,
   Users,
   UserX,
   Volume2,
@@ -60,7 +61,10 @@ import type {
   EventGroupMessage,
   EventGroupReaction,
   EventParticipant,
+  EventPoll,
+  EventPollOption,
   ReactionType,
+  UserProfile,
 } from "@/lib/types"
 import { toast } from "sonner"
 import { useI18n } from "@/lib/i18n"
@@ -72,6 +76,251 @@ const normalizeMessageId = (raw: any) => String(raw?.id || raw?.messageId || "")
 function buildEventInviteUrl(origin: string, token: string) {
   if (!origin || !token) return ""
   return `${origin}/events?token=${encodeURIComponent(token)}`
+}
+
+/** Usuarios invitables: matches + seguidores mutuos (mismo criterio que el backend 403). */
+type GroupInviteEligibleUser = {
+  userId: string
+  username: string
+  fullName?: string
+  photo?: string
+}
+
+function firstNonEmptyString(...vals: unknown[]): string {
+  for (const v of vals) {
+    const s = typeof v === "string" ? v.trim() : String(v ?? "").trim()
+    if (s) return s
+  }
+  return ""
+}
+
+/** Une campos si el backend devuelve `user` / `follower` / `profile` anidados. */
+function unwrapSocialRow(raw: Record<string, unknown>): Record<string, unknown> {
+  const nested =
+    raw.user || raw.follower || raw.following || raw.profile || raw.account
+  if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+    return { ...raw, ...(nested as Record<string, unknown>) }
+  }
+  return raw
+}
+
+/**
+ * ID de cuenta del usuario — nunca usar `raw.id` (suele ser PK del follow/match).
+ */
+function resolveEligibleUserId(
+  rawIn: Record<string, unknown>,
+  kind: "match" | "followers" | "following"
+): string | null {
+  const raw = unwrapSocialRow(rawIn)
+  const direct = firstNonEmptyString(raw.userId, raw.memberId, raw.profileId)
+  if (direct) return direct
+
+  if (kind === "match") {
+    const alt = firstNonEmptyString(
+      raw.matchedUserId,
+      raw.otherUserId,
+      raw.targetUserId,
+      raw.counterpartUserId
+    )
+    if (alt) return alt
+  }
+  if (kind === "followers") {
+    const id = firstNonEmptyString(raw.followerId)
+    if (id) return id
+  } else if (kind === "following") {
+    const id = firstNonEmptyString(raw.followingId)
+    if (id) return id
+  }
+
+  const looksLikeRelationshipRow =
+    Boolean(raw.followerId) ||
+    Boolean(raw.followingId) ||
+    Boolean(raw.matchedUserId) ||
+    Boolean(raw.otherUserId)
+  const looksLikeFlatUser =
+    Boolean(raw.username || raw.nombres) && !looksLikeRelationshipRow
+  const pk = String(raw.id ?? "").trim()
+  if (!pk || !looksLikeFlatUser) return null
+
+  if (kind === "match") return pk
+
+  /** Lista social plana tipo UserDTO (`id` = usuario), sin IDs de relación */
+  if (
+    (kind === "followers" || kind === "following") &&
+    !raw.followerId &&
+    !raw.followingId
+  ) {
+    return pk
+  }
+
+  return null
+}
+
+function mergeEligibleInviteUsers(
+  myUserId: string,
+  memberIds: Set<string>,
+  matches: unknown[],
+  followers: unknown[],
+  following: unknown[]
+): GroupInviteEligibleUser[] {
+  const map = new Map<string, GroupInviteEligibleUser>()
+  const add = (row: GroupInviteEligibleUser | null) => {
+    if (!row || row.userId === myUserId || memberIds.has(row.userId)) return
+    const prev = map.get(row.userId)
+    if (!prev) {
+      map.set(row.userId, row)
+      return
+    }
+    map.set(row.userId, {
+      userId: row.userId,
+      username: row.username.length >= prev.username.length ? row.username : prev.username,
+      fullName: prev.fullName || row.fullName,
+      photo: prev.photo || row.photo,
+    })
+  }
+
+  for (const m of matches || []) {
+    const raw = unwrapSocialRow(m as Record<string, unknown>)
+    const userId = resolveEligibleUserId(raw, "match")
+    if (!userId) continue
+    const fullName =
+      [raw.nombre, raw.apellidos].filter(Boolean).join(" ").trim() || undefined
+    const username = String(raw.username || "").trim()
+    const fallback = fullName
+      ? fullName
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/\s+/g, "")
+          .toLowerCase()
+          .slice(0, 24) || `user-${userId.slice(0, 6)}`
+      : `user-${userId.slice(0, 6)}`
+    add({
+      userId,
+      username: username || fallback,
+      fullName,
+      photo: (raw.photoUrl as string | undefined) || undefined,
+    })
+  }
+
+  const normFollow = (
+    u: unknown,
+    kind: "followers" | "following"
+  ): GroupInviteEligibleUser | null => {
+    const raw = unwrapSocialRow(u as Record<string, unknown>)
+    const userId = resolveEligibleUserId(raw, kind)
+    if (!userId) return null
+    const username = String(raw.username || "").trim()
+    const fullName =
+      [raw.nombres, raw.apellidos].filter(Boolean).join(" ").trim() || undefined
+    return {
+      userId,
+      username: username || fullName?.split(/\s+/)[0] || `user-${userId.slice(0, 6)}`,
+      fullName,
+      photo:
+        (raw.profilePictureUrl as string | undefined) ||
+        (raw.photoUrl as string | undefined) ||
+        undefined,
+    }
+  }
+
+  /**
+   * El backend (403) valida contra matches + seguidores **mutuos**, no contra seguidos o seguidores sueltos.
+   * Lista: todos los matches + intersección (quien me sigue ∩ a quien sigo).
+   */
+  const followerById = new Map<string, GroupInviteEligibleUser>()
+  for (const u of followers || []) {
+    const row = normFollow(u, "followers")
+    if (row) followerById.set(row.userId, row)
+  }
+  const followingById = new Map<string, GroupInviteEligibleUser>()
+  for (const u of following || []) {
+    const row = normFollow(u, "following")
+    if (row) followingById.set(row.userId, row)
+  }
+  for (const id of followerById.keys()) {
+    if (!followingById.has(id)) continue
+    const a = followerById.get(id)!
+    const b = followingById.get(id)!
+    add({
+      userId: id,
+      username: a.username.length >= b.username.length ? a.username : b.username,
+      fullName: a.fullName || b.fullName,
+      photo: a.photo || b.photo,
+    })
+  }
+
+  return Array.from(map.values()).sort((a, b) =>
+    a.username.localeCompare(b.username, undefined, { sensitivity: "base" })
+  )
+}
+
+/**
+ * El POST de solicitud grupal debe usar el `userId` canónico del perfil.
+ * Así evitamos mandar IDs mal interpretados desde JSON de matches/follows.
+ */
+async function resolveInviteeIdsViaProfile(
+  rows: GroupInviteEligibleUser[],
+  te: (es: string, en: string) => string
+): Promise<string[]> {
+  const ids = await Promise.all(
+    rows.map(async (row) => {
+      let p: UserProfile | (UserProfile & { id?: string })
+      try {
+        p = await api.get<UserProfile & { id?: string }>(
+          `/api/profile/${encodeURIComponent(row.userId)}`
+        )
+      } catch (err: unknown) {
+        const hint =
+          err instanceof ApiError ? err.message : te("Error de red", "Network error")
+        throw new Error(
+          te(
+            `No se pudo validar al invitado @${row.username}. ${hint}`,
+            `Could not validate invitee @${row.username}. ${hint}`
+          )
+        )
+      }
+      const canonical = String(p?.userId ?? (p as { id?: string }).id ?? "").trim()
+      if (!canonical) {
+        throw new Error(
+          te(
+            "El servidor devolvió un perfil sin identificador de usuario.",
+            "Server returned a profile without a user identifier."
+          )
+        )
+      }
+
+      const apiUsername = String(p?.username ?? "").trim().toLowerCase()
+      const labelUsername = String(row.username ?? "").trim().toLowerCase()
+      const labelLooksSynthetic = /^user-[a-f0-9-]{4,}$/i.test(String(row.username))
+
+      const apiFull = [p?.nombres, p?.apellidos].filter(Boolean).join(" ").trim().toLowerCase()
+      const labelFull = String(row.fullName ?? "").trim().toLowerCase()
+      const namesAlign =
+        Boolean(apiFull && labelFull) &&
+        (apiFull === labelFull ||
+          apiFull.startsWith(labelFull.split(/\s+/)[0] ?? "") ||
+          labelFull.startsWith(apiFull.split(/\s+/)[0] ?? ""))
+
+      const usernameAlign =
+        !apiUsername ||
+        !labelUsername ||
+        apiUsername === labelUsername ||
+        labelLooksSynthetic
+
+      if (!usernameAlign && !namesAlign) {
+        throw new Error(
+          te(
+            "El ID del invitado no coincide con la persona mostrada. Quitar ese nombre y volver a añadirlo desde la lista.",
+            "Invitee ID does not match the person shown. Remove them and add again from the list."
+          )
+        )
+      }
+
+      return canonical
+    })
+  )
+
+  return [...new Set(ids)]
 }
 
 const EVENT_TAB_TRIGGER =
@@ -116,6 +365,55 @@ function mergeToggleEventGroupReaction(
   return list
 }
 
+/** API puede usar `text`, `votes`, `pollOptions`, etc. — unificamos a EventPollOption. */
+function normalizeEventPollOption(raw: Record<string, unknown>): EventPollOption {
+  const id = String(raw.id ?? raw.optionId ?? "")
+  const optionText = String(
+    raw.optionText ?? raw.text ?? raw.label ?? raw.option_label ?? ""
+  )
+  const vc = raw.voteCount ?? raw.votes ?? raw.vote_count
+  const voteCount =
+    typeof vc === "number" && Number.isFinite(vc) ? vc : Number(vc) || 0
+  const votedByMe = Boolean(raw.votedByMe ?? raw.voted_by_me ?? raw.selected)
+  return { id, optionText, voteCount, votedByMe }
+}
+
+function normalizeEventPoll(rawIn: unknown): EventPoll | null {
+  if (!rawIn || typeof rawIn !== "object") return null
+  const raw = rawIn as Record<string, unknown>
+  const optsRaw =
+    raw.options ?? raw.optionTexts ?? raw.pollOptions ?? raw.choices ?? []
+  const arr = Array.isArray(optsRaw) ? optsRaw : []
+  const options: EventPollOption[] = arr.map((o, i) => {
+    if (typeof o === "string") {
+      return {
+        id: String(i),
+        optionText: o,
+        voteCount: 0,
+        votedByMe: false,
+      }
+    }
+    return o && typeof o === "object"
+      ? normalizeEventPollOption(o as Record<string, unknown>)
+      : { id: "", optionText: "", voteCount: 0, votedByMe: false }
+  })
+  return {
+    id: String(raw.id ?? ""),
+    groupId: String(raw.groupId ?? ""),
+    question: String(raw.question ?? ""),
+    expiresAt: (raw.expiresAt as string | null | undefined) ?? null,
+    createdAt: String(raw.createdAt ?? ""),
+    expired: Boolean(raw.expired),
+    options,
+  }
+}
+
+function withNormalizedPoll(m: EventGroupMessage): EventGroupMessage {
+  if (!m.poll) return m
+  const poll = normalizeEventPoll(m.poll)
+  return poll ? { ...m, poll } : { ...m, poll: null }
+}
+
 /** System line posted when the event location is published; hidden in chat — same info is in the page header. */
 function isRedundantLocationSystemMessage(m: EventGroupMessage): boolean {
   if (!m.system) return false
@@ -156,7 +454,6 @@ export default function EventDetailPage() {
   const [members, setMembers] = useState<EventGroupMember[]>([])
   const [pendingParticipants, setPendingParticipants] = useState<EventParticipant[]>([])
   const [pendingGroupRequests, setPendingGroupRequests] = useState<EventGroupJoinRequest[]>([])
-  const [myPendingGroupRequests, setMyPendingGroupRequests] = useState<EventGroupJoinRequest[]>([])
   const [groupSettings, setGroupSettings] = useState<{ slowMode: boolean; adminOnlyMode: boolean }>({
     slowMode: false,
     adminOnlyMode: false,
@@ -176,12 +473,20 @@ export default function EventDetailPage() {
   const [locationCoords, setLocationCoords] = useState<{ latitude: number; longitude: number } | null>(null)
   const [isUpdatingLocation, setIsUpdatingLocation] = useState(false)
   const [inviteeQuery, setInviteeQuery] = useState("")
-  const [inviteeSuggestions, setInviteeSuggestions] = useState<Array<{ userId: string; username: string; fullName?: string; photo?: string }>>([])
-  const [selectedInvitees, setSelectedInvitees] = useState<Array<{ userId: string; username: string; fullName?: string; photo?: string }>>([])
+  const [eligibleInviteesPool, setEligibleInviteesPool] = useState<GroupInviteEligibleUser[]>([])
+  const [eligibleInviteesLoading, setEligibleInviteesLoading] = useState(false)
+  const [isCreatingSoloJoin, setIsCreatingSoloJoin] = useState(false)
+  const [isCreatingGroupInvite, setIsCreatingGroupInvite] = useState(false)
+  const [selectedInvitees, setSelectedInvitees] = useState<GroupInviteEligibleUser[]>([])
   const myUserId = String(user?.userId || "")
   const myMember = members.find((m) => String(m.userId) === myUserId)
   const myRole = (myMember?.role || (eventData as any)?.myRole || "").toUpperCase()
-  const isAdmin = myRole === "ADMIN" || String((eventData as any)?.creatorId || "") === myUserId || Boolean((eventData as any)?.isAdmin)
+  const creatorIdStr = String((eventData as any)?.creatorId ?? "").trim()
+  /** Dueño del evento (creador); Ajustes del grupo solo para él — no basta con rol MOD/ADMIN. */
+  const isEventOwner = Boolean(
+    myUserId && creatorIdStr && creatorIdStr === String(myUserId).trim()
+  )
+  const isAdmin = myRole === "ADMIN" || creatorIdStr === myUserId || Boolean((eventData as any)?.isAdmin)
 
   const isModerator = myRole === "MODERATOR" || isAdmin
   const isGuest = myRole === "GUEST"
@@ -192,16 +497,17 @@ export default function EventDetailPage() {
     String(value || "").trim().toLowerCase().replace(/\s+/g, " ")
 
   const upsertMessage = (incoming: EventGroupMessage) => {
-    const incomingId = normalizeMessageId(incoming)
+    const normalized = withNormalizedPoll(incoming)
+    const incomingId = normalizeMessageId(normalized)
     setMessages((prev) => {
-      if (!incomingId) return [...prev, incoming]
+      if (!incomingId) return [...prev, normalized]
       const idx = prev.findIndex((m) => normalizeMessageId(m) === incomingId)
       if (idx >= 0) {
         const next = [...prev]
-        next[idx] = { ...next[idx], ...incoming, id: incomingId }
+        next[idx] = withNormalizedPoll({ ...next[idx], ...normalized, id: incomingId })
         return next
       }
-      return [...prev, { ...incoming, id: incomingId }]
+      return [...prev, { ...normalized, id: incomingId }]
     })
   }
 
@@ -245,7 +551,11 @@ export default function EventDetailPage() {
       }
 
       setEventData(detail)
-      setMessages((Array.isArray(msgRows) ? msgRows : []).map((m) => ({ ...m, id: normalizeMessageId(m) })))
+      setMessages(
+        (Array.isArray(msgRows) ? msgRows : []).map((m) =>
+          withNormalizedPoll({ ...m, id: normalizeMessageId(m) })
+        )
+      )
       const normalizedMembers = Array.isArray(memberRows) ? memberRows : []
       setMembers(normalizedMembers)
 
@@ -254,7 +564,6 @@ export default function EventDetailPage() {
                             String((detail as any)?.creatorId) === myUserId ||
                             (detail as any)?.myRole === "ADMIN"
 
-      const groupId = String((detail as any)?.groupId || eventId)
       setGroupSettings({
         slowMode: Boolean((detail as any)?.slowMode),
         adminOnlyMode: Boolean((detail as any)?.adminOnlyMode),
@@ -287,15 +596,6 @@ export default function EventDetailPage() {
         setPendingGroupRequests([])
       }
 
-      // Solicitudes grupales pendientes para el usuario actual (invitado)
-      const mine = await eventService.groupJoinRequests.myPending().catch(() => [])
-      setMyPendingGroupRequests(
-        (Array.isArray(mine) ? mine : []).filter((r) => {
-          const requestEventId = String(r.eventId || "")
-          const requestGroupId = String((r as any)?.groupId || "")
-          return requestEventId === eventId || requestGroupId === groupId
-        })
-      )
     } catch (error: any) {
       toast.error(error?.message || te("No se pudo cargar el evento", "Could not load event"))
       router.push("/events")
@@ -311,10 +611,25 @@ export default function EventDetailPage() {
 
   useEffect(() => {
     const tab = String(searchParams.get("tab") || "").toLowerCase()
-    if (tab === "chat" || tab === "members" || tab === "requests" || tab === "settings") {
+    if (tab === "chat" || tab === "members" || tab === "requests") {
       setActiveTab(tab)
+    } else if (tab === "settings") {
+      if (isEventOwner) setActiveTab(tab)
+      else setActiveTab("chat")
     }
-  }, [searchParams])
+  }, [searchParams, isEventOwner])
+
+  useEffect(() => {
+    if (!isEventOwner && activeTab === "settings") {
+      setActiveTab("chat")
+    }
+  }, [isEventOwner, activeTab])
+
+  useEffect(() => {
+    if (!isEventOwner && chatSubTab === "chat-poll") {
+      setChatSubTab("chat-messages")
+    }
+  }, [isEventOwner, chatSubTab])
 
   useEffect(() => {
     setInviteOrigin(typeof window !== "undefined" ? window.location.origin : "")
@@ -379,9 +694,12 @@ export default function EventDetailPage() {
         router.push("/events")
       }
       if (payload.type === "POLL_UPDATED" && payload.poll?.id) {
-        setMessages((prev) =>
-          prev.map((m) => (m.poll?.id === payload.poll.id ? { ...m, poll: payload.poll } : m))
-        )
+        const nextPoll = normalizeEventPoll(payload.poll)
+        if (nextPoll) {
+          setMessages((prev) =>
+            prev.map((m) => (m.poll?.id === nextPoll.id ? { ...m, poll: nextPoll } : m))
+          )
+        }
       }
     })
 
@@ -597,14 +915,16 @@ export default function EventDetailPage() {
           const incoming = raw as EventGroupMessage
           const hasIncoming = Array.isArray(incoming.reactions) && incoming.reactions.length > 0
           const reactions = hasIncoming ? incoming.reactions! : old?.reactions ?? incoming.reactions ?? []
-          return { ...incoming, id, reactions }
+          return withNormalizedPoll({ ...incoming, id, reactions })
         })
       })
     } catch (error: any) {
       toast.error(error?.message || te("No se pudo reaccionar", "Could not react"))
       try {
         const rows = await eventService.groupMessages.list(eventId)
-        setMessages(rows.map((m) => ({ ...m, id: normalizeMessageId(m) })))
+        setMessages(
+          rows.map((m) => withNormalizedPoll({ ...m, id: normalizeMessageId(m) }))
+        )
       } catch {
         /* noop */
       }
@@ -632,7 +952,9 @@ export default function EventDetailPage() {
 
   const handleVotePoll = async (optionId: string, pollId: string) => {
     try {
-      const updatedPoll = await eventService.polls.vote(eventId, optionId)
+      const updatedPollRaw = await eventService.polls.vote(eventId, optionId)
+      const updatedPoll = normalizeEventPoll(updatedPollRaw)
+      if (!updatedPoll) return
       setMessages((prev) =>
         prev.map((m) => (m.poll?.id === pollId ? { ...m, poll: updatedPoll } : m))
       )
@@ -646,7 +968,9 @@ export default function EventDetailPage() {
         toast.info(te("Esta encuesta ya expiró", "This poll has expired"))
         try {
           const rows = await eventService.groupMessages.list(eventId)
-          setMessages(rows.map((m) => ({ ...m, id: normalizeMessageId(m) })))
+          setMessages(
+            rows.map((m) => withNormalizedPoll({ ...m, id: normalizeMessageId(m) }))
+          )
         } catch {
           // Si falla la recarga, al menos dejamos feedback claro.
         }
@@ -829,33 +1153,50 @@ export default function EventDetailPage() {
     }
   }
 
-  const handleCreateGroupJoinRequest = async () => {
-    const inviteeUserIds = selectedInvitees.map((u) => u.userId)
-    if (inviteeUserIds.length === 0) {
-      toast.error(te("Agrega al menos un usuario para invitar", "Add at least one user to invite"))
-      return
-    }
+  const handleSoloGroupJoinRequest = async () => {
+    setIsCreatingSoloJoin(true)
     try {
-      await eventService.groupJoinRequests.create(eventId, inviteeUserIds)
-      toast.success(te("Solicitud grupal creada", "Group request created"))
-      setSelectedInvitees([])
+      await eventService.groupJoinRequests.create(eventId, [])
+      toast.success(te("Solicitud enviada", "Join request sent"))
       setInviteeQuery("")
-      const mine = await eventService.groupJoinRequests.myPending().catch(() => [])
-      setMyPendingGroupRequests(
-        (Array.isArray(mine) ? mine : []).filter((r) => String(r.eventId || "") === eventId)
-      )
     } catch (error: any) {
-      toast.error(error?.message || te("No se pudo crear solicitud grupal", "Could not create group request"))
+      toast.error(error?.message || te("No se pudo enviar la solicitud", "Could not send request"))
+    } finally {
+      setIsCreatingSoloJoin(false)
     }
   }
 
-  const handleRespondGroupInvite = async (requestId: string, accept: boolean) => {
+  const handleCreateGroupJoinRequest = async () => {
+    if (selectedInvitees.length === 0) {
+      toast.error(te("Agrega al menos un usuario para invitar", "Add at least one user to invite"))
+      return
+    }
+    setIsCreatingGroupInvite(true)
     try {
-      await eventService.groupJoinRequests.respond(requestId, accept)
-      setMyPendingGroupRequests((prev) => prev.filter((r) => r.id !== requestId))
-      toast.success(accept ? te("Invitación aceptada", "Invitation accepted") : te("Invitación rechazada", "Invitation rejected"))
+      const inviteeUserIds = await resolveInviteeIdsViaProfile(selectedInvitees, te)
+      const allowed = new Set(
+        eligibleInviteesPool.map((u) => String(u.userId).trim().toLowerCase())
+      )
+      const filteredIds = inviteeUserIds.filter((id) =>
+        allowed.has(String(id).trim().toLowerCase())
+      )
+      if (filteredIds.length === 0) {
+        toast.error(
+          te(
+            "Los invitados ya no están en la lista permitida. Cierra y vuelve a abrir esta pestaña.",
+            "Invitees are no longer on the allowed list. Leave this tab and open it again."
+          )
+        )
+        return
+      }
+      await eventService.groupJoinRequests.create(eventId, filteredIds)
+      toast.success(te("Solicitud grupal creada", "Group request created"))
+      setSelectedInvitees([])
+      setInviteeQuery("")
     } catch (error: any) {
-      toast.error(error?.message || te("No se pudo responder invitación", "Could not respond to invitation"))
+      toast.error(error?.message || te("No se pudo crear solicitud grupal", "Could not create group request"))
+    } finally {
+      setIsCreatingGroupInvite(false)
     }
   }
 
@@ -930,32 +1271,51 @@ export default function EventDetailPage() {
   }
 
   useEffect(() => {
+    if (isLoading || !myUserId || !eventId || isAdmin || activeTab !== "requests") return
     let cancelled = false
-    const run = async () => {
-      const q = inviteeQuery.trim()
-      if (q.length < 2) {
-        setInviteeSuggestions([])
-        return
-      }
+    ;(async () => {
+      setEligibleInviteesLoading(true)
       try {
-        const rows = await groupService.searchUsersByInput(q)
+        const memberIds = new Set(members.map((m) => String(m.userId)))
+        const fromApi = await eventService.groupJoinRequests.listEligibleInvitees(eventId)
         if (cancelled) return
-        setInviteeSuggestions(
-          rows.filter((u) =>
-            u.userId !== myUserId &&
-            !selectedInvitees.some((s) => s.userId === u.userId)
+        if (fromApi !== null) {
+          setEligibleInviteesPool(
+            fromApi.filter((u) => u.userId !== myUserId && !memberIds.has(u.userId))
           )
+          return
+        }
+        const [matchesRows, followersRows, followingRows] = await Promise.all([
+          api.get<unknown[]>("/api/matches/my/matches").catch(() => []),
+          followService.getFollowers(myUserId).catch(() => []),
+          followService.getFollowing(myUserId).catch(() => []),
+        ])
+        if (cancelled) return
+        setEligibleInviteesPool(
+          mergeEligibleInviteUsers(myUserId, memberIds, matchesRows, followersRows, followingRows)
         )
       } catch {
-        if (!cancelled) setInviteeSuggestions([])
+        if (!cancelled) setEligibleInviteesPool([])
+      } finally {
+        if (!cancelled) setEligibleInviteesLoading(false)
       }
-    }
-    const t = setTimeout(() => void run(), 250)
+    })()
     return () => {
       cancelled = true
-      clearTimeout(t)
     }
-  }, [inviteeQuery, myUserId, selectedInvitees])
+  }, [activeTab, eventId, isAdmin, isLoading, members, myUserId])
+
+  const filteredEligibleInvitees = useMemo(() => {
+    const q = inviteeQuery.trim().toLowerCase()
+    const selectedIds = new Set(selectedInvitees.map((s) => s.userId))
+    const list = eligibleInviteesPool.filter((u) => !selectedIds.has(u.userId))
+    if (!q) return list
+    return list.filter(
+      (u) =>
+        u.username.toLowerCase().includes(q) ||
+        (u.fullName && u.fullName.toLowerCase().includes(q))
+    )
+  }, [eligibleInviteesPool, inviteeQuery, selectedInvitees])
 
   if (isLoading) {
     return (
@@ -1152,8 +1512,19 @@ export default function EventDetailPage() {
       </div>
 
       <div className="mx-auto max-w-5xl px-4 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid h-auto min-h-11 w-full grid-cols-2 gap-1 rounded-2xl border border-border/60 bg-muted/35 p-1.5 shadow-inner ring-1 ring-black/[0.03] dark:bg-muted/25 dark:ring-white/[0.06] sm:grid-cols-4">
+        <Tabs
+          value={activeTab}
+          onValueChange={(next) => {
+            if (next === "settings" && !isEventOwner) return
+            setActiveTab(next)
+          }}
+        >
+          <TabsList
+            className={cn(
+              "grid h-auto min-h-11 w-full gap-1 rounded-2xl border border-border/60 bg-muted/35 p-1.5 shadow-inner ring-1 ring-black/[0.03] dark:bg-muted/25 dark:ring-white/[0.06]",
+              isEventOwner ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"
+            )}
+          >
             <TabsTrigger value="chat" className={cn(EVENT_TAB_TRIGGER, "gap-1")}>
               <MessageCircle className="size-3.5 opacity-80" aria-hidden />
               {te("Chat", "Chat")}
@@ -1166,10 +1537,12 @@ export default function EventDetailPage() {
               <Inbox className="size-3.5 opacity-80" aria-hidden />
               {t("common.requests")}
             </TabsTrigger>
-            <TabsTrigger value="settings" className={cn(EVENT_TAB_TRIGGER, "gap-1")}>
-              <Settings className="size-3.5 opacity-80" aria-hidden />
-              {t("common.settings")}
-            </TabsTrigger>
+            {isEventOwner && (
+              <TabsTrigger value="settings" className={cn(EVENT_TAB_TRIGGER, "gap-1")}>
+                <Settings className="size-3.5 opacity-80" aria-hidden />
+                {t("common.settings")}
+              </TabsTrigger>
+            )}
           </TabsList>
 
         <TabsContent value="chat" className="mt-6 space-y-4">
@@ -1200,13 +1573,13 @@ export default function EventDetailPage() {
             </CardHeader>
             <CardContent className="px-4 pb-4 pt-4">
               <Tabs
-                value={isAdmin || isModerator ? chatSubTab : "chat-messages"}
+                value={isEventOwner ? chatSubTab : "chat-messages"}
                 onValueChange={(v) => {
-                  if (isAdmin || isModerator) setChatSubTab(v as "chat-messages" | "chat-poll")
+                  if (isEventOwner) setChatSubTab(v as "chat-messages" | "chat-poll")
                 }}
                 className="w-full"
               >
-                {(isAdmin || isModerator) && (
+                {isEventOwner && (
                   <TabsList className="mb-4 grid h-auto w-full grid-cols-2 gap-1 rounded-xl border border-border/60 bg-muted/35 p-1 shadow-inner dark:bg-muted/25">
                     <TabsTrigger value="chat-messages" className={CHAT_SUB_TAB}>
                       <MessageCircle className="size-3.5 opacity-80" aria-hidden />
@@ -1460,18 +1833,21 @@ export default function EventDetailPage() {
                                 {m.system ? te("Sistema", "System") : m.senderUsername || te("Usuario", "User")}
                               </span>
                             </p>
-                            <p
-                              className={cn(
-                                "break-words text-sm font-medium leading-relaxed sm:text-[15px]",
-                                m.deleted
-                                  ? "text-muted-foreground"
-                                  : mine
-                                    ? "text-slate-900 dark:text-white dark:[text-shadow:0_1px_2px_rgba(0,0,0,0.55)]"
-                                    : "text-slate-900 dark:text-zinc-100"
-                              )}
-                            >
-                              {m.deleted ? te("Mensaje eliminado", "Message deleted") : m.content || ""}
-                            </p>
+                            {/* Con encuesta el backend suele mandar la pregunta también en content (ej. "📊 …") — evitamos duplicar */}
+                            {(!m.poll || m.deleted) && (
+                              <p
+                                className={cn(
+                                  "break-words text-sm font-medium leading-relaxed sm:text-[15px]",
+                                  m.deleted
+                                    ? "text-muted-foreground"
+                                    : mine
+                                      ? "text-slate-900 dark:text-white dark:[text-shadow:0_1px_2px_rgba(0,0,0,0.55)]"
+                                      : "text-slate-900 dark:text-zinc-100"
+                                )}
+                              >
+                                {m.deleted ? te("Mensaje eliminado", "Message deleted") : m.content || ""}
+                              </p>
+                            )}
                             {m.mediaType === "IMAGE" && m.mediaUrl && !m.deleted && (
                               <img src={m.mediaUrl} alt="" className="mt-2 max-h-56 rounded-md object-cover" />
                             )}
@@ -1482,22 +1858,39 @@ export default function EventDetailPage() {
                               <audio controls src={m.mediaUrl} className="mt-2 w-full" />
                             )}
                             {m.poll && (
-                              <div className="mt-2 space-y-1 rounded-lg border border-border p-2">
-                                <p className="text-xs font-semibold">{m.poll.question}</p>
-                                {m.poll.options.map((opt) => (
-                                  <button
-                                    key={opt.id}
-                                    type="button"
-                                    className={`w-full rounded px-2 py-1 text-left text-xs ${opt.votedByMe ? "bg-primary/15" : "bg-muted/60 hover:bg-muted"}`}
-                                    disabled={m.poll?.expired}
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      handleVotePoll(opt.id, m.poll!.id)
-                                    }}
-                                  >
-                                    {opt.optionText} · {opt.voteCount}
-                                  </button>
-                                ))}
+                              <div
+                                className={cn(
+                                  "space-y-1.5 rounded-xl border border-primary/25 bg-muted/25 p-2.5 dark:border-primary/30 dark:bg-muted/20",
+                                  !m.deleted && "mt-1"
+                                )}
+                              >
+                                <p className="flex items-center gap-1.5 text-xs font-semibold leading-snug text-foreground">
+                                  <BarChart3 className="size-3.5 shrink-0 text-primary" aria-hidden />
+                                  {m.poll.question}
+                                </p>
+                                {(m.poll.options?.length ?? 0) === 0 ? (
+                                  <p className="rounded-md bg-muted/40 px-2 py-1.5 text-[11px] text-muted-foreground">
+                                    {te(
+                                      "No se recibieron opciones en la respuesta.",
+                                      "No poll options were returned."
+                                    )}
+                                  </p>
+                                ) : (
+                                  m.poll.options.map((opt, i) => (
+                                    <button
+                                      key={opt.id || `poll-opt-${m.poll!.id}-${i}`}
+                                      type="button"
+                                      className={`w-full rounded px-2 py-1 text-left text-xs ${opt.votedByMe ? "bg-primary/15" : "bg-muted/60 hover:bg-muted"}`}
+                                      disabled={m.poll?.expired}
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleVotePoll(opt.id, m.poll!.id)
+                                      }}
+                                    >
+                                      {opt.optionText || te("(opción)", "(option)")} · {opt.voteCount}
+                                    </button>
+                                  ))
+                                )}
                               </div>
                             )}
                             <div
@@ -1509,7 +1902,7 @@ export default function EventDetailPage() {
                               <time
                                 dateTime={m.sentAt}
                                 className={cn(
-                                  "text-[11px] tabular-nums text-black dark:text-black leading-none text-muted-foreground/90 sm:text-xs",
+                                  "text-[11px] tabular-nums leading-none text-muted-foreground/90 sm:text-xs",
                                   mine && "text-muted-foreground/80"
                                 )}
                               >
@@ -1659,7 +2052,7 @@ export default function EventDetailPage() {
               </div>
                 </TabsContent>
 
-                {(isAdmin || isModerator) && (
+                {isEventOwner && (
                   <TabsContent value="chat-poll" className="mt-0 space-y-4 outline-none">
                     <div className="rounded-2xl border border-border/55 bg-gradient-to-br from-card to-primary/[0.04] p-4 ring-1 ring-black/[0.04] dark:to-primary/[0.07] dark:ring-white/[0.06]">
                       <p className="mb-3 text-xs leading-relaxed text-muted-foreground">
@@ -1787,54 +2180,132 @@ export default function EventDetailPage() {
         </TabsContent>
 
         <TabsContent value="requests" className="mt-6 space-y-4">
-          <Card className="rounded-2xl border-border/55 shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base font-semibold">
-                <Inbox className="size-4 text-secondary" aria-hidden />
-                {te("Crear solicitud grupal", "Create group request")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Input
-                  value={inviteeQuery}
-                  onChange={(e) => setInviteeQuery(e.target.value)}
-                  placeholder={te("Busca por @username", "Search by @username")}
-              />
-                {inviteeSuggestions.length > 0 && (
-                  <div className="rounded-md border border-border max-h-40 overflow-auto">
-                    {inviteeSuggestions.map((u) => (
-                      <button
-                        key={u.userId}
-                        type="button"
-                        className="w-full px-3 py-2 text-left text-sm hover:bg-muted"
-                        onClick={() => {
-                          setSelectedInvitees((prev) => [...prev, u])
-                          setInviteeQuery("")
-                          setInviteeSuggestions([])
-                        }}
-                      >
-                        @{u.username} {u.fullName ? `· ${u.fullName}` : ""}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {selectedInvitees.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {selectedInvitees.map((u) => (
-                      <Badge key={u.userId} variant="secondary" className="cursor-pointer" onClick={() => setSelectedInvitees((prev) => prev.filter((p) => p.userId !== u.userId))}>
-                        @{u.username} ✕
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              <p className="text-xs text-muted-foreground">
-                {te("Invita usuarios (matches o seguidores mutuos según reglas backend).", "Invite users (matches or mutual followers based on backend rules).")}
-              </p>
-              <Button onClick={handleCreateGroupJoinRequest}>{te("Crear solicitud", "Create request")}</Button>
-            </CardContent>
-          </Card>
+          {!isAdmin && (
+            <Card className="rounded-2xl border-border/55 shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base font-semibold">
+                  <Inbox className="size-4 text-secondary" aria-hidden />
+                  {te("Solicitud al grupo", "Group join request")}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  {te(
+                    "Puedes pedir entrar solo tú, o invitar a tus matches y a personas con las que tengáis seguimiento mutuo (los dos os seguís). Es lo mismo que valida el servidor.",
+                    "You can join alone, or invite your matches and people you mutually follow (both follow each other). That matches what the server allows."
+                  )}
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 w-full gap-2 rounded-xl sm:w-auto"
+                  onClick={handleSoloGroupJoinRequest}
+                  disabled={isCreatingSoloJoin || isCreatingGroupInvite}
+                >
+                  {isCreatingSoloJoin ? (
+                    <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+                  ) : (
+                    <UserPlus className="size-4 shrink-0" aria-hidden />
+                  )}
+                  {te("Solicitar unirme (solo yo)", "Request to join (just me)")}
+                </Button>
 
-          {isAdmin ? (
+                <div className="space-y-3 border-t border-border pt-4">
+                  <p className="text-sm font-medium">
+                    {te("Invitar desde tu lista", "Invite from your list")}
+                  </p>
+                  <Input
+                    value={inviteeQuery}
+                    onChange={(e) => setInviteeQuery(e.target.value)}
+                    placeholder={te("Filtrar por nombre o @usuario…", "Filter by name or @username…")}
+                    className={FORM_CONTROL_INPUT}
+                  />
+                  {eligibleInviteesLoading ? (
+                    <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+                      <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+                      {te("Cargando matches y seguidores mutuos…", "Loading matches and mutual followers…")}
+                    </div>
+                  ) : filteredEligibleInvitees.length === 0 ? (
+                    <p className="py-2 text-sm text-muted-foreground">
+                      {eligibleInviteesPool.length === 0
+                        ? te(
+                            "No tienes matches ni seguidores mutuos para invitar, o ya están en el grupo.",
+                            "You have no matches or mutual followers to invite, or they are already in the group."
+                          )
+                        : te("Nadie coincide con el filtro.", "No one matches the filter.")}
+                    </p>
+                  ) : (
+                    <div className="max-h-52 divide-y divide-border overflow-auto rounded-xl border border-border">
+                      {filteredEligibleInvitees.map((u) => (
+                        <button
+                          key={u.userId}
+                          type="button"
+                          className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted/80"
+                          onClick={() => {
+                            setSelectedInvitees((prev) => [...prev, u])
+                            setInviteeQuery("")
+                          }}
+                        >
+                          <Avatar className="size-9 shrink-0">
+                            {u.photo ? (
+                              <AvatarImage src={u.photo} alt="" className="object-cover" />
+                            ) : null}
+                            <AvatarFallback className="text-xs font-semibold">
+                              {(u.username || u.userId).slice(0, 1).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-medium">
+                              {u.fullName || `@${u.username}`}
+                            </p>
+                            <p className="truncate text-xs text-muted-foreground">@{u.username}</p>
+                          </div>
+                          <span className="shrink-0 text-xs font-medium text-primary">
+                            {te("Añadir", "Add")}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {selectedInvitees.length > 0 && (
+                    <div className="space-y-3 pt-1">
+                      <p className="text-xs text-muted-foreground">
+                        {te("Se incluirán en la solicitud grupal:", "Included in the group request:")}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedInvitees.map((u) => (
+                          <Badge
+                            key={u.userId}
+                            variant="secondary"
+                            className="cursor-pointer gap-1"
+                            onClick={() =>
+                              setSelectedInvitees((prev) => prev.filter((p) => p.userId !== u.userId))
+                            }
+                          >
+                            @{u.username} ×
+                          </Badge>
+                        ))}
+                      </div>
+                      <Button
+                        type="button"
+                        onClick={handleCreateGroupJoinRequest}
+                        disabled={isCreatingGroupInvite || isCreatingSoloJoin}
+                        className="h-11 w-full rounded-xl sm:w-auto"
+                      >
+                        {isCreatingGroupInvite ? (
+                          <Loader2 className="mr-2 size-4 shrink-0 animate-spin" aria-hidden />
+                        ) : null}
+                        {te("Crear solicitud con invitados", "Create request with invitees")}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {isAdmin && (
             <>
               <Card className="rounded-2xl border-border/55 shadow-sm">
                 <CardHeader><CardTitle className="text-base">{te("Pendientes individuales", "Individual pending")}</CardTitle></CardHeader>
@@ -1918,34 +2389,10 @@ export default function EventDetailPage() {
                 </CardContent>
               </Card>
             </>
-          ) : (
-            <>
-              <Card className="rounded-2xl border-border/55 shadow-sm">
-                <CardHeader><CardTitle className="text-base">{te("Mis invitaciones pendientes", "My pending invitations")}</CardTitle></CardHeader>
-                <CardContent className="space-y-2">
-                  {myPendingGroupRequests.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">{te("No tienes invitaciones pendientes.", "You have no pending invitations.")}</p>
-                  ) : myPendingGroupRequests.map((r) => (
-                    <div key={r.id} className="rounded-lg border border-border p-3 space-y-2">
-                      <p className="font-medium">{r.inviterUsername} · {r.status}</p>
-                      <p className="text-xs text-muted-foreground">{r.members.map((m) => `${m.username} (${m.status})`).join(", ")}</p>
-                      <div className="flex gap-2">
-                        <Button size="sm" onClick={() => handleRespondGroupInvite(r.id, true)}>{te("Aceptar", "Accept")}</Button>
-                        <Button size="sm" variant="outline" onClick={() => handleRespondGroupInvite(r.id, false)}>{te("Rechazar", "Reject")}</Button>
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-              <Card className="rounded-2xl border-border/55 shadow-sm">
-                <CardContent className="py-6 text-center text-sm text-muted-foreground">
-                  {te("Solo ADMIN puede aprobar solicitudes para entrada al grupo.", "Only ADMIN can approve requests to enter the group.")}
-                </CardContent>
-              </Card>
-            </>
           )}
         </TabsContent>
 
+        {isEventOwner && (
         <TabsContent value="settings" className="mt-6 space-y-4">
           {isAdmin ? (
             <>
@@ -2206,15 +2653,9 @@ export default function EventDetailPage() {
                 </CardContent>
               </Card>
             </>
-          ) : (
-            <Card className="rounded-2xl border-border/55 shadow-sm">
-              <CardContent className="py-8 text-center text-sm text-muted-foreground">
-                <Shield className="h-4 w-4 inline mr-1" />
-                {te("Solo ADMIN puede modificar ajustes e invitaciones.", "Only ADMIN can modify settings and invitations.")}
-              </CardContent>
-            </Card>
-          )}
+          ) : null}
         </TabsContent>
+        )}
       </Tabs>
       </div>
     </div>

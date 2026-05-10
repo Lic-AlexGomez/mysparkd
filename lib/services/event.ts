@@ -1,4 +1,4 @@
-import { api } from "@/lib/api"
+import { api, ApiError } from "@/lib/api"
 import type {
   Event,
   EventCapacityUpdate,
@@ -14,6 +14,30 @@ import type {
   EventRole,
   ReactionType,
 } from "@/lib/types"
+
+/** Respuesta GET …/group/join-eligible-users (cuando exista en backend). */
+function mapJoinEligibleProfileRow(u: Record<string, unknown>): {
+  userId: string
+  username: string
+  fullName?: string
+  photo?: string
+} | null {
+  const userId = String(u.userId ?? u.id ?? "").trim()
+  if (!userId) return null
+  const username = String(u.username ?? "").trim()
+  const fullName =
+    [u.nombres, u.apellidos].filter(Boolean).join(" ").trim() || undefined
+  const photo =
+    (u.profilePictureUrl as string | undefined) ||
+    (u.photoUrl as string | undefined) ||
+    undefined
+  return {
+    userId,
+    username: username || fullName?.split(/\s+/)[0] || userId.slice(0, 8),
+    fullName,
+    photo,
+  }
+}
 
 const withQuery = (base: string, params: Record<string, string | number | boolean | undefined | null>) => {
   const sp = new URLSearchParams()
@@ -301,19 +325,72 @@ export const eventService = {
       api.delete<void>(`/api/events/${eventId}/group/members/${targetUserId}`),
   },
 
-  // 8) Polls
+  // 8) Polls — el backend puede esperar `options`, `optionTexts`, `choices`, etc.
   polls: {
     create: (
       eventId: string,
       payload: { question: string; options: string[]; expiresAt?: string }
-    ) =>
-      api.post<EventGroupMessage>(`/api/events/${eventId}/group/polls`, payload),
+    ) => {
+      const optionStrings = payload.options.map((s) => String(s ?? "").trim()).filter(Boolean)
+      const question = String(payload.question ?? "").trim()
+      const body: Record<string, unknown> = {
+        question,
+        options: optionStrings,
+        optionTexts: optionStrings,
+        choices: optionStrings,
+      }
+      if (payload.expiresAt) body.expiresAt = payload.expiresAt
+      return api.post<EventGroupMessage>(`/api/events/${eventId}/group/polls`, body)
+    },
     vote: (eventId: string, optionId: string) =>
       api.post<EventPoll>(`/api/events/${eventId}/group/polls/${optionId}/vote`),
   },
 
   // 9) Group join requests
   groupJoinRequests: {
+    /**
+     * Lista usuarios que el servidor permite invitar al grupo del evento (misma regla que POST join-requests).
+     * Si el endpoint no existe (404), devuelve `null` y el FE usa fallback (matches + followers en cliente).
+     */
+    listEligibleInvitees: async (
+      eventId: string
+    ): Promise<
+      Array<{ userId: string; username: string; fullName?: string; photo?: string }> | null
+    > => {
+      try {
+        const raw = await api.get<unknown>(
+          `/api/events/${eventId}/group/join-eligible-users`
+        )
+        const rows = Array.isArray(raw)
+          ? raw
+          : raw &&
+              typeof raw === "object" &&
+              Array.isArray((raw as Record<string, unknown>).users)
+            ? (raw as Record<string, unknown>).users
+            : raw &&
+                typeof raw === "object" &&
+                Array.isArray((raw as Record<string, unknown>).content)
+              ? (raw as Record<string, unknown>).content
+              : []
+        const arr = Array.isArray(rows) ? rows : []
+        const out: Array<{
+          userId: string
+          username: string
+          fullName?: string
+          photo?: string
+        }> = []
+        for (const item of arr) {
+          if (!item || typeof item !== "object") continue
+          const m = mapJoinEligibleProfileRow(item as Record<string, unknown>)
+          if (m) out.push(m)
+        }
+        return out
+      } catch (e: unknown) {
+        if (e instanceof ApiError && e.status === 404) return null
+        console.warn("[eventService] listEligibleInvitees:", e)
+        return null
+      }
+    },
     create: (eventId: string, inviteeUserIds: string[]) =>
       api.post<EventGroupJoinRequest>(`/api/events/${eventId}/group/join-requests`, { inviteeUserIds }),
     respond: (requestId: string, accept: boolean) =>
