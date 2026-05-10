@@ -277,7 +277,16 @@ const TRANSLATIONS: Record<string, Record<SupportedLanguage, string>> = {
     en: "Swipes", zh: "滑动", hi: "स्वाइप्स", es: "Swipes", fr: "Swipes", ar: "السحب", bn: "সুইপস", pt: "Swipes", ru: "Свайпы", ur: "سوائپس",
   },
   "bottomNav.events": {
-    en: "Events", zh: "活动", hi: "इवेंट्स", es: "Eventos", fr: "Événements", ar: "الفعاليات", bn: "ইভেন্ট", pt: "Eventos", ru: "События", ur: "ایونٹس",
+    en: "Event",
+    zh: "活动",
+    hi: "इवेंट",
+    es: "Evento",
+    fr: "Événement",
+    ar: "فعالية",
+    bn: "ইভেন্ট",
+    pt: "Evento",
+    ru: "Событие",
+    ur: "ایونٹ",
   },
   "bottomNav.dates": {
     en: "Dates", zh: "约会", hi: "डेट्स", es: "Citas", fr: "Rendez-vous", ar: "المواعيد", bn: "ডেটস", pt: "Encontros", ru: "Свидания", ur: "ڈیٹس",

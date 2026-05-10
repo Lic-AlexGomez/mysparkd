@@ -50,6 +50,7 @@ import {
   UserX,
   Volume2,
   VolumeX,
+  Zap,
 } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import type {
@@ -78,6 +79,17 @@ const EVENT_TAB_TRIGGER =
 
 const CHAT_SUB_TAB =
   "gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-all data-[state=active]:border data-[state=active]:border-primary/30 data-[state=active]:bg-background data-[state=active]:shadow-sm sm:text-sm dark:data-[state=active]:bg-card"
+
+/** Fotos Picsum por ID (estables). Se elige una según el evento — “random” entre eventos, fija en el mismo. */
+const CHAT_BG_PICSUM_IDS = [
+  10, 29, 42, 76, 103, 137, 152, 180, 201, 219, 237, 266, 289, 318, 433, 512, 575, 611,
+]
+
+function hashStringToIndex(s: string, modulo: number) {
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0
+  return Math.abs(h) % modulo
+}
 
 /** Actualiza la lista local como hace el toggle de likes en servidor (misma reacción = quitar). */
 function mergeToggleEventGroupReaction(
@@ -389,6 +401,11 @@ export default function EventDetailPage() {
         .filter((m) => !isRedundantLocationSystemMessage(m))
         .sort((a, b) => new Date(a.sentAt || 0).getTime() - new Date(b.sentAt || 0).getTime()),
     [messages]
+  )
+
+  const chatBgPicsumId = useMemo(
+    () => CHAT_BG_PICSUM_IDS[hashStringToIndex(eventId, CHAT_BG_PICSUM_IDS.length)],
+    [eventId]
   )
 
   const formatTime = (iso?: string | null) =>
@@ -1203,7 +1220,22 @@ export default function EventDetailPage() {
                 )}
 
                 <TabsContent value="chat-messages" className="mt-0 space-y-4 outline-none">
-              <div className="max-h-[min(640px,78vh)] min-h-[min(320px,42vh)] space-y-3 overflow-y-auto overflow-x-hidden rounded-xl border border-border/60 bg-muted/15 p-4 dark:bg-muted/10">
+              {/* Foto de fondo en todo el bloque (lista + compositor); velo bajo para que se note la imagen */}
+              <div className="relative min-h-[min(320px,45vh)] overflow-hidden rounded-xl border border-border/55 shadow-inner ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
+                <img
+                  src={`https://picsum.photos/id/${chatBgPicsumId}/1600/1000`}
+                  alt=""
+                  width={1600}
+                  height={1000}
+                  loading="eager"
+                  decoding="async"
+                  className="pointer-events-none absolute inset-0 z-0 size-full min-h-[280px] object-cover"
+                />
+                <div
+                  className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-b from-background/12 via-background/8 to-background/14 backdrop-blur-[0.5px] dark:from-background/20 dark:via-background/14 dark:to-background/24"
+                  aria-hidden
+                />
+                <div className="relative z-[2] max-h-[min(560px,72vh)] min-h-[min(280px,38vh)] space-y-3 overflow-y-auto overflow-x-hidden p-4">
                 {sortedMessages.map((m, idx) => {
                   const mine = String(m.senderId || "") === myUserId
                   const isSystemMessage = Boolean(m.system)
@@ -1213,7 +1245,7 @@ export default function EventDetailPage() {
                   if (isSystemMessage) {
                     return (
                       <div key={key} className="flex justify-center">
-                        <div className="max-w-[90%] rounded-lg bg-muted/50 border border-border/50 px-4 py-2 text-center">
+                        <div className="max-w-[90%] rounded-lg border border-border/60 bg-muted/90 px-4 py-2 text-center shadow-sm backdrop-blur-sm dark:bg-muted/85">
                           <p className="text-xs text-muted-foreground mb-1">
                             {te("Sistema", "System")} · {formatTime(m.sentAt)}
                           </p>
@@ -1388,8 +1420,10 @@ export default function EventDetailPage() {
                         )}
                         <div
                           className={cn(
-                            "relative rounded-2xl border px-3 py-2 shadow-sm sm:px-4 sm:py-2.5",
-                            mine ? "border-primary/35 bg-primary/12" : "border-border/70 bg-card/95"
+                            "relative rounded-2xl border px-3 py-2 shadow-md backdrop-blur-[2px] sm:px-4 sm:py-2.5",
+                            mine
+                              ? "border-primary/50 bg-primary/30 text-foreground dark:border-primary/45 dark:bg-primary/26"
+                              : "border-border bg-card text-foreground shadow-sm"
                           )}
                           onClick={(e) => {
                             e.stopPropagation()
@@ -1405,10 +1439,37 @@ export default function EventDetailPage() {
                               !m.deleted && m.reactions && m.reactions.length > 0 ? "pb-1.5" : "pb-0.5"
                             )}
                           >
-                            <p className="mb-1 text-xs leading-tight text-muted-foreground sm:text-[13px]">
-                              {m.system ? te("Sistema", "System") : m.senderUsername || te("Usuario", "User")}
+                            <p className="mb-1 flex min-w-0 items-center gap-1 text-xs leading-tight sm:text-[13px]">
+                              {!m.system && (
+                                <Zap
+                                  className="size-3 shrink-0 animate-pulse text-purple-600 drop-shadow-[0_0_6px_rgba(147,51,234,0.65)] dark:text-purple-400 dark:drop-shadow-[0_0_8px_rgba(192,132,252,0.55)]"
+                                  strokeWidth={2.5}
+                                  aria-hidden
+                                />
+                              )}
+                              <span
+                                className={cn(
+                                  "min-w-0 truncate tracking-tight",
+                                  m.system
+                                    ? "font-medium text-amber-700 dark:text-amber-400"
+                                    : mine
+                                      ? "font-semibold text-purple-800 dark:text-purple-200"
+                                      : "font-medium text-violet-700 dark:text-violet-300"
+                                )}
+                              >
+                                {m.system ? te("Sistema", "System") : m.senderUsername || te("Usuario", "User")}
+                              </span>
                             </p>
-                            <p className="break-words text-sm leading-relaxed sm:text-[15px]">
+                            <p
+                              className={cn(
+                                "break-words text-sm font-medium leading-relaxed sm:text-[15px]",
+                                m.deleted
+                                  ? "text-muted-foreground"
+                                  : mine
+                                    ? "text-slate-900 dark:text-white dark:[text-shadow:0_1px_2px_rgba(0,0,0,0.55)]"
+                                    : "text-slate-900 dark:text-zinc-100"
+                              )}
+                            >
                               {m.deleted ? te("Mensaje eliminado", "Message deleted") : m.content || ""}
                             </p>
                             {m.mediaType === "IMAGE" && m.mediaUrl && !m.deleted && (
@@ -1448,7 +1509,7 @@ export default function EventDetailPage() {
                               <time
                                 dateTime={m.sentAt}
                                 className={cn(
-                                  "text-[11px] tabular-nums leading-none text-muted-foreground/90 sm:text-xs",
+                                  "text-[11px] tabular-nums text-black dark:text-black leading-none text-muted-foreground/90 sm:text-xs",
                                   mine && "text-muted-foreground/80"
                                 )}
                               >
@@ -1513,10 +1574,10 @@ export default function EventDetailPage() {
                     </div>
                   )
                 })}
-              </div>
-              <div className="space-y-3">
+                </div>
+              <div className="relative z-[2] space-y-3 border-t border-white/10 bg-card/55 px-4 pb-4 pt-3 shadow-[0_-8px_28px_-12px_rgba(0,0,0,0.18)] backdrop-blur-xl dark:border-white/5 dark:bg-card/45 dark:shadow-[0_-8px_36px_-10px_rgba(0,0,0,0.55)]">
                 {replyToEventMessage && (
-                  <div className="flex items-center justify-between gap-2 rounded-xl border border-border/60 bg-muted/25 px-3 py-2 text-xs dark:bg-muted/15">
+                  <div className="flex items-center justify-between gap-2 rounded-xl border border-border/60 bg-muted px-3 py-2 text-xs dark:bg-muted/90">
                     <span className="min-w-0 truncate text-muted-foreground">
                       {te("Respondiendo a", "Replying to")}{" "}
                       <span className="font-medium text-foreground">{replyToEventMessage.username}</span>
@@ -1554,7 +1615,7 @@ export default function EventDetailPage() {
                     {te("Adjuntar", "Attach")}
                   </Button>
                   {mediaFile ? (
-                    <div className="flex min-h-9 min-w-0 flex-1 items-center justify-between gap-2 rounded-xl border border-border/60 bg-muted/30 px-3 py-1.5 text-xs sm:flex-initial sm:max-w-md">
+                    <div className="flex min-h-9 min-w-0 flex-1 items-center justify-between gap-2 rounded-xl border border-border/60 bg-muted/80 px-3 py-1.5 text-xs sm:flex-initial sm:max-w-md dark:bg-muted/70">
                       <span className="truncate font-medium text-foreground">{mediaFile.name}</span>
                       <Button
                         type="button"
@@ -1579,7 +1640,10 @@ export default function EventDetailPage() {
                     onChange={(e) => setMessageText(e.target.value)}
                     placeholder={te("Escribe un mensaje", "Write a message")}
                     disabled={!canSend}
-                    className={cn(FORM_CONTROL_TEXTAREA, "min-h-11 max-h-40 min-w-0 flex-1 resize-y py-2")}
+                    className={cn(
+                      FORM_CONTROL_TEXTAREA,
+                      "min-h-11 max-h-40 min-w-0 flex-1 resize-y bg-background/95 py-2 dark:bg-background/90"
+                    )}
                   />
                   <Button
                     type="button"
@@ -1591,6 +1655,7 @@ export default function EventDetailPage() {
                     <span className="whitespace-nowrap">{isSending ? te("Enviando...", "Sending...") : te("Enviar", "Send")}</span>
                   </Button>
                 </div>
+              </div>
               </div>
                 </TabsContent>
 

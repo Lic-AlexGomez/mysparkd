@@ -5,20 +5,22 @@ import { usePathname } from "next/navigation"
 import { Newspaper, Zap, Calendar, MessageCircle, User } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useUnreadChats } from "@/hooks/use-unread-chats"
+import { useI18n } from "@/lib/i18n"
 
 const EVENTS_HREF = "/events"
 
 const navItems = [
-  { href: "/feed", label: "Feed", icon: Newspaper },
-  { href: "/swipes", label: "Swipes", icon: Zap },
-  { href: EVENTS_HREF, label: "Citas", icon: Calendar },
-  { href: "/chat", label: "Chat", icon: MessageCircle },
-  { href: "/profile", label: "Perfil", icon: User },
+  { href: "/feed", labelKey: "bottomNav.feed" as const, icon: Newspaper },
+  { href: "/swipes", labelKey: "bottomNav.swipes" as const, icon: Zap },
+  { href: EVENTS_HREF, labelKey: "bottomNav.events" as const, icon: Calendar },
+  { href: "/chat", labelKey: "bottomNav.chat" as const, icon: MessageCircle },
+  { href: "/profile", labelKey: "bottomNav.profile" as const, icon: User },
 ]
 
 export function BottomNav() {
   const pathname = usePathname()
   const unreadChats = useUnreadChats()
+  const { t } = useI18n()
 
   if (pathname.startsWith('/chat/')) return null
 
@@ -48,7 +50,7 @@ export function BottomNav() {
                   </span>
                 )}
               </div>
-              <span>{item.label}</span>
+              <span>{t(item.labelKey)}</span>
             </Link>
           )
         })}
