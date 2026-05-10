@@ -15,6 +15,10 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { LocationInput } from "@/components/ui/location-input"
+import { AddressMapPicker } from "@/components/ui/address-map-picker"
+import { Label } from "@/components/ui/label"
+import { useLocalizedCountryCode } from "@/hooks/use-localized-country-code"
+import { FORM_CONTROL_INPUT, FORM_LABEL } from "@/lib/form-field-classes"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeft, Copy, Loader2, MessageCircle, Shield, Star, Trash2, UserMinus, UserX, Volume2, VolumeX } from "lucide-react"
@@ -22,12 +26,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import type { EventCapacityUpdate, EventGroupJoinRequest, EventGroupMember, EventGroupMessage, EventParticipant, ReactionType } from "@/lib/types"
 import { toast } from "sonner"
 import { useI18n } from "@/lib/i18n"
+import { cn } from "@/lib/utils"
 
 const normalizeEventId = (raw: any) => String(raw?.eventId || raw?.id || "")
 const normalizeMessageId = (raw: any) => String(raw?.id || raw?.messageId || "")
 
 export default function EventDetailPage() {
   const { te, t } = useI18n()
+  const countryCode = useLocalizedCountryCode()
   const params = useParams()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -748,7 +754,9 @@ export default function EventDetailPage() {
 
   const approvedCount = Number(capacity?.currentApprovedCount ?? eventData?.currentApprovedCount ?? 0)
   const maxGuests = Number(capacity?.maxGuests ?? eventData?.maxGuests ?? 0)
-  const officialAddressSaved = String((eventData as any)?.officialAddress || "").trim()
+  const officialAddressSaved = String(
+    (eventData as any)?.officialAddress || (eventData as any)?.exactAddress || ""
+  ).trim()
   const sharedAddressSaved = String((eventData as any)?.sharedAddress || "").trim()
   const backendMatched = (eventData as any)?.addressMatched
   const isAddressMatched = typeof backendMatched === "boolean"
@@ -767,6 +775,27 @@ export default function EventDetailPage() {
         : isAddressMatched
           ? "matched"
           : "mismatch"
+
+  const rawEv = eventData as any
+  const zoneDisplay = String(
+    rawEv?.zone || rawEv?.locationZone || rawEv?.location_zone || rawEv?.addressZone || ""
+  ).trim()
+  const countryDisplay = String(rawEv?.country || rawEv?.countryCode || "").trim()
+  const eventPlaceDisplay =
+    officialAddressSaved ||
+    zoneDisplay ||
+    countryDisplay ||
+    te("Por definir", "To be confirmed")
+
+  const hasZoneOnly = !officialAddressSaved && Boolean(zoneDisplay || countryDisplay)
+  const locationPendingBadge =
+    !officialAddressSaved && !zoneDisplay && !countryDisplay
+      ? te("Sin ubicación", "No location")
+      : hasZoneOnly
+        ? te("Verificación pendiente", "Verification pending")
+        : officialAddressSaved && !sharedAddressSaved
+          ? te("Sin publicar en el chat", "Not shared in chat yet")
+          : te("Pendiente", "Pending")
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6">
@@ -791,21 +820,37 @@ export default function EventDetailPage() {
           </Button>
           )}
           <div className="w-full rounded-lg border border-border/70 bg-muted/20 p-3 text-xs text-muted-foreground">
-            <div className="mb-2 flex items-center gap-2">
+            <div
+              className={cn(
+                "mb-3 flex flex-col gap-2 rounded-md border px-2.5 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3",
+                locationStatus === "matched"
+                  ? "border-emerald-500/25 bg-emerald-500/10"
+                  : locationStatus === "mismatch"
+                    ? "border-rose-500/25 bg-rose-500/10"
+                    : "border-amber-500/25 bg-amber-500/10"
+              )}
+            >
+              <p className="min-w-0 text-sm leading-snug">
+                <span className="font-semibold text-foreground">
+                  {te("Ubicación del evento:", "Event location:")}
+                </span>{" "}
+                <span className="break-words">{eventPlaceDisplay}</span>
+              </p>
               <Badge
-                className={
+                className={cn(
+                  "w-fit shrink-0 border-0 text-[10px]",
                   locationStatus === "matched"
-                    ? "bg-emerald-500/15 text-emerald-500 border-0"
+                    ? "bg-emerald-600/20 text-emerald-700 dark:text-emerald-400"
                     : locationStatus === "mismatch"
-                      ? "bg-rose-500/15 text-rose-500 border-0"
-                      : "bg-amber-500/15 text-amber-500 border-0"
-                }
+                      ? "bg-rose-600/20 text-rose-700 dark:text-rose-400"
+                      : "bg-amber-600/20 text-amber-800 dark:text-amber-400"
+                )}
               >
                 {locationStatus === "matched"
-                  ? te("Ubicación: Coincide", "Location: Matched")
+                  ? te("Verificada", "Verified")
                   : locationStatus === "mismatch"
-                    ? te("Ubicación: No coincide", "Location: Mismatch")
-                    : te("Ubicación: Pendiente", "Location: Pending")}
+                    ? te("No coincide", "Mismatch")
+                    : locationPendingBadge}
               </Badge>
             </div>
             <p>
@@ -821,7 +866,7 @@ export default function EventDetailPage() {
             </p>
             {canViewAddress && isAddressMatched && sharedAddressSaved ? (
               <p className="mt-2 font-medium text-foreground">
-                {te("Ubicación del meetup", "Meetup location")}: {sharedAddressSaved}
+                {te("Ubicación compartida en el chat", "Chat-shared location")}: {sharedAddressSaved}
               </p>
             ) : null}
           </div>
@@ -1287,21 +1332,61 @@ export default function EventDetailPage() {
                     </div>
                   ) : (
                     <>
-                      <LocationInput
-                        value={locationExact}
-                        onChange={(value, coords) => {
-                          setLocationExact(value)
-                          if (coords) setLocationCoords(coords)
-                          if (!locationZone) setLocationZone(value.split(",")[0]?.trim() || "")
+                      <div className="space-y-1.5">
+                        <Label htmlFor="event-settings-address" className={FORM_LABEL}>
+                          {te("Dirección exacta", "Exact address")}
+                        </Label>
+                        <LocationInput
+                          id="event-settings-address"
+                          value={locationExact}
+                          onChange={(value, coords) => {
+                            setLocationExact(value)
+                            if (coords) setLocationCoords(coords)
+                            if (!locationZone) setLocationZone(value.split(",")[0]?.trim() || "")
+                          }}
+                          placeholder={te("Dirección exacta del evento", "Exact event address")}
+                          valueFormat="full"
+                          countryCode={countryCode}
+                          biasCoordinates={locationCoords ?? undefined}
+                          maxLength={280}
+                        />
+                      </div>
+                      <AddressMapPicker
+                        bootstrapCountryCode={countryCode}
+                        latitude={locationCoords?.latitude ?? null}
+                        longitude={locationCoords?.longitude ?? null}
+                        onLocationChange={(c, addressLine) => {
+                          setLocationCoords({ latitude: c.latitude, longitude: c.longitude })
+                          setLocationExact(addressLine)
+                          setLocationZone((z) => z.trim() || addressLine.split(",")[0]?.trim() || "")
                         }}
-                        placeholder={te("Dirección exacta del evento", "Exact event address")}
-                        valueFormat="full"
+                        labels={{
+                          myLocation: te("Mi ubicación", "My location"),
+                          syncHint: te(
+                            "Toca el mapa o arrastra el pin; se actualiza la dirección.",
+                            "Tap the map or drag the pin; the address updates."
+                          ),
+                          locatingGps: te("Ubicando…", "Locating…"),
+                        }}
+                        helperText={te(
+                          "Prioriza resultados en tu país y usa tu GPS como punto inicial.",
+                          "Results favor your country; GPS seeds the initial pin when allowed."
+                        )}
+                        className="mt-2"
                       />
-                      <Input
-                        value={locationZone}
-                        onChange={(e) => setLocationZone(e.target.value)}
-                        placeholder={te("Zona / barrio (ej: Chapinero, Bogotá)", "Zone / neighborhood (e.g. Downtown, NYC)")}
-                      />
+                      <div className="space-y-1.5">
+                        <Label htmlFor="event-settings-zone" className={FORM_LABEL}>
+                          {te("Zona / barrio", "Zone / neighborhood")}
+                        </Label>
+                        <Input
+                          id="event-settings-zone"
+                          className={FORM_CONTROL_INPUT}
+                          value={locationZone}
+                          onChange={(e) => setLocationZone(e.target.value)}
+                          placeholder={te("Ej: Chapinero, Bogotá", "e.g. Downtown, NYC")}
+                          autoComplete="off"
+                        />
+                      </div>
                       <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-3">
                         <p className="text-xs text-blue-700 dark:text-blue-400">
                           ℹ️ {te(

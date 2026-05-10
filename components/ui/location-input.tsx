@@ -4,15 +4,9 @@ import { useState, useEffect, useRef } from "react"
 import { Input } from "./input"
 import { MapPin, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
-
-// Extrae solo provincia y país de una dirección completa
-function formatLocation(location: string): string {
-  if (!location || location === 'Unknown location') return ''
-  const parts = location.split(',')
-  if (parts.length <= 2) return location
-  // Tomar las últimas 2 partes (provincia, país)
-  return parts.slice(-2).map(p => p.trim()).join(', ')
-}
+import type { GeocodeApiSuggestion } from "@/lib/geocoding/types"
+import { formatStreetLine, formatResolvedPostalLabel } from "@/lib/nominatim-client"
+import { FORM_CONTROL_INPUT } from "@/lib/form-field-classes"
 
 interface LocationSuggestion {
   place_id: string
@@ -32,6 +26,14 @@ interface LocationInputProps {
   placeholder?: string
   className?: string
   valueFormat?: "region" | "full"
+  /** ISO 3166-1 alpha-2 — prioriza resultados en ese país (Photon/Nominatim/Mapbox vía API) */
+  countryCode?: string
+  /** Prefer results near this point (approximate GPS / map center) */
+  biasCoordinates?: { latitude: number; longitude: number }
+  /** Half-span in degrees for viewbox around biasCoordinates (default 0.35 ≈ city scale) */
+  biasDeltaDegrees?: number
+  maxLength?: number
+  id?: string
 }
 
 export function LocationInput({
@@ -40,6 +42,11 @@ export function LocationInput({
   placeholder = "Ciudad, País",
   className,
   valueFormat = "region",
+  countryCode,
+  biasCoordinates,
+  biasDeltaDegrees: _biasDeltaDegrees = 0.35,
+  maxLength = 100,
+  id,
 }: LocationInputProps) {
   const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -74,41 +81,59 @@ export function LocationInput({
 
     setIsLoading(true)
     try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(input)}&limit=7&addressdetails=1&featuretype=settlement`,
-        { headers: { 'Accept-Language': 'es,en' } }
-      )
-      const data = await response.json()
+      const cc = countryCode?.trim().toLowerCase()
+      const params = new URLSearchParams({ q: input, limit: "12" })
+      if (cc && cc.length === 2) params.set("country", cc)
+      if (biasCoordinates) {
+        params.set("lat", String(biasCoordinates.latitude))
+        params.set("lon", String(biasCoordinates.longitude))
+      }
 
-      // Filtrar solo tipos relevantes
-      const relevantTypes = ['city', 'town', 'village', 'suburb', 'neighbourhood', 'road', 'house', 'residential', 'street', 'municipality', 'county', 'state', 'postcode']
-      const filtered = data.filter((item: any) => {
-        const type = (item.type || item.class || '').toLowerCase()
-        const cls = (item.class || '').toLowerCase()
-        return relevantTypes.includes(type) || cls === 'highway' || cls === 'place' || cls === 'boundary' || cls === 'building'
+      const response = await fetch(`/api/geocode?${params.toString()}`, {
+        headers: { Accept: "application/json" },
       })
+      const payload = (await response.json()) as { suggestions?: GeocodeApiSuggestion[] }
+      const rows = Array.isArray(payload.suggestions) ? payload.suggestions : []
 
-      const formattedSuggestions: LocationSuggestion[] = (filtered.length > 0 ? filtered : data).slice(0, 5).map((item: any) => {
+      const formattedSuggestions: LocationSuggestion[] = rows.map((item: GeocodeApiSuggestion) => {
         const addr = item.address || {}
-        const mainParts = [
-          addr.road || addr.pedestrian || addr.footway,
-          addr.house_number,
-        ].filter(Boolean)
-        const main = mainParts.length > 0
-          ? mainParts.join(' ')
-          : addr.city || addr.town || addr.village || addr.suburb || item.display_name.split(',')[0]
-        const secondary = [
+        const ccUp = String(addr.country_code || "").toUpperCase()
+        const streetLine = formatStreetLine(
+          String(addr.road || addr.pedestrian || addr.footway || ""),
+          String(addr.house_number || ""),
+          ccUp
+        )
+        const poiName = addr.name ? String(addr.name).trim() : ""
+        const main =
+          streetLine ||
+          poiName ||
+          addr.city ||
+          addr.town ||
+          addr.village ||
+          addr.suburb ||
+          String(item.display_name || "").split(",")[0]
+        let secondary = [
           addr.city || addr.town || addr.village || addr.county,
           addr.state || addr.region,
-          addr.country
-        ].filter(Boolean).join(', ')
+          addr.country,
+        ]
+          .filter(Boolean)
+          .join(", ")
+        if (!secondary || secondary.length < 8) {
+          const chunks = String(item.display_name || "")
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean)
+          if (chunks.length > 2) secondary = chunks.slice(1).join(", ")
+          else if (chunks.length === 2) secondary = chunks[1] ?? secondary
+        }
 
         return {
-          place_id: item.place_id,
+          place_id: item.id,
           description: item.display_name,
           structured_formatting: { main_text: main, secondary_text: secondary },
-          lat: parseFloat(item.lat),
-          lon: parseFloat(item.lon),
+          lat: item.lat,
+          lon: item.lon,
           address: addr,
         }
       })
@@ -140,15 +165,7 @@ export function LocationInput({
   const handleSelectSuggestion = (suggestion: LocationSuggestion) => {
     let locationLabel: string
     if (valueFormat === "full") {
-      const addr = suggestion.address || {}
-      const parts = [
-        addr.road || addr.pedestrian,
-        addr.house_number,
-        addr.city || addr.town || addr.village || addr.suburb,
-        addr.state || addr.region,
-        addr.country,
-      ].filter(Boolean)
-      locationLabel = parts.length > 0 ? parts.join(', ') : suggestion.description
+      locationLabel = formatResolvedPostalLabel(suggestion.address || {}, suggestion.description)
     } else {
       const addr = suggestion.address || {}
       const parts = [
@@ -200,6 +217,7 @@ export function LocationInput({
         <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           ref={inputRef}
+          id={id}
           value={value}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
@@ -209,8 +227,8 @@ export function LocationInput({
             }
           }}
           placeholder={placeholder}
-          className={cn("pl-10 pr-10", className)}
-          maxLength={100}
+          className={cn(FORM_CONTROL_INPUT, "pl-10 pr-10", className)}
+          maxLength={maxLength}
         />
         {isLoading && (
           <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />

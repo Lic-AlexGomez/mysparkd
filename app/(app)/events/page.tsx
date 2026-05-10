@@ -1,22 +1,96 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { eventService } from "@/lib/services/event"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Label } from "@/components/ui/label"
 import { LocationInput } from "@/components/ui/location-input"
-import { CalendarDays, Link2, Loader2, MapPin, Plus, ShieldCheck, SlidersHorizontal, Users, Zap } from "lucide-react"
-import type { Event } from "@/lib/types"
+import { cn } from "@/lib/utils"
+import {
+  FORM_CHIP_BASE,
+  FORM_CHIP_IDLE,
+  FORM_CHIP_PRIMARY_ON,
+  FORM_CHIP_SECONDARY_ON,
+  FORM_CONTROL_INPUT,
+  FORM_CONTROL_TEXTAREA,
+  FORM_LABEL,
+  FORM_LABEL_OPTIONAL_HINT,
+  FORM_SELECT_TRIGGER,
+} from "@/lib/form-field-classes"
+import {
+  ArrowLeft,
+  Calendar,
+  CalendarClock,
+  CalendarDays,
+  ChevronDown,
+  Clock,
+  DoorOpen,
+  Heart,
+  Layers,
+  Link2,
+  ListFilter,
+  Loader2,
+  MapPin,
+  Plus,
+  Search,
+  ShieldCheck,
+  Users,
+  Zap,
+} from "lucide-react"
+import type { DateCard, DateCategory, Event, EventCategory, EventFilters, Plan, PlaceType } from "@/lib/types"
 import { toast } from "sonner"
 import { useI18n } from "@/lib/i18n"
 import { useAuth } from "@/lib/auth-context"
 import { FastDateSection } from "@/components/events/fast-date-section"
+import { FastDateOfferCard } from "@/components/events/fast-date-offer-card"
+import { AddressMapPicker } from "@/components/ui/address-map-picker"
+import { fastDateService } from "@/lib/services/fastdate"
+import { handleDateCardLimitError } from "@/lib/errors/date-card-limits"
+import { useLocalizedCountryCode } from "@/hooks/use-localized-country-code"
+
+const FD_CATEGORY_LABELS: Record<string, string> = {
+  FOOD: "🍽️ Comida",
+  ACTIVITY: "🎯 Actividad",
+  EVENT: "🎉 Evento",
+  CHILL: "😌 Chill",
+  ADVENTURE: "🏔️ Aventura",
+  OPEN_SUGGESTION: "💡 Abierto",
+}
+const FD_PLAN_LABELS: Record<string, string> = {
+  CAFE: "☕ Café",
+  RESTAURANT: "🍴 Restaurante",
+  BAR: "🍸 Bar",
+  PARK: "🌳 Parque",
+  BEACH: "🏖️ Playa",
+  MALL: "🛍️ Mall",
+  CINEMA: "🎬 Cine",
+  OTHER: "📍 Otro",
+  OPEN_SUGGESTION: "💡 Sugerencia",
+}
+const FD_CATEGORIES: DateCategory[] = ["FOOD", "ACTIVITY", "EVENT", "CHILL", "ADVENTURE", "OPEN_SUGGESTION"]
+const FD_PLANS: Plan[] = ["CAFE", "RESTAURANT", "BAR", "PARK", "BEACH", "MALL", "CINEMA", "OTHER", "OPEN_SUGGESTION"]
+
+/** Iconos blancos sobre el campo fecha/hora (contraste con sombra en fondos claros). */
+const WHEN_ICON =
+  "pointer-events-none absolute left-3 top-1/2 z-[1] size-4 -translate-y-1/2 text-white drop-shadow-[0_1px_3px_rgb(0_0_0/0.85)]"
 
 type EventView = Event & {
   _id: string
@@ -92,23 +166,26 @@ export default function EventsPage() {
   const { user } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
+  const countryCode = useLocalizedCountryCode()
   const [isLoading, setIsLoading] = useState(false)
   const [loadError, setLoadError] = useState(false)
   const [items, setItems] = useState<EventView[]>([])
-  const [mainTab, setMainTab] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search)
-      return params.get('tab') === 'fastdate' ? 'fastdate' : 'events'
-    }
-    return 'events'
-  })
+  const [fdFeed, setFdFeed] = useState<DateCard[]>([])
+  const [fdLoading, setFdLoading] = useState(true)
+  const [interestCard, setInterestCard] = useState<DateCard | null>(null)
+  const [interestMessage, setInterestMessage] = useState("")
+  const [sendingInterest, setSendingInterest] = useState(false)
   const [joinToken, setJoinToken] = useState("")
   const [query, setQuery] = useState("")
   const [category, setCategory] = useState<string>("ALL")
   const [freeOnly, setFreeOnly] = useState<string>("ALL")
   const [joiningEventId, setJoiningEventId] = useState<string | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
+  const [createFlow, setCreateFlow] = useState<"choose" | "meetup" | "fastdate">("choose")
+  const [meetupCoords, setMeetupCoords] = useState<{ latitude: number; longitude: number } | null>(null)
+  const [fastDateReload, setFastDateReload] = useState(0)
   const [isCreating, setIsCreating] = useState(false)
+  const [fdCreating, setFdCreating] = useState(false)
   const [createForm, setCreateForm] = useState({
     title: "",
     description: "",
@@ -118,13 +195,32 @@ export default function EventsPage() {
     maxGuests: "",
     officialAddress: "",
   })
+  const [fdForm, setFdForm] = useState({
+    title: "",
+    message: "",
+    dateTime: "",
+    locationZone: "",
+    category: "FOOD" as DateCategory,
+    detail: "",
+    plans: [] as Plan[],
+  })
+
+  const toggleFdPlan = (plan: Plan) =>
+    setFdForm((prev) => ({
+      ...prev,
+      plans: prev.plans.includes(plan) ? prev.plans.filter((p) => p !== plan) : [...prev.plans, plan],
+    }))
 
   const loadEvents = async () => {
     setIsLoading(true)
     setLoadError(false)
     try {
       console.log('[Events] Cargando eventos...')
-      const rows = await eventService.list({})
+      const filters: EventFilters = {}
+      if (category !== "ALL") filters.category = category as EventCategory
+      if (freeOnly === "TRUE") filters.free = true
+      else if (freeOnly === "FALSE") filters.free = false
+      const rows = await eventService.list(filters)
       console.log('[Events] Eventos recibidos:', rows)
       setItems((Array.isArray(rows) ? rows : []).map(normalizeEvent))
     } catch (error: any) {
@@ -148,9 +244,26 @@ export default function EventsPage() {
     }
   }
 
+  const loadFdFeed = useCallback(async () => {
+    setFdLoading(true)
+    try {
+      const data = await fastDateService.getFeed({})
+      setFdFeed(Array.isArray(data) ? data : [])
+    } catch (e: unknown) {
+      handleDateCardLimitError(e)
+      setFdFeed([])
+    } finally {
+      setFdLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     void loadEvents()
   }, [category, freeOnly])
+
+  useEffect(() => {
+    void loadFdFeed()
+  }, [loadFdFeed, fastDateReload])
 
   useEffect(() => {
     const token = searchParams.get("token")
@@ -167,17 +280,53 @@ export default function EventsPage() {
     )
   }, [items, query])
 
-  const quickStats = useMemo(() => {
-    const total = filtered.length
-    const open = filtered.filter((e) => String(e.status || "OPEN").toUpperCase() === "OPEN").length
-    const withSpots = filtered.filter((e) => {
+  const fdFiltered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return fdFeed
+    return fdFeed.filter(
+      (c) =>
+        c.title.toLowerCase().includes(q) ||
+        (c.message ?? "").toLowerCase().includes(q) ||
+        c.locationZone.toLowerCase().includes(q) ||
+        (c.username ?? "").toLowerCase().includes(q)
+    )
+  }, [fdFeed, query])
+
+  const unifiedFeed = useMemo(() => {
+    const meetups = filtered.map((event) => ({
+      kind: "meetup" as const,
+      sortAt: new Date(String((event as { startsAt?: string }).startsAt ?? "")).getTime() || 0,
+      event,
+    }))
+    const fastDates = fdFiltered.map((card) => ({
+      kind: "fastdate" as const,
+      sortAt: new Date(card.dateTime).getTime() || 0,
+      card,
+    }))
+    return [...meetups, ...fastDates].sort((a, b) => a.sortAt - b.sortAt)
+  }, [filtered, fdFiltered])
+
+  const exploreSummary = useMemo(() => {
+    const meetups = filtered.length
+    const fastDates = fdFiltered.length
+    const visibleTotal = meetups + fastDates
+    const meetupsOpen = filtered.filter((e) => String(e.status || "OPEN").toUpperCase() === "OPEN").length
+    const meetupsWithSpots = filtered.filter((e) => {
       const max = Number(e.maxGuests || 0)
       if (!max) return true
       const approved = Number(e.currentApprovedCount || 0)
       return approved < max
     }).length
-    return { total, open, withSpots }
-  }, [filtered])
+    return {
+      meetups,
+      fastDates,
+      visibleTotal,
+      meetupsOpen,
+      meetupsWithSpots,
+    }
+  }, [filtered, fdFiltered])
+
+  const exploreLoading = isLoading || fdLoading
 
   const handleJoinByLink = async () => {
     const raw = joinToken.trim()
@@ -217,6 +366,25 @@ export default function EventsPage() {
     }
   }
 
+  const handleSendFastDateInterest = async () => {
+    if (!interestCard) return
+    setSendingInterest(true)
+    try {
+      await fastDateService.sendInterest(interestCard.id, interestMessage)
+      toast.success(te("¡Interés enviado!", "Interest sent!"))
+      setInterestCard(null)
+      setInterestMessage("")
+      await loadFdFeed()
+      setFastDateReload((n) => n + 1)
+    } catch (error: unknown) {
+      if (!handleDateCardLimitError(error)) {
+        toast.error(error instanceof Error ? error.message : te("No se pudo enviar el interés", "Could not send interest"))
+      }
+    } finally {
+      setSendingInterest(false)
+    }
+  }
+
   const resetCreateForm = () => {
     setCreateForm({
       title: "",
@@ -227,6 +395,44 @@ export default function EventsPage() {
       maxGuests: "",
       officialAddress: "",
     })
+  }
+
+  const resetWizardState = () => {
+    setCreateFlow("choose")
+    setMeetupCoords(null)
+    setFdForm({
+      title: "",
+      message: "",
+      dateTime: "",
+      locationZone: "",
+      category: "FOOD",
+      detail: "",
+      plans: [],
+    })
+    resetCreateForm()
+  }
+
+  const handleCreateFastDate = async () => {
+    if (!fdForm.title || !fdForm.dateTime || !fdForm.locationZone || fdForm.plans.length === 0) {
+      toast.error(te("Completa los campos obligatorios", "Complete required fields"))
+      return
+    }
+    setFdCreating(true)
+    try {
+      await fastDateService.create({
+        ...fdForm,
+        dateTime: new Date(fdForm.dateTime).toISOString(),
+        placeTypes: fdForm.plans as unknown as PlaceType[],
+      })
+      toast.success(te("¡Cita creada!", "Date created!"))
+      setCreateOpen(false)
+      resetWizardState()
+      setFastDateReload((n) => n + 1)
+    } catch (error) {
+      if (!handleDateCardLimitError(error)) toast.error(error instanceof Error ? error.message : te("Error al crear cita", "Could not create date"))
+    } finally {
+      setFdCreating(false)
+    }
   }
 
   const handleCreateEvent = async () => {
@@ -270,6 +476,8 @@ export default function EventsPage() {
         maxAge: 99,
         startsAt: toLocalDateTimeApi(startsDate),
         officialAddress,
+        latitude: meetupCoords?.latitude ?? 0,
+        longitude: meetupCoords?.longitude ?? 0,
       }
       
       const created = await eventService.create(payload)
@@ -277,7 +485,7 @@ export default function EventsPage() {
       
       toast.success(te("¡Evento creado! Ahora configura la ubicación en Settings", "Event created! Now set location in Settings"))
       setCreateOpen(false)
-      resetCreateForm()
+      resetWizardState()
       await loadEvents()
       
       if (createdId) {
@@ -292,146 +500,234 @@ export default function EventsPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6">
-      {/* Header con selector principal */}
-      <div className="mb-6 flex items-center justify-between">
+      {/* Header + crear unificado */}
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            {mainTab === 'events' ? <CalendarDays className="h-6 w-6 text-primary" /> : <Zap className="h-6 w-6 text-primary" />}
-            {mainTab === 'events' ? te("Eventos", "Events") : "Fast Date"}
+            <CalendarDays className="h-6 w-6 text-primary" />
+            {te("Eventos y citas", "Events & dates")}
           </h1>
           <p className="text-muted-foreground text-sm">
-            {mainTab === 'events' ? te("Explora eventos y su chat grupal en tiempo real.", "Explore events and their real-time group chat.") : "Citas 1 a 1 con expiración"}
+            {te(
+              "Meetups grupales y Fast Date en un solo lugar.",
+              "Group meetups and Fast Date in one place."
+            )}
           </p>
         </div>
+        <Button
+          className="h-10 shrink-0 sm:self-start"
+          onClick={() => {
+            resetWizardState()
+            setCreateOpen(true)
+          }}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          {te("Crear", "Create")}
+        </Button>
       </div>
 
-      {/* Selector de sección */}
-      <div className="flex gap-2 mb-6 p-1 bg-muted rounded-xl w-fit">
-        <button
-          onClick={() => setMainTab('events')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-            mainTab === 'events' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <CalendarDays className="h-4 w-4" />{te("Eventos", "Events")}
-        </button>
-        <button
-          onClick={() => setMainTab('fastdate')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-            mainTab === 'fastdate' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <Zap className="h-4 w-4" />Fast Date
-        </button>
-      </div>
+      <Dialog
+        open={createOpen}
+        onOpenChange={(open) => {
+          setCreateOpen(open)
+          if (!open) resetWizardState()
+        }}
+      >
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>
+              {createFlow === "choose"
+                ? te("¿Qué quieres crear?", "What do you want to create?")
+                : createFlow === "meetup"
+                  ? te("Nuevo meetup", "New meetup")
+                  : te("Nueva cita rápida", "New fast date")}
+            </DialogTitle>
+            <DialogDescription>
+              {createFlow === "choose"
+                ? te("Elige el tipo y verás solo los campos que aplican.", "Pick a type to see the matching fields.")
+                : createFlow === "meetup"
+                  ? te("Completa el meetup; la dirección va enlazada al mapa.", "Fill in the meetup; address stays linked to the map.")
+                  : te("Propón una cita 1 a 1 con fecha y zona.", "Propose a 1:1 date with time and area.")}
+            </DialogDescription>
+          </DialogHeader>
 
-      {/* Fast Date */}
-      {mainTab === 'fastdate' && <FastDateSection />}
-
-      {/* Eventos */}
-      {mainTab === 'events' && (<>
-      <div className="mb-4 flex justify-end">
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogTrigger asChild>
-            <Button className="h-10 w-full sm:w-auto">
-              <Plus className="mr-2 h-4 w-4" />
-              {te("Crear evento", "Create event")}
+          {createFlow !== "choose" && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="-mt-2 mb-2 h-8 gap-1 px-2 text-muted-foreground"
+              onClick={() => setCreateFlow("choose")}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {te("Otro tipo", "Other type")}
             </Button>
-          </DialogTrigger>
-          <DialogContent className="max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{te("Crear evento", "Create event")}</DialogTitle>
-              <DialogDescription>
-                {te("Solo 4 campos básicos. Después configuras la ubicación.", "Just 4 basic fields. Then set location.")}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              {/* Título */}
-              <div>
-                <label className="text-sm font-medium">{te("Título", "Title")} *</label>
+          )}
+
+          {createFlow === "choose" && (
+            <div className="grid gap-3 sm:grid-cols-2 pt-1">
+              <button
+                type="button"
+                className="flex flex-col items-start gap-2 rounded-xl border border-border bg-card p-4 text-left shadow-sm transition-colors hover:border-primary/40 hover:bg-muted/40"
+                onClick={() => setCreateFlow("meetup")}
+              >
+                <CalendarDays className="h-8 w-8 text-primary" />
+                <span className="font-semibold">{te("Meetup grupal", "Group meetup")}</span>
+                <span className="text-xs text-muted-foreground">
+                  {te("Varios participantes, chat grupal, ubicación oficial.", "Several participants, group chat, official address.")}
+                </span>
+              </button>
+              <button
+                type="button"
+                className="flex flex-col items-start gap-2 rounded-xl border border-border bg-card p-4 text-left shadow-sm transition-colors hover:border-primary/40 hover:bg-muted/40"
+                onClick={() => setCreateFlow("fastdate")}
+              >
+                <Zap className="h-8 w-8 text-secondary" />
+                <span className="font-semibold">Fast Date</span>
+                <span className="text-xs text-muted-foreground">
+                  {te("Cita 1 a 1 con expiración.", "One-to-one date with expiry.")}
+                </span>
+              </button>
+            </div>
+          )}
+
+          {createFlow === "meetup" && (
+            <div className="space-y-4 pt-0.5">
+              <div className="space-y-1.5">
+                <Label htmlFor="wizard-meetup-title" className={FORM_LABEL}>
+                  {te("Título", "Title")} <span className="text-primary">*</span>
+                </Label>
                 <Input
-                  className="mt-1"
+                  id="wizard-meetup-title"
+                  className={FORM_CONTROL_INPUT}
                   value={createForm.title}
                   onChange={(e) => setCreateForm((prev) => ({ ...prev, title: e.target.value }))}
                   placeholder={te("Ej: Fiesta en la playa", "E.g. Beach party")}
                   maxLength={120}
+                  autoComplete="off"
                 />
               </div>
-              
-              {/* Descripción */}
-              <div>
-                <label className="text-sm font-medium">{te("Descripción", "Description")} ({te("opcional", "optional")})</label>
+              <div className="space-y-1.5">
+                <Label htmlFor="wizard-meetup-desc" className={FORM_LABEL}>
+                  {te("Descripción", "Description")}{" "}
+                  <span className={FORM_LABEL_OPTIONAL_HINT}>({te("opcional", "optional")})</span>
+                </Label>
                 <Textarea
-                  className="mt-1 min-h-20 resize-none"
+                  id="wizard-meetup-desc"
+                  className={FORM_CONTROL_TEXTAREA}
                   value={createForm.description}
                   onChange={(e) => setCreateForm((prev) => ({ ...prev, description: e.target.value }))}
                   placeholder={te("Describe tu evento...", "Describe your event...")}
                   maxLength={500}
                 />
               </div>
-              
-              {/* Categoría */}
-              <div>
-                <label className="text-sm font-medium">{te("Categoría", "Category")}</label>
+              <div className="space-y-1.5">
+                <Label htmlFor="wizard-meetup-cat" className={FORM_LABEL}>
+                  {te("Categoría", "Category")}
+                </Label>
                 <Select value={createForm.category} onValueChange={(value) => setCreateForm((prev) => ({ ...prev, category: value }))}>
-                  <SelectTrigger className="mt-1">
+                  <SelectTrigger id="wizard-meetup-cat" className={FORM_SELECT_TRIGGER}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {eventService.enums.categories.map((cat) => (
-                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      <SelectItem key={cat} value={cat}>
+                        {cat}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              
-              {/* Fecha y hora */}
-              <div>
-                <label className="text-sm font-medium">{te("Cuándo", "When")} *</label>
-                <div className="grid grid-cols-2 gap-2 mt-1">
-                  <Input
-                    type="date"
-                    value={createForm.startsAtDate}
-                    onChange={(e) => setCreateForm((prev) => ({ ...prev, startsAtDate: e.target.value }))}
-                    min={new Date().toISOString().split('T')[0]}
-                  />
-                  <Input
-                    type="time"
-                    value={createForm.startsAtTime}
-                    onChange={(e) => setCreateForm((prev) => ({ ...prev, startsAtTime: e.target.value }))}
-                  />
+              <div className="space-y-1.5">
+                <Label className={FORM_LABEL}>
+                  {te("Cuándo", "When")} <span className="text-primary">*</span>
+                </Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="relative">
+                    <Calendar className={WHEN_ICON} aria-hidden />
+                    <Input
+                      id="wizard-meetup-date"
+                      type="date"
+                      className={cn(FORM_CONTROL_INPUT, "pl-10")}
+                      value={createForm.startsAtDate}
+                      onChange={(e) => setCreateForm((prev) => ({ ...prev, startsAtDate: e.target.value }))}
+                      min={new Date().toISOString().split("T")[0]}
+                    />
+                  </div>
+                  <div className="relative">
+                    <Clock className={WHEN_ICON} aria-hidden />
+                    <Input
+                      id="wizard-meetup-time"
+                      type="time"
+                      className={cn(FORM_CONTROL_INPUT, "pl-10")}
+                      value={createForm.startsAtTime}
+                      onChange={(e) => setCreateForm((prev) => ({ ...prev, startsAtTime: e.target.value }))}
+                    />
+                  </div>
                 </div>
               </div>
-              
-              {/* Cupos */}
-              <div>
-                <label className="text-sm font-medium">{te("Cupos máximos", "Max guests")} ({te("opcional", "optional")})</label>
+              <div className="space-y-1.5">
+                <Label htmlFor="wizard-meetup-capacity" className={FORM_LABEL}>
+                  {te("Cupos máximos", "Max guests")}{" "}
+                  <span className={FORM_LABEL_OPTIONAL_HINT}>({te("opcional", "optional")})</span>
+                </Label>
                 <Input
+                  id="wizard-meetup-capacity"
                   type="number"
                   min={1}
-                  className="mt-1"
+                  inputMode="numeric"
+                  className={FORM_CONTROL_INPUT}
                   value={createForm.maxGuests}
                   onChange={(e) => setCreateForm((prev) => ({ ...prev, maxGuests: e.target.value }))}
                   placeholder={te("Vacío = ilimitado", "Empty = unlimited")}
                 />
               </div>
-              
-              {/* Dirección */}
-              <div>
-                <label className="text-sm font-medium">{te("Dirección", "Address")} *</label>
+              <div className="space-y-1.5">
+                <Label htmlFor="wizard-meetup-address" className={FORM_LABEL}>
+                  {te("Dirección", "Address")} <span className="text-primary">*</span>
+                </Label>
                 <LocationInput
-                  className="mt-1"
+                  id="wizard-meetup-address"
                   value={createForm.officialAddress}
-                  onChange={(value) => setCreateForm((prev) => ({ ...prev, officialAddress: value }))}
-                  placeholder={te("Escribe la dirección del evento", "Type event address")}
+                  onChange={(value, coords) => {
+                    setCreateForm((prev) => ({ ...prev, officialAddress: value }))
+                    if (coords) setMeetupCoords({ latitude: coords.latitude, longitude: coords.longitude })
+                  }}
+                  placeholder={te("Buscar dirección en tu país", "Search address in your region")}
                   valueFormat="full"
+                  countryCode={countryCode}
+                  biasCoordinates={meetupCoords ?? undefined}
+                  maxLength={280}
+                />
+                <AddressMapPicker
+                  bootstrapCountryCode={countryCode}
+                  latitude={meetupCoords?.latitude ?? null}
+                  longitude={meetupCoords?.longitude ?? null}
+                  onLocationChange={(c, addressLine) => {
+                    setMeetupCoords({ latitude: c.latitude, longitude: c.longitude })
+                    setCreateForm((prev) => ({ ...prev, officialAddress: addressLine }))
+                  }}
+                  labels={{
+                    myLocation: te("Mi ubicación", "My location"),
+                    syncHint: te(
+                      "Toca el mapa o arrastra el pin; se actualiza la dirección.",
+                      "Tap the map or drag the pin; the address updates."
+                    ),
+                    locatingGps: te("Ubicando…", "Locating…"),
+                  }}
+                  helperText={te(
+                    "Por defecto se usa tu ubicación actual si el navegador lo permite.",
+                    "Defaults to your current location when the browser allows it."
+                  )}
+                  className="mt-2"
                 />
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {te("Después podrás publicarla en el chat desde Settings", "You can publish it in chat later from Settings")}
+                  {te(
+                    "Las sugerencias priorizan tu país según el idioma del navegador.",
+                    "Suggestions prioritize your country based on browser locale."
+                  )}
                 </p>
               </div>
-              
-              {/* Botones */}
               <div className="flex gap-2 pt-2">
                 <Button type="button" variant="outline" className="h-10 flex-1" onClick={() => setCreateOpen(false)}>
                   {te("Cancelar", "Cancel")}
@@ -443,32 +739,198 @@ export default function EventsPage() {
                       {te("Creando...", "Creating...")}
                     </>
                   ) : (
-                    te("Crear evento", "Create event")
+                    te("Crear meetup", "Create meetup")
                   )}
                 </Button>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+          )}
 
-      <div className="mb-6 grid grid-cols-1 gap-2 sm:grid-cols-3">
-        <Card className="border-border/70">
-          <CardContent className="py-4">
-            <p className="text-xs text-muted-foreground">{te("Mostrando", "Showing")}</p>
-            <p className="text-xl font-semibold text-foreground">{quickStats.total}</p>
+          {createFlow === "fastdate" && (
+            <div className="space-y-4 pt-0.5">
+              <div className="space-y-1.5">
+                <Label htmlFor="wizard-fd-title" className={FORM_LABEL}>
+                  {te("Título", "Title")} <span className="text-primary">*</span>
+                </Label>
+                <Input
+                  id="wizard-fd-title"
+                  className={FORM_CONTROL_INPUT}
+                  value={fdForm.title}
+                  onChange={(e) => setFdForm((p) => ({ ...p, title: e.target.value }))}
+                  placeholder={te("Ej: Café tranquilo esta tarde", "E.g. Quiet coffee this afternoon")}
+                  maxLength={100}
+                  autoComplete="off"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="wizard-fd-msg" className={FORM_LABEL}>
+                  {te("Mensaje", "Message")}{" "}
+                  <span className={FORM_LABEL_OPTIONAL_HINT}>({te("opcional", "optional")})</span>
+                </Label>
+                <Textarea
+                  id="wizard-fd-msg"
+                  value={fdForm.message}
+                  onChange={(e) => setFdForm((p) => ({ ...p, message: e.target.value }))}
+                  placeholder={te("Cuéntales más...", "Say more...")}
+                  className={FORM_CONTROL_TEXTAREA}
+                  maxLength={700}
+                />
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="wizard-fd-when" className={FORM_LABEL}>
+                    {te("Fecha y hora", "Date & time")} <span className="text-primary">*</span>
+                  </Label>
+                  <div className="relative">
+                    <CalendarClock className={WHEN_ICON} aria-hidden />
+                    <Input
+                      id="wizard-fd-when"
+                      type="datetime-local"
+                      className={cn(FORM_CONTROL_INPUT, "pl-10")}
+                      value={fdForm.dateTime}
+                      onChange={(e) => setFdForm((p) => ({ ...p, dateTime: e.target.value }))}
+                      min={new Date().toISOString().slice(0, 16)}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="wizard-fd-zone" className={FORM_LABEL}>
+                    {te("Zona", "Area")} <span className="text-primary">*</span>
+                  </Label>
+                  <Input
+                    id="wizard-fd-zone"
+                    className={FORM_CONTROL_INPUT}
+                    value={fdForm.locationZone}
+                    onChange={(e) => setFdForm((p) => ({ ...p, locationZone: e.target.value }))}
+                    placeholder={te("Ej: Centro", "E.g. Downtown")}
+                    autoComplete="off"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className={FORM_LABEL}>
+                  {te("Categoría", "Category")} <span className="text-primary">*</span>
+                </Label>
+                <div className="flex flex-wrap gap-2">
+                  {FD_CATEGORIES.map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setFdForm((p) => ({ ...p, category: cat }))}
+                      className={cn(
+                        FORM_CHIP_BASE,
+                        fdForm.category === cat ? FORM_CHIP_PRIMARY_ON : FORM_CHIP_IDLE
+                      )}
+                    >
+                      {FD_CATEGORY_LABELS[cat] || cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className={FORM_LABEL}>
+                  {te("Planes", "Plans")}{" "}
+                  <span className="text-primary">*</span>{" "}
+                  <span className={FORM_LABEL_OPTIONAL_HINT}>({te("al menos uno", "at least one")})</span>
+                </Label>
+                <div className="flex flex-wrap gap-2">
+                  {FD_PLANS.map((plan) => (
+                    <button
+                      key={plan}
+                      type="button"
+                      onClick={() => toggleFdPlan(plan)}
+                      className={cn(
+                        FORM_CHIP_BASE,
+                        fdForm.plans.includes(plan) ? FORM_CHIP_SECONDARY_ON : FORM_CHIP_IDLE
+                      )}
+                    >
+                      {FD_PLAN_LABELS[plan] || plan}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button type="button" variant="outline" className="h-10 flex-1" onClick={() => setCreateOpen(false)}>
+                  {te("Cancelar", "Cancel")}
+                </Button>
+                <Button type="button" className="h-10 flex-1" onClick={handleCreateFastDate} disabled={fdCreating}>
+                  {fdCreating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      {te("Creando...", "Creating...")}
+                    </>
+                  ) : (
+                    te("Crear cita", "Create date")
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <Card className="relative overflow-hidden border-border/70 bg-gradient-to-br from-card via-card to-primary/[0.08] shadow-sm ring-1 ring-primary/10">
+          <CardContent className="flex gap-3 p-4 sm:p-5">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary shadow-inner">
+              <Layers className="size-5" aria-hidden />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {te("En esta vista", "On this screen")}
+              </p>
+              <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight text-foreground">
+                {exploreSummary.visibleTotal}
+              </p>
+              <p className="mt-1.5 text-xs leading-snug text-muted-foreground">
+                <span className="tabular-nums font-medium text-foreground/90">{exploreSummary.meetups}</span>{" "}
+                {te("meetups", "meetups")}
+                <span className="mx-1.5 text-border">·</span>
+                <span className="tabular-nums font-medium text-foreground/90">{exploreSummary.fastDates}</span>{" "}
+                Fast Date
+              </p>
+            </div>
           </CardContent>
         </Card>
-        <Card className="border-border/70">
-          <CardContent className="py-4">
-            <p className="text-xs text-muted-foreground">{te("Abiertos", "Open")}</p>
-            <p className="text-xl font-semibold text-foreground">{quickStats.open}</p>
+
+        <Card className="relative overflow-hidden border-border/70 bg-gradient-to-br from-card via-card to-emerald-500/[0.06] shadow-sm ring-1 ring-emerald-500/15">
+          <CardContent className="flex gap-3 p-4 sm:p-5">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+              <DoorOpen className="size-5" aria-hidden />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {te("Meetups abiertos", "Open meetups")}
+              </p>
+              <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight text-foreground">
+                {exploreSummary.meetupsOpen}
+              </p>
+              <p className="mt-1.5 text-xs leading-snug text-muted-foreground">
+                {te("Estado OPEN en el listado filtrado.", "OPEN status in your filtered list.")}
+              </p>
+            </div>
           </CardContent>
         </Card>
-        <Card className="border-border/70">
-          <CardContent className="py-4">
-            <p className="text-xs text-muted-foreground">{te("Con cupos", "With spots")}</p>
-            <p className="text-xl font-semibold text-foreground">{quickStats.withSpots}</p>
+
+        <Card className="relative overflow-hidden border-border/70 bg-gradient-to-br from-card via-card to-amber-500/[0.07] shadow-sm ring-1 ring-amber-500/15">
+          <CardContent className="flex gap-3 p-4 sm:p-5">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-700 dark:text-amber-400">
+              <Users className="size-5" aria-hidden />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {te("Con plaza disponible", "Spots available")}
+              </p>
+              <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight text-foreground">
+                {exploreSummary.meetupsWithSpots}
+              </p>
+              <p className="mt-1.5 text-xs leading-snug text-muted-foreground">
+                {te(
+                  "Meetups con cupos libres o sin límite.",
+                  "Meetups that still have capacity (or unlimited)."
+                )}
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -485,6 +947,7 @@ export default function EventsPage() {
             value={joinToken}
             onChange={(e) => setJoinToken(e.target.value)}
             placeholder={te("Pega aquí el token o URL de invitación", "Paste invitation token or URL here")}
+            className={cn(FORM_CONTROL_INPUT, "flex-1")}
           />
           <Button onClick={handleJoinByLink} className="h-10 w-full shrink-0 px-4 sm:w-auto">
             {te("Unirme", "Join")}
@@ -492,18 +955,19 @@ export default function EventsPage() {
         </CardContent>
       </Card>
 
-      <div className="mb-4 space-y-3">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-stretch">
         {/* Search */}
-        <div className="relative">
-          <SlidersHorizontal className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <div className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={te("Buscar eventos...", "Search events...")}
-            className="pl-9 pr-9 h-11 bg-muted/40 border-border/60 focus:bg-background"
+            placeholder={te("Buscar meetups y Fast Date...", "Search meetups & Fast Date...")}
+            className={cn(FORM_CONTROL_INPUT, "pl-9 pr-9")}
           />
           {query && (
             <button
+              type="button"
               onClick={() => setQuery("")}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
             >
@@ -512,44 +976,78 @@ export default function EventsPage() {
           )}
         </div>
 
-        {/* Chips gratis/pago */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {(["ALL", "TRUE", "FALSE"] as const).map((val) => (
-            <button
-              key={val}
-              onClick={() => setFreeOnly(val)}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                freeOnly === val
-                  ? "bg-primary text-black border-primary shadow-sm"
-                  : "bg-muted/40 text-muted-foreground border-border/60 hover:border-primary/40 hover:text-foreground"
-              }`}
-            >
-              {val === "ALL" ? te("Todos", "All") : val === "TRUE" ? te("Gratis", "Free") : te("Pago", "Paid")}
-            </button>
-          ))}
-          <div className="w-px h-4 bg-border/60 mx-1" />
-          {/* Chips categoría */}
-          {(["ALL", ...eventService.enums.categories] as const).map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setCategory(cat)}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                category === cat
-                  ? "bg-secondary text-black border-secondary shadow-sm"
-                  : "bg-muted/40 text-muted-foreground border-border/60 hover:border-secondary/40 hover:text-foreground"
-              }`}
-            >
-              {cat === "ALL" ? te("Todas", "All categories") : cat}
-            </button>
-          ))}
-          {(query || category !== "ALL" || freeOnly !== "ALL") && (
-            <button
-              onClick={() => { setQuery(""); setCategory("ALL"); setFreeOnly("ALL") }}
-              className="ml-auto text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
-            >
-              {te("Limpiar", "Clear")}
-            </button>
-          )}
+        <div className="flex shrink-0 items-center gap-2 sm:w-auto">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                className={cn(
+                  FORM_SELECT_TRIGGER,
+                  "h-10 w-full justify-between gap-2 px-3 font-normal shadow-xs sm:min-w-[220px]"
+                )}
+              >
+                <span className="flex min-w-0 items-center gap-2">
+                  <ListFilter className="size-4 shrink-0 text-muted-foreground" />
+                  <span className="truncate text-left">
+                    {freeOnly === "ALL" && category === "ALL" ? (
+                      te("Filtro", "Filter")
+                    ) : (
+                      <>
+                        {freeOnly === "ALL"
+                          ? te("Todos los precios", "Any price")
+                          : freeOnly === "TRUE"
+                            ? te("Gratis", "Free")
+                            : te("Pago", "Paid")}
+                        <span className="text-muted-foreground"> · </span>
+                        {category === "ALL"
+                          ? te("Todas las categorías", "All categories")
+                          : category}
+                      </>
+                    )}
+                  </span>
+                </span>
+                <ChevronDown className="size-4 shrink-0 opacity-60" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[min(calc(100vw-2rem),288px)] max-h-[min(70vh,420px)] overflow-y-auto">
+              <DropdownMenuLabel className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {te("Precio", "Price")}
+              </DropdownMenuLabel>
+              <DropdownMenuRadioGroup value={freeOnly} onValueChange={setFreeOnly}>
+                <DropdownMenuRadioItem value="ALL">{te("Todos", "All")}</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="TRUE">{te("Gratis", "Free")}</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="FALSE">{te("Pago", "Paid")}</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {te("Categoría", "Category")}
+              </DropdownMenuLabel>
+              <DropdownMenuRadioGroup value={category} onValueChange={setCategory}>
+                <DropdownMenuRadioItem value="ALL">{te("Todas las categorías", "All categories")}</DropdownMenuRadioItem>
+                {eventService.enums.categories.map((cat) => (
+                  <DropdownMenuRadioItem key={cat} value={cat}>
+                    {cat}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+              {(query || category !== "ALL" || freeOnly !== "ALL") && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-muted-foreground focus:text-foreground"
+                    onClick={() => {
+                      setQuery("")
+                      setCategory("ALL")
+                      setFreeOnly("ALL")
+                    }}
+                  >
+                    {te("Limpiar búsqueda y filtros", "Clear search & filters")}
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -566,7 +1064,7 @@ export default function EventsPage() {
         </p>
       </div>
 
-      {isLoading ? (
+      {exploreLoading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
@@ -585,23 +1083,52 @@ export default function EventsPage() {
             <Button variant="outline" size="sm" onClick={() => void loadEvents()}>
               {te("Reintentar", "Retry")}
             </Button>
-            <Button size="sm" onClick={() => setCreateOpen(true)}>
+            <Button
+              size="sm"
+              onClick={() => {
+                resetWizardState()
+                setCreateOpen(true)
+              }}
+            >
               {te("Crear primer evento", "Create first event")}
             </Button>
           </div>
         </div>
-      ) : filtered.length === 0 ? (
+      ) : unifiedFeed.length === 0 ? (
         <div className="rounded-xl border border-border p-10 text-center text-muted-foreground">
-          {te("No hay eventos con esos filtros.", "No events found with those filters.")}
+          {te(
+            "No hay meetups ni citas rápidas que coincidan con tu búsqueda.",
+            "No meetups or fast dates match your search."
+          )}
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
-          {filtered.map((event, index) => {
+          {unifiedFeed.map((item, index) => {
+            if (item.kind === "fastdate") {
+              return (
+                <FastDateOfferCard
+                  key={`fd-${item.card.id}`}
+                  card={item.card}
+                  currentUserId={user?.userId}
+                  onInterest={() => setInterestCard(item.card)}
+                  fastDateLabel={te("Fast Date", "Fast Date")}
+                  interestLabel={te("Me interesa", "I'm interested")}
+                  expiresLabel={te("Expira", "Expires")}
+                />
+              )
+            }
+
+            const event = item.event
             const available = Math.max(
               0,
               Number(event.maxGuests || 0) - Number(event.currentApprovedCount || 0)
             )
-            const officialAddress = String((event as any).officialAddress || "").trim()
+            const officialAddress = String(
+              event.officialAddress || (event as any).exactAddress || ""
+            ).trim()
+            const zone = String(
+              event.zone || (event as any).locationZone || (event as any).location_zone || ""
+            ).trim()
             const sharedAddress = String((event as any).sharedAddress || "").trim()
             const backendMatched = (event as any).addressMatched
             const normalizedOfficial = officialAddress.toLowerCase().replace(/\s+/g, " ")
@@ -615,6 +1142,15 @@ export default function EventsPage() {
                 : isMatched
                   ? "matched"
                   : "mismatch"
+
+            const locationPendingBadge =
+              !officialAddress && !zone
+                ? te("Sin ubicación", "No location")
+                : !officialAddress && Boolean(zone)
+                  ? te("Verificación pendiente", "Verification pending")
+                  : officialAddress && !sharedAddress
+                    ? te("Sin publicar en el chat", "Not shared in chat yet")
+                    : te("Pendiente", "Pending")
             const myRole = String((event as any).myRole || "").toUpperCase()
             const canManageMeetup =
               Boolean((event as any).isAdmin) ||
@@ -635,56 +1171,165 @@ export default function EventsPage() {
                 ? "grid-cols-1 sm:grid-cols-2"
                 : "grid-cols-1"
             const eventKey = event._id || `${event._title}-${String((event as any).startsAt || "")}-${index}`
+            const creatorPhoto = String(event.creatorProfilePictureUrl || "").trim()
+            const creatorUsername = String(event.creatorUsername || "").trim()
+            const creatorId = String(event.creatorId || "").trim()
+            const openCreatorProfile = () => {
+              if (creatorId) router.push(`/profile/${creatorId}`)
+            }
+            const placeLabel =
+              officialAddress || zone || te("Por definir", "To be confirmed")
             return (
-              <Card key={eventKey} className="hover:border-primary/40 transition-colors shadow-sm">
-                <CardHeader>
-                  <div className="flex items-start justify-between gap-2">
-                    <CardTitle className="text-lg">{event._title}</CardTitle>
-                    <Badge
-                      variant="outline"
-                      className={
-                        String(event.status || "OPEN").toUpperCase() === "OPEN"
-                          ? "border-emerald-500/30 text-emerald-500"
-                          : ""
-                      }
-                    >
-                      {event.status || "OPEN"}
-                    </Badge>
+              <Card
+                key={eventKey}
+                className={cn(
+                  "gap-0 overflow-hidden py-0 shadow-sm transition-colors hover:border-primary/45 hover:shadow-md",
+                  "border-l-[5px] border-l-primary bg-gradient-to-br from-card to-primary/[0.06] ring-1 ring-primary/15"
+                )}
+              >
+                <CardContent className="space-y-4 px-5 pb-5 pt-5">
+                  {/* Cabecera: avatar + tipo + usuario | título + estado */}
+                  <div className="flex gap-3">
+                    {creatorId ? (
+                      <button
+                        type="button"
+                        onClick={openCreatorProfile}
+                        className="shrink-0 rounded-full ring-offset-background transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                      >
+                        <Avatar className="size-14 border-2 border-primary/25">
+                          <AvatarImage src={creatorPhoto || undefined} alt="" />
+                          <AvatarFallback className="bg-primary/10 text-base font-semibold text-primary">
+                            {creatorUsername?.[0]?.toUpperCase() || "?"}
+                          </AvatarFallback>
+                        </Avatar>
+                      </button>
+                    ) : (
+                      <Avatar className="size-14 shrink-0 border-2 border-primary/25">
+                        <AvatarImage src={creatorPhoto || undefined} alt="" />
+                        <AvatarFallback className="bg-primary/10 text-base font-semibold text-primary">
+                          {creatorUsername?.[0]?.toUpperCase() || "?"}
+                        </AvatarFallback>
+                      </Avatar>
+                    )}
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge className="gap-1 border-0 bg-primary/15 text-primary">
+                          <Users className="size-3" aria-hidden />
+                          {te("Meetup grupal", "Group meetup")}
+                        </Badge>
+                        {creatorUsername ? (
+                          creatorId ? (
+                            <button
+                              type="button"
+                              onClick={openCreatorProfile}
+                              className="truncate text-xs font-semibold text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                            >
+                              @{creatorUsername}
+                            </button>
+                          ) : (
+                            <span className="truncate text-xs font-semibold text-muted-foreground">
+                              @{creatorUsername}
+                            </span>
+                          )
+                        ) : null}
+                      </div>
+                      <div className="flex items-start justify-between gap-3">
+                        <CardTitle className="text-lg leading-snug">{event._title}</CardTitle>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "shrink-0",
+                            String(event.status || "OPEN").toUpperCase() === "OPEN"
+                              ? "border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
+                              : ""
+                          )}
+                        >
+                          {event.status || "OPEN"}
+                        </Badge>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-sm text-muted-foreground line-clamp-2">{event._description || te("Sin descripción", "No description")}</p>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex flex-wrap items-center gap-2 text-xs">
-                    {event.category && <Badge className="bg-primary/10 text-primary border-0">{event.category}</Badge>}
-                    {event.free === true && <Badge className="bg-green-500/15 text-green-500 border-0">{te("Gratis", "Free")}</Badge>}
-                    {event.free === false && <Badge className="bg-amber-500/15 text-amber-500 border-0">{te("Pago", "Paid")}</Badge>}
+
+                  <p className="text-sm leading-relaxed text-muted-foreground line-clamp-3">
+                    {event._description?.trim()
+                      ? event._description
+                      : te("Sin descripción", "No description")}
+                  </p>
+
+                  <div className="flex flex-wrap gap-2">
+                    {event.category && (
+                      <Badge variant="secondary" className="border-0 bg-muted font-normal">
+                        {event.category}
+                      </Badge>
+                    )}
+                    {event.free === true && (
+                      <Badge className="border-0 bg-green-500/15 text-green-600 dark:text-green-400">
+                        {te("Gratis", "Free")}
+                      </Badge>
+                    )}
+                    {event.free === false && (
+                      <Badge className="border-0 bg-amber-500/15 text-amber-700 dark:text-amber-400">
+                        {te("Pago", "Paid")}
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div
+                    className={cn(
+                      "flex min-w-0 flex-col gap-2 rounded-xl border px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3",
+                      locationStatus === "matched"
+                        ? "border-emerald-500/25 bg-emerald-500/[0.07]"
+                        : locationStatus === "mismatch"
+                          ? "border-rose-500/25 bg-rose-500/[0.07]"
+                          : "border-amber-500/25 bg-amber-500/[0.07]"
+                    )}
+                  >
+                    <p className="min-w-0 text-xs leading-snug sm:text-sm">
+                      <span className="font-semibold text-foreground">
+                        {te("Ubicación del evento:", "Event location:")}
+                      </span>{" "}
+                      <span className="break-words text-muted-foreground">{placeLabel}</span>
+                    </p>
                     <Badge
-                      className={
+                      className={cn(
+                        "w-fit shrink-0 border-0 text-[10px]",
                         locationStatus === "matched"
-                          ? "bg-emerald-500/15 text-emerald-500 border-0"
+                          ? "bg-emerald-600/20 text-emerald-700 dark:text-emerald-400"
                           : locationStatus === "mismatch"
-                            ? "bg-rose-500/15 text-rose-500 border-0"
-                            : "bg-amber-500/15 text-amber-500 border-0"
-                      }
+                            ? "bg-rose-600/20 text-rose-700 dark:text-rose-400"
+                            : "bg-amber-600/20 text-amber-800 dark:text-amber-400"
+                      )}
                     >
                       {locationStatus === "matched"
-                        ? te("Ubicación OK", "Location OK")
+                        ? te("Verificada", "Verified")
                         : locationStatus === "mismatch"
-                          ? te("Ubicación no coincide", "Location mismatch")
-                          : te("Ubicación pendiente", "Location pending")}
+                          ? te("No coincide", "Mismatch")
+                          : locationPendingBadge}
                     </Badge>
                   </div>
-                  <div className="text-sm text-muted-foreground space-y-1">
-                    <p className="flex items-center gap-2">
-                      <Users className="h-4 w-4" />
-                      {event.currentApprovedCount || 0}/{event.maxGuests || "∞"} {te("participantes", "participants")}
-                    </p>
-                    <p className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4" />
-                      {te("Cupos", "Spots")}: {event.maxGuests ? available : te("Ilimitado", "Unlimited")}
-                    </p>
+
+                  <div className="flex flex-wrap gap-x-5 gap-y-2 border-t border-border/60 pt-3 text-sm text-muted-foreground">
+                    <span className="flex items-center gap-2">
+                      <Users className="size-4 shrink-0 opacity-80" aria-hidden />
+                      <span>
+                        <span className="tabular-nums font-medium text-foreground">
+                          {event.currentApprovedCount || 0}/{event.maxGuests || "∞"}
+                        </span>{" "}
+                        {te("participantes", "participants")}
+                      </span>
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <MapPin className="size-4 shrink-0 opacity-80" aria-hidden />
+                      <span>
+                        {te("Cupos", "Spots")}:{" "}
+                        <span className="font-medium text-foreground tabular-nums">
+                          {event.maxGuests ? available : te("Ilimitado", "Unlimited")}
+                        </span>
+                      </span>
+                    </span>
                   </div>
-                  <div className={`grid gap-2 ${actionCols}`}>
+
+                  <div className={`grid gap-2 pt-1 ${actionCols}`}>
                     <Button
                       variant="outline"
                       className="h-10 w-full"
@@ -717,7 +1362,66 @@ export default function EventsPage() {
           })}
         </div>
       )}
-      </>)}
+
+      <div className="mt-10 border-t border-border pt-8">
+        <FastDateSection
+          hidePublicFeed
+          suppressInlineCreate
+          reloadToken={fastDateReload}
+          onRequestCreate={() => {
+            resetWizardState()
+            setCreateOpen(true)
+          }}
+        />
+      </div>
+
+      <Dialog open={!!interestCard} onOpenChange={(open) => !open && setInterestCard(null)}>
+        <DialogContent className="max-w-sm border-border bg-card">
+          <DialogHeader>
+            <DialogTitle>{te("Enviar interés", "Send interest")}</DialogTitle>
+          </DialogHeader>
+          {interestCard && (
+            <div className="space-y-4">
+              <div className="rounded-xl border border-border bg-muted/50 p-3">
+                <p className="text-sm font-semibold">{interestCard.title}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {interestCard.locationZone}
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="events-fd-interest-msg" className={FORM_LABEL}>
+                  {te("Tu mensaje", "Your message")}
+                </Label>
+                <Textarea
+                  id="events-fd-interest-msg"
+                  value={interestMessage}
+                  onChange={(e) => setInterestMessage(e.target.value)}
+                  placeholder={te("Preséntate...", "Introduce yourself...")}
+                  className={FORM_CONTROL_TEXTAREA}
+                  maxLength={300}
+                />
+              </div>
+              <div className="flex gap-3">
+                <Button variant="outline" className="flex-1" onClick={() => setInterestCard(null)}>
+                  {te("Cancelar", "Cancel")}
+                </Button>
+                <Button
+                  className="flex-1 bg-gradient-to-r from-primary to-secondary font-bold text-black"
+                  onClick={() => void handleSendFastDateInterest()}
+                  disabled={sendingInterest}
+                >
+                  {sendingInterest ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Heart className="mr-1 h-4 w-4" />
+                  )}
+                  {te("Enviar", "Send")}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

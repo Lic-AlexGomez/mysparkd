@@ -451,6 +451,14 @@ export interface Event {
   addressMatched?: boolean
   locationVerified?: boolean
   locationMismatchReason?: string
+  /** Portada del meetup (feed / detalle). */
+  coverPhotoUrl?: string
+  coverPhoto?: string
+  creatorId?: string
+  creatorUsername?: string
+  creatorProfilePictureUrl?: string
+  /** Zona / país del feed (p. ej. `locationZone` del backend). */
+  zone?: string
 }
 
 export interface EventFilters {

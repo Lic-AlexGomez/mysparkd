@@ -1,5 +1,5 @@
 "use client"
 import { redirect } from "next/navigation"
 export default function FastDateRedirect() {
-  redirect("/events?tab=fastdate")
+  redirect("/events")
 }

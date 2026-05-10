@@ -6,12 +6,14 @@ import { Newspaper, Zap, Calendar, MessageCircle, User } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useUnreadChats } from "@/hooks/use-unread-chats"
 
+const EVENTS_HREF = "/events"
+
 const navItems = [
-  { href: "/feed",     label: "Feed",   icon: Newspaper },
-  { href: "/swipes",   label: "Swipes", icon: Zap },
-  { href: "/fastdate", label: "Citas",  icon: Calendar },
-  { href: "/chat",     label: "Chat",   icon: MessageCircle },
-  { href: "/profile",  label: "Perfil", icon: User },
+  { href: "/feed", label: "Feed", icon: Newspaper },
+  { href: "/swipes", label: "Swipes", icon: Zap },
+  { href: EVENTS_HREF, label: "Citas", icon: Calendar },
+  { href: "/chat", label: "Chat", icon: MessageCircle },
+  { href: "/profile", label: "Perfil", icon: User },
 ]
 
 export function BottomNav() {
@@ -24,7 +26,10 @@ export function BottomNav() {
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur-md lg:hidden">
       <div className="flex items-center justify-around py-2">
         {navItems.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
+          const isActive =
+            item.href === EVENTS_HREF
+              ? pathname === "/events"
+              : pathname === item.href || pathname.startsWith(item.href + "/")
           const showBadge = item.href === '/chat' && unreadChats > 0
           return (
             <Link

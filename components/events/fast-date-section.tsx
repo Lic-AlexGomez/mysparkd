@@ -15,9 +15,22 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Label } from "@/components/ui/label"
+import { cn } from "@/lib/utils"
+import {
+  FORM_CHIP_BASE,
+  FORM_CHIP_IDLE,
+  FORM_CHIP_PRIMARY_ON,
+  FORM_CHIP_SECONDARY_ON,
+  FORM_CONTROL_INPUT,
+  FORM_CONTROL_TEXTAREA,
+  FORM_LABEL,
+  FORM_LABEL_OPTIONAL_HINT,
+} from "@/lib/form-field-classes"
 import { toast } from "sonner"
-import { Loader2, Plus, MapPin, Calendar, Clock, Heart, Check, X, Zap, ChevronRight, Send, SlidersHorizontal, ChevronDown, ChevronUp, History } from "lucide-react"
-import { formatDistanceToNow, format } from "date-fns"
+import { FastDateOfferCard } from "@/components/events/fast-date-offer-card"
+import { Loader2, Plus, MapPin, Calendar, CalendarClock, Heart, Check, X, Zap, ChevronRight, Send, SlidersHorizontal, ChevronDown, ChevronUp, History } from "lucide-react"
+import { format } from "date-fns"
 import { es } from "date-fns/locale"
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -32,14 +45,30 @@ const PLAN_LABELS: Record<string, string> = {
 const CATEGORIES: DateCategory[] = ['FOOD', 'ACTIVITY', 'EVENT', 'CHILL', 'ADVENTURE', 'OPEN_SUGGESTION']
 const PLANS: Plan[] = ['CAFE', 'RESTAURANT', 'BAR', 'PARK', 'BEACH', 'MALL', 'CINEMA', 'OTHER', 'OPEN_SUGGESTION']
 
-export function FastDateSection() {
+const WHEN_ICON =
+  "pointer-events-none absolute left-3 top-1/2 z-[1] size-4 -translate-y-1/2 text-white drop-shadow-[0_1px_3px_rgb(0_0_0/0.85)]"
+
+type FastDateSectionProps = {
+  /** Oculta el botón "Crear cita" cuando el padre abre el asistente unificado */
+  suppressInlineCreate?: boolean
+  /** Desde el padre: abrir el mismo flujo de creación (meetup / fast date) */
+  onRequestCreate?: () => void
+  /** Incrementar para forzar recarga del feed y "mis citas" */
+  reloadToken?: number
+  /** El feed público se muestra en el padre (p. ej. junto a meetups); aquí solo gestión */
+  hidePublicFeed?: boolean
+}
+
+export function FastDateSection(props?: FastDateSectionProps) {
+  const { suppressInlineCreate, onRequestCreate, reloadToken = 0, hidePublicFeed = false } = props ?? {}
   const { user } = useAuth()
   const router = useRouter()
-  const [tab, setTab] = useState("feed")
+  const [tab, setTab] = useState(() => (hidePublicFeed ? "mine" : "feed"))
   const [feed, setFeed] = useState<DateCard[]>([])
   const [myCards, setMyCards] = useState<MyDateCard[]>([])
   const [sentInterests, setSentInterests] = useState<SentInterest[]>([])
-  const [loading, setLoading] = useState(true)
+  const [feedLoading, setFeedLoading] = useState(!hidePublicFeed)
+  const [mineLoading, setMineLoading] = useState(true)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [showInterestDialog, setShowInterestDialog] = useState<DateCard | null>(null)
   const [interestMessage, setInterestMessage] = useState("")
@@ -60,20 +89,60 @@ export function FastDateSection() {
     } catch (error) {
       handleDateCardLimitError(error)
       setFeed([])
-    } finally {
-      setLoading(false)
     }
-  }, [])
+  }, [filter])
 
   const fetchMine = useCallback(async () => {
     try {
       const [cards, sent] = await Promise.all([fastDateService.getMine(), fastDateService.getSentInterests()])
       setMyCards(cards)
       setSentInterests(sent)
-    } catch (error) { handleDateCardLimitError(error) }
+    } catch (error) {
+      handleDateCardLimitError(error)
+    }
   }, [])
 
-  useEffect(() => { fetchFeed(); fetchMine() }, [fetchFeed, fetchMine])
+  useEffect(() => {
+    if (hidePublicFeed && tab === "feed") setTab("mine")
+  }, [hidePublicFeed, tab])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        await fetchMine()
+      } finally {
+        if (!cancelled) setMineLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [fetchMine, reloadToken])
+
+  useEffect(() => {
+    if (hidePublicFeed) {
+      setFeedLoading(false)
+      return
+    }
+    let cancelled = false
+    setFeedLoading(true)
+    ;(async () => {
+      try {
+        await fetchFeed()
+      } finally {
+        if (!cancelled) setFeedLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [fetchFeed, reloadToken, hidePublicFeed])
+
+  const openCreate = () => {
+    if (onRequestCreate) onRequestCreate()
+    else setShowCreateDialog(true)
+  }
 
   const applyFilter = (f: FeedFilter) => { setFilter(f); setShowFilter(false); fetchFeed(f) }
 
@@ -119,37 +188,83 @@ export function FastDateSection() {
     ...prev, plans: prev.plans.includes(plan) ? prev.plans.filter(p => p !== plan) : [...prev.plans, plan]
   }))
 
-  if (loading) return <div className="flex h-40 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+  if (!hidePublicFeed && feedLoading) {
+    return (
+      <div className="flex h-40 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (hidePublicFeed && mineLoading) {
+    return (
+      <div className="flex h-24 items-center justify-center">
+        <Loader2 className="h-7 w-7 animate-spin text-primary" />
+      </div>
+    )
+  }
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-xs text-muted-foreground">Propón una cita 1 a 1, conecta al instante</p>
-        <Button size="sm" onClick={() => setShowCreateDialog(true)} className="bg-gradient-to-r from-primary to-secondary text-black font-bold">
-          <Plus className="h-4 w-4 mr-1" />Crear cita
-        </Button>
-      </div>
+      {!hidePublicFeed && (
+        <div className="mb-4 flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">Propón una cita 1 a 1, conecta al instante</p>
+          {!suppressInlineCreate && (
+            <Button size="sm" onClick={openCreate} className="bg-gradient-to-r from-primary to-secondary font-bold text-black">
+              <Plus className="mr-1 h-4 w-4" />
+              Crear cita
+            </Button>
+          )}
+        </div>
+      )}
+
+      {hidePublicFeed && (
+        <div className="mb-4">
+          <h2 className="text-base font-semibold text-foreground">Fast Date</h2>
+          <p className="text-xs text-muted-foreground">
+            Citas que publicaste, intereses recibidos y solicitudes enviadas.
+          </p>
+        </div>
+      )}
 
       <Tabs value={tab} onValueChange={setTab}>
-        <div className="flex items-center gap-2 mb-4">
-          <TabsList className="flex-1 grid grid-cols-3">
-            <TabsTrigger value="feed">Feed</TabsTrigger>
+        <div className="mb-4 flex items-center gap-2">
+          <TabsList className={`grid flex-1 ${hidePublicFeed ? "grid-cols-2" : "grid-cols-3"}`}>
+            {!hidePublicFeed && <TabsTrigger value="feed">Feed</TabsTrigger>}
             <TabsTrigger value="mine">Mis citas</TabsTrigger>
             <TabsTrigger value="sent">Enviados</TabsTrigger>
           </TabsList>
-          <button onClick={() => setShowFilter(!showFilter)} className={`h-9 w-9 rounded-xl flex items-center justify-center border transition-colors shrink-0 ${Object.keys(filter).length > 0 ? 'bg-primary text-black border-primary' : 'border-border text-muted-foreground hover:border-primary/50'}`}>
-            <SlidersHorizontal className="h-4 w-4" />
-          </button>
+          {!hidePublicFeed && (
+            <button
+              type="button"
+              onClick={() => setShowFilter(!showFilter)}
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-colors ${Object.keys(filter).length > 0 ? "border-primary bg-primary text-black" : "border-border text-muted-foreground hover:border-primary/50"}`}
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
-        {showFilter && (
-          <div className="mb-4 p-4 bg-card border border-border rounded-2xl space-y-3">
-            <p className="text-xs font-semibold">Filtrar feed</p>
+        {!hidePublicFeed && showFilter && (
+          <div className="mb-4 space-y-3 rounded-2xl border border-border bg-card p-4">
+            <p className="text-sm font-semibold text-foreground">Filtrar feed</p>
             <div className="grid grid-cols-2 gap-3">
               {[["Distancia máx (km)", "maxDistanceKm", "10"], ["Compatibilidad mín (%)", "minCompatibility", "50"], ["Edad mín", "minAge", "18"], ["Edad máx", "maxAge", "99"]].map(([label, key, ph]) => (
-                <div key={key} className="space-y-1">
-                  <label className="text-xs text-muted-foreground">{label}</label>
-                  <Input type="number" placeholder={ph} value={(filter as any)[key] ?? ''} onChange={e => setFilter(p => ({ ...p, [key]: e.target.value ? Number(e.target.value) : undefined }))} className="h-8 text-sm" />
+                <div key={key} className="space-y-1.5">
+                  <Label className={cn(FORM_LABEL, "text-xs")}>{label}</Label>
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    placeholder={ph}
+                    value={(filter as Record<string, number | undefined>)[key as string] != null ? String((filter as Record<string, number | undefined>)[key as string]) : ""}
+                    onChange={(e) =>
+                      setFilter((p) => ({
+                        ...p,
+                        [key]: e.target.value ? Number(e.target.value) : undefined,
+                      }))
+                    }
+                    className={FORM_CONTROL_INPUT}
+                  />
                 </div>
               ))}
             </div>
@@ -160,57 +275,38 @@ export function FastDateSection() {
           </div>
         )}
 
-        <TabsContent value="feed" className="space-y-3">
-          {feed.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3">
-              <Zap className="h-12 w-12 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">No hay citas disponibles</p>
-              <Button size="sm" variant="outline" onClick={() => setShowCreateDialog(true)}>Sé el primero</Button>
-            </div>
-          ) : feed.map(card => (
-            <Card key={card.id} className="border-border hover:border-primary/30 transition-colors">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <Avatar className="h-10 w-10 border-2 border-primary/20 cursor-pointer shrink-0" onClick={() => router.push(`/profile/${card.userId}`)}>
-                    <AvatarImage src={card.mainPhotoUrl} />
-                    <AvatarFallback className="bg-primary/10 text-primary text-sm">{card.username?.[0]?.toUpperCase() || "?"}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-semibold">@{card.username}</span>
-                      <Badge className="text-[10px] px-2 py-0 border-0 bg-primary/10 text-primary">{CATEGORY_LABELS[card.category] || card.category}</Badge>
-                      {(card as any).compatibility > 0 && <Badge className="text-[10px] px-2 py-0 border-0 bg-secondary/10 text-secondary">{(card as any).compatibility}% match</Badge>}
-                    </div>
-                    <h3 className="text-sm font-bold mt-1">{card.title}</h3>
-                    {card.message && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{card.message}</p>}
-                    <div className="flex flex-wrap gap-3 mt-2 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{format(new Date(card.dateTime), "d MMM, HH:mm", { locale: es })}</span>
-                      <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{card.locationZone}</span>
-                      <span className="flex items-center gap-1"><Clock className="h-3 w-3" />Expira {formatDistanceToNow(new Date(card.expiresAt), { addSuffix: true, locale: es })}</span>
-                    </div>
-                    {card.plans && card.plans.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {card.plans.map(p => <span key={p} className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{PLAN_LABELS[p] || p}</span>)}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                {card.userId !== user?.userId && (
-                  <Button size="sm" className="w-full mt-3 bg-gradient-to-r from-primary to-secondary text-black font-bold" onClick={() => setShowInterestDialog(card)}>
-                    <Heart className="h-4 w-4 mr-1" />Me interesa
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </TabsContent>
+        {!hidePublicFeed && (
+          <TabsContent value="feed" className="space-y-3">
+            {feed.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-3 py-16">
+                <Zap className="h-12 w-12 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">No hay citas disponibles</p>
+                <Button size="sm" variant="outline" onClick={openCreate}>
+                  Sé el primero
+                </Button>
+              </div>
+            ) : (
+              feed.map((card) => (
+                <FastDateOfferCard
+                  key={card.id}
+                  card={card}
+                  currentUserId={user?.userId}
+                  onInterest={() => setShowInterestDialog(card)}
+                  fastDateLabel="Fast Date"
+                  interestLabel="Me interesa"
+                  expiresLabel="Expira"
+                />
+              ))
+            )}
+          </TabsContent>
+        )}
 
         <TabsContent value="mine" className="space-y-4">
           {myCards.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <Calendar className="h-12 w-12 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">No has creado citas aún</p>
-              <Button size="sm" variant="outline" onClick={() => setShowCreateDialog(true)}>Crear mi primera cita</Button>
+              <Button size="sm" variant="outline" onClick={openCreate}>Crear mi primera cita</Button>
             </div>
           ) : (
             <>
@@ -263,38 +359,41 @@ export function FastDateSection() {
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="flex items-center gap-2"><Zap className="h-5 w-5 text-primary" />Crear cita</DialogTitle></DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 pt-0.5">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground">Título *</label>
-              <Input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder="Ej: Café tranquilo esta tarde" maxLength={100} />
+              <Label htmlFor="fd-inline-title" className={FORM_LABEL}>Título <span className="text-primary">*</span></Label>
+              <Input id="fd-inline-title" className={FORM_CONTROL_INPUT} value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder="Ej: Café tranquilo esta tarde" maxLength={100} autoComplete="off" />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground">Mensaje (opcional)</label>
-              <Textarea value={form.message} onChange={e => setForm(p => ({ ...p, message: e.target.value }))} placeholder="Cuéntales más..." className="resize-none min-h-20" maxLength={700} />
+              <Label htmlFor="fd-inline-msg" className={FORM_LABEL}>Mensaje <span className={FORM_LABEL_OPTIONAL_HINT}>(opcional)</span></Label>
+              <Textarea id="fd-inline-msg" value={form.message} onChange={e => setForm(p => ({ ...p, message: e.target.value }))} placeholder="Cuéntales más..." className={FORM_CONTROL_TEXTAREA} maxLength={700} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground">Fecha y hora *</label>
-                <Input type="datetime-local" value={form.dateTime} onChange={e => setForm(p => ({ ...p, dateTime: e.target.value }))} min={new Date().toISOString().slice(0, 16)} />
+                <Label htmlFor="fd-inline-when" className={FORM_LABEL}>Fecha y hora <span className="text-primary">*</span></Label>
+                <div className="relative">
+                  <CalendarClock className={WHEN_ICON} aria-hidden />
+                  <Input id="fd-inline-when" type="datetime-local" className={cn(FORM_CONTROL_INPUT, "pl-10")} value={form.dateTime} onChange={e => setForm(p => ({ ...p, dateTime: e.target.value }))} min={new Date().toISOString().slice(0, 16)} />
+                </div>
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground">Zona *</label>
-                <Input value={form.locationZone} onChange={e => setForm(p => ({ ...p, locationZone: e.target.value }))} placeholder="Ej: Centro" />
+                <Label htmlFor="fd-inline-zone" className={FORM_LABEL}>Zona <span className="text-primary">*</span></Label>
+                <Input id="fd-inline-zone" className={FORM_CONTROL_INPUT} value={form.locationZone} onChange={e => setForm(p => ({ ...p, locationZone: e.target.value }))} placeholder="Ej: Centro" autoComplete="off" />
               </div>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground">Categoría *</label>
+            <div className="space-y-2">
+              <Label className={FORM_LABEL}>Categoría <span className="text-primary">*</span></Label>
               <div className="flex flex-wrap gap-2">
                 {CATEGORIES.map(cat => (
-                  <button key={cat} onClick={() => setForm(p => ({ ...p, category: cat }))} className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${form.category === cat ? 'bg-primary text-black border-primary font-bold' : 'border-border text-muted-foreground hover:border-primary/50'}`}>{CATEGORY_LABELS[cat]}</button>
+                  <button key={cat} type="button" onClick={() => setForm(p => ({ ...p, category: cat }))} className={cn(FORM_CHIP_BASE, form.category === cat ? FORM_CHIP_PRIMARY_ON : FORM_CHIP_IDLE)}>{CATEGORY_LABELS[cat]}</button>
                 ))}
               </div>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground">Planes * (al menos uno)</label>
+            <div className="space-y-2">
+              <Label className={FORM_LABEL}>Planes <span className="text-primary">*</span> <span className={FORM_LABEL_OPTIONAL_HINT}>(al menos uno)</span></Label>
               <div className="flex flex-wrap gap-2">
                 {PLANS.map(plan => (
-                  <button key={plan} onClick={() => togglePlan(plan)} className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${form.plans.includes(plan) ? 'bg-secondary text-black border-secondary font-bold' : 'border-border text-muted-foreground hover:border-secondary/50'}`}>{PLAN_LABELS[plan]}</button>
+                  <button key={plan} type="button" onClick={() => togglePlan(plan)} className={cn(FORM_CHIP_BASE, form.plans.includes(plan) ? FORM_CHIP_SECONDARY_ON : FORM_CHIP_IDLE)}>{PLAN_LABELS[plan]}</button>
                 ))}
               </div>
             </div>
@@ -317,7 +416,10 @@ export function FastDateSection() {
                 <p className="text-sm font-semibold">{showInterestDialog.title}</p>
                 <p className="text-xs text-muted-foreground mt-1">{format(new Date(showInterestDialog.dateTime), "d MMM, HH:mm", { locale: es })} · {showInterestDialog.locationZone}</p>
               </div>
-              <Textarea value={interestMessage} onChange={e => setInterestMessage(e.target.value)} placeholder="Preséntate..." className="resize-none min-h-20" maxLength={300} />
+              <div className="space-y-1.5">
+                <Label htmlFor="fd-interest-msg" className={FORM_LABEL}>Tu mensaje</Label>
+                <Textarea id="fd-interest-msg" value={interestMessage} onChange={e => setInterestMessage(e.target.value)} placeholder="Preséntate..." className={FORM_CONTROL_TEXTAREA} maxLength={300} />
+              </div>
               <div className="flex gap-3">
                 <Button variant="outline" onClick={() => setShowInterestDialog(null)} className="flex-1">Cancelar</Button>
                 <Button onClick={handleSendInterest} disabled={sendingInterest} className="flex-1 bg-gradient-to-r from-primary to-secondary text-black font-bold">

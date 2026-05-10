@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useSearchParams } from "next/navigation"
 import {
   Newspaper,
   Zap,
@@ -40,6 +40,7 @@ const navItems = [
 
 export function SidebarNav() {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const features = useFeatureFlags()
   const unreadChats = useUnreadChats()
   const { t } = useI18n()
@@ -83,7 +84,10 @@ export function SidebarNav() {
         <ul className="flex flex-col gap-3">
           {allNavItems.map((item) => {
             const isActive =
-              pathname === item.href || pathname.startsWith(item.href + "/") || (item.href === '/events' && pathname.startsWith('/fastdate')) || (item.href === '/matches' && pathname.startsWith('/likes'))
+              pathname === item.href ||
+              pathname.startsWith(item.href + "/") ||
+              (item.href === "/events" && pathname.startsWith("/fastdate")) ||
+              (item.href === "/matches" && pathname.startsWith("/likes"))
             return (
               <li key={item.href}>
                 <Link
