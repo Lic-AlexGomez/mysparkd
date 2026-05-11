@@ -19,6 +19,8 @@ interface FollowRequest {
   profilePictureUrl?: string
 }
 
+const NOTIFICATIONS_PAGE_SIZE = 20
+
 export default function NotificationsPage() {
   const { te } = useI18n()
   const { user } = useAuth()
@@ -27,17 +29,26 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [followRequests, setFollowRequests] = useState<FollowRequest[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
+  const [nextPage, setNextPage] = useState(0)
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  const fetchNotifications = useCallback(async () => {
+  const loadInitial = useCallback(async () => {
     if (!user?.userId) return
+    setIsLoading(true)
     try {
       const [notifs, requests] = await Promise.all([
-        api.get<any[]>(`/api/notifications/${user.userId}`),
-        api.get<FollowRequest[]>('/api/follow/requests').catch(() => [])
+        api.get<any[]>(
+          `/api/notifications/${user.userId}?page=0&size=${NOTIFICATIONS_PAGE_SIZE}`
+        ),
+        api.get<FollowRequest[]>("/api/follow/requests").catch(() => []),
       ])
-      setNotifications(notifs)
-      setFollowRequests(requests)
+      const list = Array.isArray(notifs) ? notifs : []
+      setNotifications(list)
+      setFollowRequests(Array.isArray(requests) ? requests : [])
+      setNextPage(1)
+      setHasMore(list.length >= NOTIFICATIONS_PAGE_SIZE)
     } catch {
       toast.error(te("Error al cargar notificaciones", "Error loading notifications"))
     } finally {
@@ -45,7 +56,27 @@ export default function NotificationsPage() {
     }
   }, [user?.userId])
 
-  useEffect(() => { fetchNotifications() }, [fetchNotifications])
+  const loadMore = useCallback(async () => {
+    if (!user?.userId || !hasMore || loadingMore) return
+    setLoadingMore(true)
+    try {
+      const notifs = await api.get<any[]>(
+        `/api/notifications/${user.userId}?page=${nextPage}&size=${NOTIFICATIONS_PAGE_SIZE}`
+      )
+      const list = Array.isArray(notifs) ? notifs : []
+      setNotifications((prev) => [...prev, ...list])
+      setNextPage((p) => p + 1)
+      setHasMore(list.length >= NOTIFICATIONS_PAGE_SIZE)
+    } catch {
+      toast.error(te("Error al cargar más", "Error loading more"))
+    } finally {
+      setLoadingMore(false)
+    }
+  }, [user?.userId, hasMore, loadingMore, nextPage])
+
+  useEffect(() => {
+    void loadInitial()
+  }, [loadInitial])
   useEffect(() => { setExpandedId(null) }, [pathname])
   useEffect(() => {
     const handleClickOutside = () => setExpandedId(null)
@@ -192,6 +223,25 @@ export default function NotificationsPage() {
               )}
             </div>
           ))}
+          {hasMore && notifications.length > 0 && (
+            <div className="px-4 py-4 flex justify-center border-t border-border">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={loadingMore}
+                onClick={() => void loadMore()}
+              >
+                {loadingMore ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {te("Cargando…", "Loading…")}
+                  </>
+                ) : (
+                  te("Cargar más", "Load more")
+                )}
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>

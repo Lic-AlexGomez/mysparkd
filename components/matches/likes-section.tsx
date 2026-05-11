@@ -20,20 +20,35 @@ function LikesPaywall({ backendMessage }: { backendMessage?: string | null }) {
   const router = useRouter()
   const { te } = useI18n()
   return (
-    <div className="flex flex-col items-center justify-center gap-4 py-20 px-6 min-h-[40vh]">
-      <div className="relative">
-        <div className="absolute inset-0 blur-3xl bg-amber-500/20 rounded-full" />
-        <div className="relative h-20 w-20 rounded-full border border-amber-500/30 bg-card flex items-center justify-center">
-          <Lock className="h-9 w-9 text-amber-500" />
-        </div>
+    <div className="relative mx-auto w-full max-w-[680px] min-h-[48vh] px-4 py-8">
+      {/* Teaser: cartas difuminadas detrás del panel (#228) */}
+      <div className="pointer-events-none absolute inset-x-4 top-8 grid grid-cols-2 gap-3 opacity-90 md:grid-cols-2">
+        {[0, 1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className={`relative h-48 overflow-hidden rounded-3xl border border-primary/15 bg-gradient-to-br from-muted to-card blur-md ${i % 2 ? "translate-y-4" : ""}`}
+          >
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-muted/30" />
+            <div className="absolute bottom-3 left-3 h-4 w-24 rounded-md bg-white/20" />
+            <div className="absolute bottom-8 left-3 h-3 w-16 rounded-md bg-white/10" />
+          </div>
+        ))}
       </div>
-      <h2 className="text-xl font-bold text-center">{te("Quién te dio like es Premium", "Who liked you is Premium")}</h2>
-      <p className="text-sm text-muted-foreground text-center max-w-sm">
-        {backendMessage || te("Los usuarios free no pueden ver la lista.", "Free users cannot view this list.")}
-      </p>
-      <Button onClick={() => router.push("/premium")} className="mt-2 bg-gradient-to-r from-primary to-secondary text-black font-bold px-8 py-6 rounded-2xl shadow-lg">
-        <Crown className="h-4 w-4 mr-2" />{te("Desbloquear con Premium", "Unlock with Premium")}
-      </Button>
+      <div className="relative z-10 flex min-h-[40vh] flex-col items-center justify-center gap-4 rounded-2xl border border-amber-500/20 bg-background/80 px-6 py-10 shadow-2xl shadow-black/10 backdrop-blur-md dark:bg-background/70">
+        <div className="relative">
+          <div className="absolute inset-0 blur-3xl bg-amber-500/20 rounded-full" />
+          <div className="relative h-20 w-20 rounded-full border border-amber-500/30 bg-card flex items-center justify-center">
+            <Lock className="h-9 w-9 text-amber-500" />
+          </div>
+        </div>
+        <h2 className="text-xl font-bold text-center">{te("Quién te dio like es Premium", "Who liked you is Premium")}</h2>
+        <p className="text-sm text-muted-foreground text-center max-w-sm">
+          {backendMessage || te("Los usuarios free no pueden ver la lista.", "Free users cannot view this list.")}
+        </p>
+        <Button onClick={() => router.push("/premium")} className="mt-2 bg-gradient-to-r from-primary to-secondary text-black font-bold px-8 py-6 rounded-2xl shadow-lg">
+          <Crown className="h-4 w-4 mr-2" />{te("Desbloquear con Premium", "Unlock with Premium")}
+        </Button>
+      </div>
     </div>
   )
 }

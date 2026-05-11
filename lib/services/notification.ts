@@ -23,9 +23,18 @@ class NotificationService {
     this.onUpdateCallback = callback
   }
 
-  async fetchNotifications(userId: string): Promise<Notification[]> {
+  async fetchNotifications(
+    userId: string,
+    opts?: { page?: number; size?: number }
+  ): Promise<Notification[]> {
     try {
-      const data = await api.get<Notification[]>(`/api/notifications/${userId}`)
+      const q = new URLSearchParams()
+      if (opts?.page !== undefined) q.set("page", String(opts.page))
+      if (opts?.size !== undefined) q.set("size", String(opts.size))
+      const qs = q.toString()
+      const data = await api.get<Notification[]>(
+        `/api/notifications/${userId}${qs ? `?${qs}` : ""}`
+      )
       this.notifications = data
       return this.notifications
     } catch (e) {

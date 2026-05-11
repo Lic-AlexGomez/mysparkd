@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import Link from "next/link"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { api, ApiError } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
@@ -12,7 +13,8 @@ import type { UserProfile, Photo, Chat, SwipeResponse } from "@/lib/types"
 import { normalizeProfilePosts } from "@/lib/normalize-profile-posts"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Loader2, MoreHorizontal, MessageCircle, UserPlus, UserCheck, ArrowLeft, Heart, Crown, Trash2, Lock, Clock, Star, X, Clapperboard } from "lucide-react"
 import { PostCard } from "@/components/feed/post-card"
@@ -54,6 +56,7 @@ export default function UserProfilePage() {
   const [isLiking, setIsLiking] = useState(false)
   const [liked, setLiked] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
+  const [premiumGateOpen, setPremiumGateOpen] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [photoToDelete, setPhotoToDelete] = useState<Photo | null>(null)
   const [inSparklingList, setInSparklingList] = useState(false)
@@ -176,7 +179,16 @@ export default function UserProfilePage() {
     try {
       const chat = await api.post<Chat>(`/api/chat/open/${userId}`)
       router.push(`/chat/${chat.chatId}`)
-    } catch {
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 403) {
+        const msg = (err.message || "").trim()
+        if (msg === "PREMIUM_REQUIRED" || msg.includes("PREMIUM_REQUIRED")) {
+          setPremiumGateOpen(true)
+          return
+        }
+        toast.error(msg || te("No puedes abrir este chat", "You cannot open this chat"))
+        return
+      }
       toast.error(te("Error al abrir chat", "Error opening chat"))
     } finally {
       setIsMessaging(false)
@@ -256,8 +268,13 @@ export default function UserProfilePage() {
     ? { url: profile.profilePictureUrl }
     : profile.photos?.find((p) => p.isPrimary || p.primary)
   const initials = `${profile.nombres?.[0] || ""}${profile.apellidos?.[0] || ""}`.toUpperCase()
-  const reputation = profile.reputation || 75
-  const reputationColor = reputationService.getReputationColor(reputation)
+  const viewingOwnProfile = Boolean(user?.userId && user.userId === userId)
+  const reputationNum = profile.reputation
+  const showReputationBadge =
+    typeof reputationNum === "number" && !Number.isNaN(reputationNum)
+  const reputationColor = showReputationBadge
+    ? reputationService.getReputationColor(reputationNum)
+    : undefined
   const followersCount = profile.followersCount ?? followService.getFollowersCount(userId)
   const followingCount = profile.followingCount ?? followService.getFollowingCount(userId)
   const age = getAge(profile.dateOfBirth)
@@ -321,9 +338,14 @@ export default function UserProfilePage() {
                 <Crown className="h-3.5 w-3.5 text-black" />
               </div>
             )}
-            <span className="absolute -top-1 -right-3 px-2 py-0.5 rounded-full text-xs font-bold text-black shadow-lg" style={{ backgroundColor: reputationColor }}>
-              ★ {reputation}
-            </span>
+            {showReputationBadge && reputationColor && (
+              <span
+                className="absolute -top-1 -right-3 px-2 py-0.5 rounded-full text-xs font-bold text-black shadow-lg"
+                style={{ backgroundColor: reputationColor }}
+              >
+                ★ {reputationNum}
+              </span>
+            )}
           </div>
 
           <div className="flex gap-2 mb-1">
@@ -556,6 +578,30 @@ export default function UserProfilePage() {
           <DialogTitle className="sr-only">{te("Vista de foto", "Photo view")}</DialogTitle>
           <img src={viewPhotoUrl || ""} alt={te("Vista completa", "Full view")} className="w-full h-auto max-h-[90vh] object-contain" />
           <button onClick={() => setViewPhotoUrl(null)} className="absolute top-3 right-3 h-8 w-8 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center text-white text-sm">✕</button>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={premiumGateOpen} onOpenChange={setPremiumGateOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{te("Premium requerido", "Premium required")}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            {te(
+              "Necesitas Suscripción para enviar mensajes directos desde el perfil.",
+              "You need a subscription to send a direct message from a profile."
+            )}
+          </p>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="outline" onClick={() => setPremiumGateOpen(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button asChild className="font-semibold text-black">
+              <Link href="/premium" onClick={() => setPremiumGateOpen(false)}>
+                {te("Ver planes", "View plans")}
+              </Link>
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

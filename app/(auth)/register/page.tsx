@@ -64,6 +64,8 @@ export default function RegisterPage() {
     } catch (err) {
       if (err instanceof ApiError && err.status === 429) {
         toast.error(rateLimitHint(err))
+      } else if (err instanceof ApiError) {
+        toast.error(err.message || "Error al registrarse")
       } else {
         toast.error(err instanceof Error ? err.message : "Error al registrarse")
       }

@@ -9,7 +9,6 @@ import {
   MessageCircle,
   User,
   CalendarDays,
-  ThumbsUp,
   LayoutDashboard,
   ShieldCheck,
   Crown,
@@ -29,8 +28,7 @@ const navItems = [
   // DATING items
   { href: "/swipes", labelKey: "sidebar.swipes", icon: Zap, modes: ['DATING', 'BOTH'] },
   { href: "/matches", labelKey: "sidebar.matches", icon: Heart, modes: ['DATING', 'BOTH'] },
-  { href: "/likes", labelKey: "sidebar.likes", icon: ThumbsUp, modes: ['DATING', 'BOTH'] },
-  
+
   // Common items
   { href: "/chat", labelKey: "sidebar.chat", icon: MessageCircle, modes: ['SOCIAL', 'DATING', 'BOTH'] },
   { href: "/trello", labelKey: "sidebar.trello", icon: LayoutList, modes: ['SOCIAL', 'DATING', 'BOTH'] },

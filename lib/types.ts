@@ -679,6 +679,8 @@ export interface Chat {
   lastMessageAt: string | null
   unread?: number
   otherUserLastSeen?: string | null
+  /** Backend: DIRECT (DM desde perfil) vs GENERAL (resto, p. ej. match). */
+  chatCategory?: "DIRECT" | "GENERAL"
 }
 
 export interface Message {

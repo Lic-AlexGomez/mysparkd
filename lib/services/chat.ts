@@ -9,6 +9,13 @@ export const chatService = {
     return api.get<Chat[]>('/api/chat/chats')
   },
 
+  /** Mover chat entre pestaña Directos / General (solo afecta al usuario actual). */
+  async setChatCategory(chatId: string, category: 'DIRECT' | 'GENERAL'): Promise<void> {
+    await api.patch<void>(
+      `/api/chat/chats/${encodeURIComponent(chatId)}/category?category=${encodeURIComponent(category)}`
+    )
+  },
+
   /**
    * Abrir o crear un chat con otro usuario
    */

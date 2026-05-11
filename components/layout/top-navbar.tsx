@@ -72,7 +72,7 @@ export function TopNavbar() {
     if (!user?.userId) return
     try {
       const data = await api.get<any[]>(
-        `/api/notifications/${user.userId}`
+        `/api/notifications/${user.userId}?page=0&size=20`
       )
       const mapped = data.map(n => ({
         notificationId: n.notificationId || (n.senderId + n.createdAt),

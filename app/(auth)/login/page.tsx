@@ -60,9 +60,7 @@ export default function LoginPage() {
         router.push(`/verify-email?username=${encodeURIComponent(username.trim())}`)
         return
       }
-      toast.error(
-        message
-      )
+      toast.error(message)
     } finally {
       setIsLoading(false)
     }

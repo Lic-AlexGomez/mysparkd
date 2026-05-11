@@ -38,6 +38,16 @@ export interface UnifiedFeedItem {
   zone?: string
 }
 
+/** Normaliza MEETUP | EVENT (backend unificado) → MEETUP en UI; DATE sin cambios. */
+export function normalizeUnifiedFeedItem(raw: Record<string, unknown>): UnifiedFeedItem {
+  const t = String(raw.type ?? "").toUpperCase()
+  const type: FeedItemType = t === "DATE" ? "DATE" : "MEETUP"
+  return {
+    ...(raw as unknown as UnifiedFeedItem),
+    type,
+  }
+}
+
 export interface ActivityFeedFilter {
   type?: FeedItemType
   eventCategory?: string
@@ -58,6 +68,10 @@ export const activityFeedService = {
       if (v !== undefined && v !== null) params.set(k, String(v))
     })
     const qs = params.toString()
-    return api.get<UnifiedFeedItem[]>(`/api/activity-feed${qs ? `?${qs}` : ''}`)
+    const rows = await api.get<Record<string, unknown>[]>(
+      `/api/activity-feed${qs ? `?${qs}` : ""}`
+    )
+    if (!Array.isArray(rows)) return []
+    return rows.map((r) => normalizeUnifiedFeedItem(r))
   }
 }

@@ -8,9 +8,11 @@ import { reputationService } from "@/lib/services/reputation"
 import { followService } from "@/lib/services/follow"
 import { bookmarkService } from "@/lib/services/bookmark"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Pencil, Loader2, Camera, Newspaper, Bookmark, Heart, Crown,
-  MapPin, Globe, Zap, Settings, Trash2, MicOff, Paperclip, CalendarDays, ChevronRight
+  MapPin, Globe, Zap, Settings, Trash2, MicOff, Paperclip, CalendarDays, ChevronRight,
+  CalendarClock, Users
 } from "lucide-react"
 import { toast } from "sonner"
 import { PostCard } from "@/components/feed/post-card"
@@ -27,7 +29,7 @@ import type { Event } from "@/lib/types"
 import { useExperienceMode } from "@/hooks/use-experience-mode"
 
 export default function ProfilePage() {
-  const { te, t } = useI18n()
+  const { te, t, language } = useI18n()
   const { user, refreshProfile, updateUser, isLoading } = useAuth()
   const router = useRouter()
   const experienceMode = useExperienceMode()
@@ -84,9 +86,12 @@ export default function ProfilePage() {
     ? { url: user.profilePictureUrl }
     : user?.photos?.find((p) => p.isPrimary || p.primary)
   const initials = user ? `${user.nombres?.[0] || ""}${user.apellidos?.[0] || ""}`.toUpperCase() : "?"
-  const reputation = user?.reputation || 75
-  console.log('[Profile] Reputación del usuario:', user?.reputation, '(usando:', reputation, ')')
-  const reputationColor = reputationService.getReputationColor(reputation)
+  const reputationNum = user?.reputation
+  const showReputation =
+    typeof reputationNum === "number" && !Number.isNaN(reputationNum)
+  const reputationColor = showReputation
+    ? reputationService.getReputationColor(reputationNum)
+    : undefined
   const followersCount = user?.followersCount ?? (user?.userId ? followService.getFollowersCount(user.userId) : 0)
   const followingCount = user?.followingCount ?? (user?.userId ? followService.getFollowingCount(user.userId) : 0)
   const savedPostsCount = user?.userId ? bookmarkService.getBookmarkedPosts(user.userId).length : 0
@@ -117,21 +122,75 @@ export default function ProfilePage() {
 
   const activeEvents = eventsTab === 'created' ? myCreatedEvents : myParticipatingEvents
 
-  return (
-    <div className="mx-auto max-w-2xl pb-20">
+  const formatEventCardDate = (iso?: string | null) => {
+    const s = iso?.trim()
+    if (!s) return null
+    try {
+      const d = new Date(s)
+      if (Number.isNaN(d.getTime())) return null
+      return d.toLocaleString(language === "en" ? "en-US" : "es", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    } catch {
+      return null
+    }
+  }
 
-      {/* ── HERO ── */}
-      <div className="relative">
-        {/* Cover */}
-        <div className="relative h-52 overflow-hidden group">
+  const eventStatusStyles = (status: string) => {
+    const u = String(status || "OPEN").toUpperCase()
+    switch (u) {
+      case "OPEN":
+        return "bg-emerald-500/15 text-emerald-600 ring-emerald-500/25 dark:text-emerald-400"
+      case "FULL":
+        return "bg-amber-500/15 text-amber-700 ring-amber-500/25 dark:text-amber-400"
+      case "CANCELLED":
+        return "bg-destructive/12 text-destructive ring-destructive/20"
+      case "FINISHED":
+        return "bg-sky-500/12 text-sky-700 ring-sky-500/25 dark:text-sky-400"
+      case "EXPIRED":
+        return "bg-muted text-muted-foreground ring-border"
+      default:
+        return "bg-muted text-muted-foreground ring-border"
+    }
+  }
+
+  const eventStatusLabel = (status: string) => {
+    const u = String(status || "OPEN").toUpperCase()
+    const map: Record<string, string> = {
+      OPEN: te("Abierto", "Open"),
+      FULL: te("Lleno", "Full"),
+      CANCELLED: te("Cancelado", "Cancelled"),
+      FINISHED: te("Finalizado", "Finished"),
+      EXPIRED: te("Expirado", "Expired"),
+    }
+    return map[u] || u
+  }
+
+  const formatCategoryLabel = (cat?: string) => {
+    if (!cat) return ""
+    return String(cat).replace(/_/g, " ")
+  }
+
+  return (
+    <div className="mx-auto min-h-screen max-w-2xl bg-gradient-to-b from-background via-muted/[0.35] to-muted/50 pb-24 dark:via-background dark:to-muted/25 lg:max-w-5xl xl:max-w-6xl">
+
+      {/* ── HERO: portada visible + tarjeta con avatar en flujo (sin tapar el nombre) ── */}
+      <div className="relative isolate">
+        {/* Cover — más altura + menos solape del panel = más foto visible */}
+        <div className="group relative h-52 overflow-hidden sm:h-60 md:h-72 lg:h-80">
           {coverPhoto
             ? <img src={coverPhoto} alt="cover" className="h-full w-full object-cover" />
             : <div className="h-full bg-gradient-to-br from-primary via-primary/60 to-secondary/50" />
           }
-          <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent dark:from-black/45" />
           <button
+            type="button"
             onClick={() => document.getElementById('cover-upload')?.click()}
-            className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white text-sm font-medium gap-2"
+            className="absolute inset-0 flex items-center justify-center gap-2 bg-black/35 text-sm font-medium text-white opacity-0 transition-opacity group-hover:opacity-100"
           >
             <Camera className="h-5 w-5" /> {te("Cambiar portada", "Change cover")}
           </button>
@@ -148,83 +207,90 @@ export default function ProfilePage() {
               e.target.value = ''
             }}
           />
-        </div>
-
-        {/* Avatar */}
-        <div className="absolute left-5 bottom-0 translate-y-1/2">
-          <div className="relative group">
-            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary to-secondary blur-md opacity-50 scale-110" />
-            <div className="relative p-[3px] rounded-full bg-background">
-              <Avatar className="h-24 w-24 shadow-xl">
-                <AvatarImage src={primaryPhoto?.url} alt={user.nombres} className="object-cover" />
-                <AvatarFallback className="bg-gradient-to-br from-primary/30 to-secondary/30 text-2xl font-black">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-            </div>
+          {/* Acciones sobre la portada (no compiten con el nombre) */}
+          <div className="absolute right-3 top-3 z-10 flex gap-2">
             <button
-              onClick={() => document.getElementById('avatar-upload')?.click()}
-              className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              type="button"
+              onClick={() => router.push('/profile/edit')}
+              className="flex h-9 items-center gap-1.5 rounded-full border border-white/25 bg-black/40 px-3.5 text-xs font-semibold text-white shadow-lg backdrop-blur-md transition-colors hover:bg-black/55 sm:text-sm"
             >
-              <Camera className="h-5 w-5 text-white" />
+              <Pencil className="h-3.5 w-3.5" /> {t("common.edit")}
             </button>
-            <input id="avatar-upload" type="file" accept="image/*" className="hidden"
-              onChange={async (e) => {
-                const file = e.target.files?.[0]; if (!file) return
-                const toastId = toast.loading(te('Subiendo foto...', 'Uploading photo...'))
-                try {
-                  const fd = new FormData(); fd.append('file', file)
-                  await api.post('/api/photos/profile-picture', fd)
-                  await refreshProfile()
-                  toast.dismiss(toastId); toast.success(te('Foto actualizada', 'Photo updated'))
-                } catch { toast.dismiss(toastId); toast.error(te('Error al subir foto', 'Error uploading photo')) }
-                e.target.value = ''
-              }}
-            />
-            {/* Rep badge */}
-            <div
-              className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full flex items-center justify-center text-[9px] font-black text-black shadow border-2 border-background"
-              style={{ backgroundColor: reputationColor }}
+            <button
+              type="button"
+              onClick={() => router.push('/settings')}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/25 bg-black/40 text-white shadow-lg backdrop-blur-md transition-colors hover:bg-black/55"
             >
-              {reputation}
-            </div>
+              <Settings className="h-4 w-4" />
+            </button>
           </div>
         </div>
 
-        {/* Edit / Settings */}
-        <div className="absolute right-4 bottom-0 translate-y-1/2 flex gap-2">
-          <button
-            onClick={() => router.push('/profile/edit')}
-            className="flex items-center gap-1.5 px-4 h-9 rounded-full bg-background border border-border text-sm font-semibold hover:bg-muted transition-colors shadow-md"
-          >
-            <Pencil className="h-3.5 w-3.5" /> {t("common.edit")}
-          </button>
-          <button
-            onClick={() => router.push('/settings')}
-            className="h-9 w-9 rounded-full bg-background border border-border flex items-center justify-center hover:bg-muted transition-colors shadow-md"
-          >
-            <Settings className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
+      {/* Tarjeta: solape suave para dejar más banda de portada visible */}
+      <div className="relative z-[1] -mt-5 rounded-t-[1.85rem] border-x border-t border-border/50 bg-background/95 px-5 pb-2 pt-4 shadow-[0_-6px_28px_-10px_rgba(0,0,0,0.08)] backdrop-blur-md dark:border-border/30 dark:bg-background/95 dark:shadow-[0_-10px_36px_-14px_rgba(0,0,0,0.35)] sm:-mt-6 sm:pt-5 md:-mt-7">
+        <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-end sm:gap-6">
+          {/* Avatar — encaja con el nuevo solape */}
+          <div className="-mt-[4.25rem] flex shrink-0 justify-center sm:-mt-[5rem] sm:justify-start md:-mt-[5.5rem]">
+            <div className="relative group">
+              <div className="absolute inset-0 scale-110 rounded-full bg-gradient-to-br from-primary to-secondary opacity-50 blur-md" />
+              <div className="relative rounded-full bg-background p-[3px] shadow-xl ring-4 ring-background">
+                <Avatar className="h-[5.5rem] w-[5.5rem] sm:h-24 sm:w-24">
+                  <AvatarImage src={primaryPhoto?.url} alt={user.nombres} className="object-cover" />
+                  <AvatarFallback className="bg-gradient-to-br from-primary/30 to-secondary/30 text-2xl font-black">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+              <button
+                type="button"
+                onClick={() => document.getElementById('avatar-upload')?.click()}
+                className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 transition-opacity group-hover:opacity-100"
+              >
+                <Camera className="h-5 w-5 text-white" />
+              </button>
+              <input id="avatar-upload" type="file" accept="image/*" className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0]; if (!file) return
+                  const toastId = toast.loading(te('Subiendo foto...', 'Uploading photo...'))
+                  try {
+                    const fd = new FormData(); fd.append('file', file)
+                    await api.post('/api/photos/profile-picture', fd)
+                    await refreshProfile()
+                    toast.dismiss(toastId); toast.success(te('Foto actualizada', 'Photo updated'))
+                  } catch { toast.dismiss(toastId); toast.error(te('Error al subir foto', 'Error uploading photo')) }
+                  e.target.value = ''
+                }}
+              />
+              {showReputation && reputationColor && (
+                <div
+                  className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-background text-[9px] font-black text-black shadow"
+                  style={{ backgroundColor: reputationColor }}
+                >
+                  {Math.round(reputationNum)}
+                </div>
+              )}
+            </div>
+          </div>
 
-      {/* ── INFO ── */}
-      <div className="px-5 mt-16">
-        {/* Name + badges */}
-        <div className="flex items-start gap-2 flex-wrap mt-4">
-          <h1 className="text-2xl font-black tracking-tight">{user.nombres} {user.apellidos}</h1>
-          {user.premium && showPremiumBadge && (
-            <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 self-center">
-              <Crown className="h-3 w-3" /> Premium
-            </span>
-          )}
-          {user.profileCompleted && (
-            <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-primary/10 text-primary border border-primary/20 self-center">
-              <Zap className="h-3 w-3" /> {te("Verificado", "Verified")}
-            </span>
-          )}
+          <div className="min-w-0 flex-1 space-y-0.5 text-center sm:pb-1 sm:text-left">
+            <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+              <h1 className="text-xl font-black tracking-tight sm:text-2xl">{user.nombres} {user.apellidos}</h1>
+              {user.premium && showPremiumBadge && (
+                <span className="flex items-center gap-1 self-center rounded-full border border-yellow-500/20 bg-yellow-500/10 px-2.5 py-0.5 text-[11px] font-bold text-yellow-500">
+                  <Crown className="h-3 w-3" /> Premium
+                </span>
+              )}
+              {user.profileCompleted && (
+                <span className="flex items-center gap-1 self-center rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold text-primary">
+                  <Zap className="h-3 w-3" /> {te("Verificado", "Verified")}
+                </span>
+              )}
+            </div>
+            {user.username && (
+              <p className="text-sm text-muted-foreground">@{user.username}</p>
+            )}
+          </div>
         </div>
-        {user.username && <p className="text-sm text-muted-foreground mt-0.5">@{user.username}</p>}
 
         {/* Bio */}
         {user.bio && <p className="mt-3 text-sm leading-relaxed">{user.bio}</p>}
@@ -304,39 +370,52 @@ export default function ProfilePage() {
         </div>
 
         {/* Stats */}
-        <div className="mt-5 flex items-center divide-x divide-border rounded-2xl border border-border bg-card overflow-hidden">
+        <div className="mt-5 flex items-center divide-x divide-border/80 rounded-2xl border border-border/60 bg-gradient-to-b from-card to-card/80 shadow-sm ring-1 ring-black/[0.03] dark:from-card/90 dark:to-muted/20 dark:ring-white/[0.06] overflow-hidden">
           {[
             { value: totalPostsCount, label: "Posts" },
             { value: followersCount, label: "Seguidores" },
             { value: followingCount, label: "Siguiendo" },
           ].map(stat => (
-            <button key={stat.label} className="flex-1 flex flex-col items-center py-3 hover:bg-muted/50 transition-colors">
-              <span className="text-xl font-black leading-none">{stat.value}</span>
-              <span className="text-[11px] text-muted-foreground mt-1">{stat.label}</span>
+            <button key={stat.label} className="flex-1 flex flex-col items-center py-3.5 transition-colors hover:bg-muted/40">
+              <span className="text-xl font-black leading-none tabular-nums tracking-tight">{stat.value}</span>
+              <span className="text-[11px] font-medium text-muted-foreground mt-1">{stat.label}</span>
             </button>
           ))}
         </div>
 
-        {/* Reputación */}
-        <div className="mt-4 p-3 rounded-2xl border border-border bg-card">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-muted-foreground">Reputación</span>
-            <span className="text-xs font-black" style={{ color: reputationColor }}>{reputation}/100</span>
+        {/* Reputación (solo si /me incluye número) */}
+        {showReputation && reputationColor && (
+          <div className="mt-4 rounded-2xl border border-border/60 bg-gradient-to-br from-card to-muted/20 p-4 shadow-sm ring-1 ring-black/[0.03] dark:from-card/80 dark:to-muted/30 dark:ring-white/[0.06]">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-muted-foreground">Reputación</span>
+              <span className="text-xs font-black" style={{ color: reputationColor }}>
+                {Math.round(reputationNum)}/100
+              </span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-700"
+                style={{
+                  width: `${Math.min(100, Math.max(0, reputationNum))}%`,
+                  backgroundColor: reputationColor,
+                }}
+              />
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-1.5">
+              {reputationNum >= 75
+                ? "⭐ Excelente reputación"
+                : reputationNum >= 50
+                  ? "👍 Buena reputación"
+                  : "⚠️ Reputación baja"}
+            </p>
           </div>
-          <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-            <div className="h-full rounded-full transition-all duration-700"
-              style={{ width: `${reputation}%`, backgroundColor: reputationColor }} />
-          </div>
-          <p className="text-[10px] text-muted-foreground mt-1.5">
-            {reputation >= 75 ? "⭐ Excelente reputación" : reputation >= 50 ? "👍 Buena reputación" : "⚠️ Reputación baja"}
-          </p>
-        </div>
+        )}
 
         {/* Intereses */}
         {profileInterests.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-1.5">
             {profileInterests.slice(0, 8).map((interest, i) => (
-              <span key={i} className="px-3 py-1 rounded-full bg-muted text-xs font-medium">{interest}</span>
+              <span key={i} className="rounded-full border border-border/60 bg-muted/50 px-3 py-1 text-xs font-medium shadow-sm">{interest}</span>
             ))}
             {profileInterests.length > 8 && (
               <span className="px-3 py-1 rounded-full bg-muted text-xs font-medium text-muted-foreground">
@@ -346,171 +425,333 @@ export default function ProfilePage() {
           </div>
         )}
       </div>
+      </div>
 
       {/* ── ACCESOS RÁPIDOS ── */}
-      <div className="mt-6 px-5 grid grid-cols-3 gap-3">
+      <div className="mt-6 px-5 grid grid-cols-3 gap-2.5 sm:gap-3">
         {[
           // Guardados - común para todos
-          { icon: Bookmark, label: "Guardados", value: savedPostsCount, path: '/saved', color: "text-primary", bg: "bg-primary/10", modes: ['SOCIAL', 'DATING', 'BOTH'] },
+          { icon: Bookmark, label: "Guardados", value: savedPostsCount, path: '/saved', color: "text-primary", bg: "bg-primary/12", modes: ['SOCIAL', 'DATING', 'BOTH'] },
           // Matches - solo DATING y BOTH
-          { icon: Heart, label: "Matches", value: null, path: '/matches', color: "text-pink-500", bg: "bg-pink-500/10", modes: ['DATING', 'BOTH'] },
+          { icon: Heart, label: "Matches", value: null, path: '/matches', color: "text-pink-500", bg: "bg-pink-500/12", modes: ['DATING', 'BOTH'] },
           // Likes - solo DATING y BOTH
-          { icon: Heart, label: "Likes", value: null, path: '/likes', color: "text-rose-500", bg: "bg-rose-500/10", modes: ['DATING', 'BOTH'] },
+          { icon: Heart, label: "Likes", value: null, path: '/likes', color: "text-rose-500", bg: "bg-rose-500/12", modes: ['DATING', 'BOTH'] },
         ].filter(item => item.modes.includes(experienceMode)).map(item => (
           <button key={item.label} onClick={() => router.push(item.path)}
-            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-card border border-border hover:border-primary/30 hover:bg-muted/30 transition-all group"
+            className="group flex flex-col items-center gap-2 rounded-2xl border border-border/60 bg-card/90 p-3.5 shadow-sm ring-1 ring-black/[0.03] transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md hover:shadow-primary/5 dark:bg-card/60 dark:ring-white/[0.05] sm:p-4"
           >
-            <div className={`h-10 w-10 rounded-full ${item.bg} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+            <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${item.bg} shadow-inner ring-1 ring-black/5 transition-transform group-hover:scale-105 dark:ring-white/10`}>
               <item.icon className={`h-5 w-5 ${item.color}`} />
             </div>
-            {item.value !== null && <p className="text-sm font-black">{item.value}</p>}
-            <p className="text-xs text-muted-foreground">{item.label}</p>
+            {item.value !== null && <p className="text-sm font-black tabular-nums">{item.value}</p>}
+            <p className="text-[11px] font-medium text-muted-foreground sm:text-xs">{item.label}</p>
           </button>
         ))}
       </div>
 
-      {/* ── FOTOS ── */}
-      <div className="mt-6 px-5">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-bold">Fotos</h2>
-          <span className="text-xs text-muted-foreground">{localPhotos.length}/6</span>
-        </div>
-        {localPhotos.length > 0 ? (
-          <div className="grid grid-cols-3 gap-1.5">
-            {localPhotos.map((photo, index) => (
-              <div key={photo.photoId || photo.id} draggable
-                onDragStart={() => handleDragStart(index)}
-                onDragOver={handleDragOver}
-                onDrop={() => handleDrop(index)}
-                className={`aspect-square overflow-hidden rounded-xl relative group cursor-pointer ${draggedIndex === index ? 'opacity-50' : ''}`}
-                onClick={() => setViewPhotoUrl(photo.url)}
-              >
-                <img src={photo.url} alt="Foto" className="h-full w-full object-cover hover:scale-105 transition-transform duration-300" loading="lazy" />
-                <button
-                  onClick={async (e) => {
-                    e.stopPropagation()
-                    if (confirm('¿Eliminar esta foto?')) {
-                      try {
-                        await api.delete(`/api/photos/delete/${photo.photoId || photo.id}`)
-                        await refreshProfile(); toast.success('Foto eliminada')
-                      } catch { toast.error('Error al eliminar foto') }
-                    }
-                  }}
-                  className="absolute top-2 right-2 h-7 w-7 rounded-full bg-black/60 flex items-center justify-center text-white hover:bg-destructive transition-colors opacity-100 lg:opacity-0 lg:group-hover:opacity-100"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            ))}
-            {localPhotos.length < 6 && (
-              <button onClick={() => document.getElementById('add-photo-upload')?.click()}
-                className="aspect-square rounded-xl border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-all flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary"
-              >
-                <Camera className="h-5 w-5" />
-                <span className="text-[10px] font-medium">Agregar</span>
-              </button>
-            )}
-          </div>
-        ) : (
-          <button onClick={() => document.getElementById('first-photo-upload')?.click()}
-            className="w-full h-28 rounded-2xl border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-all flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary"
+      {/* ── FOTOS · MIS EVENTOS · POSTS (tabs) ── */}
+      <Tabs defaultValue="photos" className="mt-8 px-5">
+        <TabsList className="grid h-auto w-full grid-cols-3 gap-1.5 rounded-2xl border border-border/50 bg-muted/45 p-1.5 shadow-inner dark:bg-muted/25">
+          <TabsTrigger
+            value="photos"
+            className="rounded-xl py-3 text-xs font-semibold transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=inactive]:text-muted-foreground sm:text-sm"
           >
-            <Camera className="h-7 w-7" />
-            <p className="text-sm font-medium">Agrega tu primera foto</p>
-          </button>
-        )}
-        <input id="add-photo-upload" type="file" accept="image/*" className="hidden"
-          onChange={async (e) => {
-            const file = e.target.files?.[0]; if (!file) return
-            const toastId = toast.loading('Subiendo foto...')
-            try {
-              const imageUrl = await uploadToCloudinary(file)
-              await api.post('/api/photos/add', { url: imageUrl, position: user.photos.length, primary: false })
-              await refreshProfile(); toast.dismiss(toastId); toast.success('Foto agregada')
-            } catch { toast.dismiss(toastId); toast.error('Error al subir foto') }
-            e.target.value = ''
-          }}
-        />
-        <input id="first-photo-upload" type="file" accept="image/*" className="hidden"
-          onChange={async (e) => {
-            const file = e.target.files?.[0]; if (!file) return
-            const toastId = toast.loading('Subiendo foto...')
-            try {
-              const imageUrl = await uploadToCloudinary(file)
-              await api.post('/api/photos/add', { url: imageUrl, position: 0, primary: true })
-              await refreshProfile(); toast.dismiss(toastId); toast.success('Foto agregada')
-            } catch { toast.dismiss(toastId); toast.error('Error al subir foto') }
-            e.target.value = ''
-          }}
-        />
-      </div>
+            {te("Fotos", "Photos")}
+          </TabsTrigger>
+          <TabsTrigger
+            value="events"
+            className="rounded-xl py-3 text-xs font-semibold transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=inactive]:text-muted-foreground sm:text-sm"
+          >
+            {te("Mis Eventos", "My events")}
+          </TabsTrigger>
+          <TabsTrigger
+            value="posts"
+            className="rounded-xl py-3 text-xs font-semibold transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=inactive]:text-muted-foreground sm:text-sm"
+          >
+            {te("Posts", "Posts")}
+          </TabsTrigger>
+        </TabsList>
 
-      {/* ── MIS EVENTOS ── */}
-      {(experienceMode === 'SOCIAL' || experienceMode === 'BOTH') && (
-        <div className="mt-6 px-5">
-          <div className="flex items-center gap-2 mb-3">
-            <CalendarDays className="h-4 w-4 text-muted-foreground" />
-            <h2 className="text-sm font-bold">Mis Eventos</h2>
+        <TabsContent value="photos" className="mt-5 rounded-2xl border border-border/50 bg-card/70 p-4 shadow-sm ring-1 ring-black/[0.03] dark:bg-card/40 dark:ring-white/[0.06]">
+          <div className="mb-4 flex items-center justify-between border-b border-border/40 pb-3">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{te("Galería", "Gallery")}</span>
+            <span className="rounded-full bg-muted/80 px-2.5 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground">{localPhotos.length}/6</span>
           </div>
-          <div className="flex gap-2 mb-3">
-            {(['created', 'participating'] as const).map(tab => (
-              <button key={tab} onClick={() => setEventsTab(tab)}
-                className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
-                  eventsTab === tab ? 'bg-primary text-black border-primary font-semibold' : 'border-border text-muted-foreground hover:border-primary/40'
-                }`}
-              >
-                {tab === 'created' ? `Creados (${myCreatedEvents.length})` : `Participando (${myParticipatingEvents.length})`}
-              </button>
-            ))}
-          </div>
-          {eventsLoading ? (
-            <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
-          ) : activeEvents.length === 0 ? (
-            <p className="text-xs text-muted-foreground py-6 text-center">
-              {eventsTab === 'created' ? 'No has creado eventos aún' : 'No estás participando en eventos'}
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {activeEvents.map((ev: any) => (
-                <button key={ev.eventId || ev.id}
-                  onClick={() => router.push(`/events/${ev.eventId || ev.id}`)}
-                  className="w-full flex items-center justify-between p-3 rounded-xl border border-border hover:border-primary/40 bg-card text-left transition-colors group"
+          {localPhotos.length > 0 ? (
+            <div className="grid grid-cols-3 gap-2">
+              {localPhotos.map((photo, index) => (
+                <div key={photo.photoId || photo.id} draggable
+                  onDragStart={() => handleDragStart(index)}
+                  onDragOver={handleDragOver}
+                  onDrop={() => handleDrop(index)}
+                  className={`aspect-square overflow-hidden rounded-2xl relative group cursor-pointer shadow-sm ring-1 ring-black/[0.04] transition-transform hover:z-10 hover:ring-primary/25 dark:ring-white/[0.08] ${draggedIndex === index ? 'opacity-50' : ''}`}
+                  onClick={() => setViewPhotoUrl(photo.url)}
                 >
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold truncate">{ev.title || ev.name}</p>
-                    <p className="text-xs text-muted-foreground">{ev.category} · {ev.status || 'OPEN'}</p>
-                  </div>
-                  <div className="flex items-center gap-2 ml-2 shrink-0">
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-                      String(ev.status || 'OPEN').toUpperCase() === 'OPEN' ? 'bg-emerald-500/15 text-emerald-500' : 'bg-muted text-muted-foreground'
-                    }`}>{ev.status || 'OPEN'}</span>
-                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                  </div>
-                </button>
+                  <img src={photo.url} alt="Foto" className="h-full w-full object-cover hover:scale-105 transition-transform duration-300" loading="lazy" />
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation()
+                      if (confirm('¿Eliminar esta foto?')) {
+                        try {
+                          await api.delete(`/api/photos/delete/${photo.photoId || photo.id}`)
+                          await refreshProfile(); toast.success('Foto eliminada')
+                        } catch { toast.error('Error al eliminar foto') }
+                      }
+                    }}
+                    className="absolute top-2 right-2 h-7 w-7 rounded-full bg-black/60 flex items-center justify-center text-white hover:bg-destructive transition-colors opacity-100 lg:opacity-0 lg:group-hover:opacity-100"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               ))}
+              {localPhotos.length < 6 && (
+                <button onClick={() => document.getElementById('add-photo-upload')?.click()}
+                  className="aspect-square rounded-2xl border-2 border-dashed border-border/70 bg-muted/20 hover:border-primary hover:bg-primary/5 transition-all flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary"
+                >
+                  <Camera className="h-5 w-5" />
+                  <span className="text-[10px] font-medium">{te("Agregar", "Add")}</span>
+                </button>
+              )}
             </div>
-          )}
-        </div>
-      )}
-
-      {/* ── POSTS ── */}
-      {(experienceMode === 'SOCIAL' || experienceMode === 'BOTH') && (
-        <div className="mt-6 px-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Newspaper className="h-4 w-4 text-muted-foreground" />
-            <h2 className="text-sm font-bold">Posts</h2>
-            <span className="text-xs text-muted-foreground ml-auto">{totalPostsCount}</span>
-          </div>
-          {user.posts && user.posts.length > 0 ? (
-            user.posts.map(post => <PostCard key={post.id} post={post} />)
           ) : (
-            <div className="flex flex-col items-center justify-center py-12 gap-3">
-              <Newspaper className="h-10 w-10 text-muted-foreground/30" />
-              <p className="text-sm text-muted-foreground">No has publicado nada aún</p>
+            <button onClick={() => document.getElementById('first-photo-upload')?.click()}
+              className="flex h-32 w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border/70 bg-muted/15 transition-all hover:border-primary hover:bg-primary/5 text-muted-foreground hover:text-primary"
+            >
+              <Camera className="h-7 w-7" />
+              <p className="text-sm font-medium">{te("Agrega tu primera foto", "Add your first photo")}</p>
+            </button>
+          )}
+          <input id="add-photo-upload" type="file" accept="image/*" className="hidden"
+            onChange={async (e) => {
+              const file = e.target.files?.[0]; if (!file) return
+              const toastId = toast.loading('Subiendo foto...')
+              try {
+                const imageUrl = await uploadToCloudinary(file)
+                await api.post('/api/photos/add', { url: imageUrl, position: user.photos.length, primary: false })
+                await refreshProfile(); toast.dismiss(toastId); toast.success('Foto agregada')
+              } catch { toast.dismiss(toastId); toast.error('Error al subir foto') }
+              e.target.value = ''
+            }}
+          />
+          <input id="first-photo-upload" type="file" accept="image/*" className="hidden"
+            onChange={async (e) => {
+              const file = e.target.files?.[0]; if (!file) return
+              const toastId = toast.loading('Subiendo foto...')
+              try {
+                const imageUrl = await uploadToCloudinary(file)
+                await api.post('/api/photos/add', { url: imageUrl, position: 0, primary: true })
+                await refreshProfile(); toast.dismiss(toastId); toast.success('Foto agregada')
+              } catch { toast.dismiss(toastId); toast.error('Error al subir foto') }
+              e.target.value = ''
+            }}
+          />
+        </TabsContent>
+
+        <TabsContent value="events" className="mt-5 rounded-2xl border border-border/50 bg-card/70 p-4 shadow-sm ring-1 ring-black/[0.03] dark:bg-card/40 dark:ring-white/[0.06]">
+          {(experienceMode === 'SOCIAL' || experienceMode === 'BOTH') ? (
+            <>
+              <div className="mb-4 flex gap-1 rounded-2xl bg-muted/50 p-1 dark:bg-muted/25">
+                {(['created', 'participating'] as const).map(tab => (
+                  <button key={tab} type="button" onClick={() => setEventsTab(tab)}
+                    className={`flex-1 rounded-xl px-3 py-2.5 text-center text-xs font-semibold transition-all sm:text-sm ${
+                      eventsTab === tab
+                        ? 'bg-background text-foreground shadow-sm ring-1 ring-black/[0.06] dark:bg-card dark:ring-white/10'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {tab === 'created'
+                      ? `${te("Creados", "Created")} (${myCreatedEvents.length})`
+                      : `${te("Participando", "Attending")} (${myParticipatingEvents.length})`}
+                  </button>
+                ))}
+              </div>
+              {eventsLoading ? (
+                <div className="flex justify-center py-14"><Loader2 className="h-7 w-7 animate-spin text-primary/70" /></div>
+              ) : activeEvents.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-border/70 bg-muted/15 px-5 py-12 text-center">
+                  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/20">
+                    <CalendarDays className="h-7 w-7 text-primary" aria-hidden />
+                  </div>
+                  <p className="text-sm font-medium text-foreground">
+                    {eventsTab === 'created'
+                      ? te('No has creado eventos aún', "You haven't created any events yet")
+                      : te('No estás participando en eventos', "You're not attending any events")}
+                  </p>
+                  <p className="mt-1.5 text-xs text-muted-foreground">
+                    {te("Explora meetups en Eventos y únete o crea uno.", "Explore meetups under Events and join or create one.")}
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+                  {activeEvents.map((ev: any) => {
+                    const id = ev.eventId || ev.id
+                    const title = ev.title || ev.name || te("Sin título", "Untitled")
+                    const cover =
+                      ev.coverPhotoUrl ||
+                      ev.coverPhoto ||
+                      (typeof ev.cover === "string" ? ev.cover : undefined)
+                    const zone =
+                      ev.zone ||
+                      ev.locationZone ||
+                      (typeof ev.location === "string" ? ev.location : undefined)
+                    const when = formatEventCardDate(ev.startsAt || ev.eventDate || ev.starts_at)
+                    const st = String(ev.status || "OPEN").toUpperCase()
+                    const approved =
+                      typeof ev.currentApprovedCount === "number"
+                        ? ev.currentApprovedCount
+                        : typeof ev.approvedCount === "number"
+                          ? ev.approvedCount
+                          : null
+                    const cap =
+                      typeof ev.maxGuests === "number" && ev.maxGuests > 0 ? ev.maxGuests : null
+                    const rawRole = ev.participantRole || ev.role || ev.myRole
+                    const participantBadge =
+                      eventsTab === "created"
+                        ? te("Organizador", "Host")
+                        : rawRole
+                          ? String(rawRole).toUpperCase() === "ADMIN"
+                            ? te("Organizador", "Host")
+                            : String(rawRole).toUpperCase() === "MODERATOR"
+                              ? te("Moderador", "Moderator")
+                              : String(rawRole).toUpperCase() === "GUEST"
+                                ? te("Invitado", "Guest")
+                                : String(rawRole)
+                          : null
+
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => router.push(`/events/${id}`)}
+                        className="group relative flex h-full w-full flex-col overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-card via-card to-muted/30 text-left shadow-md shadow-black/[0.04] ring-1 ring-black/[0.05] transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-lg hover:shadow-primary/[0.07] dark:from-card/90 dark:via-card/70 dark:to-muted/40 dark:ring-white/[0.08]"
+                      >
+                        <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                          <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.06] via-transparent to-secondary/[0.08]" />
+                        </div>
+
+                        <div className="relative aspect-[5/3] w-full shrink-0 overflow-hidden">
+                          {cover ? (
+                            <img
+                              src={cover}
+                              alt=""
+                              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-primary/25 via-secondary/20 to-muted">
+                              <CalendarDays className="h-9 w-9 text-primary/80" aria-hidden />
+                            </div>
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" aria-hidden />
+                          {participantBadge && (
+                            <span className="absolute right-2 top-2 max-w-[calc(100%-1rem)] truncate rounded-md border border-white/20 bg-black/45 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
+                              {participantBadge}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="relative flex min-h-0 flex-1 flex-col gap-1.5 p-3">
+                          <div className="flex items-start gap-1.5">
+                            <h3 className="min-w-0 flex-1 text-left text-xs font-bold leading-snug tracking-tight text-foreground line-clamp-2 sm:text-sm">
+                              {title}
+                            </h3>
+                            <ChevronRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-300 group-hover:translate-x-0.5 group-hover:text-primary" aria-hidden />
+                          </div>
+
+                          <div className="flex flex-col gap-1 text-[10px] text-muted-foreground sm:text-[11px]">
+                            {when && (
+                              <span className="inline-flex items-center gap-1">
+                                <CalendarClock className="h-3 w-3 shrink-0 opacity-80" aria-hidden />
+                                <span className="line-clamp-2">{when}</span>
+                              </span>
+                            )}
+                            {zone && (
+                              <span className="inline-flex items-start gap-1">
+                                <MapPin className="mt-0.5 h-3 w-3 shrink-0 opacity-80" aria-hidden />
+                                <span className="line-clamp-2 break-words">{zone}</span>
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-1">
+                            <span
+                              className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ring-1 ring-inset sm:text-[10px] ${eventStatusStyles(st)}`}
+                            >
+                              {eventStatusLabel(st)}
+                            </span>
+                            {ev.category && (
+                              <span className="truncate rounded-md bg-muted/80 px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground sm:text-[10px]">
+                                {formatCategoryLabel(ev.category)}
+                              </span>
+                            )}
+                            {approved != null && cap != null && (
+                              <span className="inline-flex items-center gap-0.5 text-[9px] font-medium text-muted-foreground sm:text-[10px]">
+                                <Users className="h-3 w-3 opacity-70" aria-hidden />
+                                {approved}/{cap}
+                              </span>
+                            )}
+                            {ev.free === false && typeof ev.price === "number" && ev.price > 0 && (
+                              <span className="text-[9px] font-semibold text-primary sm:text-[10px]">${ev.price}</span>
+                            )}
+                            {ev.free === true && (
+                              <span className="text-[9px] font-medium text-muted-foreground sm:text-[10px]">
+                                {te("Gratis", "Free")}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-border/70 bg-muted/10 px-5 py-12 text-center">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/50">
+                <CalendarDays className="h-6 w-6 text-muted-foreground" aria-hidden />
+              </div>
+              <p className="text-sm font-medium text-foreground">
+                {te("Los eventos están disponibles en modo Social o Ambos.", "Events are available in Social or Both mode.")}
+              </p>
             </div>
           )}
-        </div>
-      )}
+        </TabsContent>
+
+        <TabsContent value="posts" className="mt-5 rounded-2xl border border-border/50 bg-card/70 p-4 shadow-sm ring-1 ring-black/[0.03] dark:bg-card/40 dark:ring-white/[0.06]">
+          {(experienceMode === 'SOCIAL' || experienceMode === 'BOTH') ? (
+            <>
+              <div className="mb-4 flex items-center justify-between border-b border-border/40 pb-3">
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{te("Tu actividad", "Your activity")}</span>
+                <span className="rounded-full bg-muted/80 px-2.5 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground">
+                  {totalPostsCount} {te("publicaciones", "posts")}
+                </span>
+              </div>
+              {user.posts && user.posts.length > 0 ? (
+                <div className="space-y-3">
+                  {user.posts.map(post => <PostCard key={post.id} post={post} />)}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-border/70 bg-muted/15 px-5 py-14 text-center">
+                  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/20">
+                    <Newspaper className="h-7 w-7 text-primary/80" aria-hidden />
+                  </div>
+                  <p className="text-sm font-medium text-foreground">{te("No has publicado nada aún", "You haven't posted anything yet")}</p>
+                  <p className="mt-1.5 text-xs text-muted-foreground">{te("Comparte algo desde el feed.", "Share something from the feed.")}</p>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-border/70 bg-muted/10 px-5 py-12 text-center">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/50">
+                <Newspaper className="h-6 w-6 text-muted-foreground" aria-hidden />
+              </div>
+              <p className="text-sm font-medium text-foreground">
+                {te("Los posts están disponibles en modo Social o Ambos.", "Posts are available in Social or Both mode.")}
+              </p>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
 
       {/* ── PHOTO VIEWER ── */}
       <Dialog open={!!viewPhotoUrl} onOpenChange={() => setViewPhotoUrl(null)}>

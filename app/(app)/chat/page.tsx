@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import Link from "next/link"
 import { api } from "@/lib/api"
 import { chatService } from "@/lib/services/chat"
@@ -39,6 +39,25 @@ export default function ChatListPage() {
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set())
   const fetchChatsRef = useRef<() => void>(() => {})
   const [swipedChatId, setSwipedChatId] = useState<string | null>(null)
+  const [chatListTab, setChatListTab] = useState<"direct" | "general">("direct")
+
+  const directChats = useMemo(
+    () => chats.filter((c) => c.chatCategory === "DIRECT"),
+    [chats]
+  )
+  const generalChats = useMemo(
+    () => chats.filter((c) => c.chatCategory !== "DIRECT"),
+    [chats]
+  )
+  const listedChats = chatListTab === "direct" ? directChats : generalChats
+  const unreadDirect = useMemo(
+    () => directChats.reduce((s, c) => s + (c.unread || 0), 0),
+    [directChats]
+  )
+  const unreadGeneral = useMemo(
+    () => generalChats.reduce((s, c) => s + (c.unread || 0), 0),
+    [generalChats]
+  )
 
   const refreshPresence = useCallback(async (chatList: Chat[]) => {
     if (chatList.length === 0) return
@@ -85,6 +104,22 @@ export default function ChatListPage() {
     }
   }
 
+  const handleSetChatCategory = async (chatId: string, category: "DIRECT" | "GENERAL") => {
+    try {
+      await chatService.setChatCategory(chatId, category)
+      setChats((prev) =>
+        prev.map((c) => (c.chatId === chatId ? { ...c, chatCategory: category } : c))
+      )
+      toast.success(
+        category === "DIRECT"
+          ? te("Chat movido a Directos", "Chat moved to Direct")
+          : te("Chat movido a General", "Chat moved to General")
+      )
+    } catch {
+      toast.error(te("No se pudo mover el chat", "Could not move chat"))
+    }
+  }
+
   const fetchChats = useCallback(async () => {
     try {
       const raw = await chatService.getMyChats()
@@ -94,7 +129,15 @@ export default function ChatListPage() {
         otherUserPhoto: c.otherUserPhoto || c.senderProfilePicture || c.otherUserProfilePicture || c.profilePicture || c.photo || c.avatar || undefined,
       }))
 
-      const sorted = data.sort((a, b) => {
+      const withCategory: Chat[] = data.map((c: Chat & { chatCategory?: string }) => ({
+        ...c,
+        chatCategory:
+          c.chatCategory === "DIRECT" || c.chatCategory === "GENERAL"
+            ? c.chatCategory
+            : "GENERAL",
+      }))
+
+      const sorted = withCategory.sort((a, b) => {
         if (!a.lastMessageAt) return 1
         if (!b.lastMessageAt) return -1
         return new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
@@ -199,7 +242,10 @@ export default function ChatListPage() {
             </h1>
             <div className="flex items-center justify-between mt-1">
               {mainTab === 'chats' && (
-                <p className="text-sm text-muted-foreground">{chats.length} {chats.length === 1 ? te('conversación', 'conversation') : te('conversaciones', 'conversations')}</p>
+                <p className="text-sm text-muted-foreground">
+                  {listedChats.length}{" "}
+                  {listedChats.length === 1 ? te("conversación", "conversation") : te("conversaciones", "conversations")}
+                </p>
               )}
               {mainTab === 'chats' && hiddenChats.length > 0 && (
                 <button
@@ -230,6 +276,42 @@ export default function ChatListPage() {
                 <Users className="h-4 w-4" />{te("Grupos", "Groups")}
               </button>
             </div>
+            {mainTab === "chats" && (
+              <div className="flex gap-2 mt-3 w-full max-w-md">
+                <button
+                  type="button"
+                  onClick={() => setChatListTab("direct")}
+                  className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition-colors sm:text-sm ${
+                    chatListTab === "direct"
+                      ? "bg-card text-foreground shadow-sm ring-1 ring-primary/25"
+                      : "bg-muted/60 text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {te("Directos", "Direct")}
+                  {unreadDirect > 0 && (
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-black">
+                      {unreadDirect > 99 ? "99+" : unreadDirect}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setChatListTab("general")}
+                  className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition-colors sm:text-sm ${
+                    chatListTab === "general"
+                      ? "bg-card text-foreground shadow-sm ring-1 ring-primary/25"
+                      : "bg-muted/60 text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {te("General", "General")}
+                  {unreadGeneral > 0 && (
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-black">
+                      {unreadGeneral > 99 ? "99+" : unreadGeneral}
+                    </span>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -250,9 +332,20 @@ export default function ChatListPage() {
               {te("Haz match con alguien para empezar a chatear", "Match with someone to start chatting")}
             </p>
           </div>
+        ) : listedChats.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-2 py-16 px-6">
+            <p className="text-sm font-medium text-foreground">
+              {chatListTab === "direct"
+                ? te("No hay chats en Directos", "No chats in Direct")
+                : te("No hay chats en General", "No chats in General")}
+            </p>
+            <p className="text-xs text-muted-foreground text-center max-w-sm">
+              {te("Usa el menú ⋮ en un chat para moverlo de pestaña.", "Use ⋮ on a chat to move it between tabs.")}
+            </p>
+          </div>
         ) : (
           <div className="p-4 space-y-3">
-            {chats.map((chat) => (
+            {listedChats.map((chat) => (
               <div key={chat.chatId} className="relative flex items-center gap-4 p-4 bg-gradient-to-br from-card to-muted/20 rounded-2xl border border-primary/10 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 group">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/5 to-transparent rounded-full blur-2xl pointer-events-none" />
                 <Link href={`/chat/${chat.chatId}`} className="flex items-center gap-4 flex-1 min-w-0">
@@ -296,6 +389,21 @@ export default function ChatListPage() {
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="bg-card border-border">
+                    {chat.chatCategory === "DIRECT" ? (
+                      <DropdownMenuItem
+                        onClick={() => handleSetChatCategory(chat.chatId, "GENERAL")}
+                        className="cursor-pointer gap-2"
+                      >
+                        <Users className="h-4 w-4" /> {te("Mover a General", "Move to General")}
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem
+                        onClick={() => handleSetChatCategory(chat.chatId, "DIRECT")}
+                        className="cursor-pointer gap-2"
+                      >
+                        <MessageCircle className="h-4 w-4" /> {te("Mover a Directos", "Move to Direct")}
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={() => handleHideChat(chat.chatId)} className="cursor-pointer gap-2">
                       <EyeOff className="h-4 w-4" /> {te("Ocultar", "Hide")}
                     </DropdownMenuItem>

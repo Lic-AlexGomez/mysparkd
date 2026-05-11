@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { activityFeedService, type UnifiedFeedItem, type ActivityFeedFilter, type FeedItemType } from "@/lib/services/activity-feed"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Calendar, MapPin, Users, Zap, Heart, DollarSign } from "lucide-react"
+import { Loader2, Calendar, MapPin, Users, Zap, Heart, Star } from "lucide-react"
 import { formatDistanceToNow, format } from "date-fns"
 import { es } from "date-fns/locale"
 import { useI18n } from "@/lib/i18n"
@@ -108,7 +108,7 @@ function ActivityCard({ item, onClick }: { item: UnifiedFeedItem; onClick: () =>
 
         {/* Footer */}
         <div className="flex items-center justify-between pt-1">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {isMeetup && (
               <Avatar className="h-6 w-6 border border-border">
                 <AvatarImage src={item.creatorPhotoUrl} />
@@ -116,6 +116,12 @@ function ActivityCard({ item, onClick }: { item: UnifiedFeedItem; onClick: () =>
               </Avatar>
             )}
             <span className="text-xs text-muted-foreground">@{item.creatorUsername}</span>
+            {isMeetup && typeof item.creatorReputation === "number" && !Number.isNaN(item.creatorReputation) && (
+              <span className="inline-flex items-center gap-0.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                <Star className="size-3 shrink-0 fill-primary/30" aria-hidden />
+                {Math.round(item.creatorReputation)}
+              </span>
+            )}
           </div>
           {item.createdAt && (
             <span className="text-[10px] text-muted-foreground">
