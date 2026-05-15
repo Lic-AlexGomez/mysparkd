@@ -956,32 +956,49 @@ export default function TonightPage() {
                   ))}
                 </div>
                 {totalPages > 1 && (
-                  <div className="flex items-center justify-center gap-1.5 pb-8">
+                  <div className="flex items-center justify-center gap-1 pb-8">
                     <button
                       onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                       disabled={currentPage <= 1}
-                      className="rounded-full bg-white/[0.04] px-3 py-1.5 text-[11px] font-bold text-white/40 transition-all hover:bg-white/10 hover:text-white disabled:opacity-20"
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold text-white/40 transition-all hover:bg-white/10 hover:text-white disabled:opacity-20"
                     >
                       ‹
                     </button>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-                      <button
-                        key={p}
-                        onClick={() => setCurrentPage(p)}
-                        className={cn(
-                          "h-8 w-8 rounded-full text-[11px] font-black transition-all",
-                          p === currentPage
-                            ? "bg-cyan-400 text-black"
-                            : "bg-white/[0.06] text-white/50 hover:bg-white/10 hover:text-white/80"
-                        )}
-                      >
-                        {p}
-                      </button>
-                    ))}
+                    {(() => {
+                      const pages: (number | "...")[] = []
+                      const SIB = 1
+                      const start = Math.max(1, currentPage - SIB)
+                      const end = Math.min(totalPages, currentPage + SIB)
+                      if (start > 2) pages.push(1, 2, "...")
+                      else if (start === 2) pages.push(1)
+                      for (let i = start; i <= end; i++) pages.push(i)
+                      if (end < totalPages - 1) pages.push("...", totalPages - 1, totalPages)
+                      else if (end === totalPages - 1) pages.push(totalPages)
+                      return pages
+                    })().map((p, i) =>
+                      p === "..." ? (
+                        <span key={`e${i}`} className="flex h-8 w-6 items-center justify-center text-[11px] text-white/30">
+                          ...
+                        </span>
+                      ) : (
+                        <button
+                          key={p}
+                          onClick={() => setCurrentPage(p)}
+                          className={cn(
+                            "flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-black transition-all",
+                            p === currentPage
+                              ? "bg-cyan-400 text-black"
+                              : "bg-white/[0.06] text-white/50 hover:bg-white/10 hover:text-white/80"
+                          )}
+                        >
+                          {p}
+                        </button>
+                      )
+                    )}
                     <button
                       onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                       disabled={currentPage >= totalPages}
-                      className="rounded-full bg-white/[0.04] px-3 py-1.5 text-[11px] font-bold text-white/40 transition-all hover:bg-white/10 hover:text-white disabled:opacity-20"
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold text-white/40 transition-all hover:bg-white/10 hover:text-white disabled:opacity-20"
                     >
                       ›
                     </button>
