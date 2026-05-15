@@ -20,6 +20,8 @@ export interface FeatureFlags {
   dashboard: boolean;
   managerPanel: boolean;
   trelloPage: boolean;
+  tonightPage: boolean;
+  mutualPlansPage: boolean;
 }
 
 const TEST_USER_EMAILS = ['test1@test.com', 'test1@gmail.com', 'test1@example.com'];
@@ -29,11 +31,28 @@ const MANAGER_EMAILS    = ['manager1@test.com', 'manager@sparkd.com'];
 
 const TEST_USER_IDS   = ['81a56d83-d576-4f74-b0fd-895c75a2b3b7']; // test1 userId
 
+const TEST1_STRICT_USERNAMES = ['test1'];
+const TEST1_STRICT_EMAILS    = ['test1@test.com', 'test1@gmail.com', 'test1@example.com'];
+
 export function canUseNewFeatures(userEmail?: string | null, username?: string | null, userId?: string | null): boolean {
   if (userEmail && TEST_USER_EMAILS.some(e => e.toLowerCase() === userEmail.toLowerCase())) return true;
   if (username  && TEST_USERNAMES.some(u => u.toLowerCase() === username.toLowerCase())) return true;
   if (userId    && TEST_USER_IDS.includes(userId)) return true;
   return false;
+}
+
+/** Strict check: ONLY user "test1" (by username, mapped email or known userId). */
+export function isStrictlyTest1(
+  userEmail?: string | null,
+  username?: string | null,
+  userId?: string | null,
+): boolean {
+  const u = (username || '').trim().toLowerCase()
+  if (u && TEST1_STRICT_USERNAMES.includes(u)) return true
+  const e = (userEmail || '').trim().toLowerCase()
+  if (e && TEST1_STRICT_EMAILS.includes(e)) return true
+  if (userId && TEST_USER_IDS.includes(userId)) return true
+  return false
 }
 
 export function isManager(userEmail?: string | null, username?: string | null, userId?: string | null): boolean {
@@ -45,8 +64,7 @@ export function isManager(userEmail?: string | null, username?: string | null, u
 export function getFeatureFlags(userEmail?: string | null, username?: string | null, userId?: string | null): FeatureFlags {
   const isAdmin   = canUseNewFeatures(userEmail, username, userId);
   const isMgr     = isManager(userEmail, username, userId);
-  const normalizedUsername = (username || "").trim().toLowerCase()
-  const isTrelloAllowed = normalizedUsername === "test1"
+  const isTest1Strict = isStrictlyTest1(userEmail, username, userId);
   return {
     multipleReactions: true,
     shareWithQR: true,
@@ -63,6 +81,8 @@ export function getFeatureFlags(userEmail?: string | null, username?: string | n
     groupsPage: true,           // ✅ Habilitado para todos
     dashboard:    isAdmin,          // 🔒 Solo admin (test1)
     managerPanel: isMgr || isAdmin, // 🔒 Manager + admin
-    trelloPage: isTrelloAllowed,    // 🔒 Solo login con test1
+    trelloPage: isTest1Strict,      // 🔒 Solo login con test1
+    tonightPage: isTest1Strict,     // 🔒 Solo test1 (estricto)
+    mutualPlansPage: isTest1Strict, // 🔒 Solo test1 (estricto)
   };
 }

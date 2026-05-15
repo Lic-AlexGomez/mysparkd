@@ -375,6 +375,7 @@ export default function ProfilePage() {
             { value: totalPostsCount, label: "Posts" },
             { value: followersCount, label: "Seguidores" },
             { value: followingCount, label: "Siguiendo" },
+            ...(user.eventsCreatedCount !== undefined ? [{ value: user.eventsCreatedCount, label: "Eventos" }] : []),
           ].map(stat => (
             <button key={stat.label} className="flex-1 flex flex-col items-center py-3.5 transition-colors hover:bg-muted/40">
               <span className="text-xl font-black leading-none tabular-nums tracking-tight">{stat.value}</span>

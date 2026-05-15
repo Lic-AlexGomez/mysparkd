@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
-import { Bell, Zap, LogOut, Settings, User, Crown, Search, Flame, BarChart3, Users, Bookmark, X, Check, CheckCheck, Heart, MessageCircle, UserPlus, Repeat2, AtSign, LayoutList, Globe } from "lucide-react"
+import { Bell, Zap, LogOut, Settings, User, Crown, Search, Flame, BarChart3, Users, Bookmark, X, Check, CheckCheck, Heart, MessageCircle, UserPlus, Repeat2, AtSign, LayoutList, Globe, Compass } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
 import {
@@ -219,9 +219,9 @@ export function TopNavbar() {
     : "?"
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 flex h-16 items-center justify-between border-b border-border bg-card/95 px-4 backdrop-blur-md lg:pl-24 xl:pl-76 shadow-sm">
-      {/* Mobile logo */}
-      <Link href="/feed" className="flex items-center gap-2 lg:hidden">
+    <header className="fixed top-0 left-0 right-0 z-40 flex h-16 items-center justify-between border-b border-border bg-card/95 px-4 backdrop-blur-md shadow-sm">
+      {/* Logo */}
+      <Link href="/feed" className="flex items-center gap-2">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-secondary shadow-[0_0_20px_rgba(0,229,255,0.3)]">
           <Zap className="h-5 w-5 text-primary-foreground" />
         </div>
@@ -300,6 +300,19 @@ export function TopNavbar() {
         >
           <Link href="/feed">
             <Flame className="h-5 w-5" />
+          </Link>
+        </Button>
+        {/* Discover */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-muted-foreground hover:text-primary hover:bg-primary/10"
+          asChild
+          aria-label={t("nav.discover")}
+          title={t("nav.discover")}
+        >
+          <Link href="/activity">
+            <Compass className="h-5 w-5" />
           </Link>
         </Button>
         {/* Notifications */}

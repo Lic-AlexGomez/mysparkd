@@ -13,6 +13,8 @@ import {
   ShieldCheck,
   Crown,
   LayoutList,
+  Sparkles,
+  Link2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
@@ -23,7 +25,19 @@ import { useExperienceMode, shouldShowNavItem } from "@/hooks/use-experience-mod
 const navItems = [
   // SOCIAL items
   { href: "/feed", labelKey: "sidebar.feed", icon: Newspaper, modes: ['SOCIAL', 'BOTH'] },
+  {
+    href: "/tonight",
+    labelKey: "sidebar.tonight",
+    icon: Sparkles,
+    modes: ['SOCIAL', 'DATING', 'BOTH'],
+  },
   { href: "/events", labelKey: "sidebar.events", icon: CalendarDays, modes: ['SOCIAL', 'BOTH'] },
+  {
+    href: "/mutual-plans",
+    labelKey: "sidebar.mutualPlans",
+    icon: Link2,
+    modes: ['SOCIAL', 'DATING', 'BOTH'],
+  },
   
   // DATING items
   { href: "/swipes", labelKey: "sidebar.swipes", icon: Zap, modes: ['DATING', 'BOTH'] },
@@ -49,6 +63,8 @@ export function SidebarNav() {
     if (item.href === '/trello' && !features.trelloPage) return false
     if (item.href === '/stories' && !features.storiesPage) return false
     if (item.href === '/groups' && !features.groupsPage) return false
+    if (item.href === '/tonight' && !features.tonightPage) return false
+    if (item.href === '/mutual-plans' && !features.mutualPlansPage) return false
     if (!item.modes.includes(experienceMode)) return false
     return true
   })

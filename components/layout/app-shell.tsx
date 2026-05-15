@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation"
 import { TopNavbar } from "./top-navbar"
 import { BottomNav } from "./bottom-nav"
-import { SidebarNav } from "./sidebar-nav"
+import { SparkdDock } from "./sparkd-dock"
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -16,14 +16,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-svh bg-background">
-      <SidebarNav />
       {!isChatRoomRoute && <TopNavbar />}
-      <div className={`lg:ml-20 xl:ml-72 ${isChatRoomRoute ? "pt-0" : "pt-16"}`}>
-        <main className="min-h-svh pb-20 lg:pb-6 [&:has(.chat-room)]:pb-0 [&:has(.chat-room)]:min-h-0 [&:has(.chat-room)]:overflow-hidden">
+      <div className={isChatRoomRoute ? "pt-0" : "pt-16"}>
+        <main className="min-h-svh pb-32 lg:pb-32 [&:has(.chat-room)]:pb-0 [&:has(.chat-room)]:min-h-0 [&:has(.chat-room)]:overflow-hidden">
           {children}
         </main>
       </div>
       {!isChatRoomRoute && <BottomNav />}
+      {!isChatRoomRoute && <SparkdDock />}
     </div>
   )
 }

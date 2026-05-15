@@ -8,7 +8,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "trello:backend:sync": "powershell -ExecutionPolicy Bypass -File ./scripts/trello-backend-sync.ps1"
+    "trello:backend:sync": "powershell -ExecutionPolicy Bypass -File ./scripts/trello-backend-sync.ps1",
+    "trello:docs:sync": "powershell -ExecutionPolicy Bypass -File ./scripts/trello-sync-markdown-docs.ps1",
+    "trello:analysis:daily": "powershell -ExecutionPolicy Bypass -File ./scripts/trello-post-daily-analysis.ps1"
   },
   "dependencies": {
     "@cloudinary/react": "^1.14.4",

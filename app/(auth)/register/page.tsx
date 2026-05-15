@@ -51,12 +51,17 @@ export default function RegisterPage() {
 
     setIsLoading(true)
     try {
-      await register({
+      const result = await register({
         username: username.trim(),
         email: email.trim(),
         password,
       })
-      toast.success("Cuenta creada. Revisa tu correo para verificar tu cuenta")
+      const regResponse = result as any
+      if (regResponse?.message?.includes("Si encontramos una cuenta")) {
+        toast.success(regResponse.message)
+      } else {
+        toast.success("Revisa tu correo. Si encontramos una cuenta asociada, te enviaremos instrucciones para continuar.")
+      }
       localStorage.setItem("sparkd_pending_verification_email", email.trim())
       router.push(
         `/verify-email?email=${encodeURIComponent(email.trim())}&username=${encodeURIComponent(username.trim())}`

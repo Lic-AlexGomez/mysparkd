@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { eventService } from "@/lib/services/event"
+import { recordJoinMeetup } from "@/lib/services/moments"
 import { activityFeedService } from "@/lib/services/activity-feed"
 import type { UnifiedFeedItem } from "@/lib/services/activity-feed"
 import { Button } from "@/components/ui/button"
@@ -80,6 +81,11 @@ import { handleDateCardLimitError } from "@/lib/errors/date-card-limits"
 import { useLocalizedCountryCode } from "@/hooks/use-localized-country-code"
 import { useExperienceMode } from "@/hooks/use-experience-mode"
 import { computeAgeFromDateOfBirth } from "@/lib/utils"
+import { NearbyActivityLayer } from "@/components/activity/nearby-activity-layer"
+import { CityPulseIndicator } from "@/components/city/city-pulse-indicator"
+import { useCityPulse } from "@/hooks/use-city-pulse"
+import { ActivityCoreStreamStrip } from "@/components/activity/activity-core-stream-strip"
+import type { ActivityCoreExperienceMode } from "@/lib/types/activity-core-stream"
 
 const FD_CATEGORY_LABELS: Record<string, string> = {
   FOOD: "🍽️ Comida",
@@ -247,6 +253,31 @@ export default function EventsPage() {
     plans: [] as Plan[],
   })
 
+  const [pulseCoords, setPulseCoords] = useState<{ lat: number; lng: number } | null>(null)
+  useEffect(() => {
+    if (meetupCoords?.latitude != null && meetupCoords?.longitude != null) {
+      setPulseCoords({ lat: meetupCoords.latitude, lng: meetupCoords.longitude })
+      return
+    }
+    try {
+      const raw = typeof window !== "undefined" ? localStorage.getItem("sparkd_location") : null
+      if (!raw) return
+      const j = JSON.parse(raw) as { latitude?: number; longitude?: number }
+      if (typeof j.latitude === "number" && typeof j.longitude === "number") {
+        setPulseCoords({ lat: j.latitude, lng: j.longitude })
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [meetupCoords])
+
+  const { pulse: cityPulse, loading: cityPulseLoading } = useCityPulse({
+    lat: pulseCoords?.lat,
+    lng: pulseCoords?.lng,
+    enabled:
+      Boolean(pulseCoords) && (experienceMode === "SOCIAL" || experienceMode === "BOTH"),
+  })
+
   const toggleFdPlan = (plan: Plan) =>
     setFdForm((prev) => ({
       ...prev,
@@ -257,7 +288,7 @@ export default function EventsPage() {
     setIsLoading(true)
     setLoadError(false)
     try {
-      const filter: Record<string, any> = {}
+      const filter: Record<string, any> = { sort: 'NEWER' }
       if (category !== "ALL") filter.eventCategory = category
       if (freeOnly === "TRUE") filter.free = true
       else if (freeOnly === "FALSE") filter.free = false
@@ -517,6 +548,19 @@ export default function EventsPage() {
     setJoiningEventId(eventId)
     try {
       await eventService.join(eventId)
+      const ev = items.find((i) => i._id === eventId || i.eventId === eventId)
+      recordJoinMeetup({
+        eventId,
+        eventTitle: ev?._title,
+        zone: ev?.zone || ev?.locationZone,
+        user: user
+          ? {
+              userId: String(user.userId),
+              username: user.username,
+              profilePictureUrl: user.profilePictureUrl,
+            }
+          : undefined,
+      })
       toast.success(te("Solicitud enviada", "Request sent"))
       router.push(`/events/${eventId}`)
     } catch (error: any) {
@@ -704,6 +748,17 @@ export default function EventsPage() {
           {te("Crear", "Create")}
         </Button>
       </div>
+
+      {(experienceMode === "SOCIAL" || experienceMode === "BOTH") && <NearbyActivityLayer context="events" />}
+
+      {(experienceMode === "SOCIAL" || experienceMode === "BOTH") && pulseCoords && (
+        <CityPulseIndicator
+          pulse={cityPulse}
+          loading={cityPulseLoading}
+          te={te}
+          className="mt-4"
+        />
+      )}
 
       <Dialog
         open={createOpen}
@@ -1421,7 +1476,8 @@ export default function EventsPage() {
             </div>
           )}
           {displayedFeed.length === 0 ? (
-            <div className="rounded-xl border border-border p-10 text-center text-muted-foreground">
+            <div className="rounded-xl border border-border p-6 sm:p-10 text-center text-muted-foreground space-y-4">
+              <p>
               {contentFilter === "meetup"
                 ? te(
                     "No hay meetups que coincidan con tu búsqueda o filtros.",
@@ -1436,6 +1492,21 @@ export default function EventsPage() {
                       "No hay meetups ni citas rápidas que coincidan con tu búsqueda.",
                       "No meetups or fast dates match your search."
                     )}
+              </p>
+              <ActivityCoreStreamStrip
+                te={te}
+                context="events"
+                mode={
+                  (contentFilter === "meetup"
+                    ? "MEETUP"
+                    : contentFilter === "fastdate"
+                      ? "FAST_DATE"
+                      : "BOTH") as ActivityCoreExperienceMode
+                }
+                lat={pulseCoords?.lat}
+                lng={pulseCoords?.lng}
+                className="text-left"
+              />
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2">

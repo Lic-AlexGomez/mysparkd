@@ -29,6 +29,12 @@ export interface RegisterResponse {
   message: string
 }
 
+export interface EventRating {
+  score: number
+  comment?: string
+  createdAt?: string
+}
+
 export interface ForgotPasswordRequest {
   email: string
 }
@@ -96,6 +102,9 @@ export interface UserProfile {
   compatibilityScore?: number
   visibility?: 'PUBLIC' | 'PRIVATE'
   preferredLanguage?: string
+  // Event stats (desde backend commit PET BY FRONT)
+  eventsCreatedCount?: number
+  eventsCancelledCount?: number
 }
 
 export interface CreateProfileRequest {
@@ -473,6 +482,10 @@ export interface Event {
   zone?: string
   /** Alias que a veces envía `/api/activity-feed` u otros DTOs. */
   locationZone?: string
+  // Rating fields (desde backend commit PET BY FRONT)
+  averageRating?: number
+  ratingCount?: number
+  myRating?: EventRating
 }
 
 export interface EventFilters {
@@ -681,6 +694,11 @@ export interface Chat {
   otherUserLastSeen?: string | null
   /** Backend: DIRECT (DM desde perfil) vs GENERAL (resto, p. ej. match). */
   chatCategory?: "DIRECT" | "GENERAL"
+  /** Optional server hints for context-aware UI (BFF / future JVM). */
+  linkedEventId?: string
+  linkedGroupId?: string
+  linkedFastDateId?: string
+  linkedContextTitle?: string
 }
 
 export interface Message {

@@ -7,12 +7,22 @@ import { useLocalFeed } from "@/hooks/use-local-feed"
 import { locationService } from "@/lib/services/location"
 import { PostCard } from "@/components/feed/post-card"
 import { CreatePostDialog } from "@/components/feed/create-post-dialog"
-import { EngagementStats } from "@/components/feed/engagement-stats"
 import { StoriesBar } from "@/components/feed/stories-bar"
+import { FeedTonightCta } from "@/components/tonight/feed-tonight-cta"
 import { SkeletonPost } from "@/components/ui/skeleton-post"
-import { Loader2, Newspaper, Globe, Users, Filter, Image as ImageIcon, LayoutGrid, List, MapPin } from "lucide-react"
+import {
+  Loader2,
+  Newspaper,
+  Globe,
+  Users,
+  Filter,
+  Image as ImageIcon,
+  LayoutGrid,
+  List,
+  MapPin,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +37,11 @@ import { feedService, FEED_PAGE_SIZE } from "@/lib/services/feed"
 import type { Post } from "@/lib/types"
 import { toast } from "sonner"
 import { useI18n } from "@/lib/i18n"
+import { useExperienceMode } from "@/hooks/use-experience-mode"
+import { recommendationGraphV2Service } from "@/lib/services/recommendation-graph-v2"
+import { conversionLoopService } from "@/lib/services/conversion-loop"
+import { ActivityCoreStreamStrip } from "@/components/activity/activity-core-stream-strip"
+import type { ActivityCoreExperienceMode } from "@/lib/types/activity-core-stream"
 
 const sortOptions = [
   { value: 'chronological' as const, labelEs: 'Cronológico', labelEn: 'Chronological', icon: '🕐' },
@@ -38,6 +53,7 @@ const sortOptions = [
 export default function FeedPage() {
   const { te, t } = useI18n()
   const { user } = useAuth()
+  const experienceMode = useExperienceMode()
   const features = useFeatureFlags()
   const searchParams = useSearchParams()
   const highlightPostId = searchParams.get('post')
@@ -55,7 +71,49 @@ export default function FeedPage() {
       }
     }
   }, [user?.userId])
-  
+
+  const [pulseCoords, setPulseCoords] = useState<{ lat: number; lng: number } | null>(null)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("sparkd_location")
+      if (!raw) return
+      const j = JSON.parse(raw) as { latitude?: number; longitude?: number }
+      if (typeof j.latitude === "number" && typeof j.longitude === "number") {
+        setPulseCoords({ lat: j.latitude, lng: j.longitude })
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [user?.userId])
+
+  useEffect(() => {
+    if (!user?.userId) return
+    if (typeof sessionStorage === "undefined") return
+    if (sessionStorage.getItem("sparkd_graph_v2_loc")) return
+    ;(async () => {
+      try {
+        const raw = localStorage.getItem("sparkd_location")
+        if (!raw) return
+        const j = JSON.parse(raw) as { latitude?: number; longitude?: number }
+        if (typeof j.latitude !== "number" || typeof j.longitude !== "number") return
+        await recommendationGraphV2Service.postGraphUpdate({
+          viewer_signals: {
+            latitude: j.latitude,
+            longitude: j.longitude,
+          },
+        })
+        sessionStorage.setItem("sparkd_graph_v2_loc", "1")
+      } catch {
+        /* ignore */
+      }
+    })()
+  }, [user?.userId])
+
+  useEffect(() => {
+    if (!user?.userId) return
+    conversionLoopService.track({ stage: "session" }).catch(() => {})
+  }, [user?.userId])
+
   const { posts, sortMode, loading, loadingMore, hasMore, onRefresh, changeSortMode, loadMore } = useFeed()
   const { posts: localPosts, loading: localLoading, locationEnabled, refresh: refreshLocalFeed } = useLocalFeed(localFeedRadius)
   /** Ocultar en UI tras borrar localmente hasta que el refresco coincida con el servidor. */
@@ -384,11 +442,9 @@ export default function FeedPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      {/* Stats */}
-      {posts.length > 0 && <EngagementStats posts={posts} />}
-
-      {/* Stories */}
       <StoriesBar />
+
+      <FeedTonightCta />
 
       {/* Banner de ubicación — solo cuando hay posts pero sin ubicación */}
       {feedTab === 'local' && locationError && localPosts.length > 0 && (
@@ -600,18 +656,26 @@ export default function FeedPage() {
             </p>
           </div>
         ) : (
-        <div className="flex flex-col items-center justify-center gap-3 py-20">
+        <div className="flex flex-col items-center justify-center gap-4 py-12 px-4">
           <Newspaper className="h-12 w-12 text-muted-foreground" />
           <p className="text-muted-foreground">
             {te('No hay posts aun', 'No posts yet')}
           </p>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground text-center max-w-sm">
             {feedTab === 'following' 
               ? te('Sigue a más personas para ver su contenido', 'Follow more people to see their content')
               : feedTab === 'local'
               ? te('No hay posts en tu zona aún', 'No posts in your area yet')
               : te('Se el primero en publicar algo!', 'Be the first to post something!')}
           </p>
+          <ActivityCoreStreamStrip
+            te={te}
+            context="feed"
+            mode={experienceMode as ActivityCoreExperienceMode}
+            lat={pulseCoords?.lat}
+            lng={pulseCoords?.lng}
+            className="w-full max-w-md"
+          />
         </div>
         )
       ) : (

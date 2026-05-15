@@ -59,6 +59,8 @@ export interface ActivityFeedFilter {
   minCompatibility?: number
   minAge?: number
   maxAge?: number
+  // Orden: NEWER, OLDER o undefined = shuffle (desde backend commit shufle en eventos)
+  sort?: 'NEWER' | 'OLDER'
 }
 
 export const activityFeedService = {

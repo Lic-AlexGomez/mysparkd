@@ -2,8 +2,10 @@ import type { Post, UserProfile } from "../types"
 import { api } from "@/lib/api"
 
 export interface HashtagResult {
+  id?: string
   tag: string
   usageCount: number
+  previewUrls?: string[]
 }
 
 export interface PagedResponse<T> {
@@ -30,8 +32,10 @@ const normalizePaged = <T>(payload: any): PagedResponse<T> => {
 const normalizeHashtags = (rows: any[]): HashtagResult[] =>
   rows
     .map((h: any) => ({
+      id: String(h?.id || ""),
       tag: String(h?.tag || h?.name || "").replace(/^#/, ""),
       usageCount: Number(h?.usageCount || h?.count || h?.postsCount || 0),
+      previewUrls: Array.isArray(h?.previewUrls) ? h.previewUrls : undefined,
     }))
     .filter((h) => Boolean(h.tag))
 
@@ -152,8 +156,15 @@ export const searchService = {
     if (q.length < 2) return { users: [], posts: [], hashtags: [] }
     try {
       const data = await api.get<any>(`/api/search/autocomplete?q=${encodeURIComponent(q)}`)
+      const users = Array.isArray(data?.users) ? data.users.map((u: any) => ({
+        userId: String(u.userId || u.id || ""),
+        username: String(u.username || ""),
+        nombres: String(u.nombres || u.fullName || u.username || ""),
+        apellidos: String(u.apellidos || ""),
+        profilePictureUrl: u.profilePictureUrl || u.photo || undefined,
+      } as UserProfile)) : []
       return {
-        users: Array.isArray(data?.users) ? data.users : [],
+        users,
         posts: Array.isArray(data?.posts) ? data.posts : [],
         hashtags: normalizeHashtags(Array.isArray(data?.hashtags) ? data.hashtags : []),
       }

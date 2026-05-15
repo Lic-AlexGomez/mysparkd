@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { eventService } from "@/lib/services/event"
+import { recordEventAttendance, recordJoinMeetup } from "@/lib/services/moments"
+import { deriveEventChatPhase, preEventChatService } from "@/lib/services/pre-event-chat"
 import { followService } from "@/lib/services/follow"
 import { ApiError, api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
@@ -69,6 +71,8 @@ import type {
 import { toast } from "sonner"
 import { useI18n } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
+import { EventMutualPlansInline } from "@/components/mutual-plans/event-mutual-inline"
+import { PreEventChatHub } from "@/components/events/pre-event-chat-hub"
 import QRCode from "qrcode"
 
 const normalizeMessageId = (raw: any) => String(raw?.id || raw?.messageId || "")
@@ -551,6 +555,8 @@ export default function EventDetailPage() {
       }
 
       setEventData(detail)
+      void preEventChatService.ensureRoom(eventId)
+
       setMessages(
         (Array.isArray(msgRows) ? msgRows : []).map((m) =>
           withNormalizedPoll({ ...m, id: normalizeMessageId(m) })
@@ -756,6 +762,23 @@ export default function EventDetailPage() {
     setIsJoining(true)
     try {
       await eventService.join(eventId)
+      recordJoinMeetup({
+        eventId,
+        eventTitle: String((eventData as any)?.title || "").trim() || undefined,
+        zone: String(
+          (eventData as any)?.zone ||
+            (eventData as any)?.locationZone ||
+            (eventData as any)?.location_zone ||
+            ""
+        ).trim() || undefined,
+        user: user
+          ? {
+              userId: String(user.userId),
+              username: user.username,
+              profilePictureUrl: user.profilePictureUrl,
+            }
+          : undefined,
+      })
       toast.success(te("Solicitud enviada", "Request sent"))
       await loadEvent()
     } catch (error: any) {
@@ -931,15 +954,15 @@ export default function EventDetailPage() {
     }
   }
 
-  const handleCreatePoll = async () => {
-    const question = pollQuestion.trim()
-    const options = pollOptionRows.map((v) => v.trim()).filter(Boolean)
-    if (!question || options.length < 2) {
+  const submitEventPoll = async (question: string, optionRows: string[]) => {
+    const q = String(question || "").trim()
+    const options = optionRows.map((v) => String(v ?? "").trim()).filter(Boolean)
+    if (!q || options.length < 2) {
       toast.error(te("Pregunta y al menos 2 opciones", "Question and at least 2 options are required"))
       return
     }
     try {
-      const pollMsg = await eventService.polls.create(eventId, { question, options })
+      const pollMsg = await eventService.polls.create(eventId, { question: q, options })
       upsertMessage(pollMsg)
       setPollQuestion("")
       setPollOptionRows(["", ""])
@@ -948,6 +971,10 @@ export default function EventDetailPage() {
     } catch (error: any) {
       toast.error(error?.message || te("No se pudo crear la encuesta", "Could not create poll"))
     }
+  }
+
+  const handleCreatePoll = async () => {
+    await submitEventPoll(pollQuestion, pollOptionRows)
   }
 
   const handleVotePoll = async (optionId: string, pollId: string) => {
@@ -1088,6 +1115,13 @@ export default function EventDetailPage() {
     
     try {
       await eventService.approveParticipant(eventId, userId)
+      const approvedMeta = pendingParticipants.find((p) => p.userId === userId)
+      recordEventAttendance({
+        eventId,
+        attendeeUserId: userId,
+        attendeeUsername: approvedMeta?.username,
+        eventTitle: String((eventData as any)?.title || "").trim() || undefined,
+      })
       setPendingParticipants((prev) => prev.filter((p) => p.userId !== userId))
       const refreshedMembers = await eventService.groupMembers.list(eventId)
       setMembers(refreshedMembers)
@@ -1364,6 +1398,17 @@ export default function EventDetailPage() {
     te("Por definir", "To be confirmed")
 
   const startsAtIso = String(rawEv?.startsAt ?? rawEv?.eventDate ?? "").trim()
+  const endsAtIso = String(rawEv?.endsAt ?? "").trim()
+  const eventChatPhase = deriveEventChatPhase({
+    startsAt: startsAtIso || undefined,
+    endsAt: endsAtIso || undefined,
+    status: rawEv?.status,
+  })
+  const moderatorCount = members.filter((m) => {
+    const r = String(m.role || "").toUpperCase()
+    return r === "MODERATOR" || r === "ADMIN"
+  }).length
+
   let startsAtFormatted: string | null = null
   if (startsAtIso) {
     try {
@@ -1465,6 +1510,25 @@ export default function EventDetailPage() {
                 </p>
               </div>
             </div>
+            {/* Rating (desde backend PET BY FRONT) */}
+            {eventData?.averageRating !== undefined && (
+              <div className="flex min-h-[5.25rem] items-start gap-3 rounded-2xl border border-border/50 bg-card/70 px-4 py-3 shadow-sm ring-1 ring-black/[0.03] dark:bg-card/45 dark:ring-white/[0.06]">
+                <Star className="mt-0.5 size-5 shrink-0 text-yellow-500" aria-hidden />
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    {te("Valoración", "Rating")}
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-foreground">
+                    {eventData.averageRating.toFixed(1)}/5
+                    {eventData.ratingCount > 0 && (
+                      <span className="font-normal text-muted-foreground">
+                        {" · "}{eventData.ratingCount} {eventData.ratingCount === 1 ? "voto" : "votos"}
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            )}
             <div className="flex min-h-[5.25rem] items-start gap-3 rounded-2xl border border-border/50 bg-card/70 px-4 py-3 shadow-sm ring-1 ring-black/[0.03] dark:bg-card/45 dark:ring-white/[0.06]">
               <MapPin className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
               <div className="min-w-0 flex-1">
@@ -1510,6 +1574,8 @@ export default function EventDetailPage() {
           </div>
         </div>
       </div>
+
+      <EventMutualPlansInline eventId={eventId} />
 
       <div className="mx-auto max-w-5xl px-4 py-8">
         <Tabs
@@ -1593,6 +1659,27 @@ export default function EventDetailPage() {
                 )}
 
                 <TabsContent value="chat-messages" className="mt-0 space-y-4 outline-none">
+                  <PreEventChatHub
+                    te={te}
+                    phase={eventChatPhase}
+                    venueLabel={eventPlaceDisplay}
+                    approvedRsvpCount={approvedCount}
+                    pendingInterestCount={pendingParticipants.length}
+                    inChatMemberCount={members.length}
+                    moderatorCount={moderatorCount}
+                    maxGuests={maxGuests > 0 ? maxGuests : undefined}
+                    onInsertPrompt={(text) => {
+                      const t = String(text || "").trim()
+                      if (!t) return
+                      setMessageText((prev) => {
+                        const p = prev.trim()
+                        return p ? `${p} ${t}` : t
+                      })
+                    }}
+                    canHostPresetPolls={isEventOwner || isModerator}
+                    onPresetPoll={(question, options) => submitEventPoll(question, options)}
+                  />
+
               {/* Foto de fondo en todo el bloque (lista + compositor); velo bajo para que se note la imagen */}
               <div className="relative min-h-[min(320px,45vh)] overflow-hidden rounded-xl border border-border/55 shadow-inner ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
                 <img

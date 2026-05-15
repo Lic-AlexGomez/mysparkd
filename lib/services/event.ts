@@ -131,6 +131,9 @@ export const eventService = {
       if (filters?.lng) queryParams.lng = filters.lng
       if (filters?.radiusKm) queryParams.radiusKm = filters.radiusKm
       
+      // Orden cronológico (desde backend commit shufle en eventos)
+      queryParams.sort = 'NEWER'
+      
       console.log('[EventService] Query params:', queryParams)
       const response = await api.get<any[]>(withQuery("/api/activity-feed", queryParams))
       console.log('[EventService] Respuesta recibida:', response)
@@ -185,12 +188,14 @@ export const eventService = {
 
   getById: async (eventId: string) => {
     const response = await api.get<any>(`/api/events/${eventId}`)
-    // Mapear EventResponseDTO del backend a Event del frontend
     return {
       ...response,
       eventId: response.id || response.eventId,
       startsAt: response.eventDate || response.startsAt,
       officialAddress: response.exactAddress || response.officialAddress,
+      averageRating: response.averageRating ?? undefined,
+      ratingCount: response.ratingCount ?? 0,
+      myRating: response.myRating ?? undefined,
     }
   },
 

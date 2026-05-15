@@ -20,6 +20,9 @@ import { toast } from "sonner"
 import type { Chat, Group, GroupInviteLink } from "@/lib/types"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
 import { groupService } from "@/lib/services/group"
+import { recordGroupPlanJoined } from "@/lib/services/moments"
+import { ActivityCoreStreamStrip } from "@/components/activity/activity-core-stream-strip"
+import { useAuth } from "@/lib/auth-context"
 import { useI18n } from "@/lib/i18n"
 import { chatService } from "@/lib/services/chat"
 import {
@@ -96,6 +99,7 @@ const computeTrendingScore = (group: Group) => {
 
 export default function GroupsPage() {
   const { te, t } = useI18n()
+  const { user } = useAuth()
   const features = useFeatureFlags()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -298,6 +302,18 @@ export default function GroupsPage() {
   const handleJoin = async (groupId: string) => {
     try {
       await groupService.joinPublic(groupId)
+      const g = discoverGroups.find((x) => x.id === groupId) || myGroups.find((x) => x.id === groupId)
+      recordGroupPlanJoined({
+        groupId,
+        groupName: g?.name,
+        user: user
+          ? {
+              userId: String(user.userId),
+              username: user.username,
+              profilePictureUrl: user.profilePictureUrl,
+            }
+          : undefined,
+      })
       toast.success(te("Te uniste al grupo", "You joined the group"))
       router.push(`/groups/${groupId}`)
     } catch (error: any) {
@@ -315,6 +331,17 @@ export default function GroupsPage() {
     setIsJoiningByToken(true)
     try {
       const group = await groupService.joinByToken(token)
+      recordGroupPlanJoined({
+        groupId: group.id,
+        groupName: group.name,
+        user: user
+          ? {
+              userId: String(user.userId),
+              username: user.username,
+              profilePictureUrl: user.profilePictureUrl,
+            }
+          : undefined,
+      })
       if (!options?.silent) {
         toast.success(te("Te uniste por invitación", "You joined via invitation"))
       }
@@ -1197,11 +1224,12 @@ export default function GroupsPage() {
             ))}
           {!isLoading && publicGroups.length === 0 && (
             <Card className="md:col-span-2 border-dashed border-primary/30 bg-primary/5">
-              <CardContent className="py-10 text-center">
+              <CardContent className="py-8 text-center space-y-4">
                 <p className="text-base font-semibold">{te("No hay grupos con esos filtros", "No groups match these filters")}</p>
                 <p className="text-sm text-muted-foreground mt-1">
                   {te("Cambia categoría/feed o crea uno nuevo.", "Try another category/feed or create one.")}
                 </p>
+                <ActivityCoreStreamStrip te={te} context="groups" className="text-left" />
               </CardContent>
             </Card>
           )}

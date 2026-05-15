@@ -3,12 +3,14 @@
 import { Heart, MessageCircle, Repeat2, TrendingUp } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import type { Post } from "@/lib/types"
+import { cn } from "@/lib/utils"
 
 interface EngagementStatsProps {
   posts: Post[]
+  className?: string
 }
 
-export function EngagementStats({ posts }: EngagementStatsProps) {
+export function EngagementStats({ posts, className }: EngagementStatsProps) {
   const { user } = useAuth()
   
   const myPosts = posts.filter(post => post.userId === user?.userId)
@@ -24,7 +26,10 @@ export function EngagementStats({ posts }: EngagementStatsProps) {
 
   return (
     <div
-      className="flex justify-around bg-card/60 mx-4 mb-4 mt-4 py-3 rounded-xl border border-border"
+      className={cn(
+        "flex justify-around rounded-xl border border-border bg-card/60 py-3 mx-4 mb-4 mt-4",
+        className
+      )}
       title={isMyScope ? "Resumen de mis publicaciones en este lote" : "Resumen del feed cargado"}
     >
       <div className="flex items-center gap-1.5">

@@ -1,8 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import Link from "next/link"
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { api } from "@/lib/api"
 import { chatService } from "@/lib/services/chat"
 import { useAuth } from "@/lib/auth-context"
@@ -10,12 +9,21 @@ import { useWebSocket } from "@/hooks/use-websocket"
 import type { Message, Chat } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ArrowLeft, Send, Loader2, MessageCircle, Smile, Image as ImageIcon, X, Mic, Reply, MoreVertical, Copy, Paperclip, Check, Search, Star, Images, Gamepad2, Pencil, Trash2, Pin } from "lucide-react"
 import dynamic from "next/dynamic"
 import { AudioMessage } from "@/components/audio-message"
 import { GamePanel } from "@/components/chat/game-panel"
 import { ChatInput } from "@/components/chat/chat-input"
+import {
+  ChatContextHeader,
+  ChatContextHeaderAvatar,
+} from "@/components/chat/chat-context-header"
+import { ChatContextActions } from "@/components/chat/chat-context-actions"
+import { ChatActivityFeed } from "@/components/chat/chat-activity-feed"
+import { ChatContextQuickReplies } from "@/components/chat/chat-context-quick-replies"
+import { contextAwareChatService } from "@/lib/services/context-aware-chat"
+import type { ChatContextResponse } from "@/lib/types/context-aware-chat"
+import { conversionLoopService } from "@/lib/services/conversion-loop"
 
 const EmojiPicker = dynamic(() => import("emoji-picker-react"), { ssr: false })
 import { formatDistanceToNow } from "date-fns"
@@ -46,11 +54,34 @@ function pinnedAuthorLabel(msg: Message, selfId: string | undefined, otherName: 
 }
 
 export default function ChatRoomPage() {
-  const { te, t } = useI18n()
+  const { te, t, language } = useI18n()
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user } = useAuth()
   const chatId = params.chatId as string
+  const [chatContext, setChatContext] = useState<ChatContextResponse | null>(null)
+
+  const contextQuery = useMemo(() => {
+    const p = new URLSearchParams(searchParams.toString())
+    if (language === "en") p.set("lang", "en")
+    return p.toString()
+  }, [searchParams, language])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const ctx = await contextAwareChatService.getContext(chatId, contextQuery)
+        if (!cancelled) setChatContext(ctx)
+      } catch {
+        if (!cancelled) setChatContext(null)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [chatId, contextQuery])
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState("")
   const newMessageRef = useRef("")
@@ -113,7 +144,7 @@ export default function ChatRoomPage() {
   const [showAI, setShowAI] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([])
-  const [aiType, setAiType] = useState<'suggestions' | 'icebreaker' | 'date'>('suggestions')
+  const [aiType, setAiType] = useState<"suggestions" | "icebreaker" | "date" | "coordination">("suggestions")
   const [selectedImageView, setSelectedImageView] = useState<string | null>(null)
   const [viewportHeight, setViewportHeight] = useState<number | null>(null)
   const [pinnedMessages, setPinnedMessages] = useState<Message[]>([])
@@ -700,18 +731,19 @@ export default function ChatRoomPage() {
     }
   }
 
-  const callAI = async (type: 'suggestions' | 'icebreaker' | 'date') => {
+  const callAI = async (type: "suggestions" | "icebreaker" | "date" | "coordination") => {
     setAiLoading(true)
     setAiType(type)
     try {
-      const res = await fetch('/api/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type,
           otherUsername: chatInfo?.otherUsername,
-          lastMessages: messages.slice(-5)
-        })
+          lastMessages: messages.slice(-5),
+          contextTitle: chatContext?.context_title,
+        }),
       })
       const data = await res.json()
       const result = Array.isArray(data.result) ? data.result.filter((s: string) => s.trim()) : [data.result].filter(Boolean)
@@ -808,6 +840,11 @@ export default function ChatRoomPage() {
           ))
         }
       }
+      if (user?.userId) {
+        void conversionLoopService
+          .track({ stage: "chat", metadata: { channel_id: chatId } })
+          .catch(() => {})
+      }
     } catch (error) {
       console.error('[Chat] Error al enviar:', error)
       setMessages(prev => prev.filter(m => (m.messageId || m.id) !== optimisticId))
@@ -842,39 +879,20 @@ export default function ChatRoomPage() {
           <span className="sr-only">Volver</span>
         </Button>
    
-        <Avatar className="h-10 w-10 border-2 border-primary/30 ring-2 ring-primary/10">
-          <AvatarImage src={chatInfo?.otherUserPhoto} alt={chatInfo?.otherUsername} />
-          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-bold">
-            {chatInfo?.otherUsername?.[0]?.toUpperCase() || "?"}
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex-1">
-          <Link
-            href={`/profile/${chatInfo?.otherUserId}`}
-            className="font-bold text-foreground hover:text-primary hover:underline"
-          >
-            {chatInfo?.otherUsername || "Chat"}
-          </Link>
-          {isTyping ? (
-            <p className="text-xs text-primary flex items-center gap-1">
-              <span className="flex gap-0.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }} />
-              </span>
-              escribiendo...
-            </p>
-          ) : otherUserOnline ? (
-            <p className="text-xs text-green-500 flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
-              En línea
-            </p>
-          ) : otherUserLastSeen ? (
-            <p className="text-xs text-muted-foreground">
-              En linea {formatDistanceToNow(new Date(otherUserLastSeen), { addSuffix: true, locale: es })}
-            </p>
-          ) : null}
-        </div>
+        <ChatContextHeaderAvatar
+          otherUserPhoto={chatInfo?.otherUserPhoto}
+          otherUsername={chatInfo?.otherUsername}
+        />
+        <ChatContextHeader
+          context={chatContext}
+          otherUsername={chatInfo?.otherUsername}
+          otherUserId={chatInfo?.otherUserId}
+          isTyping={isTyping}
+          otherUserOnline={otherUserOnline}
+          otherUserLastSeen={otherUserLastSeen}
+          te={te}
+          language={language}
+        />
         <div className="flex gap-2">
           <Button
             variant="ghost"
@@ -905,6 +923,9 @@ export default function ChatRoomPage() {
           </Button>
         </div>
       </div>
+
+      <ChatContextActions chatId={chatId} context={chatContext} te={te} />
+      <ChatActivityFeed chatId={chatId} search={contextQuery} language={language} te={te} />
 
       {showSearch && (
         <div className="flex-shrink-0 border-b border-primary/20 bg-background/95 px-4 py-2">
@@ -943,7 +964,7 @@ export default function ChatRoomPage() {
             <Star className="h-4 w-4 text-primary" />
             <span className="text-xs font-semibold text-primary">Asistente IA</span>
             <div className="flex gap-1 ml-auto">
-              {(['suggestions', 'icebreaker', 'date'] as const).map((t) => (
+              {(["suggestions", "icebreaker", "date", "coordination"] as const).map((t) => (
                 <button
                   key={t}
                   onClick={() => callAI(t)}
@@ -952,7 +973,13 @@ export default function ChatRoomPage() {
                     aiType === t ? "bg-primary text-black border-primary" : "border-primary/30 text-muted-foreground hover:border-primary"
                   )}
                 >
-                  {t === 'suggestions' ? '💬 Temas' : t === 'icebreaker' ? '❄️ Romper hielo' : '📅 Citas'}
+                  {t === "suggestions"
+                    ? "💬 Temas"
+                    : t === "icebreaker"
+                      ? "❄️ Romper hielo"
+                      : t === "date"
+                        ? "📅 Citas"
+                        : "📍 Plan"}
                 </button>
               ))}
             </div>
@@ -1408,6 +1435,14 @@ export default function ChatRoomPage() {
         </div>
       )}
 
+      <ChatContextQuickReplies
+        context={chatContext}
+        onPick={(text) => {
+          setNewMessage(text)
+          newMessageRef.current = text
+        }}
+        te={te}
+      />
       <ChatInput
         onSend={handleSend}
         onTyping={handleTypingInput}

@@ -170,5 +170,11 @@ export const groupService = {
     remove: (groupId: string, inviteId: string) =>
       api.delete<void>(`/api/groups/${groupId}/invite-links/${inviteId}`),
   },
+
+  // Usuarios elegibles para invitar al grupo (matches + seguidores)
+  getJoinEligibleUsers: (eventId: string) =>
+    api.get<Array<{ userId: string; username: string; nombres?: string; apellidos?: string; profilePictureUrl?: string }>>(
+      `/api/events/${eventId}/group/join-eligible-users`
+    ),
 }
 

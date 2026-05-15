@@ -154,7 +154,7 @@ export default function ActivityFeedPage() {
   }, [])
 
   useEffect(() => {
-    load({ type: typeFilter })
+    load({ type: typeFilter, sort: 'NEWER' })
   }, [typeFilter, load])
 
   const handleClick = (item: UnifiedFeedItem) => {
