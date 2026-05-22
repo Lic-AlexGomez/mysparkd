@@ -1,5 +1,13 @@
 /** @type {import('next').NextConfig} */
+const buildId =
+  process.env.NETLIFY_COMMIT_REF ||
+  process.env.COMMIT_REF ||
+  process.env.VERCEL_GIT_COMMIT_SHA ||
+  "local"
+
 const nextConfig = {
+  /** Fuerza hashes nuevos en `/_next/static/` cuando cambia el commit (evita CDN con JS viejo). */
+  generateBuildId: async () => buildId,
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -33,6 +41,8 @@ const nextConfig = {
   turbopack: {},
   env: {
     NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+    /** Commit desplegado (Netlify: COMMIT_REF). Comprueba en consola: document.documentElement.dataset.sparkdBuild */
+    NEXT_PUBLIC_BUILD_ID: buildId,
   },
 }
 

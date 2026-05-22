@@ -184,7 +184,7 @@ export default function ChatRoomPage() {
       if (found) setOtherUserOnline(found.status?.toUpperCase() === 'ONLINE')
     }
   }, [chatInfo?.otherUserId])
-
+console.log("Render ChatRoomPage", { chatId, chatInfo, otherUserId: otherUserIdRef.current })
   const wsCallbacksRef = useRef({
     
     onPresence: (event: any) => {
@@ -210,14 +210,14 @@ export default function ChatRoomPage() {
         }
       }
     },
-    onPresenceSnapshot: (events: any[]) => {
-     
+    onPresenceSnapshot: (events: unknown) => {
+      const list = Array.isArray(events) ? events : []
       const otherId = otherUserIdRef.current
       if (!otherId) {
-        pendingSnapshotRef.current = events
+        pendingSnapshotRef.current = list
         return
       }
-      const found = events.find(e => {
+      const found = list.find(e => {
         const id = e.userId?.toString ? e.userId.toString() : String(e.userId)
         return id === otherId
       })

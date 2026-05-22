@@ -19,18 +19,36 @@ NEXT_PUBLIC_CLOUDINARY_API_KEY=754849179818551
 CLOUDINARY_API_SECRET=hkyTSfcdQFZymYKigHj0xlcL4NI
 ```
 
-### Hacer un nuevo deploy:
+### Hacer un nuevo deploy (obligatorio tras fixes de chat):
+
+El código en GitHub **no actualiza** www.mysparkd.com hasta que Netlify termine un build nuevo. Si el chat funciona en `localhost` pero falla en producción, casi siempre es un **bundle viejo en CDN**.
 
 Opción 1 - Desde Git:
 ```bash
 git add .
-git commit -m "Remove Vercel Analytics and add Google Sign In"
-git push
+git commit -m "fix: chat pagination unwrap + redeploy"
+git push origin main
 ```
 
-Opción 2 - Trigger manual:
+Opción 2 - Trigger manual (recomendado si ya hiciste push):
 1. Ve a **Deploys** en Netlify
-2. Click en **Trigger deploy** > **Clear cache and deploy site**
+2. Click en **Trigger deploy** → **Clear cache and deploy site**
+3. Espera estado **Published** (build verde)
+
+### Comprobar que producción tiene el build nuevo
+
+1. Abre **https://www.mysparkd.com/api/build-info**  
+   - Debe devolver `"buildId": "<hash del commit de main>"` (no `"unknown"`).
+2. En la consola (F12) en un chat:
+   ```js
+   document.documentElement.dataset.sparkdBuild
+   ```
+3. En **View Source** de la página del chat, el JS **no** debe ser el chunk viejo `94ace1fb71ed0a03.js`. Tras el fix verás otro hash (p. ej. `772f5b…`).
+4. Si `build-info` sigue en un commit antiguo: en Netlify → **Site configuration** → **Build & deploy** → confirma que **Production branch** es `main` y el repo es `Lic-AlexGomez/mysparkd`.
+
+Build local vs producción (chunks distintos = deploy pendiente):
+- Local reciente incluye textos como `No se pudo cargar el chat` en el bundle del layout de chat.
+- Producción antigua **no** los incluye (chunk `94ace1fb…` vs `7f5998f6…` en build nuevo).
 
 ### Verificar en Google Cloud Console
 

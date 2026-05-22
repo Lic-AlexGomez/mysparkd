@@ -1,0 +1,14 @@
+# www.mysparkd.com — Next.js en Netlify
+# Tras cambios en main: Deploys → Trigger deploy → Clear cache and deploy site
+
+[build]
+  command = "npm run build"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NPM_FLAGS = "--legacy-peer-deps"
+  # No reutilizar caché de .next entre deploys (Netlify Build Plugin respeta esto)
+  NETLIFY_NEXT_PLUGIN_SKIP_CACHE = "true"
