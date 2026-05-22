@@ -161,7 +161,7 @@ export function SparkdDock() {
           <Link href="/profile" className="group" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
             
           <img
-              src={user?.profilePictureUrl || user?.photos?.[0]?.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(text)}&background=0d9488&color=fff&size=80`}
+              src={user?.profilePictureUrl || user?.photos?.[0]?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(text)}&background=0d9488&color=fff&size=80`}
               alt="Profile"
               style={{
                 width: 40, height: 40, borderRadius: '50%', objectFit: 'cover',

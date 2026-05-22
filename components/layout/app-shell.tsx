@@ -1,6 +1,7 @@
 "use client"
 
 import { usePathname } from "next/navigation"
+import Link from "next/link"
 import { TopNavbar } from "./top-navbar"
 import { BottomNav } from "./bottom-nav"
 import { SparkdDock } from "./sparkd-dock"
@@ -24,6 +25,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
       {!isChatRoomRoute && <BottomNav />}
       {!isChatRoomRoute && <SparkdDock />}
+      {!isChatRoomRoute && (
+        <footer className="border-t border-border/40 bg-background py-6">
+          <div className="mx-auto max-w-7xl px-4">
+            <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
+              <Link href="/privacy" className="hover:text-primary transition-colors">Política de Privacidad</Link>
+              <Link href="/terms" className="hover:text-primary transition-colors">Términos de Servicio</Link>
+              <Link href="/community-guidelines" className="hover:text-primary transition-colors">Normas de la Comunidad</Link>
+              <Link href="/delete-account" className="hover:text-primary transition-colors">Eliminar Cuenta</Link>
+              <Link href="/about" className="hover:text-primary transition-colors">Acerca de</Link>
+            </div>
+          </div>
+        </footer>
+      )}
     </div>
   )
 }

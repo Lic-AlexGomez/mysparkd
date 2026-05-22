@@ -111,7 +111,7 @@ export function BottomNav() {
           }
           .pulse-hb { animation: heartbeat 1.4s ease-in-out infinite; }
         `}</style>
-        <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', top: -28, zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', top: -22, zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <span style={{ fontSize: 7, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(0,229,255,0.85)', textShadow: '0 0 8px rgba(0,229,255,0.7)', marginBottom: 3, whiteSpace: 'nowrap' }}>LIVE CITY ACTIVE</span>
           <Link href="/pulse" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
             <div className="pulse-hb" style={{ width: 72, height: 72, borderRadius: '50%', border: '1px solid rgba(249,115,22,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

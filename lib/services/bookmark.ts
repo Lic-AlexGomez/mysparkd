@@ -1,4 +1,5 @@
 import { api } from "@/lib/api"
+import { applyLockedPostFields } from "@/lib/locked-post-preview"
 import type { Post } from "@/lib/types"
 
 type BookmarkToggleResponse = {
@@ -51,7 +52,9 @@ class BookmarkService {
       : Array.isArray(raw.content)
         ? raw.content
         : []
-    const normalizedContent = content.map((post) => ({ ...post, saved: true }))
+    const normalizedContent = content.map((post) =>
+      applyLockedPostFields({ ...post, saved: true } as Post)
+    )
 
     for (const post of normalizedContent) {
       if (post?.id) this.savedPostIds.add(post.id)

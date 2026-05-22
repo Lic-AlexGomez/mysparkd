@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { api } from "@/lib/api"
+import { messageDisplayText } from "@/lib/chat-messages"
 import { chatService } from "@/lib/services/chat"
 import { useAuth } from "@/lib/auth-context"
 import { useWebSocket } from "@/hooks/use-websocket"
@@ -34,9 +35,7 @@ import { privateChatPinnedService } from "@/lib/services/private-chat-pinned"
 import { useI18n } from "@/lib/i18n"
 
 function pinnedSnippet(msg: Message, te: (es: string, en: string) => string): string {
-  const raw = msg.content?.startsWith("@reply:")
-    ? (msg.content.match(/@reply:[^|]+\|(.*)/)?.[1] ?? msg.content)
-    : (msg.content ?? "")
+  const raw = messageDisplayText(msg)
   if (!raw?.trim()) {
     if (msg.media?.mediaUrl || msg.mediaType === "IMAGE") return `📷 ${te("Imagen", "Image")}`
     if (msg.mediaType === "VIDEO") return `🎬 ${te("Vídeo", "Video")}`
@@ -86,6 +85,7 @@ export default function ChatRoomPage() {
   const [newMessage, setNewMessage] = useState("")
   const newMessageRef = useRef("")
   const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [isSending, setIsSending] = useState(false)
   const [chatInfo, setChatInfo] = useState<Chat | null>(null)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
@@ -313,30 +313,44 @@ export default function ChatRoomPage() {
   useEffect(() => { sendSeenRef.current = sendSeen }, [sendSeen])
 
   const fetchMessages = useCallback(async () => {
+    if (!chatId?.trim()) {
+      setLoadError(te("Chat no válido", "Invalid chat"))
+      setIsLoading(false)
+      return
+    }
     try {
-      const data = await api.get<Message[]>(`/api/messages/${chatId}/messages`)
-      
-      setMessages(prev => {
-        const serverContents = new Set(data.map((m: Message) => m.content))
-        const pendingOptimistic = prev.filter(m =>
-          (m.messageId || m.id || '').startsWith('optimistic-') &&
-          !serverContents.has(m.content)
+      setLoadError(null)
+      const data = await chatService.getMessages(chatId, 0, 50)
+      setMessages((prev) => {
+        const serverContents = new Set(data.map((m) => m.content))
+        const pendingOptimistic = prev.filter(
+          (m) =>
+            (m.messageId || m.id || "").startsWith("optimistic-") &&
+            !serverContents.has(m.content)
         )
         const merged = [...data, ...pendingOptimistic]
         syncReactionsFromMessages(data)
         return merged
       })
     } catch (error) {
-      console.error('[fetchMessages] ERROR:', error)
+      console.error("[fetchMessages] ERROR:", error)
+      const msg =
+        error instanceof Error
+          ? error.message
+          : te("No se pudieron cargar los mensajes", "Could not load messages")
+      setLoadError(msg)
+      toast.error(msg)
     } finally {
       setIsLoading(false)
     }
-  }, [chatId])
+  }, [chatId, te])
 
   const fetchChatInfo = useCallback(async () => {
     try {
-      const chats = await api.get<Chat[]>("/api/chat/chats")
-      const current = chats.find((c) => c.chatId === chatId)
+      const chats = await chatService.getMyChats()
+      const current = chats.find(
+        (c) => String(c.chatId) === String(chatId) || String((c as Chat & { id?: string }).id) === String(chatId)
+      )
      
       if (current) {
         try {
@@ -618,15 +632,32 @@ export default function ChatRoomPage() {
     : null
   const deleteConfirmIsOwn = deleteConfirmMessage?.senderId === user?.userId
 
-  const filteredMessages = useMemo(() => searchQuery
-    ? messages.filter(msg => !deletedMessages.has(msg.messageId || msg.id || '') && msg.content.toLowerCase().includes(searchQuery.toLowerCase()))
-    : messages.filter(msg => !deletedMessages.has(msg.messageId || msg.id || ''))
-  , [messages, deletedMessages, searchQuery])
+  const filteredMessages = useMemo(
+    () =>
+      searchQuery
+        ? messages.filter((msg) => {
+            const id = msg.messageId || msg.id || ""
+            if (deletedMessages.has(id)) return false
+            const text = messageDisplayText(msg)
+            return text.toLowerCase().includes(searchQuery.toLowerCase())
+          })
+        : messages.filter((msg) => !deletedMessages.has(msg.messageId || msg.id || "")),
+    [messages, deletedMessages, searchQuery]
+  )
 
-  const mediaMessages = useMemo(() => messages.filter(msg => {
-    const content = msg.content.startsWith('@reply:') ? msg.content.split('|')[1] : msg.content
-    return content?.startsWith('http') && (content.includes('cloudinary.com') || content.match(/\.(jpg|jpeg|png|gif|webp)$/i))
-  }), [messages])
+  const mediaMessages = useMemo(
+    () =>
+      messages.filter((msg) => {
+        const content = messageDisplayText(msg)
+        const url = msg.media?.mediaUrl || content
+        return (
+          typeof url === "string" &&
+          url.startsWith("http") &&
+          (url.includes("cloudinary.com") || /\.(jpg|jpeg|png|gif|webp)$/i.test(url))
+        )
+      }),
+    [messages]
+  )
 
   const pinnedIdSet = useMemo(
     () => new Set(pinnedMessages.map((m) => String(m.messageId || m.id || "")).filter(Boolean)),
@@ -762,7 +793,7 @@ export default function ChatRoomPage() {
     setUploadProgress(0)
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest()
-      xhr.open('POST', '/api/proxy/api/chat/upload/media')
+      xhr.open('POST', '/api/proxy/api/messages/upload/media')
       if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable) setUploadProgress(Math.round((e.loaded / e.total) * 100))
@@ -812,7 +843,7 @@ export default function ChatRoomPage() {
         if (selectedFile.type.startsWith('audio/')) mediaType = 'AUDIO'
         formData.append('message', JSON.stringify({ chatId, content: selectedFile.name, mediaType }))
         formData.append('file', selectedFile)
-        await api.post('/api/chat/send', formData)
+        await chatService.sendMessageMultipart(formData)
         setIsUploading(false)
         handleRemoveFile()
         fetchMessages()
@@ -823,7 +854,7 @@ export default function ChatRoomPage() {
         const formData = new FormData()
         formData.append('message', JSON.stringify({ chatId, content: '', mediaType: 'IMAGE' }))
         formData.append('file', selectedImage)
-        await api.post('/api/chat/send', formData)
+        await chatService.sendMessageMultipart(formData)
         handleRemoveImage()
         fetchMessages()
       } else {
@@ -832,12 +863,14 @@ export default function ChatRoomPage() {
         if (!sentViaWS) {
           const formData = new FormData()
           formData.append('message', JSON.stringify({ chatId, content: finalContent }))
-          const saved = await api.post<Message>('/api/chat/send', formData)
-          setMessages(prev => prev.map(m =>
-            (m.messageId || m.id) === optimisticId
-              ? { ...saved, messageId: saved.messageId || (saved as any).id }
-              : m
-          ))
+          const saved = await chatService.sendMessageMultipart(formData)
+          setMessages((prev) =>
+            prev.map((m) =>
+              (m.messageId || m.id) === optimisticId
+                ? { ...saved, messageId: saved.messageId || saved.id }
+                : m
+            )
+          )
         }
       }
       if (user?.userId) {
@@ -858,6 +891,20 @@ export default function ChatRoomPage() {
     return (
       <div className="flex h-[60vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-6 text-center">
+        <p className="text-sm text-muted-foreground">{loadError}</p>
+        <Button variant="outline" onClick={() => { setIsLoading(true); void fetchMessages() }}>
+          {te("Reintentar", "Retry")}
+        </Button>
+        <Button variant="ghost" onClick={() => router.push("/chat")}>
+          {te("Volver a chats", "Back to chats")}
+        </Button>
       </div>
     )
   }
@@ -943,7 +990,7 @@ export default function ChatRoomPage() {
           <p className="text-xs font-semibold mb-1.5">{te("Galería", "Gallery")} ({mediaMessages.length})</p>
           <div className="grid grid-cols-6 gap-1.5 max-h-20 overflow-y-auto">
             {mediaMessages.map((msg, gIdx) => {
-              const content = msg.content.startsWith('@reply:') ? msg.content.split('|')[1] : msg.content
+              const content = messageDisplayText(msg) || msg.media?.mediaUrl || ""
               return (
                 <img
                   key={msg.messageId || msg.id || `gallery-${gIdx}`}
@@ -1121,10 +1168,11 @@ export default function ChatRoomPage() {
                 )
               }
 
-              const isReply = msg.content.startsWith('@reply:')
-              const replyMatch = isReply ? msg.content.match(/@reply:([^|]+)\|(.*)/) : null
+              const rawContent = msg.content ?? ""
+              const isReply = rawContent.startsWith("@reply:")
+              const replyMatch = isReply ? rawContent.match(/@reply:([^|]+)\|(.*)/) : null
               const replyToId = replyMatch?.[1]
-              const actualContent = replyMatch?.[2] || msg.content
+              const actualContent = replyMatch?.[2] ?? messageDisplayText(msg)
               const isDeletedContent = actualContent === te('Mensaje eliminado', 'Message deleted')
               const repliedMsg = replyToId ? messages.find(m => (m.messageId || m.id) === replyToId) : null
               const isAudio = actualContent.startsWith('🎤 ')

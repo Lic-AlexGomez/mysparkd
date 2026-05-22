@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { MessageCircle, Zap, Loader2 } from "lucide-react"
-import { api } from "@/lib/api"
+import { chatService } from "@/lib/services/chat"
 import { toast } from "sonner"
 import type { Chat } from "@/lib/types"
 import { useI18n } from "@/lib/i18n"
@@ -26,9 +26,9 @@ export function MatchModal({ open, onOpenChange, matchedUserId, matchedUserName 
     if (!matchedUserId) return
     setIsLoading(true)
     try {
-      const chat = await api.post<Chat>(`/api/chat/open/${matchedUserId}`)
+      const chat = await chatService.openChat(matchedUserId)
       onOpenChange(false)
-      router.push(`/chat/${chat.chatId}`)
+      router.push(`/chat/${encodeURIComponent(chat.chatId)}`)
     } catch {
       toast.error(t("match.openChatError"))
     } finally {

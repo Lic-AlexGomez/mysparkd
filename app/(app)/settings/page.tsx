@@ -48,6 +48,7 @@ import {
 import { usePushNotifications } from "@/hooks/use-push-notifications"
 import { privacyService } from "@/lib/services/privacy"
 import { authService } from "@/lib/services/auth"
+import { PasskeysSection } from "@/components/settings/passkeys-section"
 import { normalizeEmailValue } from "@/lib/email-utils"
 import type { PrivacySettings, SparklingListMember } from "@/lib/types"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -1079,6 +1080,8 @@ export default function SettingsPage() {
           <CardTitle className="text-foreground text-base">Cuenta</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
+          <PasskeysSection user={user} />
+
           <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
             <div className="flex items-center gap-2 text-foreground">
               <Mail className="h-4 w-4 shrink-0" />

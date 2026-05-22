@@ -1,4 +1,5 @@
 import { api } from '../api'
+import { isDisplayableFeedPost, normalizePost } from '../normalize-post'
 import type { Post } from '../types'
 
 export const FEED_PAGE_SIZE = 12
@@ -11,53 +12,8 @@ type PaginatedFollowingResponse = {
   totalPages?: number
 }
 
-function normalizePost(post: any): Post {
-  const reactionsObj: Record<string, any> = {}
-  if (Array.isArray(post?.reactions)) {
-    post.reactions.forEach((reaction: any) => {
-      reactionsObj[reaction.reaction] = {
-        type: reaction.reaction,
-        count: reaction.count,
-        userReacted: post.myReaction === reaction.reaction,
-      }
-    })
-  }
-
-  return {
-    id: post?.id || '',
-    body: post?.body ?? null,
-    userId: post?.userId ? String(post.userId) : '',
-    username: post?.username || 'Usuario',
-    userPhoto: post?.profilePictureUrl || post?.userPhoto || '',
-    createdAt: post?.createdAt || new Date().toISOString(),
-    file: post?.file || null,
-    visibility: post?.visibility || 'PUBLIC',
-    likeCount: post?.likeCount || 0,
-    commentsCount: post?.commentsCount || 0,
-    viewCount: post?.viewCount || 0,
-    shareCount: post?.shareCount || 0,
-    liked: post?.likedByCurrentUser || false,
-    saved: post?.saved || false,
-    userReaction: post?.myReaction || null,
-    reactions: reactionsObj,
-    totalReactions: post?.totalReactions || 0,
-    locked: post?.locked || false,
-    canUnlock: post?.canUnlock || false,
-    unlocked: post?.unlocked || false,
-    permanent: post?.permanent !== false,
-    expiresAt: post?.expiresAt || null,
-    message: post?.message || null,
-    reputation: post?.reputation,
-    verificationLevel: post?.verificationLevel,
-    repostCount: post?.repostCount || 0,
-    repostedByCurrentUser: post?.repostedByCurrentUser || false,
-    media: post?.media || null,
-    poll: null,
-  } as Post
-}
-
 function filterDisplayable(post: Post) {
-  return !(post.message && !post.body && !post.file)
+  return isDisplayableFeedPost(post)
 }
 
 function extractFollowingRows(data: any): any[] {

@@ -1,73 +1,69 @@
 import { api } from '../api'
+import { extractMessageRows, normalizeChatMessage } from '../chat-messages'
 import type { Chat, Message, SendMessageRequest } from '../types'
 
+const MESSAGES_BASE = '/api/messages'
+
 export const chatService = {
-  /**
-   * Obtener todos los chats del usuario
-   */
   async getMyChats(): Promise<Chat[]> {
-    return api.get<Chat[]>('/api/chat/chats')
+    const raw = await api.get<Chat[] | Record<string, unknown>[]>('/api/chat/chats')
+    const rows = Array.isArray(raw) ? raw : []
+    return rows.map((c) => {
+      const row = c as Chat & { id?: string }
+      return {
+        ...row,
+        chatId: String(row.chatId ?? row.id ?? ''),
+      }
+    })
   },
 
-  /** Mover chat entre pestaña Directos / General (solo afecta al usuario actual). */
   async setChatCategory(chatId: string, category: 'DIRECT' | 'GENERAL'): Promise<void> {
     await api.patch<void>(
       `/api/chat/chats/${encodeURIComponent(chatId)}/category?category=${encodeURIComponent(category)}`
     )
   },
 
-  /**
-   * Abrir o crear un chat con otro usuario
-   */
   async openChat(userId: string): Promise<Chat> {
-    return api.post<Chat>(`/api/chat/open/${userId}`)
+    const chat = await api.post<Chat & { id?: string }>(`/api/chat/open/${userId}`)
+    return { ...chat, chatId: String(chat.chatId ?? chat.id ?? '') }
   },
 
-  /**
-   * Obtener mensajes de un chat
-   */
-  async getMessages(chatId: string): Promise<Message[]> {
-    return api.get<Message[]>(`/api/chat/${chatId}/messages`)
+  async getMessages(chatId: string, page = 0, size = 50): Promise<Message[]> {
+    const data = await api.get<unknown>(
+      `${MESSAGES_BASE}/${encodeURIComponent(chatId)}/messages?page=${page}&size=${size}`
+    )
+    return extractMessageRows(data).map((row) => normalizeChatMessage(row))
   },
 
-  /**
-   * Enviar un mensaje
-   */
+  async sendMessageMultipart(formData: FormData): Promise<Message> {
+    const saved = await api.post<Record<string, unknown>>(`${MESSAGES_BASE}/send`, formData)
+    return normalizeChatMessage(saved)
+  },
+
   async sendMessage(data: SendMessageRequest): Promise<Message> {
-    return api.post<Message>('/api/chat/send', data)
+    const formData = new FormData()
+    formData.append('message', JSON.stringify(data))
+    return this.sendMessageMultipart(formData)
   },
 
-  /**
-   * Marcar chat como leído
-   */
   async markChatAsRead(chatId: string): Promise<void> {
     return api.post<void>(`/api/chat/chats/${chatId}/read`)
   },
 
-  /**
-   * Abrir sesión de chat (para evitar notificaciones)
-   */
   async openChatSession(chatId: string): Promise<void> {
     return api.post<void>(`/api/chat/chats/${chatId}/open`)
   },
 
-  /**
-   * Cerrar chat activo
-   */
   async closeChatSession(): Promise<void> {
     return api.post<void>('/api/chat/chats/close')
   },
 
-  /**
-   * Subir archivo multimedia para chat
-   */
   async uploadMedia(file: File): Promise<{ mediaUrl: string; mediaPublicId: string }> {
     const formData = new FormData()
     formData.append('file', file)
-    
     return api.post<{ mediaUrl: string; mediaPublicId: string }>(
-      '/api/chat/upload/media',
+      `${MESSAGES_BASE}/upload/media`,
       formData
     )
-  }
+  },
 }

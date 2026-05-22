@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { X, Plus, Eye, Heart } from "lucide-react"
 import { toast } from "sonner"
-import { uploadToCloudinary } from "@/lib/cloudinary"
+import { uploadMediaToCloudinary } from "@/lib/cloudinary"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { storyService } from "@/lib/services/story"
 import { useI18n } from "@/lib/i18n"
@@ -201,7 +201,7 @@ export default function StoriesPage() {
     if (!file) return
     setIsUploading(true)
     try {
-      const mediaUrl = await uploadToCloudinary(file)
+      const { url: mediaUrl } = await uploadMediaToCloudinary(file)
       const mediaType = file.type.startsWith('video/') ? 'VIDEO' : 'IMAGE'
       await api.post("/api/stories", { mediaUrl, audience, mediaType })
       toast.success(te("Story publicada", "Story published"))

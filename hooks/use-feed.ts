@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { api } from '@/lib/api'
+import { normalizePost } from '@/lib/normalize-post'
 import { feedService, FEED_PAGE_SIZE } from '@/lib/services/feed'
 import type { Post } from '@/lib/types'
 
@@ -44,62 +45,6 @@ type PrefetchedPage = {
   page: number
   posts: Post[]
   hasMore: boolean
-}
-
-function normalizePost(post: any): Post {
-  const reactionsObj: Record<string, any> = {}
-  if (Array.isArray(post.reactions)) {
-    post.reactions.forEach((r: any) => {
-      reactionsObj[r.reaction] = { type: r.reaction, count: r.count, userReacted: post.myReaction === r.reaction }
-    })
-  }
-
-  let poll = null
-  if (post.poll) {
-    const p = post.poll
-    const totalVotes = p.options?.reduce((sum: number, o: any) => sum + (o.voteCount || 0), 0) || 0
-    poll = {
-      id: p.pollId || '',
-      question: p.question || '',
-      options: (p.options || []).map((o: any) => ({ id: o.id || '', text: o.text || '', votes: o.voteCount || 0, percentage: o.percentage || 0 })),
-      totalVotes,
-      expiresAt: p.expiresAt || new Date().toISOString(),
-      userVoted: p.myVoteOptionId || null,
-      allowMultiple: false,
-    }
-  }
-
-  return {
-    id: post.id != null ? String(post.id) : post.postId != null ? String(post.postId) : '',
-    body: post.body ?? null,
-    userId: post.userId ? String(post.userId) : '',
-    username: post.username || 'Usuario',
-    userPhoto: post.profilePictureUrl || post.userPhoto || '',
-    createdAt: post.createdAt || new Date().toISOString(),
-    file: post.file || null,
-    visibility: post.visibility || 'PUBLIC',
-    likeCount: post.likeCount || 0,
-    commentsCount: post.commentsCount || 0,
-    viewCount: post.viewCount || 0,
-    shareCount: post.shareCount || 0,
-    liked: post.likedByCurrentUser || false,
-    saved: post.saved || false,
-    userReaction: post.myReaction || null,
-    reactions: reactionsObj,
-    totalReactions: post.totalReactions || 0,
-    locked: post.locked || false,
-    canUnlock: post.canUnlock || false,
-    unlocked: post.unlocked || false,
-    permanent: post.permanent !== false,
-    expiresAt: post.expiresAt || null,
-    message: post.message || null,
-    reputation: post.reputation,
-    verificationLevel: post.verificationLevel,
-    repostCount: post.repostCount || 0,
-    repostedByCurrentUser: post.repostedByCurrentUser || false,
-    media: post.media || null,
-    poll,
-  } as Post
 }
 
 export function useFeed() {

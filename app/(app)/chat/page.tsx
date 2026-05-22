@@ -123,10 +123,13 @@ export default function ChatListPage() {
   const fetchChats = useCallback(async () => {
     try {
       const raw = await chatService.getMyChats()
-      if (raw.length > 0) console.log('[chat] campos del backend:', Object.keys(raw[0]), raw[0])
-      const data = raw.map((c: any) => ({
+      const data = raw.map((c) => ({
         ...c,
-        otherUserPhoto: c.otherUserPhoto || c.senderProfilePicture || c.otherUserProfilePicture || c.profilePicture || c.photo || c.avatar || undefined,
+        chatId: String(c.chatId),
+        otherUserPhoto:
+          c.otherUserPhoto ||
+          c.senderProfilePicture ||
+          undefined,
       }))
 
       const withCategory: Chat[] = data.map((c: Chat & { chatCategory?: string }) => ({
@@ -348,7 +351,7 @@ export default function ChatListPage() {
             {listedChats.map((chat) => (
               <div key={chat.chatId} className="relative flex items-center gap-4 p-4 bg-gradient-to-br from-card to-muted/20 rounded-2xl border border-primary/10 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 group">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/5 to-transparent rounded-full blur-2xl pointer-events-none" />
-                <Link href={`/chat/${chat.chatId}`} className="flex items-center gap-4 flex-1 min-w-0">
+                <Link href={`/chat/${encodeURIComponent(String(chat.chatId))}`} className="flex items-center gap-4 flex-1 min-w-0">
                 <div className="relative">
                   <Avatar className="h-14 w-14 border-2 border-primary/30 ring-4 ring-primary/10 group-hover:scale-110 transition-transform relative z-10">
                     <AvatarImage src={chat.otherUserPhoto} alt={chat.otherUsername} className="object-cover" />

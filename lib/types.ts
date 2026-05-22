@@ -277,6 +277,18 @@ export interface Poll {
   allowMultiple: boolean
 }
 
+/** Estado de boost de un post permanente (`GET /api/posts/{id}/boost/info`). */
+export interface PostBoostInfo {
+  postId: string
+  permanent: boolean
+  feedActive: boolean
+  expiresAt: string | null
+  timeUntilExpiry: string
+  boostCount: number
+  nextBoostPriceCents: number
+  nextBoostPriceUsd: number
+}
+
 // Posts
 export type PostVisibility = 'PUBLIC' | 'FOLLOWERS' | 'PRIVATE'
 
@@ -386,7 +398,7 @@ export interface SwipeRequest {
 export interface SwipeResponse {
   match: boolean
   message: string
-  /** Complementario: si el backend no lo envía, el cliente sigue restando en local. */
+  /** Swipes restantes hoy (solo cuenta free). `null` en premium. */
   swipesRemaining?: number
   /** Si el usuario autenticado es premium, el backend puede omitir límites. */
   premium?: boolean

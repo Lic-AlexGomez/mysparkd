@@ -9,6 +9,7 @@ import { followService } from "@/lib/services/follow"
 import { blockService } from "@/lib/services/block"
 import { reputationService } from "@/lib/services/reputation"
 import { privacyService } from "@/lib/services/privacy"
+import { chatService } from "@/lib/services/chat"
 import type { UserProfile, Photo, Chat, SwipeResponse } from "@/lib/types"
 import { normalizeProfilePosts } from "@/lib/normalize-profile-posts"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -177,8 +178,8 @@ export default function UserProfilePage() {
     }
     setIsMessaging(true)
     try {
-      const chat = await api.post<Chat>(`/api/chat/open/${userId}`)
-      router.push(`/chat/${chat.chatId}`)
+      const chat = await chatService.openChat(userId)
+      router.push(`/chat/${encodeURIComponent(chat.chatId)}`)
     } catch (err) {
       if (err instanceof ApiError && err.status === 403) {
         const msg = (err.message || "").trim()

@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { api, ApiError } from "@/lib/api"
-import { useAuth } from "@/lib/auth-context"
 import { usePremiumStatus } from "@/hooks/use-premium-status"
 import type { UserProfile, SwipeResponse } from "@/lib/types"
 import { SwipeCard } from "@/components/swipes/swipe-card"
@@ -20,7 +19,6 @@ const DISCOVER_PAGE_SIZE = 20
 const FREE_DAILY_SWIPE_CAP = 30
 
 export default function SwipesPage() {
-  const { user } = useAuth()
   const { isPremium } = usePremiumStatus()
   const { t } = useI18n()
   const router = useRouter()
@@ -36,7 +34,7 @@ export default function SwipesPage() {
   const [hasMoreProfiles, setHasMoreProfiles] = useState(true)
   const [isFetchingMore, setIsFetchingMore] = useState(false)
   const [isSwiping, setIsSwiping] = useState(false)
-  const [remainingSwipes, setRemainingSwipes] = useState<number | null>(null)
+  const [swipesRemaining, setSwipesRemaining] = useState<number | null>(null)
   const [swipeLimitReached, setSwipeLimitReached] = useState(false)
   const [swipeDirection, setSwipeDirection] = useState<"left" | "right" | null>(null)
 
@@ -107,31 +105,16 @@ export default function SwipesPage() {
     }
   }, [mapProfiles])
 
-  const fetchRemainingSwipes = useCallback(async () => {
-    if (!user?.userId) return
+  useEffect(() => {
     if (isPremium) {
-      setRemainingSwipes(null)
+      setSwipesRemaining(null)
       setSwipeLimitReached(false)
-      return
     }
-    try {
-      const data = await api.get<{ remainingSwipes?: number; swipesRemaining?: number }>(
-        `/api/swipes/remaining/${user.userId}`,
-      )
-      const raw = data.swipesRemaining ?? data.remainingSwipes
-      if (typeof raw === "number") {
-        setRemainingSwipes(raw)
-        setSwipeLimitReached(raw === 0)
-      }
-    } catch {
-      // Sin contador: el POST de swipe o un 429 actualizará estado
-    }
-  }, [user?.userId, isPremium])
+  }, [isPremium])
 
   useEffect(() => {
     void fetchProfiles(true)
-    fetchRemainingSwipes()
-  }, [fetchProfiles, fetchRemainingSwipes])
+  }, [fetchProfiles])
 
   useEffect(() => {
     const remainingCards = profiles.length - currentIndex - 1
@@ -141,12 +124,12 @@ export default function SwipesPage() {
   }, [currentIndex, profiles.length, isLoading, hasMoreProfiles, fetchProfiles])
 
   const swipesUiLocked =
-    !isPremium && (swipeLimitReached || (typeof remainingSwipes === "number" && remainingSwipes <= 0))
+    !isPremium && (swipeLimitReached || (typeof swipesRemaining === "number" && swipesRemaining <= 0))
 
   const handleSwipe = useCallback(async (direction: "left" | "right") => {
     const currentProfile = profiles[currentIndex]
     if (!currentProfile || isSwiping) return
-    if (!isPremium && remainingSwipes !== null && remainingSwipes <= 0) {
+    if (!isPremium && swipesRemaining !== null && swipesRemaining <= 0) {
       setSwipeLimitReached(true)
       return
     }
@@ -162,17 +145,11 @@ export default function SwipesPage() {
         type,
       })
       if (response.premium) {
-        setRemainingSwipes(null)
+        setSwipesRemaining(null)
         setSwipeLimitReached(false)
       } else if (typeof response.swipesRemaining === "number") {
-        setRemainingSwipes(response.swipesRemaining)
+        setSwipesRemaining(response.swipesRemaining)
         setSwipeLimitReached(response.swipesRemaining === 0)
-      } else if (!isPremium && remainingSwipes !== null) {
-        const next = Math.max(0, remainingSwipes - 1)
-        setRemainingSwipes(next)
-        setSwipeLimitReached(next === 0)
-      } else if (!isPremium && remainingSwipes === null) {
-        void fetchRemainingSwipes()
       }
       if (response.match) {
         setMatchedUser({ id: currentProfile.userId, name: `${currentProfile.nombres} ${currentProfile.apellidos}` })
@@ -185,7 +162,7 @@ export default function SwipesPage() {
     } catch (error) {
       if (error instanceof ApiError && (error.status === 429 || error.status === 403)) {
         setSwipeLimitReached(true)
-        void fetchRemainingSwipes()
+        setSwipesRemaining(0)
         toast.error(
           error.message ||
             `${t("swipes.limitMessage")} (${FREE_DAILY_SWIPE_CAP})`,
@@ -208,7 +185,7 @@ export default function SwipesPage() {
       setSwipeDirection(null)
       setIsSwiping(false)
     }, shouldAdvance ? 200 : 120)
-  }, [profiles, currentIndex, isSwiping, isPremium, remainingSwipes, fetchRemainingSwipes])
+  }, [profiles, currentIndex, isSwiping, isPremium, swipesRemaining, t])
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -260,9 +237,9 @@ export default function SwipesPage() {
             <h1 className="bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-2xl font-black tracking-tight text-transparent">
               {t("swipes.title")}
             </h1>
-            {!isPremium && remainingSwipes !== null && !swipeLimitReached && (
+            {!isPremium && swipesRemaining !== null && !swipeLimitReached && (
               <Badge variant="secondary" className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold tabular-nums text-primary">
-                {remainingSwipes} / {FREE_DAILY_SWIPE_CAP} {t("swipes.today")}
+                {swipesRemaining} / {FREE_DAILY_SWIPE_CAP} {t("swipes.today")}
               </Badge>
             )}
           </div>
@@ -272,28 +249,28 @@ export default function SwipesPage() {
         </div>
 
         {/* Swipe limit bar */}
-        {!isPremium && remainingSwipes !== null && (
+        {!isPremium && swipesRemaining !== null && (
           <div className="mb-3 rounded-2xl border border-border/60 bg-card/70 px-3.5 py-3 shadow-md backdrop-blur-sm">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-xs text-muted-foreground flex items-center gap-1">
                 <Zap className="h-3 w-3 text-primary" />
                 {t("swipes.daily")}
               </span>
-              <span className={`text-xs font-bold ${remainingSwipes <= 3 ? 'text-destructive' : 'text-primary'}`}>
-                {remainingSwipes}/{FREE_DAILY_SWIPE_CAP}
+              <span className={`text-xs font-bold ${swipesRemaining <= 3 ? 'text-destructive' : 'text-primary'}`}>
+                {swipesRemaining}/{FREE_DAILY_SWIPE_CAP}
               </span>
             </div>
             <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all duration-500 ${
-                  remainingSwipes <= 3
+                  swipesRemaining <= 3
                     ? 'bg-destructive'
                     : 'bg-gradient-to-r from-primary to-secondary'
                 }`}
-                style={{ width: `${Math.min(100, (remainingSwipes / FREE_DAILY_SWIPE_CAP) * 100)}%` }}
+                style={{ width: `${Math.min(100, (swipesRemaining / FREE_DAILY_SWIPE_CAP) * 100)}%` }}
               />
             </div>
-            {remainingSwipes <= 3 && remainingSwipes > 0 && (
+            {swipesRemaining <= 3 && swipesRemaining > 0 && (
               <button
                 onClick={() => router.push('/premium')}
                 className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg bg-primary/10 py-1.5 text-center text-xs font-medium text-primary transition-colors hover:bg-primary/15"

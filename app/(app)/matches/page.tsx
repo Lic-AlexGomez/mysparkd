@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { api } from "@/lib/api"
+import { chatService } from "@/lib/services/chat"
 import { useAuth } from "@/lib/auth-context"
 import type { Match, Chat } from "@/lib/types"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -48,8 +49,8 @@ export default function MatchesPage() {
 
   const handleChat = async (userId: string) => {
     try {
-      const chat = await api.post<Chat>(`/api/chat/open/${userId}`)
-      router.push(`/chat/${chat.chatId}`)
+      const chat = await chatService.openChat(userId)
+      router.push(`/chat/${encodeURIComponent(chat.chatId)}`)
     } catch { toast.error(te("Error al abrir chat", "Error opening chat")) }
   }
 

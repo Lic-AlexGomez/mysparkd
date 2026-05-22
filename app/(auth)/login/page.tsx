@@ -11,11 +11,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { GoogleSignInButton } from "@/components/ui/google-signin-button"
+import { PasskeyLoginButton } from "@/components/auth/passkey-login-button"
 import { toast } from "sonner"
 import { Loader2, Eye, EyeOff } from "lucide-react"
 
 export default function LoginPage() {
-  const { login, loginWithGoogle } = useAuth()
+  const { login, loginWithGoogle, loginWithPasskey } = useAuth()
   const router = useRouter()
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
@@ -61,6 +62,27 @@ export default function LoginPage() {
         return
       }
       toast.error(message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handlePasskeySuccess = async (token: string) => {
+    setIsLoading(true)
+    try {
+      await loginWithPasskey(token)
+      try {
+        const profile = await api.get<UserProfile>("/api/profile/me")
+        if (!profile.profileCompleted) {
+          router.push("/onboarding")
+        } else {
+          router.push("/feed")
+        }
+      } catch {
+        router.push("/onboarding")
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al iniciar sesión con passkey")
     } finally {
       setIsLoading(false)
     }
@@ -179,6 +201,12 @@ export default function LoginPage() {
           </div>
         </div>
         
+        <PasskeyLoginButton
+          username={username}
+          disabled={isLoading}
+          onSuccess={handlePasskeySuccess}
+        />
+
         <GoogleSignInButton 
           onSuccess={handleGoogleSuccess}
           onError={(error) => toast.error(error.message)}

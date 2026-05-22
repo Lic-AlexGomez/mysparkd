@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { format, formatDistanceToNow, isToday, isTomorrow } from "date-fns"
+import type { Locale } from "date-fns"
 import { enUS, es as esLocale } from "date-fns/locale"
 import {
   Loader2,

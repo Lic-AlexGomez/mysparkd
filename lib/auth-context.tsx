@@ -124,6 +124,7 @@ interface AuthContextType {
   isLoading: boolean
   login: (data: LoginRequest) => Promise<void>
   loginWithGoogle: (idToken: string) => Promise<void>
+  loginWithPasskey: (token: string) => Promise<void>
   register: (data: RegisterRequest) => Promise<RegisterResponse>
   logout: () => void
   refreshProfile: () => Promise<void>
@@ -145,6 +146,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearStashedLoginAccountTypeIfSynced(profile)
       setUser(profile)
       localStorage.setItem("sparkd_user", JSON.stringify(profile))
+      if (profile.userId) {
+        localStorage.setItem("sparkd_user_id", String(profile.userId))
+      }
+      if (profile.username) {
+        localStorage.setItem("sparkd_username", profile.username)
+      }
     } catch (error) {
       const savedUser = localStorage.getItem("sparkd_user")
       if (savedUser) {
@@ -202,6 +209,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await fetchProfile()
   }
 
+  const loginWithPasskey = async (jwt: string) => {
+    localStorage.setItem("sparkd_token", jwt)
+    setToken(jwt)
+    await fetchProfile()
+  }
+
   const register = async (data: RegisterRequest) => {
     return api.post<RegisterResponse>("/auth/register", data)
   }
@@ -241,6 +254,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         login,
         loginWithGoogle,
+        loginWithPasskey,
         register,
         logout,
         refreshProfile,
