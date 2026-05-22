@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { api } from "@/lib/api"
+import { extractApiRows } from "@/lib/extract-api-rows"
 import { useAuth } from "@/lib/auth-context"
 
 import type { Comment as CommentType, CommentReply, ReactionType } from "@/lib/types"
@@ -54,8 +55,8 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
   const fetchComments = useCallback(async () => {
     try {
       setLoadingComments(true)
-      const data = await api.get<CommentType[]>(`/api/comments/get/${postId}`)
-      setComments(data.map(c => ({ ...c, liked: false })))
+      const rows = extractApiRows<CommentType>(await api.get<unknown>(`/api/comments/get/${postId}`))
+      setComments(rows.map((c) => ({ ...c, liked: false })))
       setLoadingComments(false)
       // check privacy si hay postOwnerId y no es el propio usuario
       if (postOwnerId && postOwnerId !== user?.userId) {
@@ -64,7 +65,7 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
         }).catch(() => {})
       }
       Promise.all(
-        data.map(async (comment) => {
+        rows.map(async (comment) => {
           try {
             const status = await api.get<any>(`/api/likes/status/${comment.commentsId}`)
             return { id: comment.commentsId, liked: status.reacted, userReaction: status.myReaction, likeCount: status.totalReactions }
@@ -127,15 +128,16 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
 
   const fetchReplies = async (parentId: string) => {
     try {
-      const data = await api.get<CommentReply[]>(`/api/comments/getcommentReply/${parentId}`)
-      
-      // Mostrar respuestas inmediatamente
-      setExpandedReplies((prev) => ({ ...prev, [parentId]: data.map(r => ({ ...r, liked: false })) }))
+      const rows = extractApiRows<CommentReply>(
+        await api.get<unknown>(`/api/comments/getcommentReply/${parentId}`)
+      )
+
+      setExpandedReplies((prev) => ({ ...prev, [parentId]: rows.map((r) => ({ ...r, liked: false })) }))
       setShowReplies((prev) => ({ ...prev, [parentId]: true }))
       
       // Fetch reaction status en background
       Promise.all(
-        data.map(async (reply) => {
+        rows.map(async (reply) => {
           try {
             const status = await api.get<any>(`/api/likes/status/${reply.commentReplyId}`)
             return { id: reply.commentReplyId, liked: status.reacted, userReaction: status.myReaction, likeCount: status.totalReactions }

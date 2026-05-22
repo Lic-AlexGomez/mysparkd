@@ -199,7 +199,7 @@ export function useFeed() {
 
   const fetchFeedPathPage = useCallback(
     async (path: string, targetPage: number) => {
-      const data = await api.get<any[] | PaginatedFeedResponse>(
+      const data = await api.getPage<any[] | PaginatedFeedResponse>(
         `${path}?page=${targetPage}&size=${FEED_PAGE_SIZE}`
       )
       if (FEED_DEBUG) {

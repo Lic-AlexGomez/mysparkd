@@ -1,3 +1,5 @@
+import { unwrapSpringPage } from "@/lib/extract-api-rows"
+
 const API_BASE_URL = "/api/proxy"
 const REQUEST_TIMEOUT_MS = 20_000
 
@@ -205,11 +207,24 @@ async function request<T>(
 }
 
 export const api = {
-  get: <T>(endpoint: string) =>
+  /** GET con unwrap automático de `Page.content` (mensajes, notificaciones, etc.). */
+  get: async <T>(endpoint: string) => {
+    const raw = await request<unknown>(endpoint, {
+      method: "GET",
+      ...(endpoint.includes("/api/profile/me")
+        ? { cache: "no-store" as RequestCache }
+        : {}),
+    })
+    return unwrapSpringPage<T>(raw)
+  },
+
+  /** GET sin unwrap: conserva `{ content, totalPages, last, ... }` para paginación. */
+  getPage: <T>(endpoint: string) =>
     request<T>(endpoint, {
       method: "GET",
-      // Refuerzo: el proxy ya no cachea /me; el cliente tampoco reutiliza respuestas viejas.
-      ...(endpoint.includes("/api/profile/me") ? { cache: "no-store" as RequestCache } : {}),
+      ...(endpoint.includes("/api/profile/me")
+        ? { cache: "no-store" as RequestCache }
+        : {}),
     }),
 
   post: <T>(endpoint: string, body?: unknown) =>

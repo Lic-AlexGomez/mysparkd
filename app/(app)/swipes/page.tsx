@@ -69,7 +69,7 @@ export default function SwipesPage() {
         setIsFetchingMore(true)
       }
 
-      const response = await api.get<any>(`/api/discover?page=${targetPage}&size=${DISCOVER_PAGE_SIZE}`)
+      const response = await api.getPage<any>(`/api/discover?page=${targetPage}&size=${DISCOVER_PAGE_SIZE}`)
       const discoverProfiles = Array.isArray(response?.content) ? response.content : []
       const mapped = mapProfiles(discoverProfiles).filter((p) => !swipedIdsRef.current.has(p.userId))
 

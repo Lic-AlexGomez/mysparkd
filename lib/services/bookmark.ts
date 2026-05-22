@@ -92,7 +92,9 @@ class BookmarkService {
   }
 
   async getSavedPosts(page = 0, size = 20): Promise<SavedPostsPage> {
-    const response = await api.get<PageResponse<Post>>(`/api/bookmarks?page=${page}&size=${size}`)
+    const response = await api.getPage<PageResponse<Post>>(
+      `/api/bookmarks?page=${page}&size=${size}`
+    )
     return this.normalizePageResponse(response, page, size)
   }
 

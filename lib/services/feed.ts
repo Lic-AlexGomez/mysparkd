@@ -56,7 +56,7 @@ export const feedService = {
     page: number,
     size: number = FEED_PAGE_SIZE
   ): Promise<{ posts: Post[]; hasMore: boolean; isPaginated: boolean }> {
-    const data = await api.get<any[] | PaginatedFollowingResponse>(
+    const data = await api.getPage<any[] | PaginatedFollowingResponse>(
       `/api/feed/following?page=${page}&size=${size}`
     )
     return parseFollowingPage(data, page, size)
