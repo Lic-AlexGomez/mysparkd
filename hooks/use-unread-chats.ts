@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { api } from "@/lib/api"
+import { extractApiRows } from "@/lib/extract-api-rows"
 import { useAuth } from "@/lib/auth-context"
 import { usePathname } from "next/navigation"
 
@@ -17,7 +18,9 @@ export function useUnreadChats() {
     if (Date.now() - lastFetchRef.current < 60000) return
     lastFetchRef.current = Date.now()
     try {
-      const chats = await api.get<any[]>("/api/chat/chats")
+      const chats = extractApiRows<{ unread?: number }>(
+        await api.get<unknown>("/api/chat/chats")
+      )
       const total = chats.reduce((sum, chat) => sum + (chat.unread || 0), 0)
       setUnreadCount(total)
     } catch {

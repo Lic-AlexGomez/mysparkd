@@ -37,7 +37,8 @@ export function ChatActivityFeed({
     }
   }, [chatId, search])
 
-  if (!data?.entries?.length) return null
+  const entries = Array.isArray(data?.entries) ? data.entries : []
+  if (!entries.length) return null
 
   return (
     <div className="flex-shrink-0 border-b border-primary/15 bg-muted/30 px-3 py-2">
@@ -47,7 +48,7 @@ export function ChatActivityFeed({
       </div>
       <p className="mb-2 text-[11px] text-primary/90">{data.active_in_chat_hint}</p>
       <ul className="max-h-24 space-y-1 overflow-y-auto text-[11px] text-muted-foreground">
-        {data.entries.slice(0, 6).map((e) => (
+        {entries.slice(0, 6).map((e) => (
           <li key={e.id} className="flex gap-2 border-l-2 border-primary/25 pl-2">
             <span className="shrink-0 text-[10px] opacity-70">
               {formatDistanceToNow(new Date(e.occurred_at), { addSuffix: true, locale: loc })}

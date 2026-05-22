@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { api } from "@/lib/api"
+import { extractApiRows } from "@/lib/extract-api-rows"
 import { useAuth } from "@/lib/auth-context"
 import type { Notification } from "@/lib/types"
 import { Button } from "@/components/ui/button"
@@ -39,12 +40,12 @@ export default function NotificationsPage() {
     setIsLoading(true)
     try {
       const [notifs, requests] = await Promise.all([
-        api.get<any[]>(
+        api.get<unknown>(
           `/api/notifications/${user.userId}?page=0&size=${NOTIFICATIONS_PAGE_SIZE}`
         ),
         api.get<FollowRequest[]>("/api/follow/requests").catch(() => []),
       ])
-      const list = Array.isArray(notifs) ? notifs : []
+      const list = extractApiRows(notifs)
       setNotifications(list)
       setFollowRequests(Array.isArray(requests) ? requests : [])
       setNextPage(1)
@@ -60,10 +61,10 @@ export default function NotificationsPage() {
     if (!user?.userId || !hasMore || loadingMore) return
     setLoadingMore(true)
     try {
-      const notifs = await api.get<any[]>(
+      const notifs = await api.get<unknown>(
         `/api/notifications/${user.userId}?page=${nextPage}&size=${NOTIFICATIONS_PAGE_SIZE}`
       )
-      const list = Array.isArray(notifs) ? notifs : []
+      const list = extractApiRows(notifs)
       setNotifications((prev) => [...prev, ...list])
       setNextPage((p) => p + 1)
       setHasMore(list.length >= NOTIFICATIONS_PAGE_SIZE)

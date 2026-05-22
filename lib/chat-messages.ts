@@ -1,13 +1,9 @@
+import { extractApiRows } from "@/lib/extract-api-rows"
 import type { Message } from "@/lib/types"
 
-/** Extrae filas de respuesta paginada Spring (`Page`) o array directo. */
+/** Extrae filas de mensajes (array o `Page.content`). */
 export function extractMessageRows(data: unknown): Record<string, unknown>[] {
-  if (Array.isArray(data)) return data as Record<string, unknown>[]
-  if (data && typeof data === "object") {
-    const obj = data as Record<string, unknown>
-    if (Array.isArray(obj.content)) return obj.content as Record<string, unknown>[]
-  }
-  return []
+  return extractApiRows<Record<string, unknown>>(data)
 }
 
 export function normalizeChatMessage(raw: Record<string, unknown>): Message {

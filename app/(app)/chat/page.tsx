@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import Link from "next/link"
 import { api } from "@/lib/api"
+import { extractApiRows } from "@/lib/extract-api-rows"
 import { chatService } from "@/lib/services/chat"
 import { useAuth } from "@/lib/auth-context"
 import { useWebSocket } from "@/hooks/use-websocket"
@@ -152,12 +153,19 @@ export default function ChatListPage() {
       refreshPresence(sorted)
 
       // Chats ocultos en paralelo
-      api.get<any[]>('/api/chat/chats/hidden')
-        .then(hidden => {
-          setHiddenChats(hidden.map(c => ({
-            ...c,
-            otherUserPhoto: c.otherUserPhoto || c.senderProfilePicture || c.otherUserProfilePicture || c.profilePicture || c.photo || c.avatar || undefined,
-          })))
+      api.get<unknown>('/api/chat/chats/hidden')
+        .then((hidden) => {
+          const rows = extractApiRows<Chat & { id?: string }>(hidden)
+          setHiddenChats(
+            rows.map((c) => ({
+              ...c,
+              chatId: String(c.chatId ?? c.id ?? ""),
+              otherUserPhoto:
+                c.otherUserPhoto ||
+                c.senderProfilePicture ||
+                undefined,
+            }))
+          )
         })
         .catch(() => {})
     } catch {

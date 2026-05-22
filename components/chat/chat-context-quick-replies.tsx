@@ -1,5 +1,6 @@
 "use client"
 
+import { asStringArray } from "@/lib/extract-api-rows"
 import type { ChatContextResponse } from "@/lib/types/context-aware-chat"
 
 export function ChatContextQuickReplies({
@@ -11,14 +12,15 @@ export function ChatContextQuickReplies({
   onPick: (text: string) => void
   te: (es: string, en: string) => string
 }) {
-  if (!context?.quick_replies?.length) return null
+  const replies = asStringArray(context?.quick_replies)
+  if (!replies.length) return null
   return (
     <div className="flex-shrink-0 border-t border-primary/10 bg-background/95 px-2 py-1.5">
       <p className="mb-1 px-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
         {te("Respuestas rápidas", "Quick replies")}
       </p>
       <div className="flex gap-1 overflow-x-auto pb-1 [scrollbar-width:thin]">
-        {context.quick_replies.map((q, i) => (
+        {replies.map((q, i) => (
           <button
             key={i}
             type="button"

@@ -1,4 +1,5 @@
 import { api } from '../api'
+import { extractApiRows } from '../extract-api-rows'
 import { extractMessageRows, normalizeChatMessage } from '../chat-messages'
 import type { Chat, Message, SendMessageRequest } from '../types'
 
@@ -6,8 +7,8 @@ const MESSAGES_BASE = '/api/messages'
 
 export const chatService = {
   async getMyChats(): Promise<Chat[]> {
-    const raw = await api.get<Chat[] | Record<string, unknown>[]>('/api/chat/chats')
-    const rows = Array.isArray(raw) ? raw : []
+    const raw = await api.get<unknown>('/api/chat/chats')
+    const rows = extractApiRows<Chat & { id?: string }>(raw)
     return rows.map((c) => {
       const row = c as Chat & { id?: string }
       return {

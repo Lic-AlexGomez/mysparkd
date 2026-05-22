@@ -16,6 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useEffect, useState, useCallback, useId, useRef } from "react"
 import { createPortal } from "react-dom"
 import { api } from "@/lib/api"
+import { extractApiRows } from "@/lib/extract-api-rows"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
 import { formatDistanceToNow } from "date-fns"
 import { ar, bn, enUS, es, fr, hi, ptBR, ru, zhCN } from "date-fns/locale"
@@ -71,26 +72,38 @@ export function TopNavbar() {
   const fetchNotifications = useCallback(async () => {
     if (!user?.userId) return
     try {
-      const data = await api.get<any[]>(
-        `/api/notifications/${user.userId}?page=0&size=20`
+      const data = extractApiRows<Record<string, unknown>>(
+        await api.get<unknown>(
+          `/api/notifications/${user.userId}?page=0&size=20`
+        )
       )
-      const mapped = data.map(n => ({
-        notificationId: n.notificationId || (n.senderId + n.createdAt),
-        type: n.title?.toLowerCase().includes('like') ? 'like'
-          : n.title?.toLowerCase().includes('comment') ? 'comment'
-          : n.title?.toLowerCase().includes('follow') ? 'follow'
-          : n.title?.toLowerCase().includes('repost') ? 'repost'
-          : n.title?.toLowerCase().includes('mencion') || n.title?.toLowerCase().includes('mention') ? 'mention'
-          : n.title?.toLowerCase().includes('reacci') ? 'reaction'
-          : 'default',
-        message: n.data,
-        read: n.read,
-        createdAt: n.createdAt,
-        relatedUserId: n.senderId,
-        relatedUsername: n.senderUsername,
-        targetId: n.targetId,
-        targetType: n.targetType
-      }))
+      const mapped = data.map((n) => {
+        const title = String(n.title ?? "")
+        const tl = title.toLowerCase()
+        return {
+          notificationId: String(n.notificationId ?? n.senderId ?? "") + String(n.createdAt ?? ""),
+          type: tl.includes("like")
+            ? "like"
+            : tl.includes("comment")
+              ? "comment"
+              : tl.includes("follow")
+                ? "follow"
+                : tl.includes("repost")
+                  ? "repost"
+                  : tl.includes("mencion") || tl.includes("mention")
+                    ? "mention"
+                    : tl.includes("reacci")
+                      ? "reaction"
+                      : "default",
+          message: String(n.data ?? ""),
+          read: Boolean(n.read),
+          createdAt: String(n.createdAt ?? ""),
+          relatedUserId: n.senderId as string | undefined,
+          relatedUsername: n.senderUsername as string | undefined,
+          targetId: n.targetId as string | undefined,
+          targetType: n.targetType as string | undefined,
+        }
+      })
       setNotifications(mapped)
       setUnreadCount(mapped.filter((n) => !n.read).length)
     } catch {

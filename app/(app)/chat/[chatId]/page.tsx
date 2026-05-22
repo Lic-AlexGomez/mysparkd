@@ -116,9 +116,10 @@ export default function ChatRoomPage() {
     }
     msgs.forEach(msg => {
       const msgId = msg.messageId || msg.id || ''
-      if (msg.reactions && msg.reactions.length > 0) {
+      const reactions = Array.isArray(msg.reactions) ? msg.reactions : []
+      if (reactions.length > 0) {
         // mostrar la reaction del otro usuario (no la propia)
-        const otherReaction = msg.reactions.find((r: any) => r.userId !== user?.userId)
+        const otherReaction = reactions.find((r: { userId?: string }) => r.userId !== user?.userId)
         if (otherReaction) {
           backendReactions[msgId] = reactionToEmoji[otherReaction.reaction] || ''
         }
@@ -321,15 +322,16 @@ export default function ChatRoomPage() {
     try {
       setLoadError(null)
       const data = await chatService.getMessages(chatId, 0, 50)
+      const rows = Array.isArray(data) ? data : []
       setMessages((prev) => {
-        const serverContents = new Set(data.map((m) => m.content))
+        const serverContents = new Set(rows.map((m) => m.content))
         const pendingOptimistic = prev.filter(
           (m) =>
             (m.messageId || m.id || "").startsWith("optimistic-") &&
             !serverContents.has(m.content)
         )
-        const merged = [...data, ...pendingOptimistic]
-        syncReactionsFromMessages(data)
+        const merged = [...rows, ...pendingOptimistic]
+        syncReactionsFromMessages(rows)
         return merged
       })
     } catch (error) {
@@ -383,7 +385,7 @@ export default function ChatRoomPage() {
   const loadPinnedMessages = useCallback(async () => {
     try {
       const data = await privateChatPinnedService.list(chatId)
-      setPinnedMessages(data)
+      setPinnedMessages(Array.isArray(data) ? data : [])
     } catch {
       // list endpoint opcional: no bloquear el chat
     }
