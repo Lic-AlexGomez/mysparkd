@@ -197,22 +197,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("sparkd_token", response.token)
     localStorage.setItem("sparkd_username", data.username)
     stashLoginAccountType(response.accountType)
-    setToken(response.token)
     await fetchProfile()
+    setToken(response.token)
   }
 
   const loginWithGoogle = async (idToken: string) => {
     const response = await api.post<LoginResponse>("/auth/google", { token: idToken })
     localStorage.setItem("sparkd_token", response.token)
     stashLoginAccountType(response.accountType)
-    setToken(response.token)
     await fetchProfile()
+    setToken(response.token)
   }
 
   const loginWithPasskey = async (jwt: string) => {
     localStorage.setItem("sparkd_token", jwt)
-    setToken(jwt)
     await fetchProfile()
+    setToken(jwt)
   }
 
   const register = async (data: RegisterRequest) => {

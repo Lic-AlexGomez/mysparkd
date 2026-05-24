@@ -11,16 +11,15 @@ export default function AuthLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { isAuthenticated, isLoading } = useAuth()
+  const { isAuthenticated, isLoading, user } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated) {
-      router.replace("/feed")
-    }
-  }, [isAuthenticated, isLoading, router])
+    if (isLoading || !isAuthenticated || !user) return
+    router.replace(user.profileCompleted ? "/feed" : "/onboarding")
+  }, [isAuthenticated, isLoading, user, router])
 
-  if (isLoading) {
+  if (isLoading || (isAuthenticated && !user)) {
     return (
       <div className="flex min-h-svh items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
