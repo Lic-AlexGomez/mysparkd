@@ -258,6 +258,9 @@ const TRANSLATIONS: Record<string, Record<SupportedLanguage, string>> = {
   "sidebar.groups": {
     en: "Groups", zh: "群组", hi: "समूह", es: "Grupos", fr: "Groupes", ar: "المجموعات", bn: "গ্রুপ", pt: "Grupos", ru: "Группы", ur: "گروپس",
   },
+  "sidebar.more": {
+    en: "More", zh: "更多", hi: "अधिक", es: "Más", fr: "Plus", ar: "المزيد", bn: "আরও", pt: "Mais", ru: "Ещё", ur: "مزید",
+  },
   "sidebar.trello": {
     en: "Trello", zh: "Trello", hi: "Trello", es: "Trello", fr: "Trello", ar: "Trello", bn: "Trello", pt: "Trello", ru: "Trello", ur: "Trello",
   },

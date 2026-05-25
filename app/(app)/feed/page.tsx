@@ -8,7 +8,6 @@ import { locationService } from "@/lib/services/location"
 import { PostCard } from "@/components/feed/post-card"
 import { CreatePostDialog } from "@/components/feed/create-post-dialog"
 import { StoriesBar } from "@/components/feed/stories-bar"
-import { FeedTonightCta } from "@/components/tonight/feed-tonight-cta"
 import { SkeletonPost } from "@/components/ui/skeleton-post"
 import {
   Loader2,
@@ -443,8 +442,6 @@ export default function FeedPage() {
   return (
     <div className="mx-auto max-w-2xl">
       <StoriesBar />
-
-      <FeedTonightCta />
 
       {/* Banner de ubicación — solo cuando hay posts pero sin ubicación */}
       {feedTab === 'local' && locationError && localPosts.length > 0 && (
