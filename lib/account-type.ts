@@ -17,6 +17,15 @@ export function toBackendAccountType(
   return "BOTH"
 }
 
+/** Mapea valores UI de experiencia a AccountType del backend. */
+export function experienceObjectiveToAccountType(
+  objective: "social" | "connection" | "both"
+): BackendAccountType {
+  if (objective === "social") return "SOCIAL"
+  if (objective === "connection") return "DATING"
+  return "BOTH"
+}
+
 /** Etiquetas cortas para mostrar el modo de cuenta en perfil (no es el plan premium). */
 export function accountTypeBadgeLabels(at: BackendAccountType): {
   emoji: string

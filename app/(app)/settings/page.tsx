@@ -53,6 +53,8 @@ import { normalizeEmailValue } from "@/lib/email-utils"
 import type { PrivacySettings, SparklingListMember } from "@/lib/types"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useI18n } from "@/lib/i18n"
+import { SparkySettingsSection } from "@/components/settings/sparky-settings-section"
+import { AppearanceSettingsSection } from "@/components/settings/appearance-settings-section"
 
 /** Valores UI de la sección Experiencia (Ajustes). */
 type ExperienceObjective = "social" | "connection" | "both"
@@ -1557,6 +1559,9 @@ export default function SettingsPage() {
           </AlertDialog>
         </CardContent>
       </Card>
+
+      <SparkySettingsSection />
+      <AppearanceSettingsSection />
     </div>
   )
 }
