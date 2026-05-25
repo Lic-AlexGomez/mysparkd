@@ -112,7 +112,7 @@ export default function ChatListPage() {
         lastMessage: c.lastMessage,
         lastMessageAt: c.lastMessageAt,
         unread: c.unread,
-        href: c.linkedEventId ? `/events/${c.linkedEventId}` : c.linkedGroupId ? `/groups/${c.linkedGroupId}` : `/chat/${c.chatId}`,
+        href: c.linkedEventId ? `/events/${c.linkedEventId}/chat` : c.linkedGroupId ? `/groups/${c.linkedGroupId}` : `/chat/${c.chatId}`,
         isOnline: onlineUsers.has(c.otherUserId),
       })
     }
@@ -130,7 +130,7 @@ export default function ChatListPage() {
       })
     }
     for (const eg of eventGroups) {
-      if (items.some((i) => i.href === `/events/${eg.eventId}`)) continue
+      if (items.some((i) => i.href.startsWith(`/events/${eg.eventId}/chat`))) continue
       items.push({
         id: `event-${eg.eventId}`,
         type: 'meetup',
@@ -139,7 +139,7 @@ export default function ChatListPage() {
         avatarUrl: null,
         lastMessage: eg.lastMessageContent,
         lastMessageAt: eg.lastMessageAt,
-        href: `/events/${eg.eventId}`,
+        href: `/events/${eg.eventId}/chat?title=${encodeURIComponent(eg.eventTitle)}`,
       })
     }
     return items.sort((a, b) => {
