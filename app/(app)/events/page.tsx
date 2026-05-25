@@ -71,6 +71,10 @@ import { useAuth } from "@/lib/auth-context"
 import { FastDateSection } from "@/components/events/fast-date-section"
 import { FastDateOfferCard } from "@/components/events/fast-date-offer-card"
 import { MeetupOfferCard } from "@/components/events/meetup-offer-card"
+import { JoinMeetupDialog } from "@/components/events/join-meetup-dialog"
+import type { JoinEligibleUser } from "@/components/events/join-meetup-dialog"
+import { followService } from "@/lib/services/follow"
+import { api } from "@/lib/api"
 import { AddressMapPicker } from "@/components/ui/address-map-picker"
 import {
   fastDateService,
@@ -225,6 +229,10 @@ export default function EventsPage() {
   /** Meetups vienen de `/api/activity-feed` (solo tipo MEETUP). Fast Date de `fastDateService.getFeed`. */
   const [contentFilter, setContentFilter] = useState<ExploreFilter>("all")
   const [joiningEventId, setJoiningEventId] = useState<string | null>(null)
+  const [joinDialogEventId, setJoinDialogEventId] = useState<string | null>(null)
+  const [joinDialogSpots, setJoinDialogSpots] = useState<number | null>(null)
+  const [joinDialogPool, setJoinDialogPool] = useState<JoinEligibleUser[]>([])
+  const [joinDialogLoading, setJoinDialogLoading] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
   const [createFlow, setCreateFlow] = useState<"choose" | "meetup" | "fastdate">("choose")
   const [meetupCoords, setMeetupCoords] = useState<{ latitude: number; longitude: number } | null>(null)
@@ -571,31 +579,56 @@ export default function EventsPage() {
     }
   }
 
-  const handleJoinEvent = async (eventId: string) => {
-    setJoiningEventId(eventId)
-    try {
-      await eventService.join(eventId)
-      const ev = items.find((i) => i._id === eventId || i.eventId === eventId)
-      recordJoinMeetup({
-        eventId,
-        eventTitle: ev?._title,
-        zone: ev?.zone || ev?.locationZone,
-        user: user
-          ? {
-              userId: String(user.userId),
-              username: user.username,
-              profilePictureUrl: user.profilePictureUrl,
-            }
-          : undefined,
-      })
-      toast.success(te("Solicitud enviada", "Request sent"))
-      router.push(`/events/${eventId}`)
-    } catch (error: any) {
-      toast.error(error?.message || te("No se pudo unir", "Could not join"))
-    } finally {
-      setJoiningEventId(null)
-    }
+  const handleOpenJoinDialog = (eventId: string, availableSpots: number | null) => {
+    setJoinDialogEventId(eventId)
+    setJoinDialogSpots(availableSpots)
+    setJoinDialogPool([])
   }
+
+  useEffect(() => {
+    if (!joinDialogEventId || !user?.userId) return
+    let cancelled = false
+    ;(async () => {
+      setJoinDialogLoading(true)
+      try {
+        const fromApi = await eventService.groupJoinRequests.listEligibleInvitees(joinDialogEventId)
+        if (cancelled) return
+        if (fromApi !== null) {
+          setJoinDialogPool(fromApi.filter((u) => String(u.userId) !== String(user.userId)))
+          return
+        }
+        const myId = String(user.userId)
+        const [matchesRows, followersRows, followingRows] = await Promise.all([
+          api.get<unknown[]>("/api/matches/my/matches").catch(() => []),
+          followService.getFollowers(myId).catch(() => []),
+          followService.getFollowing(myId).catch(() => []),
+        ])
+        if (cancelled) return
+        const seen = new Set<string>()
+        const pool: JoinEligibleUser[] = []
+        const addUser = (u: any) => {
+          const id = String(u?.userId || u?.id || "")
+          if (!id || id === myId || seen.has(id)) return
+          seen.add(id)
+          pool.push({
+            userId: id,
+            username: u?.username || u?.userName || id,
+            fullName: [u?.nombres, u?.apellidos].filter(Boolean).join(" ") || undefined,
+            photo: u?.profilePictureUrl || u?.photo || undefined,
+          })
+        }
+        ;(Array.isArray(matchesRows) ? matchesRows : []).forEach(addUser)
+        ;(Array.isArray(followersRows) ? followersRows : []).forEach(addUser)
+        ;(Array.isArray(followingRows) ? followingRows : []).forEach(addUser)
+        if (!cancelled) setJoinDialogPool(pool)
+      } catch {
+        if (!cancelled) setJoinDialogPool([])
+      } finally {
+        if (!cancelled) setJoinDialogLoading(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [joinDialogEventId, user?.userId])
 
   const handleSendFastDateInterest = async () => {
     if (!interestCard) return
@@ -1627,7 +1660,7 @@ export default function EventsPage() {
                 localeCode={language === "en" ? "en" : "es"}
                 currentUserId={user?.userId}
                 joiningEventId={joiningEventId}
-                onJoin={handleJoinEvent}
+                onJoin={handleOpenJoinDialog}
               />
             )
               })}
@@ -1708,6 +1741,50 @@ export default function EventsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <JoinMeetupDialog
+        open={joinDialogEventId !== null}
+        onOpenChange={(open) => { if (!open) setJoinDialogEventId(null) }}
+        availableSpots={joinDialogSpots}
+        eligiblePool={joinDialogPool}
+        eligibleLoading={joinDialogLoading}
+        te={te}
+        onSoloJoin={async (msg) => {
+          if (!joinDialogEventId) return
+          setJoiningEventId(joinDialogEventId)
+          try {
+            await eventService.groupJoinRequests.create(joinDialogEventId, [], msg)
+            toast.success(te("Solicitud enviada", "Request sent"))
+            router.push(`/events/${joinDialogEventId}`)
+          } catch (e: any) {
+            toast.error(e?.message || te("No se pudo enviar", "Could not send"))
+          } finally {
+            setJoiningEventId(null)
+          }
+        }}
+        onGroupJoin={async (invitees, msg) => {
+          if (!joinDialogEventId) return
+          setJoiningEventId(joinDialogEventId)
+          try {
+            await eventService.groupJoinRequests.create(
+              joinDialogEventId,
+              invitees.map((u) => u.userId),
+              msg
+            )
+            toast.success(
+              te(
+                "Solicitud grupal enviada. Todos deben aceptar antes de que llegue al organizador.",
+                "Group request sent. Everyone must accept before it reaches the organizer."
+              )
+            )
+            router.push(`/events/${joinDialogEventId}`)
+          } catch (e: any) {
+            toast.error(e?.message || te("No se pudo enviar", "Could not send"))
+          } finally {
+            setJoiningEventId(null)
+          }
+        }}
+      />
     </div>
   )
 }

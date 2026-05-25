@@ -1740,6 +1740,58 @@ export default function EventDetailPage() {
                 </span>
               </div>
             </CardHeader>
+            {/* Banner de invitación grupal pendiente (visible desde el chat) */}
+            {myPendingInvitation && (
+              <div className="mx-4 mb-0 mt-3 rounded-xl border border-primary/30 bg-primary/8 px-4 py-3">
+                <p className="text-sm font-semibold text-foreground">
+                  {te(
+                    `@${myPendingInvitation.inviterUsername} te invitó a unirte en grupo`,
+                    `@${myPendingInvitation.inviterUsername} invited you to join as a group`
+                  )}
+                </p>
+                {myPendingInvitation.message ? (
+                  <p className="mt-1 text-xs italic text-muted-foreground">"{myPendingInvitation.message}"</p>
+                ) : null}
+                {myPendingInvitation.members.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+                    {myPendingInvitation.members.map((m) => (
+                      <span key={m.userId} className="inline-flex items-center gap-1 text-xs">
+                        {m.status === "ACCEPTED" ? (
+                          <CheckCircle2 className="size-3 text-emerald-500" aria-hidden />
+                        ) : m.status === "DECLINED" ? (
+                          <XCircle className="size-3 text-destructive" aria-hidden />
+                        ) : (
+                          <Clock className="size-3 text-muted-foreground" aria-hidden />
+                        )}
+                        <span className={m.status === "DECLINED" ? "text-muted-foreground line-through" : "text-foreground"}>
+                          @{m.username}
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="mt-2 flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => handleRespondToInvitation(myPendingInvitation.id, true)}
+                    disabled={isRespondingToInvitation}
+                    className="flex-1 rounded-xl"
+                  >
+                    {isRespondingToInvitation ? <Loader2 className="mr-1 size-3 animate-spin" aria-hidden /> : null}
+                    {te("Aceptar", "Accept")}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleRespondToInvitation(myPendingInvitation.id, false)}
+                    disabled={isRespondingToInvitation}
+                    className="flex-1 rounded-xl"
+                  >
+                    {te("Rechazar", "Decline")}
+                  </Button>
+                </div>
+              </div>
+            )}
             <CardContent className="px-4 pb-4 pt-4">
               <Tabs
                 value={isEventOwner ? chatSubTab : "chat-messages"}
