@@ -9,7 +9,7 @@ import { SparkdDock } from "./sparkd-dock"
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const isAdminRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/manager')
-  const isChatRoomRoute = pathname.startsWith('/chat/') || /^\/events\/[^/]+\/chat(\/|$)/.test(pathname)
+  const isChatRoomRoute = pathname.startsWith('/chat/')
 
   if (isAdminRoute) {
     return <>{children}</>

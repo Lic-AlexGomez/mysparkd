@@ -63,6 +63,11 @@ export default function AppLayout({
     )
   }
 
+  // Event group chat — sin navbar ni dock, igual que /chat/[chatId]
+  if (pathname.startsWith("/events/") && pathname.endsWith("/chat")) {
+    return <>{children}</>
+  }
+
   return (
     <>
       <AppShell>{children}</AppShell>
