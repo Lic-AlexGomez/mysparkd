@@ -604,22 +604,91 @@ export default function EventsPage() {
           followService.getFollowing(myId).catch(() => []),
         ])
         if (cancelled) return
+
         const seen = new Set<string>()
         const pool: JoinEligibleUser[] = []
-        const addUser = (u: any) => {
-          const id = String(u?.userId || u?.id || "")
-          if (!id || id === myId || seen.has(id)) return
+
+        const extractId = (u: any, hint?: "follower" | "following"): string =>
+          String(
+            u?.userId ?? u?.memberId ??
+            (hint === "follower" ? u?.followerId : undefined) ??
+            (hint === "following" ? u?.followingId : undefined) ??
+            u?.id ?? ""
+          ).trim()
+
+        const extractProfile = (u: any) => {
+          const nombres = String(u?.nombres || u?.nombre || "").trim()
+          const apellidos = String(u?.apellidos || "").trim()
+          const fullName = [nombres, apellidos].filter(Boolean).join(" ") || undefined
+          const rawUsername = String(u?.username || u?.userName || "").trim()
+          const fallback = fullName
+            ? fullName.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, "").toLowerCase().slice(0, 24)
+            : ""
+          return {
+            username: rawUsername || fallback,
+            fullName,
+            photo: (u?.profilePictureUrl || u?.photoUrl || u?.photo) as string | undefined || undefined,
+          }
+        }
+
+        // Matches
+        for (const u of Array.isArray(matchesRows) ? matchesRows : []) {
+          const id = extractId(u as any)
+          if (!id || id === myId || seen.has(id)) continue
           seen.add(id)
+          pool.push({ userId: id, ...extractProfile(u as any) })
+        }
+
+        // Mutual followers only (followers ∩ following)
+        const followerById = new Map<string, unknown>()
+        for (const u of Array.isArray(followersRows) ? followersRows : []) {
+          const id = extractId(u as any, "follower")
+          if (id && id !== myId) followerById.set(id, u)
+        }
+        for (const u of Array.isArray(followingRows) ? followingRows : []) {
+          const id = extractId(u as any, "following")
+          if (!id || id === myId || !followerById.has(id) || seen.has(id)) continue
+          seen.add(id)
+          const followerData = followerById.get(id) as any
+          const pFollow = extractProfile(u as any)
+          const pFollower = extractProfile(followerData)
           pool.push({
             userId: id,
-            username: u?.username || u?.userName || id,
-            fullName: [u?.nombres, u?.apellidos].filter(Boolean).join(" ") || undefined,
-            photo: u?.profilePictureUrl || u?.photo || undefined,
+            username: pFollow.username || pFollower.username || `user-${id.slice(0, 6)}`,
+            fullName: pFollow.fullName || pFollower.fullName,
+            photo: pFollow.photo || pFollower.photo,
           })
         }
-        ;(Array.isArray(matchesRows) ? matchesRows : []).forEach(addUser)
-        ;(Array.isArray(followersRows) ? followersRows : []).forEach(addUser)
-        ;(Array.isArray(followingRows) ? followingRows : []).forEach(addUser)
+
+        // Batch-fetch profiles for users still missing username or photo
+        const needsProfile = pool.filter(u => !u.username || !u.photo)
+        if (needsProfile.length > 0 && !cancelled) {
+          const results = await Promise.allSettled(
+            needsProfile.map(u => api.get<any>(`/api/profile/${encodeURIComponent(u.userId)}`))
+          )
+          if (!cancelled) {
+            for (let i = 0; i < needsProfile.length; i++) {
+              const res = results[i]
+              if (res.status !== "fulfilled" || !res.value) continue
+              const p = res.value
+              const idx = pool.findIndex(u => u.userId === needsProfile[i].userId)
+              if (idx < 0) continue
+              const pUsername = String(p?.username || "").trim()
+              const pNames = [p?.nombres, p?.nombre, p?.apellidos].filter(Boolean).join(" ").trim()
+              const pPhoto = p?.profilePictureUrl || p?.photoUrl || p?.photo
+              const derivedUsername = pNames
+                ? pNames.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, "").toLowerCase().slice(0, 24)
+                : ""
+              pool[idx] = {
+                ...pool[idx],
+                username: pool[idx].username || pUsername || derivedUsername || pool[idx].username,
+                fullName: pool[idx].fullName || pNames || undefined,
+                photo: pool[idx].photo || pPhoto || undefined,
+              }
+            }
+          }
+        }
+
         if (!cancelled) setJoinDialogPool(pool)
       } catch {
         if (!cancelled) setJoinDialogPool([])

@@ -1358,9 +1358,40 @@ export default function EventDetailPage() {
           followService.getFollowing(myUserId).catch(() => []),
         ])
         if (cancelled) return
-        setEligibleInviteesPool(
-          mergeEligibleInviteUsers(myUserId, memberIds, matchesRows, followersRows, followingRows)
-        )
+        const merged = mergeEligibleInviteUsers(myUserId, memberIds, matchesRows, followersRows, followingRows)
+
+        // Batch-fetch profiles for users whose username looks synthetic (no real data from API)
+        const synthetic = merged.filter(u => !u.username || /^user-[a-f0-9-]{4,}$/i.test(u.username))
+        if (synthetic.length > 0 && !cancelled) {
+          const results = await Promise.allSettled(
+            synthetic.map(u => api.get<any>(`/api/profile/${encodeURIComponent(u.userId)}`))
+          )
+          if (!cancelled) {
+            const resolved = [...merged]
+            for (let i = 0; i < synthetic.length; i++) {
+              const res = results[i]
+              if (res.status !== "fulfilled" || !res.value) continue
+              const p = res.value
+              const idx = resolved.findIndex(u => u.userId === synthetic[i].userId)
+              if (idx < 0) continue
+              const pUsername = String(p?.username || "").trim()
+              const pNames = [p?.nombres, p?.nombre, p?.apellidos].filter(Boolean).join(" ").trim()
+              const pPhoto = p?.profilePictureUrl || p?.photoUrl || p?.photo
+              const derivedUsername = pNames
+                ? pNames.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, "").toLowerCase().slice(0, 24)
+                : ""
+              resolved[idx] = {
+                ...resolved[idx],
+                username: pUsername || derivedUsername || resolved[idx].username,
+                fullName: resolved[idx].fullName || pNames || undefined,
+                photo: resolved[idx].photo || pPhoto || undefined,
+              }
+            }
+            setEligibleInviteesPool(resolved)
+            return
+          }
+        }
+        setEligibleInviteesPool(merged)
       } catch {
         if (!cancelled) setEligibleInviteesPool([])
       } finally {
