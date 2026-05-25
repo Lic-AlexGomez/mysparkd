@@ -10,7 +10,8 @@ import { blockService } from "@/lib/services/block"
 import { reputationService } from "@/lib/services/reputation"
 import { privacyService } from "@/lib/services/privacy"
 import { chatService } from "@/lib/services/chat"
-import type { UserProfile, Photo, Chat, SwipeResponse } from "@/lib/types"
+import { profileService } from "@/lib/services/profile"
+import type { UserProfile, Photo, SwipeResponse } from "@/lib/types"
 import { normalizeProfilePosts } from "@/lib/normalize-profile-posts"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -25,6 +26,12 @@ import { VoiceNotePlayer } from "@/components/ui/voice-note"
 import { useI18n } from "@/lib/i18n"
 import { accountTypeBadgeLabels, toBackendAccountType } from "@/lib/account-type"
 import { useExperienceMode } from "@/hooks/use-experience-mode"
+import { useDmEligibility } from "@/hooks/use-dm-eligibility"
+import {
+  canShowMessageButton,
+  eligibilityMessageKey,
+  getDatingDisplayName,
+} from "@/lib/dm-eligibility"
 
 function getAge(dateOfBirth?: string): number | null {
   if (!dateOfBirth) return null
@@ -65,6 +72,16 @@ export default function UserProfilePage() {
   const [followList, setFollowList] = useState<FollowerUser[]>([])
   const [followListLoading, setFollowListLoading] = useState(false)
 
+  const { eligibility, context: viewerContext } = useDmEligibility({
+    targetUserId: userId,
+    receiverPrivateAndNotFollowing:
+      profile?.visibility === "PRIVATE" && !following,
+    enabled: !!profile && user?.userId !== userId,
+  })
+
+  const isDatingProfileView = viewerContext === "DATING"
+  const showMessageBtn = canShowMessageButton(eligibility)
+
   useEffect(() => {
     if (!user?.userId || !profile) return
     fetchFollowStatus()
@@ -80,12 +97,18 @@ export default function UserProfilePage() {
 
   const fetchProfile = useCallback(async () => {
     try {
-      const data = await api.get<UserProfile>(`/api/profile/${userId}`)
-      setProfile({ ...data, posts: normalizeProfilePosts(data.posts) })
+      const ctx =
+        searchParams.get("context") === "DATING" || searchParams.get("from") === "dating"
+          ? "DATING"
+          : "SOCIAL"
+      const data = await profileService.getProfile(userId, { context: ctx })
+      if (data) {
+        setProfile({ ...data, posts: normalizeProfilePosts(data.posts) })
+      }
     } catch {} finally {
       setIsLoading(false)
     }
-  }, [userId])
+  }, [userId, searchParams])
 
   useEffect(() => { fetchProfile() }, [fetchProfile])
 
@@ -172,13 +195,18 @@ export default function UserProfilePage() {
   }
 
   const handleMessage = async () => {
+    if (!showMessageBtn) {
+      const key = eligibility ? eligibilityMessageKey(eligibility.reason) : undefined
+      toast.error(key ? t(key) : te("No puedes abrir este chat", "You cannot open this chat"))
+      return
+    }
     if (profile!.visibility === 'PRIVATE' && !following) {
       toast.error(te("Primero debes seguir a esta cuenta para enviar mensajes", "You must follow this account first to send messages"))
       return
     }
     setIsMessaging(true)
     try {
-      const chat = await chatService.openChat(userId)
+      const chat = await chatService.openChat(userId, { context: viewerContext })
       router.push(`/chat/${encodeURIComponent(chat.chatId)}`)
     } catch (err) {
       if (err instanceof ApiError && err.status === 403) {
@@ -361,15 +389,17 @@ export default function UserProfilePage() {
             >
               <Heart className={`h-4 w-4 ${liked ? "fill-secondary text-secondary" : "text-inherit"}`} />
             </button>
-            <button
-              onClick={handleMessage}
-              disabled={isMessaging || (profile.visibility === 'PRIVATE' && !following)}
-              className={`h-9 w-9 rounded-full border flex items-center justify-center transition-colors ${
-                profile.visibility === 'PRIVATE' && !following ? "border-muted text-muted cursor-not-allowed" : "border-border hover:bg-muted text-foreground"
-              }`}
-            >
-              {isMessaging ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
-            </button>
+            {showMessageBtn && (
+              <button
+                onClick={handleMessage}
+                disabled={isMessaging || (profile.visibility === 'PRIVATE' && !following)}
+                className={`h-9 w-9 rounded-full border flex items-center justify-center transition-colors ${
+                  profile.visibility === 'PRIVATE' && !following ? "border-muted text-muted cursor-not-allowed" : "border-border hover:bg-muted text-foreground"
+                }`}
+              >
+                {isMessaging ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
+              </button>
+            )}
             <button
               onClick={() => router.push(`/stories?targetUserId=${encodeURIComponent(userId)}`)}
               className="h-9 w-9 rounded-full border border-border flex items-center justify-center transition-colors text-foreground hover:bg-muted"
@@ -377,6 +407,7 @@ export default function UserProfilePage() {
             >
               <Clapperboard className="h-4 w-4" />
             </button>
+            {!isDatingProfileView && (
             <button
               onClick={handleFollow}
               className={`flex items-center gap-1.5 px-4 h-9 rounded-full text-sm font-semibold transition-all ${
@@ -389,13 +420,16 @@ export default function UserProfilePage() {
                 : pending ? <><Clock className="h-4 w-4" /> Solicitado</>
                 : <><UserPlus className="h-4 w-4" /> Seguir</>}
             </button>
+            )}
           </div>
         </div>
 
         <div>
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-xl font-bold text-foreground">
-              {profile.nombres} {profile.apellidos}
+              {isDatingProfileView
+                ? getDatingDisplayName(profile.nombres)
+                : `${profile.nombres} ${profile.apellidos}`.trim()}
               {age && <span className="ml-2 font-light text-muted-foreground">{age}</span>}
             </h1>
             {isPremium && (
@@ -408,7 +442,9 @@ export default function UserProfilePage() {
               {te(accountModeLabel.labelEs, accountModeLabel.labelEn)}
             </span>
           </div>
-          {profile.username && <p className="text-sm text-muted-foreground mt-0.5">@{profile.username}</p>}
+          {!isDatingProfileView && profile.username && (
+            <p className="text-sm text-muted-foreground mt-0.5">@{profile.username}</p>
+          )}
           {profile.bio && <p className="text-sm text-foreground mt-2 leading-relaxed">{profile.bio}</p>}
           {(profile.voiceIntroUrl || (profile as any).voiceNoteUrl) && (
             <div className="mt-2">
@@ -418,7 +454,7 @@ export default function UserProfilePage() {
           {formatLocation(profile.location) && (
             <p className="text-xs text-muted-foreground mt-1">📍 {formatLocation(profile.location)}</p>
           )}
-          {(profile.url || profile.website) && (
+          {!isDatingProfileView && (profile.url || profile.website) && (
             <a href={profile.url || profile.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-primary hover:underline mt-1">
               🔗 {(profile.url || profile.website || '').replace(/^https?:\/\//, '')}
             </a>
@@ -449,7 +485,8 @@ export default function UserProfilePage() {
           )}
         </div>
 
-        {/* Stats — clickeables */}
+        {/* Stats — clickeables (ocultos en vista dating) */}
+        {!isDatingProfileView && (
         <div className="mt-4 flex items-center gap-6 border-t border-border pt-4">
           <div className="flex flex-col items-center">
             <span className="text-lg font-bold text-foreground">{totalPostsDisplay}</span>
@@ -468,9 +505,10 @@ export default function UserProfilePage() {
             <span className="text-xs text-muted-foreground">Fotos</span>
           </div>
         </div>
+        )}
       </div>
 
-      {profile.visibility === 'PRIVATE' && !following ? (
+      {profile.visibility === 'PRIVATE' && !following && !isDatingProfileView ? (
         <div className="flex flex-col items-center justify-center gap-3 py-16 px-4 border-t border-border mt-4">
           <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
             <Lock className="h-8 w-8 text-muted-foreground" />
@@ -516,7 +554,7 @@ export default function UserProfilePage() {
             </div>
           )}
 
-          {profile.posts && profile.posts.length > 0 && (profileExperienceMode === 'SOCIAL' || profileExperienceMode === 'BOTH') && (
+          {!isDatingProfileView && profile.posts && profile.posts.length > 0 && (profileExperienceMode === 'SOCIAL' || profileExperienceMode === 'BOTH') && (
             <div className="mt-6 px-4">
               <h2 className="text-sm font-semibold text-foreground mb-3">{te("Posts", "Posts")}</h2>
               {profile.posts.map((post) => (

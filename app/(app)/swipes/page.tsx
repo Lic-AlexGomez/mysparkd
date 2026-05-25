@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { useI18n } from "@/lib/i18n"
+import { getDatingDisplayName, recordDatingExposure } from "@/lib/dm-eligibility"
 
 const DISCOVER_PAGE_SIZE = 20
 /** Alineado con backend free tier (mensaje 429). */
@@ -123,6 +124,12 @@ export default function SwipesPage() {
     }
   }, [currentIndex, profiles.length, isLoading, hasMoreProfiles, fetchProfiles])
 
+  useEffect(() => {
+    const current = profiles[currentIndex]
+    if (!current?.userId) return
+    void recordDatingExposure(current.userId, "dating_feed")
+  }, [currentIndex, profiles])
+
   const swipesUiLocked =
     !isPremium && (swipeLimitReached || (typeof swipesRemaining === "number" && swipesRemaining <= 0))
 
@@ -152,7 +159,10 @@ export default function SwipesPage() {
         setSwipeLimitReached(response.swipesRemaining === 0)
       }
       if (response.match) {
-        setMatchedUser({ id: currentProfile.userId, name: `${currentProfile.nombres} ${currentProfile.apellidos}` })
+        setMatchedUser({
+          id: currentProfile.userId,
+          name: getDatingDisplayName(currentProfile.nombres),
+        })
         setShowMatch(true)
       }
       swipedIdsRef.current.add(currentProfile.userId)

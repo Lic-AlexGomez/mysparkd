@@ -1527,6 +1527,52 @@ const TRANSLATIONS: Record<string, Record<SupportedLanguage, string>> = {
   "match.openChatError": {
     en: "Error opening chat", zh: "打开聊天失败", hi: "चैट खोलने में त्रुटि", es: "Error al abrir el chat", fr: "Erreur lors de l'ouverture du chat", ar: "خطأ في فتح الدردشة", bn: "চ্যাট খুলতে সমস্যা", pt: "Erro ao abrir chat", ru: "Ошибка открытия чата", ur: "چیٹ کھولنے میں خرابی",
   },
+  "contact.datingExposureNoMatch": {
+    en: "You can only message this person after a dating match.",
+    es: "Solo puedes enviar mensaje si hay match en Dating.",
+    fr: "Vous ne pouvez écrire qu'après un match Dating.",
+    pt: "Só pode enviar mensagem após um match no Dating.",
+  },
+  "contact.matchesOnly": {
+    en: "This user only accepts messages from matches.",
+    es: "Esta persona solo acepta mensajes de matches.",
+  },
+  "contact.noRelation": {
+    en: "You cannot message this user yet.",
+    es: "Aún no puedes enviar mensaje a esta persona.",
+  },
+  "contact.privateMustFollow": {
+    en: "Follow this account first to send messages.",
+    es: "Primero debes seguir a esta cuenta para enviar mensajes.",
+  },
+  "contact.blocked": {
+    en: "You cannot contact this user.",
+    es: "No puedes contactar a esta persona.",
+  },
+  "dm.datingMatchRequired": {
+    en: "You can only message after a dating match.",
+    es: "Solo puedes enviar mensaje tras un match en Dating.",
+  },
+  "dm.socialMutualFollowRequired": {
+    en: "You both need to follow each other to message on Social.",
+    es: "Necesitáis seguirse mutuamente para escribir en Social.",
+  },
+  "dm.premiumRequired": {
+    en: "Premium is required for this action.",
+    es: "Se requiere premium para esta acción.",
+  },
+  "dm.datingSearchRestricted": {
+    en: "In Dating mode you can only search within your matches, not the whole network.",
+    es: "En modo Dating solo puedes buscar entre tus matches, no en toda la red.",
+  },
+  "dm.searchMatchesOnly": {
+    en: "Go to your matches",
+    es: "Ir a tus matches",
+  },
+  "dm.accountModeIsolationHint": {
+    en: "Changing mode does not mix contacts: dating requires a match; social requires mutual follow.",
+    es: "Cambiar de modo no mezcla contactos: en Dating hace falta match; en Social, seguirse mutuamente.",
+  },
   "swipeCard.compatVeryHigh": {
     en: "Very high", zh: "非常高", hi: "बहुत उच्च", es: "Muy alta", fr: "Très élevée", ar: "مرتفعة جدًا", bn: "খুব বেশি", pt: "Muito alta", ru: "Очень высокая", ur: "بہت زیادہ",
   },
@@ -1577,6 +1623,12 @@ const TRANSLATIONS: Record<string, Record<SupportedLanguage, string>> = {
   },
   "swipeCard.voiceNote": {
     en: "Voice note", zh: "语音介绍", hi: "वॉइस नोट", es: "Nota de voz", fr: "Note vocale", ar: "ملاحظة صوتية", bn: "ভয়েস নোট", pt: "Nota de voz", ru: "Голосовая заметка", ur: "وائس نوٹ",
+  },
+  "swipeCard.datingProfileOnly": {
+    en: "Full profile unlocks after a match.",
+    es: "El perfil completo se desbloquea tras un match.",
+    fr: "Le profil complet se débloque après un match.",
+    pt: "O perfil completo desbloqueia após um match.",
   },
   "swipeCard.seeFullProfile": {
     en: "See full profile", zh: "查看完整资料", hi: "पूरा प्रोफ़ाइल देखें", es: "Ver perfil completo", fr: "Voir le profil complet", ar: "عرض الملف الكامل", bn: "পূর্ণ প্রোফাইল দেখুন", pt: "Ver perfil completo", ru: "Полный профиль", ur: "مکمل پروفائل دیکھیں",

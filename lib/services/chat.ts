@@ -2,6 +2,12 @@ import { api } from '../api'
 import { extractApiRows } from '../extract-api-rows'
 import { extractMessageRows, normalizeChatMessage } from '../chat-messages'
 import type { Chat, Message, SendMessageRequest } from '../types'
+import {
+  contextHeaders,
+  contextQuery,
+  type OpenChatOptions,
+  type SparkdViewerContext,
+} from '../dm-eligibility'
 
 const MESSAGES_BASE = '/api/messages'
 
@@ -24,8 +30,14 @@ export const chatService = {
     )
   },
 
-  async openChat(userId: string): Promise<Chat> {
-    const chat = await api.post<Chat & { id?: string }>(`/api/chat/open/${userId}`)
+  async openChat(userId: string, options?: OpenChatOptions): Promise<Chat> {
+    const context: SparkdViewerContext = options?.context ?? "SOCIAL"
+    const qs = contextQuery(context)
+    const chat = await api.post<Chat & { id?: string }>(
+      `/api/chat/open/${encodeURIComponent(userId)}?${qs}`,
+      { context },
+      { headers: contextHeaders(context) }
+    )
     return { ...chat, chatId: String(chat.chatId ?? chat.id ?? '') }
   },
 

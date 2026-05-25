@@ -208,9 +208,10 @@ async function request<T>(
 
 export const api = {
   /** GET con unwrap automático de `Page.content` (mensajes, notificaciones, etc.). */
-  get: async <T>(endpoint: string) => {
+  get: async <T>(endpoint: string, init?: RequestInit) => {
     const raw = await request<unknown>(endpoint, {
       method: "GET",
+      ...init,
       ...(endpoint.includes("/api/profile/me")
         ? { cache: "no-store" as RequestCache }
         : {}),
@@ -227,9 +228,10 @@ export const api = {
         : {}),
     }),
 
-  post: <T>(endpoint: string, body?: unknown) =>
+  post: <T>(endpoint: string, body?: unknown, init?: RequestInit) =>
     request<T>(endpoint, {
       method: "POST",
+      ...init,
       body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
     }),
 

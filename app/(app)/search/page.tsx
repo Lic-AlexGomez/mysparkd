@@ -10,6 +10,10 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Search, Loader2, User, Hash, FileText, TrendingUp, X } from "lucide-react"
 import { PostCard } from "@/components/feed/post-card"
+import { useExperienceMode } from "@/hooks/use-experience-mode"
+import { useI18n } from "@/lib/i18n"
+import { isDatingOnlySearchMode } from "@/lib/dm-eligibility"
+import Link from "next/link"
 
 interface SearchResults {
   users: UserProfile[]
@@ -20,6 +24,9 @@ interface SearchResults {
 export default function SearchPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const experienceMode = useExperienceMode()
+  const { t, te } = useI18n()
+  const datingSearchOnly = isDatingOnlySearchMode(experienceMode)
 
   const [query, setQuery] = useState(searchParams.get("q") || "")
   const [activeTab, setActiveTab] = useState<"all" | "users" | "posts" | "hashtags">("all")
@@ -51,6 +58,7 @@ export default function SearchPage() {
   const doSearch = useCallback(async (q: string) => {
     const trimmed = q.trim()
     if (!trimmed) return
+    if (datingSearchOnly) return
     setIsLoading(true)
     setHasSearched(true)
     setAutocomplete(null)
@@ -97,9 +105,10 @@ export default function SearchPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [datingSearchOnly])
 
   const handleQueryChange = (val: string) => {
+    if (datingSearchOnly) return
     setQuery(val)
     if (debounceRef.current) clearTimeout(debounceRef.current)
     if (val.length >= 2) {
@@ -170,17 +179,30 @@ export default function SearchPage() {
     <div className="mx-auto max-w-2xl px-4 py-6">
       <h1 className="text-2xl font-bold mb-4">Buscar</h1>
 
+      {datingSearchOnly && (
+        <div className="mb-6 rounded-xl border border-primary/25 bg-primary/5 p-4 text-center">
+          <p className="text-sm text-foreground">{t("dm.datingSearchRestricted")}</p>
+          <Link
+            href="/matches"
+            className="mt-3 inline-block text-sm font-semibold text-primary hover:underline"
+          >
+            {t("dm.searchMatchesOnly")}
+          </Link>
+        </div>
+      )}
+
       {/* Search input */}
       <div className="relative mb-6">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
         <Input
           ref={inputRef}
-          placeholder="Buscar usuarios, posts, #hashtags..."
+          placeholder={datingSearchOnly ? t("dm.searchMatchesOnly") : "Buscar usuarios, posts, #hashtags..."}
           value={query}
           onChange={(e) => handleQueryChange(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSearch()}
           className="pl-10 pr-24 h-12"
           autoFocus
+          disabled={datingSearchOnly}
         />
         {query && (
           <button
@@ -192,7 +214,7 @@ export default function SearchPage() {
         )}
         <Button
           onClick={handleSearch}
-          disabled={isLoading || !query.trim()}
+          disabled={datingSearchOnly || isLoading || !query.trim()}
           className="absolute right-1 top-1/2 -translate-y-1/2 h-10"
         >
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Buscar"}

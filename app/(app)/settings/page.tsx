@@ -891,6 +891,9 @@ export default function SettingsPage() {
                 </button>
               ))}
             </div>
+            <p className="mt-3 text-xs text-muted-foreground leading-relaxed">
+              {t("dm.accountModeIsolationHint")}
+            </p>
             <Button
               type="button"
               onClick={saveExperience}

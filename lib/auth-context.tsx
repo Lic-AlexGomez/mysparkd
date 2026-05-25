@@ -152,18 +152,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (profile.username) {
         localStorage.setItem("sparkd_username", profile.username)
       }
-    } catch (error) {
+    } catch {
       const savedUser = localStorage.getItem("sparkd_user")
       if (savedUser) {
-        let parsed = normalizeProfileFromApi(
-          JSON.parse(savedUser) as UserProfile
-        )
-        parsed = mergeProfileWithStashedLoginAccountType(parsed)
-        setUser(parsed)
-        localStorage.setItem("sparkd_user", JSON.stringify(parsed))
-      } else {
-        setUser(null)
+        try {
+          let parsed = normalizeProfileFromApi(
+            JSON.parse(savedUser) as UserProfile
+          )
+          parsed = mergeProfileWithStashedLoginAccountType(parsed)
+          setUser(parsed)
+          localStorage.setItem("sparkd_user", JSON.stringify(parsed))
+          return
+        } catch {
+          localStorage.removeItem("sparkd_user")
+        }
       }
+      setUser(null)
+      setToken(null)
+      localStorage.removeItem("sparkd_token")
+      localStorage.removeItem("sparkd_user_id")
     }
   }, [])
 

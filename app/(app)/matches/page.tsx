@@ -4,6 +4,13 @@ import { useState, useEffect, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { api } from "@/lib/api"
 import { chatService } from "@/lib/services/chat"
+import { profileService } from "@/lib/services/profile"
+import {
+  DmEligibilityBlockedError,
+  eligibilityMessageKey,
+  ensureCanOpenDm,
+  getProfilePath,
+} from "@/lib/dm-eligibility"
 import { useAuth } from "@/lib/auth-context"
 import type { Match, Chat } from "@/lib/types"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -18,7 +25,7 @@ import { useI18n } from "@/lib/i18n"
 import { LikesSection } from "@/components/matches/likes-section"
 
 export default function MatchesPage() {
-  const { te } = useI18n()
+  const { te, t } = useI18n()
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user } = useAuth()
@@ -32,8 +39,14 @@ export default function MatchesPage() {
       const withPhotos = await Promise.all(
         data.map(async (match) => {
           try {
-            const profile = await api.get<any>(`/api/profile/${match.userId}`)
-            return { ...match, photoUrl: profile.photos?.[0]?.url || profile.photoUrl, bio: profile.bio, edad: profile.edad, apellidos: profile.apellidos }
+            const profile = await profileService.getProfile(match.userId, { context: "DATING" })
+            if (!profile) return match
+            return {
+              ...match,
+              photoUrl: profile.photos?.[0]?.url || profile.profilePictureUrl,
+              bio: profile.bio,
+              apellidos: "",
+            }
           } catch { return match }
         })
       )
@@ -49,9 +62,17 @@ export default function MatchesPage() {
 
   const handleChat = async (userId: string) => {
     try {
-      const chat = await chatService.openChat(userId)
+      await ensureCanOpenDm(userId, "DATING")
+      const chat = await chatService.openChat(userId, { context: "DATING" })
       router.push(`/chat/${encodeURIComponent(chat.chatId)}`)
-    } catch { toast.error(te("Error al abrir chat", "Error opening chat")) }
+    } catch (err) {
+      if (err instanceof DmEligibilityBlockedError) {
+        const key = eligibilityMessageKey(err.eligibility.reason)
+        toast.error(key ? t(key) : te("No puedes abrir este chat", "You cannot open this chat"))
+        return
+      }
+      toast.error(te("Error al abrir chat", "Error opening chat"))
+    }
   }
 
   const handleUnmatch = async (userId: string) => {
@@ -134,7 +155,7 @@ export default function MatchesPage() {
                     <div className="relative p-5">
                       <div className="flex items-start gap-4 mb-4">
                         <div className="relative">
-                          <Avatar className="h-20 w-20 cursor-pointer border-4 border-secondary/30 ring-4 ring-secondary/10 group-hover:scale-110 transition-transform" onClick={() => router.push(`/profile/${match.userId}`)}>
+                          <Avatar className="h-20 w-20 cursor-pointer border-4 border-secondary/30 ring-4 ring-secondary/10 group-hover:scale-110 transition-transform" onClick={() => router.push(getProfilePath(match.userId, "DATING"))}>
                             {match.photoUrl && <AvatarImage src={match.photoUrl} alt={match.nombre} className="object-cover" />}
                             <AvatarFallback className="bg-gradient-to-br from-secondary/20 to-secondary/10 text-secondary font-bold text-xl">{match.nombre?.[0]?.toUpperCase() || "?"}</AvatarFallback>
                           </Avatar>
@@ -146,7 +167,7 @@ export default function MatchesPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-bold text-xl text-foreground truncate cursor-pointer hover:text-primary hover:underline" onClick={() => router.push(`/profile/${match.userId}`)}>
+                            <h3 className="font-bold text-xl text-foreground truncate cursor-pointer hover:text-primary hover:underline" onClick={() => router.push(getProfilePath(match.userId, "DATING"))}>
                               {match.nombre}{match.apellidos ? ` ${match.apellidos}` : ""}
                             </h3>
                             {match.edad && <span className="text-lg text-muted-foreground">{match.edad}</span>}
