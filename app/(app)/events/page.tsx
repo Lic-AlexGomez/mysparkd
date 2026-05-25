@@ -253,6 +253,9 @@ export default function EventsPage() {
     plans: [] as Plan[],
   })
 
+  const [pendingGroupInvites, setPendingGroupInvites] = useState<any[]>([])
+  const [isRespondingInvite, setIsRespondingInvite] = useState<string | null>(null)
+
   const [pulseCoords, setPulseCoords] = useState<{ lat: number; lng: number } | null>(null)
   useEffect(() => {
     if (meetupCoords?.latitude != null && meetupCoords?.longitude != null) {
@@ -283,6 +286,30 @@ export default function EventsPage() {
       ...prev,
       plans: prev.plans.includes(plan) ? prev.plans.filter((p) => p !== plan) : [...prev.plans, plan],
     }))
+
+  useEffect(() => {
+    if (!user?.userId) return
+    eventService.groupJoinRequests.myPending()
+      .then((rows) => setPendingGroupInvites(Array.isArray(rows) ? rows : []))
+      .catch(() => {/* silencioso */})
+  }, [user?.userId])
+
+  const handleRespondGroupInvite = async (requestId: string, accept: boolean) => {
+    setIsRespondingInvite(requestId)
+    try {
+      await eventService.groupJoinRequests.respond(requestId, accept)
+      setPendingGroupInvites((prev) => prev.filter((r) => r.id !== requestId))
+      if (accept) {
+        toast.success(te("Invitación aceptada. Cuando todos acepten llegará al organizador.", "Invitation accepted. When everyone accepts, the organizer will be notified."))
+      } else {
+        toast.success(te("Invitación rechazada.", "Invitation declined."))
+      }
+    } catch (error: any) {
+      toast.error(error?.message || te("No se pudo responder", "Could not respond"))
+    } finally {
+      setIsRespondingInvite(null)
+    }
+  }
 
   const loadEvents = async () => {
     setIsLoading(true)
@@ -748,6 +775,51 @@ export default function EventsPage() {
           {te("Crear", "Create")}
         </Button>
       </div>
+
+      {/* Invitaciones grupales pendientes */}
+      {pendingGroupInvites.length > 0 && (
+        <div className="mb-6 space-y-3">
+          <h2 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+            <Users className="size-4 text-primary" aria-hidden />
+            {te("Invitaciones grupales pendientes", "Pending group invitations")}
+          </h2>
+          {pendingGroupInvites.map((invite: any) => (
+            <div
+              key={invite.id}
+              className="rounded-2xl border border-primary/25 bg-primary/6 px-4 py-3 shadow-sm"
+            >
+              <p className="text-sm font-medium text-foreground">
+                <span className="font-semibold">@{invite.inviterUsername}</span>
+                {te(` te invitó a "${invite.eventTitle}"`, ` invited you to "${invite.eventTitle}"`)}
+              </p>
+              {invite.message ? (
+                <p className="mt-0.5 text-xs italic text-muted-foreground">"{invite.message}"</p>
+              ) : null}
+              <div className="mt-2.5 flex gap-2">
+                <Button
+                  size="sm"
+                  className="h-7 flex-1 rounded-xl text-xs"
+                  disabled={isRespondingInvite === invite.id}
+                  onClick={() => handleRespondGroupInvite(invite.id, true)}
+                >
+                  {isRespondingInvite === invite.id
+                    ? <Loader2 className="size-3 animate-spin" aria-hidden />
+                    : te("Aceptar", "Accept")}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 flex-1 rounded-xl text-xs"
+                  disabled={isRespondingInvite === invite.id}
+                  onClick={() => handleRespondGroupInvite(invite.id, false)}
+                >
+                  {te("Rechazar", "Decline")}
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {(experienceMode === "SOCIAL" || experienceMode === "BOTH") && <NearbyActivityLayer context="events" />}
 

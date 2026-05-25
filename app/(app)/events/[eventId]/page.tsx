@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { eventService } from "@/lib/services/event"
-import { recordEventAttendance, recordJoinMeetup } from "@/lib/services/moments"
+import { recordEventAttendance } from "@/lib/services/moments"
 import { deriveEventChatPhase, preEventChatService } from "@/lib/services/pre-event-chat"
 import { followService } from "@/lib/services/follow"
 import { ApiError, api } from "@/lib/api"
@@ -47,15 +47,17 @@ import {
   Smile,
   Star,
   Trash2,
+  CheckCircle2,
+  Clock,
   UserMinus,
   UserPlus,
   Users,
   UserX,
   Volume2,
   VolumeX,
+  XCircle,
   Zap,
 } from "lucide-react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import type {
   EventCapacityUpdate,
   EventGroupJoinRequest,
@@ -73,6 +75,8 @@ import { useI18n } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 import { EventMutualPlansInline } from "@/components/mutual-plans/event-mutual-inline"
 import { PreEventChatHub } from "@/components/events/pre-event-chat-hub"
+import { JoinMeetupDialog } from "@/components/events/join-meetup-dialog"
+import type { JoinEligibleUser } from "@/components/events/join-meetup-dialog"
 import QRCode from "qrcode"
 
 const normalizeMessageId = (raw: any) => String(raw?.id || raw?.messageId || "")
@@ -442,7 +446,7 @@ export default function EventDetailPage() {
   const chatFileInputRef = useRef<HTMLInputElement>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSending, setIsSending] = useState(false)
-  const [isJoining, setIsJoining] = useState(false)
+  const [joinDialogOpen, setJoinDialogOpen] = useState(false)
   const [messageText, setMessageText] = useState("")
   /** UX tipo chat 1:1: hover / tap para barra de acciones */
   const [activeEventMsgKey, setActiveEventMsgKey] = useState<string | null>(null)
@@ -482,6 +486,11 @@ export default function EventDetailPage() {
   const [eligibleInviteesLoading, setEligibleInviteesLoading] = useState(false)
   const [isCreatingSoloJoin, setIsCreatingSoloJoin] = useState(false)
   const [isCreatingGroupInvite, setIsCreatingGroupInvite] = useState(false)
+  const [messagePage, setMessagePage] = useState(0)
+  const [hasMoreMessages, setHasMoreMessages] = useState(true)
+  const [isLoadingOlderMessages, setIsLoadingOlderMessages] = useState(false)
+  const [myPendingInvitation, setMyPendingInvitation] = useState<EventGroupJoinRequest | null>(null)
+  const [isRespondingToInvitation, setIsRespondingToInvitation] = useState(false)
   const [selectedInvitees, setSelectedInvitees] = useState<GroupInviteEligibleUser[]>([])
   const myUserId = String(user?.userId || "")
   const myMember = members.find((m) => String(m.userId) === myUserId)
@@ -526,7 +535,7 @@ export default function EventDetailPage() {
       let groupCatalogMissing = false
 
       try {
-        msgRows = await eventService.groupMessages.list(eventId)
+        msgRows = await eventService.groupMessages.list(eventId, 0, 50)
       } catch (err: unknown) {
         if (err instanceof ApiError && err.status === 404) {
           groupCatalogMissing = true
@@ -558,11 +567,13 @@ export default function EventDetailPage() {
       setEventData(detail)
       void preEventChatService.ensureRoom(eventId)
 
-      setMessages(
-        (Array.isArray(msgRows) ? msgRows : []).map((m) =>
-          withNormalizedPoll({ ...m, id: normalizeMessageId(m) })
-        )
+      const normalizedMsgs = (Array.isArray(msgRows) ? msgRows : []).map((m) =>
+        withNormalizedPoll({ ...m, id: normalizeMessageId(m) })
       )
+      setMessages(normalizedMsgs)
+      setMessagePage(0)
+      setHasMoreMessages(normalizedMsgs.length === 50)
+
       const normalizedMembers = Array.isArray(memberRows) ? memberRows : []
       setMembers(normalizedMembers)
 
@@ -575,6 +586,18 @@ export default function EventDetailPage() {
         slowMode: Boolean((detail as any)?.slowMode),
         adminOnlyMode: Boolean((detail as any)?.adminOnlyMode),
       })
+
+      // Si no soy miembro, verifico si tengo invitaciones pendientes para este evento
+      if (!isAdminLoaded && myUserId) {
+        try {
+          const pendingInvites = await eventService.groupJoinRequests.myPending()
+          const mine = (Array.isArray(pendingInvites) ? pendingInvites : [])
+            .find((r) => String(r.eventId) === String(eventId)) ?? null
+          setMyPendingInvitation(mine)
+        } catch {
+          /* silencioso */
+        }
+      }
 
       if (isAdminLoaded) {
         const [links, pendingUsers, pendingRequests] = await Promise.all([
@@ -615,6 +638,43 @@ export default function EventDetailPage() {
     if (!eventId) return
     void loadEvent()
   }, [eventId])
+
+  const loadOlderMessages = async () => {
+    if (isLoadingOlderMessages || !hasMoreMessages) return
+    setIsLoadingOlderMessages(true)
+    try {
+      const nextPage = messagePage + 1
+      const older = await eventService.groupMessages.list(eventId, nextPage, 50)
+      const normalized = (Array.isArray(older) ? older : []).map((m) =>
+        withNormalizedPoll({ ...m, id: normalizeMessageId(m) })
+      )
+      if (normalized.length < 50) setHasMoreMessages(false)
+      setMessages((prev) => [...normalized, ...prev])
+      setMessagePage(nextPage)
+    } catch {
+      toast.error(te("No se pudieron cargar mensajes anteriores", "Could not load older messages"))
+    } finally {
+      setIsLoadingOlderMessages(false)
+    }
+  }
+
+  const handleRespondToInvitation = async (requestId: string, accept: boolean) => {
+    setIsRespondingToInvitation(true)
+    try {
+      await eventService.groupJoinRequests.respond(requestId, accept)
+      setMyPendingInvitation(null)
+      if (accept) {
+        toast.success(te("Invitación aceptada. Cuando todos acepten, llegará al organizador.", "Invitation accepted. When everyone accepts, the organizer will be notified."))
+      } else {
+        toast.success(te("Invitación rechazada. La solicitud grupal fue cancelada.", "Invitation declined. The group request has been cancelled."))
+      }
+      await loadEvent()
+    } catch (error: any) {
+      toast.error(error?.message || te("No se pudo responder a la invitación", "Could not respond to the invitation"))
+    } finally {
+      setIsRespondingToInvitation(false)
+    }
+  }
 
   useEffect(() => {
     const tab = String(searchParams.get("tab") || "").toLowerCase()
@@ -758,36 +818,6 @@ export default function EventDetailPage() {
       }
       video.src = objectUrl
     })
-
-  const handleJoin = async () => {
-    setIsJoining(true)
-    try {
-      await eventService.join(eventId)
-      recordJoinMeetup({
-        eventId,
-        eventTitle: String((eventData as any)?.title || "").trim() || undefined,
-        zone: String(
-          (eventData as any)?.zone ||
-            (eventData as any)?.locationZone ||
-            (eventData as any)?.location_zone ||
-            ""
-        ).trim() || undefined,
-        user: user
-          ? {
-              userId: String(user.userId),
-              username: user.username,
-              profilePictureUrl: user.profilePictureUrl,
-            }
-          : undefined,
-      })
-      toast.success(te("Solicitud enviada", "Request sent"))
-      await loadEvent()
-    } catch (error: any) {
-      toast.error(error?.message || te("No se pudo solicitar participación", "Could not request participation"))
-    } finally {
-      setIsJoining(false)
-    }
-  }
 
   const handleSend = async () => {
     let content = messageText.trim()
@@ -1307,7 +1337,8 @@ export default function EventDetailPage() {
   }
 
   useEffect(() => {
-    if (isLoading || !myUserId || !eventId || isAdmin || activeTab !== "requests") return
+    if (isLoading || !myUserId || !eventId || isAdmin) return
+    if (activeTab !== "requests" && !joinDialogOpen) return
     let cancelled = false
     ;(async () => {
       setEligibleInviteesLoading(true)
@@ -1339,7 +1370,7 @@ export default function EventDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [activeTab, eventId, isAdmin, isLoading, members, myUserId])
+  }, [activeTab, eventId, isAdmin, isLoading, joinDialogOpen, members, myUserId])
 
   const filteredEligibleInvitees = useMemo(() => {
     const q = inviteeQuery.trim().toLowerCase()
@@ -1445,12 +1476,82 @@ export default function EventDetailPage() {
               <ArrowLeft className="mr-2 size-4" aria-hidden />
               {te("Eventos", "Events")}
             </Button>
-            {!isAdmin && !isModerator && !isGuest && (
-              <Button type="button" onClick={handleJoin} disabled={isJoining} className="shrink-0 rounded-xl sm:ml-auto">
-                {isJoining ? te("Enviando...", "Sending...") : te("Solicitar participación", "Request participation")}
+            {!isAdmin && !isModerator && !isGuest && !myPendingInvitation && (
+              <Button type="button" onClick={() => setJoinDialogOpen(true)} className="shrink-0 rounded-xl sm:ml-auto">
+                {te("Unirme", "Join")}
               </Button>
             )}
           </div>
+
+          {/* Banner: invitación de grupo pendiente */}
+          {myPendingInvitation && (
+            <div className="mt-4 rounded-2xl border border-primary/30 bg-primary/8 px-4 py-4 shadow-sm">
+              <p className="text-sm font-semibold text-foreground">
+                {te(
+                  `@${myPendingInvitation.inviterUsername} te invitó a unirte en grupo`,
+                  `@${myPendingInvitation.inviterUsername} invited you to join as a group`
+                )}
+              </p>
+              {myPendingInvitation.message ? (
+                <p className="mt-1 text-sm italic text-muted-foreground">"{myPendingInvitation.message}"</p>
+              ) : null}
+              <p className="mt-1 text-xs text-muted-foreground">
+                {te(
+                  "Si aceptas, esperamos a que todos acepten antes de notificar al organizador. Si alguien rechaza, la solicitud se cancela.",
+                  "If you accept, we wait for everyone to accept before notifying the organizer. If anyone declines, the request is cancelled."
+                )}
+              </p>
+              {/* Other invitees and their statuses */}
+              {myPendingInvitation.members.length > 0 && (
+                <div className="mt-3 space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    {te("Participantes del grupo", "Group participants")}
+                  </p>
+                  {myPendingInvitation.members.map((m) => (
+                    <div key={m.userId} className="flex items-center gap-2 text-sm">
+                      {m.status === "ACCEPTED" ? (
+                        <CheckCircle2 className="size-3.5 shrink-0 text-emerald-500" aria-hidden />
+                      ) : m.status === "DECLINED" ? (
+                        <XCircle className="size-3.5 shrink-0 text-destructive" aria-hidden />
+                      ) : (
+                        <Clock className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                      )}
+                      <span className={m.status === "DECLINED" ? "text-muted-foreground line-through" : "text-foreground"}>
+                        @{m.username}
+                      </span>
+                      <span className="ml-auto text-xs text-muted-foreground">
+                        {m.status === "ACCEPTED"
+                          ? te("Aceptó", "Accepted")
+                          : m.status === "DECLINED"
+                          ? te("Rechazó", "Declined")
+                          : te("Pendiente", "Pending")}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="mt-3 flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => handleRespondToInvitation(myPendingInvitation.id, true)}
+                  disabled={isRespondingToInvitation}
+                  className="flex-1 rounded-xl"
+                >
+                  {isRespondingToInvitation ? <Loader2 className="mr-2 size-4 animate-spin" aria-hidden /> : null}
+                  {te("Aceptar", "Accept")}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleRespondToInvitation(myPendingInvitation.id, false)}
+                  disabled={isRespondingToInvitation}
+                  className="flex-1 rounded-xl"
+                >
+                  {te("Rechazar", "Decline")}
+                </Button>
+              </div>
+            </div>
+          )}
 
           <div className="mt-6 flex flex-wrap items-center gap-2">
             <Badge variant="outline" className="rounded-lg border-border/70 font-semibold uppercase tracking-wide">
@@ -1698,6 +1799,21 @@ export default function EventDetailPage() {
                   aria-hidden
                 />
                 <div className="relative z-[2] max-h-[min(560px,72vh)] min-h-[min(280px,38vh)] space-y-3 overflow-y-auto overflow-x-hidden p-4">
+                  {hasMoreMessages && (
+                    <div className="flex justify-center pb-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={loadOlderMessages}
+                        disabled={isLoadingOlderMessages}
+                        className="h-7 rounded-full bg-background/70 px-3 text-xs backdrop-blur-sm hover:bg-background/90"
+                      >
+                        {isLoadingOlderMessages
+                          ? <Loader2 className="size-3 animate-spin" aria-hidden />
+                          : te("Cargar mensajes anteriores", "Load older messages")}
+                      </Button>
+                    </div>
+                  )}
                 {sortedMessages.map((m, idx) => {
                   const mine = String(m.senderId || "") === myUserId
                   const isSystemMessage = Boolean(m.system)
@@ -2812,6 +2928,40 @@ export default function EventDetailPage() {
         )}
       </Tabs>
       </div>
+
+      <JoinMeetupDialog
+        open={joinDialogOpen}
+        onOpenChange={setJoinDialogOpen}
+        availableSpots={maxGuests > 0 ? Math.max(0, maxGuests - approvedCount) : null}
+        eligiblePool={eligibleInviteesPool as JoinEligibleUser[]}
+        eligibleLoading={eligibleInviteesLoading}
+        te={te}
+        onSoloJoin={async (msg) => {
+          setIsCreatingSoloJoin(true)
+          try {
+            await eventService.groupJoinRequests.create(eventId, [], msg)
+            toast.success(te("Solicitud enviada", "Request sent"))
+            await loadEvent()
+          } finally {
+            setIsCreatingSoloJoin(false)
+          }
+        }}
+        onGroupJoin={async (invitees, msg) => {
+          setIsCreatingGroupInvite(true)
+          try {
+            const ids = invitees.map((u) => u.userId)
+            await eventService.groupJoinRequests.create(eventId, ids, msg)
+            toast.success(
+              te(
+                "Solicitud grupal enviada. Todos deben aceptar antes de que llegue al organizador.",
+                "Group request sent. Everyone must accept before it reaches the organizer."
+              )
+            )
+          } finally {
+            setIsCreatingGroupInvite(false)
+          }
+        }}
+      />
     </div>
   )
 }
