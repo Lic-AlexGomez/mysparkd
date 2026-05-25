@@ -396,8 +396,11 @@ export const eventService = {
         return null
       }
     },
-    create: (eventId: string, inviteeUserIds: string[]) =>
-      api.post<EventGroupJoinRequest>(`/api/events/${eventId}/group/join-requests`, { inviteeUserIds }),
+    create: (eventId: string, inviteeUserIds: string[], message?: string) =>
+      api.post<EventGroupJoinRequest>(`/api/events/${eventId}/group/join-requests`, {
+        inviteeUserIds,
+        ...(message?.trim() ? { message: message.trim() } : {}),
+      }),
     respond: (requestId: string, accept: boolean) =>
       api.post<EventGroupJoinRequest>(`/api/group-join-requests/${requestId}/respond`, { accept }),
     myPending: () =>

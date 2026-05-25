@@ -547,6 +547,7 @@ export interface EventGroupMessage {
   editedAt?: string | null
   deleted: boolean
   system: boolean
+  pinned?: boolean
   mediaType?: EventGroupMediaType | null
   mediaUrl?: string | null
   durationSeconds?: number | null
@@ -591,6 +592,7 @@ export interface EventGroupJoinRequest {
   inviterId: string
   inviterUsername: string
   inviterProfilePictureUrl?: string | null
+  message?: string | null
   status: EventGroupInviteRequestStatus
   createdAt: string
   members: EventGroupJoinRequestMember[]

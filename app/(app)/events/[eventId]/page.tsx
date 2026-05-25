@@ -477,6 +477,7 @@ export default function EventDetailPage() {
   const [locationCoords, setLocationCoords] = useState<{ latitude: number; longitude: number } | null>(null)
   const [isUpdatingLocation, setIsUpdatingLocation] = useState(false)
   const [inviteeQuery, setInviteeQuery] = useState("")
+  const [inviteMessage, setInviteMessage] = useState("")
   const [eligibleInviteesPool, setEligibleInviteesPool] = useState<GroupInviteEligibleUser[]>([])
   const [eligibleInviteesLoading, setEligibleInviteesLoading] = useState(false)
   const [isCreatingSoloJoin, setIsCreatingSoloJoin] = useState(false)
@@ -1190,9 +1191,9 @@ export default function EventDetailPage() {
   const handleSoloGroupJoinRequest = async () => {
     setIsCreatingSoloJoin(true)
     try {
-      await eventService.groupJoinRequests.create(eventId, [])
+      await eventService.groupJoinRequests.create(eventId, [], inviteMessage)
       toast.success(te("Solicitud enviada", "Join request sent"))
-      setInviteeQuery("")
+      setInviteMessage("")
     } catch (error: any) {
       toast.error(error?.message || te("No se pudo enviar la solicitud", "Could not send request"))
     } finally {
@@ -1223,10 +1224,11 @@ export default function EventDetailPage() {
         )
         return
       }
-      await eventService.groupJoinRequests.create(eventId, filteredIds)
+      await eventService.groupJoinRequests.create(eventId, filteredIds, inviteMessage)
       toast.success(te("Solicitud grupal creada", "Group request created"))
       setSelectedInvitees([])
       setInviteeQuery("")
+      setInviteMessage("")
     } catch (error: any) {
       toast.error(error?.message || te("No se pudo crear solicitud grupal", "Could not create group request"))
     } finally {
@@ -1703,11 +1705,22 @@ export default function EventDetailPage() {
                   
                   // Renderizado especial para mensajes de sistema
                   if (isSystemMessage) {
+                    const isPinned = Boolean(m.pinned)
                     return (
                       <div key={key} className="flex justify-center">
-                        <div className="max-w-[90%] rounded-lg border border-border/60 bg-muted/90 px-4 py-2 text-center shadow-sm backdrop-blur-sm dark:bg-muted/85">
-                          <p className="text-xs text-muted-foreground mb-1">
-                            {te("Sistema", "System")} · {formatTime(m.sentAt)}
+                        <div className={cn(
+                          "max-w-[90%] rounded-lg border px-4 py-2 text-center shadow-sm backdrop-blur-sm",
+                          isPinned
+                            ? "border-emerald-400/40 bg-emerald-500/10 dark:bg-emerald-500/15"
+                            : "border-border/60 bg-muted/90 dark:bg-muted/85"
+                        )}>
+                          <p className="text-xs text-muted-foreground mb-1 flex items-center justify-center gap-1">
+                            {isPinned ? (
+                              <span className="font-semibold text-emerald-500">📌 {te("Fijado", "Pinned")}</span>
+                            ) : (
+                              <span>{te("Sistema", "System")}</span>
+                            )}
+                            <span>· {formatTime(m.sentAt)}</span>
                           </p>
                           <p className="text-sm font-medium">
                             {m.deleted ? te("Mensaje eliminado", "Message deleted") : m.content || ""}
@@ -2282,6 +2295,19 @@ export default function EventDetailPage() {
                     "You can join alone, or invite your matches and people you mutually follow (both follow each other). That matches what the server allows."
                   )}
                 </p>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    {te("Mensaje para el organizador (opcional)", "Message to organizer (optional)")}
+                  </label>
+                  <Textarea
+                    value={inviteMessage}
+                    onChange={(e) => setInviteMessage(e.target.value)}
+                    placeholder={te("Escribe algo sobre ti o tu grupo…", "Tell the organizer something about you or your group…")}
+                    maxLength={500}
+                    rows={2}
+                    className={FORM_CONTROL_TEXTAREA}
+                  />
+                </div>
                 <Button
                   type="button"
                   variant="outline"
@@ -2450,26 +2476,67 @@ export default function EventDetailPage() {
                   {pendingGroupRequests.length === 0 ? (
                     <p className="text-sm text-muted-foreground">{te("No hay solicitudes grupales pendientes.", "No pending group requests.")}</p>
                   ) : pendingGroupRequests.map((r) => (
-                    <div key={r.id} className="rounded-lg border border-border p-3 space-y-2">
-                      <p className="font-medium">{r.inviterUsername} · {r.status}</p>
-                      <p className="text-xs text-muted-foreground">{r.members.map((m) => `${m.username} (${m.status})`).join(", ")}</p>
-                      <div className="flex gap-2">
+                    <div key={r.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
+                      {/* Inviter */}
+                      <div className="flex items-center gap-2.5">
+                        <Avatar className="size-9 shrink-0">
+                          {r.inviterProfilePictureUrl ? (
+                            <AvatarImage src={r.inviterProfilePictureUrl} alt="" className="object-cover" />
+                          ) : null}
+                          <AvatarFallback className="text-xs font-bold">
+                            {(r.inviterUsername || "?")[0].toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold">@{r.inviterUsername}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {te("Solicitud grupal", "Group request")} · {r.members.length} {te("persona(s)", "person(s)")}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Message from inviter */}
+                      {r.message ? (
+                        <p className="rounded-lg bg-muted/60 px-3 py-2 text-sm italic text-foreground/80">
+                          &ldquo;{r.message}&rdquo;
+                        </p>
+                      ) : null}
+
+                      {/* Member photo collage */}
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium text-muted-foreground">
+                          {te("Integrantes del grupo", "Group members")}
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {r.members.map((m) => (
+                            <div key={m.userId} className="flex items-center gap-1.5">
+                              <Avatar className="size-7 shrink-0">
+                                {m.profilePictureUrl ? (
+                                  <AvatarImage src={m.profilePictureUrl} alt="" className="object-cover" />
+                                ) : null}
+                                <AvatarFallback className="text-[10px] font-bold">
+                                  {(m.username || "?")[0].toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="text-xs text-muted-foreground">@{m.username}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex gap-2 pt-1">
                         <Button
                           size="sm"
                           onClick={() => handleApproveGroupRequest(r.id)}
                           disabled={!canApproveByAddress}
-                          title={
-                            canApproveByAddress
-                              ? undefined
-                              : te(
-                                  "Configura dirección oficial en Settings",
-                                  "Set official address in Settings"
-                                )
-                          }
+                          title={canApproveByAddress ? undefined : te("Configura dirección oficial en Settings", "Set official address in Settings")}
                         >
-                          {te("Aprobar", "Approve")}
+                          {te("Aprobar grupo", "Approve group")}
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleRejectGroupRequest(r.id)}>{te("Rechazar", "Reject")}</Button>
+                        <Button size="sm" variant="outline" onClick={() => handleRejectGroupRequest(r.id)}>
+                          {te("Rechazar", "Reject")}
+                        </Button>
                       </div>
                     </div>
                   ))}
