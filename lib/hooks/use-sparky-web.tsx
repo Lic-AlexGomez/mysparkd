@@ -108,6 +108,7 @@ export type SparkyWebContextValue = {
   fireReaction: (event: SparkyReactionEvent) => void
   registerDiscoverTarget: (target: Partial<UserProfile> | null) => void
   applyAppearancePatch: (patch: SparkyAppearancePatch | null) => void
+  sparkyMemory: SparkyMemory
 }
 
 const SparkyWebContext = createContext<SparkyWebContextValue | null>(null)
@@ -378,6 +379,9 @@ export function SparkyWebProvider({ children }: { children: ReactNode }) {
   const fireReaction = useCallback(
     (event: SparkyReactionEvent) => {
       const reaction = getSparkyReaction(event)
+      if (reaction.motion === "celebrate" || reaction.motion === "bounce") {
+        /* animación vía shell + presence */
+      }
       if (reaction.phrase && !reaction.silent) {
         const a = routeToContextAnchor(routeKey)
         setAnchor(a)
@@ -446,6 +450,7 @@ export function SparkyWebProvider({ children }: { children: ReactNode }) {
       applyAppearancePatch: (p) => {
         appearancePatch.current = p
       },
+      sparkyMemory,
     }),
     [
       loaded,
@@ -465,6 +470,7 @@ export function SparkyWebProvider({ children }: { children: ReactNode }) {
       closePocket,
       patchSettings,
       fireReaction,
+      sparkyMemory,
     ]
   )
 

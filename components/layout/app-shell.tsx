@@ -24,7 +24,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="min-h-svh bg-background">
           {!isChatRoomRoute && <TopNavbar />}
           <div className={isChatRoomRoute ? "pt-0" : "pt-16"}>
-            <main className="min-h-svh pb-32 lg:pb-32 [&:has(.chat-room)]:pb-0 [&:has(.chat-room)]:min-h-0 [&:has(.chat-room)]:overflow-hidden">
+            <main className="min-h-svh pb-[2.25rem] lg:pb-[2.25rem] [&:has(.chat-room)]:pb-0 [&:has(.chat-room)]:min-h-0 [&:has(.chat-room)]:overflow-hidden">
               {children}
             </main>
           </div>

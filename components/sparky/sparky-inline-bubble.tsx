@@ -45,7 +45,7 @@ export function SparkyInlineBubble({
   return (
     <div
       className={cn(
-        "pointer-events-auto z-[8998] max-w-[280px] rounded-xl border border-primary/30 bg-card p-3 shadow-lg shadow-primary/10",
+        "pointer-events-auto z-[8998] max-w-[260px] rounded-2xl border border-primary/40 bg-card/95 p-2.5 shadow-[0_4px_24px_rgba(0,229,255,0.15)] backdrop-blur-md",
         className
       )}
     >

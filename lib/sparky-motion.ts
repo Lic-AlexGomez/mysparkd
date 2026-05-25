@@ -20,15 +20,15 @@ export type SparkyAnchorPosition = {
 }
 
 export const SPARKY_ANCHOR_POSITION: Record<SparkyAnchor, SparkyAnchorPosition> = {
-  bottomRight: { bottom: 112, right: 16 },
-  bottomLeft: { bottom: 112, left: 16 },
-  nearFeed: { bottom: 140, right: 24 },
-  nearEvents: { bottom: 130, right: 20 },
-  nearSwipeActions: { bottom: 180, right: 12 },
-  nearProfileStats: { bottom: 200, right: 20 },
-  nearSettings: { bottom: 120, right: 24 },
-  nearNavbar: { bottom: 100, right: 16 },
-  centerPeek: { bottom: 160, right: 48 },
-  edgePeekLeft: { bottom: 120, left: 8 },
-  edgePeekRight: { bottom: 120, right: 8 },
+  bottomRight: { bottom: 32, right: 12 },
+  bottomLeft: { bottom: 32, left: 12 },
+  nearFeed: { bottom: 38, right: 16 },
+  nearEvents: { bottom: 36, right: 14 },
+  nearSwipeActions: { bottom: 48, right: 10 },
+  nearProfileStats: { bottom: 54, right: 16 },
+  nearSettings: { bottom: 34, right: 16 },
+  nearNavbar: { bottom: 30, right: 12 },
+  centerPeek: { bottom: 44, right: 40 },
+  edgePeekLeft: { bottom: 34, left: 6 },
+  edgePeekRight: { bottom: 34, right: 6 },
 }
