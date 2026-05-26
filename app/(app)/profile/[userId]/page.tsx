@@ -64,6 +64,7 @@ export default function UserProfilePage() {
   const [following, setFollowing] = useState(false)
   const [pending, setPending] = useState(false)
   const [followedBy, setFollowedBy] = useState(false)
+  const [receivedRequest, setReceivedRequest] = useState(false)
   const [viewPhotoUrl, setViewPhotoUrl] = useState<string | null>(null)
   const [isMessaging, setIsMessaging] = useState(false)
   const [isLiking, setIsLiking] = useState(false)
@@ -98,13 +99,15 @@ export default function UserProfilePage() {
       setFollowing(status.following)
       setPending(status.requestPending)
       setFollowedBy(status.followedBy)
+      setReceivedRequest(status.receivedRequest ?? false)
     } catch {}
   }
 
   const handleAcceptFollower = async () => {
     try {
       await api.post(`/api/follow/accept/${userId}`)
-      setFollowedBy(false)
+      setReceivedRequest(false)
+      setFollowedBy(true)
       toast.success(te("Solicitud aceptada", "Request accepted"))
     } catch {
       toast.error(te("Error al aceptar", "Error accepting"))
@@ -114,7 +117,7 @@ export default function UserProfilePage() {
   const handleRejectFollower = async () => {
     try {
       await api.post(`/api/follow/reject/${userId}`)
-      setFollowedBy(false)
+      setReceivedRequest(false)
       toast.success(te("Solicitud rechazada", "Request rejected"))
     } catch {
       toast.error(te("Error al rechazar", "Error rejecting"))
@@ -382,8 +385,8 @@ export default function UserProfilePage() {
   return (
     <div className="mx-auto max-w-2xl pb-10">
 
-      {/* Banner: esta persona te envió solicitud de seguimiento */}
-      {followedBy && (
+      {/* Banner: esta persona te envió solicitud de seguimiento PENDIENTE */}
+      {receivedRequest && (
         <div className="mx-4 mt-3 mb-1 flex items-center justify-between gap-3 rounded-xl border border-border bg-card/80 px-4 py-3 shadow-sm backdrop-blur-sm">
           <div className="flex items-center gap-2 min-w-0">
             <UserPlus className="h-4 w-4 shrink-0 text-primary" />

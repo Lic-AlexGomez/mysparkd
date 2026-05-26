@@ -160,12 +160,12 @@ export default function NotificationsPage() {
             className="w-full flex items-center gap-3 px-4 py-3 border-b border-border hover:bg-muted/50 transition-colors text-left"
           >
             {/* Avatares apilados (máx 3) */}
-            <div className="relative flex shrink-0" style={{ width: followRequests.length === 1 ? 40 : followRequests.length === 2 ? 52 : 64 }}>
+            <div className="relative shrink-0" style={{ width: followRequests.length === 1 ? 40 : followRequests.length === 2 ? 54 : 68, height: 40 }}>
               {followRequests.slice(0, 3).map((req, i) => (
                 <Avatar
                   key={req.userId}
                   className="h-10 w-10 border-2 border-background absolute"
-                  style={{ left: i * 14 }}
+                  style={{ left: i * 14, zIndex: 3 - i }}
                 >
                   <AvatarImage src={req.profilePictureUrl} />
                   <AvatarFallback className="bg-primary/10 text-primary text-xs">
