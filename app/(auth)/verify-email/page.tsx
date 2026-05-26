@@ -90,6 +90,7 @@ function VerifyEmailForm() {
         } catch {
           router.push("/onboarding")
         }
+        return
       }
       setVerified(true)
       toast.success("Email verificado correctamente")

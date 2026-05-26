@@ -89,7 +89,7 @@ function objectiveFromAccountTypeAndLocal(
 }
 
 export default function SettingsPage() {
-  const { te } = useI18n()
+  const { te, t } = useI18n()
   const { user, logout, refreshProfile } = useAuth()
   const router = useRouter()
   const { permission, requestPermission, isSupported } = usePushNotifications()
@@ -106,6 +106,7 @@ export default function SettingsPage() {
   const [prefLoading, setPrefLoading] = useState(true)
   const [savingPref, setSavingPref] = useState(false)
   const [savingExperience, setSavingExperience] = useState(false)
+  const [showExperienceConfirm, setShowExperienceConfirm] = useState(false)
 
   // Privacy Settings
   const [privacySettings, setPrivacySettings] = useState<PrivacySettings>({
@@ -302,6 +303,17 @@ export default function SettingsPage() {
   const recoveryEmailDisplayLine =
     verifiedRecoveryEmail || pendingRecoveryTargetEmail || ""
 
+  const handleSaveExperienceClick = () => {
+    if (!user) return
+    const nextAccountType = experienceObjectiveToAccountType(objective)
+    const currentAccountType = (user.accountType ?? "").toUpperCase()
+    if (nextAccountType !== currentAccountType) {
+      setShowExperienceConfirm(true)
+    } else {
+      saveExperience()
+    }
+  }
+
   const saveExperience = async () => {
     if (!user) {
       toast.error(te("Inicia sesión para guardar", "Sign in to save"))
@@ -355,7 +367,12 @@ export default function SettingsPage() {
 
       toast.success(te("Experiencia guardada", "Experience saved"))
     } catch (err) {
-      if (err instanceof ApiError) {
+      if (err instanceof ApiError && err.status === 429) {
+        toast.error(te(
+          "Solo puedes cambiar el tipo de cuenta una vez por mes.",
+          "You can only change your account type once per month."
+        ))
+      } else if (err instanceof ApiError) {
         toast.error(err.message)
       } else {
         toast.error(
@@ -896,7 +913,7 @@ export default function SettingsPage() {
             </p>
             <Button
               type="button"
-              onClick={saveExperience}
+              onClick={handleSaveExperienceClick}
               disabled={savingExperience || !user}
               className="mt-3 w-full bg-primary text-primary-foreground hover:bg-primary/90 sm:w-auto"
             >
@@ -908,6 +925,33 @@ export default function SettingsPage() {
               Guardar experiencia
             </Button>
           </div>
+
+          <AlertDialog open={showExperienceConfirm} onOpenChange={setShowExperienceConfirm}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  {te("¿Cambiar tipo de cuenta?", "Change account type?")}
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  {te(
+                    "Solo puedes cambiar el tipo de cuenta una vez por mes. Esta acción no se puede deshacer hasta que pase ese tiempo. ¿Deseas continuar?",
+                    "You can only change your account type once per month. This action cannot be undone until that time passes. Do you want to continue?"
+                  )}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{te("Cancelar", "Cancel")}</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    setShowExperienceConfirm(false)
+                    saveExperience()
+                  }}
+                >
+                  {te("Sí, cambiar", "Yes, change")}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           <div className="p-4 rounded-lg border border-primary/30 bg-card">
             <Label className="text-foreground font-medium mb-3 block">Radio de Feed Local</Label>
             <p className="text-xs text-muted-foreground mb-4">

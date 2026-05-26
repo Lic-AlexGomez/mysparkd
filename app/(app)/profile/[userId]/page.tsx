@@ -172,8 +172,15 @@ export default function UserProfilePage() {
           setFollowing(true)
           toast.success(t("common.following"))
         }
-      } catch {
-        toast.error(te("Error al seguir", "Error following"))
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 429) {
+          toast.error(te(
+            "Alcanzaste el límite de seguimientos por hoy. Actualiza a Premium para seguir sin límites 🚀",
+            "You've reached today's follow limit. Upgrade to Premium to follow without limits 🚀"
+          ), { duration: 5000 })
+        } else {
+          toast.error(te("Error al seguir", "Error following"))
+        }
       }
     }
   }
@@ -213,6 +220,13 @@ export default function UserProfilePage() {
         const msg = (err.message || "").trim()
         if (msg === "PREMIUM_REQUIRED" || msg.includes("PREMIUM_REQUIRED")) {
           setPremiumGateOpen(true)
+          return
+        }
+        if (msg === "PREMIUM_OR_MUTUAL_REQUIRED" || msg.includes("PREMIUM_OR_MUTUAL_REQUIRED")) {
+          toast.error(te(
+            "Para chatear necesitas seguirse mutuamente, tener un match, o ser Premium 👑",
+            "To chat you need to follow each other, have a match, or be Premium 👑"
+          ), { duration: 5000 })
           return
         }
         toast.error(msg || te("No puedes abrir este chat", "You cannot open this chat"))
