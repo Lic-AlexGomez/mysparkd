@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Loader2, MoreHorizontal, MessageCircle, UserPlus, UserCheck, ArrowLeft, Heart, Crown, Trash2, Lock, Clock, Star, X, Clapperboard } from "lucide-react"
+import { Loader2, MoreHorizontal, MessageCircle, UserPlus, UserCheck, ArrowLeft, Heart, Crown, Trash2, Lock, Clock, Star, X, Check, Clapperboard } from "lucide-react"
 import { PostCard } from "@/components/feed/post-card"
 import { ReportModal } from "@/components/feed/report-modal"
 import { toast } from "sonner"
@@ -63,6 +63,7 @@ export default function UserProfilePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [following, setFollowing] = useState(false)
   const [pending, setPending] = useState(false)
+  const [followedBy, setFollowedBy] = useState(false)
   const [viewPhotoUrl, setViewPhotoUrl] = useState<string | null>(null)
   const [isMessaging, setIsMessaging] = useState(false)
   const [isLiking, setIsLiking] = useState(false)
@@ -96,7 +97,28 @@ export default function UserProfilePage() {
       const status = await api.get<{ following: boolean; followedBy: boolean; requestPending: boolean; followBack: boolean }>(`/api/follow/status/${userId}`)
       setFollowing(status.following)
       setPending(status.requestPending)
+      setFollowedBy(status.followedBy)
     } catch {}
+  }
+
+  const handleAcceptFollower = async () => {
+    try {
+      await api.post(`/api/follow/accept/${userId}`)
+      setFollowedBy(false)
+      toast.success(te("Solicitud aceptada", "Request accepted"))
+    } catch {
+      toast.error(te("Error al aceptar", "Error accepting"))
+    }
+  }
+
+  const handleRejectFollower = async () => {
+    try {
+      await api.post(`/api/follow/reject/${userId}`)
+      setFollowedBy(false)
+      toast.success(te("Solicitud rechazada", "Request rejected"))
+    } catch {
+      toast.error(te("Error al rechazar", "Error rejecting"))
+    }
   }
 
   const fetchProfile = useCallback(async () => {
@@ -359,6 +381,33 @@ export default function UserProfilePage() {
 
   return (
     <div className="mx-auto max-w-2xl pb-10">
+
+      {/* Banner: esta persona te envió solicitud de seguimiento */}
+      {followedBy && (
+        <div className="mx-4 mt-3 mb-1 flex items-center justify-between gap-3 rounded-xl border border-border bg-card/80 px-4 py-3 shadow-sm backdrop-blur-sm">
+          <div className="flex items-center gap-2 min-w-0">
+            <UserPlus className="h-4 w-4 shrink-0 text-primary" />
+            <p className="text-sm font-medium text-foreground truncate">
+              {profile.nombres} {te("quiere seguirte", "wants to follow you")}
+            </p>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <button
+              onClick={() => void handleAcceptFollower()}
+              className="flex items-center gap-1 px-3 h-8 rounded-full bg-primary text-black text-xs font-semibold hover:bg-primary/90 transition-colors"
+            >
+              <Check className="h-3.5 w-3.5" /> {te("Aceptar", "Accept")}
+            </button>
+            <button
+              onClick={() => void handleRejectFollower()}
+              className="flex items-center gap-1 px-3 h-8 rounded-full border border-border text-foreground text-xs font-semibold hover:bg-muted transition-colors"
+            >
+              <X className="h-3.5 w-3.5" /> {te("Cancelar", "Decline")}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Cover */}
       <div className="relative">
         <div
