@@ -7,7 +7,7 @@ import { usePremiumStatus } from "@/hooks/use-premium-status"
 import type { UserProfile, SwipeResponse } from "@/lib/types"
 import { SwipeCard } from "@/components/swipes/swipe-card"
 import { MatchModal } from "@/components/swipes/match-modal"
-import { X, Heart, Loader2, Zap, Crown, RefreshCw } from "lucide-react"
+import { X, Heart, Loader2, Zap, Crown, RefreshCw, RotateCcw } from "lucide-react"
 import { AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -29,6 +29,8 @@ export default function SwipesPage() {
   const [showMatch, setShowMatch] = useState(false)
   const [matchedUser, setMatchedUser] = useState<{ id: string; name: string } | null>(null)
   const swipedIdsRef = useRef<Set<string>>(new Set())
+  const lastSwipedProfileRef = useRef<UserProfile | null>(null)
+  const [isRewinding, setIsRewinding] = useState(false)
   const discoverPageRef = useRef(0)
   const hasMoreProfilesRef = useRef(true)
   const isFetchingMoreRef = useRef(false)
@@ -166,6 +168,7 @@ export default function SwipesPage() {
         setShowMatch(true)
       }
       swipedIdsRef.current.add(currentProfile.userId)
+      lastSwipedProfileRef.current = currentProfile
       if (typeof navigator !== "undefined" && "vibrate" in navigator) {
         navigator.vibrate(10)
       }
@@ -196,6 +199,34 @@ export default function SwipesPage() {
       setIsSwiping(false)
     }, shouldAdvance ? 200 : 120)
   }, [profiles, currentIndex, isSwiping, isPremium, swipesRemaining, t])
+
+  const handleRewind = useCallback(async () => {
+    if (isRewinding || isSwiping) return
+    if (!lastSwipedProfileRef.current) {
+      toast.error("No hay ningún swipe para deshacer")
+      return
+    }
+    setIsRewinding(true)
+    try {
+      await api.post("/api/swipes/rewind")
+      const rewound = lastSwipedProfileRef.current
+      lastSwipedProfileRef.current = null
+      swipedIdsRef.current.delete(rewound.userId)
+      setCurrentIndex((prev) => Math.max(0, prev - 1))
+      setShowMatch(false)
+      setMatchedUser(null)
+      toast.success("¡Swipe deshecho! 🔄")
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 403) {
+        toast.error("El Rewind es exclusivo de Premium 👑", { duration: 4000 })
+        router.push("/premium")
+      } else {
+        toast.error(err instanceof ApiError ? err.message : "Error al deshacer el swipe")
+      }
+    } finally {
+      setIsRewinding(false)
+    }
+  }, [isRewinding, isSwiping, router])
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
