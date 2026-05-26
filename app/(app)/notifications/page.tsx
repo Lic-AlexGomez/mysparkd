@@ -45,7 +45,7 @@ export default function NotificationsPage() {
         ),
         api.get<FollowRequest[]>("/api/follow/requests").catch(() => []),
       ])
-      const list = extractApiRows(notifs)
+      const list = extractApiRows<Notification>(notifs)
       setNotifications(list)
       setFollowRequests(Array.isArray(requests) ? requests : [])
       setNextPage(1)
@@ -64,8 +64,8 @@ export default function NotificationsPage() {
       const notifs = await api.get<unknown>(
         `/api/notifications/${user.userId}?page=${nextPage}&size=${NOTIFICATIONS_PAGE_SIZE}`
       )
-      const list = extractApiRows(notifs)
-      setNotifications((prev) => [...prev, ...list])
+      const list = extractApiRows<Notification>(notifs)
+      setNotifications((prev) => [...prev, ...list] as Notification[])
       setNextPage((p) => p + 1)
       setHasMore(list.length >= NOTIFICATIONS_PAGE_SIZE)
     } catch {
@@ -85,20 +85,22 @@ export default function NotificationsPage() {
     return () => document.removeEventListener('click', handleClickOutside)
   }, [])
 
-  const handleAcceptFollow = async (userId: string) => {
+  const handleAcceptFollow = async (userId: string, notificationId?: string) => {
     try {
       await api.post(`/api/follow/accept/${userId}`)
       setFollowRequests(prev => prev.filter(r => r.userId !== userId))
+      if (notificationId) setNotifications(prev => prev.filter(n => n.notificationId !== notificationId))
       toast.success(te("Solicitud aceptada", "Request accepted"))
     } catch {
       toast.error(te("Error al aceptar", "Error accepting"))
     }
   }
 
-  const handleRejectFollow = async (userId: string) => {
+  const handleRejectFollow = async (userId: string, notificationId?: string) => {
     try {
       await api.post(`/api/follow/reject/${userId}`)
       setFollowRequests(prev => prev.filter(r => r.userId !== userId))
+      if (notificationId) setNotifications(prev => prev.filter(n => n.notificationId !== notificationId))
       toast.success(te("Solicitud rechazada", "Request rejected"))
     } catch {
       toast.error(te("Error al rechazar", "Error rejecting"))
@@ -185,45 +187,62 @@ export default function NotificationsPage() {
         </div>
       ) : (
         <div className="divide-y divide-border">
-          {notifications.map((n) => (
-            <div
-              key={n.notificationId}
-              onClick={(e) => {
-                e.stopPropagation()
-                if (expandedId === n.notificationId) {
-                  setExpandedId(null)
-                } else {
-                  setExpandedId(n.notificationId)
-                  handleNotificationClick(n)
-                }
-              }}
-              className={`flex items-start gap-3 px-4 py-3 transition-colors cursor-pointer hover:bg-muted/50 ${!n.read ? "bg-primary/5" : ""}`}
-            >
-              <div className={`mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${!n.read ? "bg-primary/20" : "bg-muted"}`}>
-                <Bell className={`h-4 w-4 ${!n.read ? "text-primary" : "text-muted-foreground"}`} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-foreground">{n.data}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true, locale: es })}
-                </p>
-              </div>
-              {expandedId === n.notificationId && (
-                <div className="flex items-center gap-1">
-                  {!n.read && (
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary"
-                      onClick={(e) => { e.stopPropagation(); markAsRead(n.notificationId) }}>
-                      <Check className="h-3.5 w-3.5" />
-                    </Button>
-                  )}
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                    onClick={(e) => { e.stopPropagation(); deleteNotification(n.notificationId) }}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+          {notifications.map((n) => {
+            const isPendingRequest = followRequests.some(r => r.userId === n.senderId)
+            return (
+              <div
+                key={n.notificationId}
+                onClick={(e) => {
+                  if (isPendingRequest) return
+                  e.stopPropagation()
+                  if (expandedId === n.notificationId) {
+                    setExpandedId(null)
+                  } else {
+                    setExpandedId(n.notificationId)
+                    handleNotificationClick(n)
+                  }
+                }}
+                className={`flex items-start gap-3 px-4 py-3 transition-colors ${isPendingRequest ? "" : "cursor-pointer hover:bg-muted/50"} ${!n.read ? "bg-primary/5" : ""}`}
+              >
+                <div className={`mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${!n.read ? "bg-primary/20" : "bg-muted"}`}>
+                  <Bell className={`h-4 w-4 ${!n.read ? "text-primary" : "text-muted-foreground"}`} />
                 </div>
-              )}
-            </div>
-          ))}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-foreground">{n.data}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true, locale: es })}
+                  </p>
+                </div>
+                {isPendingRequest ? (
+                  <div className="flex gap-2 shrink-0">
+                    <Button size="sm"
+                      onClick={(e) => { e.stopPropagation(); void handleAcceptFollow(n.senderId, n.notificationId) }}
+                      className="h-8 bg-primary text-primary-foreground">
+                      <Check className="h-3.5 w-3.5 mr-1" /> {te("Aceptar", "Accept")}
+                    </Button>
+                    <Button size="sm" variant="outline"
+                      onClick={(e) => { e.stopPropagation(); void handleRejectFollow(n.senderId, n.notificationId) }}
+                      className="h-8">
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ) : expandedId === n.notificationId ? (
+                  <div className="flex items-center gap-1">
+                    {!n.read && (
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary"
+                        onClick={(e) => { e.stopPropagation(); markAsRead(n.notificationId) }}>
+                        <Check className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      onClick={(e) => { e.stopPropagation(); void deleteNotification(n.notificationId) }}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
+            )
+          })}
           {hasMore && notifications.length > 0 && (
             <div className="px-4 py-4 flex justify-center border-t border-border">
               <Button
