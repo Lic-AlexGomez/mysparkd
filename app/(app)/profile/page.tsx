@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Pencil, Loader2, Camera, Newspaper, Bookmark, Heart, Crown,
   MapPin, Globe, Zap, Settings, Trash2, MicOff, Paperclip, CalendarDays, ChevronRight,
-  CalendarClock, Users
+  CalendarClock, Users, X
 } from "lucide-react"
 import { toast } from "sonner"
 import { PostCard } from "@/components/feed/post-card"
@@ -28,6 +28,16 @@ import { eventService } from "@/lib/services/event"
 import type { Event } from "@/lib/types"
 import { useExperienceMode } from "@/hooks/use-experience-mode"
 
+interface FollowerUser {
+  userId: string
+  username: string
+  nombres?: string
+  apellidos?: string
+  profilePictureUrl?: string
+  followStatus?: 'NONE' | 'PENDING' | 'FOLLOWING'
+  visibility?: 'PUBLIC' | 'PRIVATE'
+}
+
 export default function ProfilePage() {
   const { te, t, language } = useI18n()
   const { user, refreshProfile, updateUser, isLoading } = useAuth()
@@ -42,6 +52,44 @@ export default function ProfilePage() {
   const [myParticipatingEvents, setMyParticipatingEvents] = useState<Event[]>([])
   const [eventsTab, setEventsTab] = useState<'created' | 'participating'>('created')
   const [eventsLoading, setEventsLoading] = useState(false)
+
+  const [followListModal, setFollowListModal] = useState<'followers' | 'following' | null>(null)
+  const [followList, setFollowList] = useState<FollowerUser[]>([])
+  const [followListLoading, setFollowListLoading] = useState(false)
+
+  const openFollowList = async (type: 'followers' | 'following') => {
+    if (!user?.userId) return
+    setFollowListModal(type)
+    setFollowListLoading(true)
+    try {
+      const data = await api.get<{ content: FollowerUser[] } | FollowerUser[]>(`/api/follow/${type}/${user.userId}`)
+      const list = Array.isArray(data) ? data : (data as { content: FollowerUser[] }).content ?? []
+      setFollowList(list)
+    } catch {
+      setFollowList([])
+    } finally {
+      setFollowListLoading(false)
+    }
+  }
+
+  const handleRemoveFollower = async (followerId: string) => {
+    try {
+      await api.delete(`/api/follow/follower/${followerId}`)
+      setFollowList(prev => prev.filter(u => u.userId !== followerId))
+      toast.success(te('Seguidor eliminado', 'Follower removed'))
+    } catch {
+      toast.error(te('Error al eliminar seguidor', 'Error removing follower'))
+    }
+  }
+
+  const handleUnfollowFromList = async (u: FollowerUser) => {
+    try {
+      await api.delete(`/api/follow/${u.userId}`)
+      setFollowList(prev => prev.map(x => x.userId === u.userId ? { ...x, followStatus: 'NONE' } : x))
+    } catch (err) {
+      toast.error(te('Error al dejar de seguir', 'Error unfollowing'))
+    }
+  }
 
   const showPremiumBadge = typeof window !== 'undefined'
     ? localStorage.getItem(`sparkd_show_premium_${user?.userId}`) !== 'false'
@@ -372,12 +420,13 @@ export default function ProfilePage() {
         {/* Stats */}
         <div className="mt-5 flex items-center divide-x divide-border/80 rounded-2xl border border-border/60 bg-gradient-to-b from-card to-card/80 shadow-sm ring-1 ring-black/[0.03] dark:from-card/90 dark:to-muted/20 dark:ring-white/[0.06] overflow-hidden">
           {[
-            { value: totalPostsCount, label: "Posts" },
-            { value: followersCount, label: "Seguidores" },
-            { value: followingCount, label: "Siguiendo" },
-            ...(user.eventsCreatedCount !== undefined ? [{ value: user.eventsCreatedCount, label: "Eventos" }] : []),
+            { value: totalPostsCount, label: "Posts", onClick: undefined },
+            { value: followersCount, label: "Seguidores", onClick: () => void openFollowList('followers') },
+            { value: followingCount, label: "Siguiendo", onClick: () => void openFollowList('following') },
+            ...(user.eventsCreatedCount !== undefined ? [{ value: user.eventsCreatedCount, label: "Eventos", onClick: undefined }] : []),
           ].map(stat => (
-            <button key={stat.label} className="flex-1 flex flex-col items-center py-3.5 transition-colors hover:bg-muted/40">
+            <button key={stat.label} onClick={stat.onClick}
+              className="flex-1 flex flex-col items-center py-3.5 transition-colors hover:bg-muted/40">
               <span className="text-xl font-black leading-none tabular-nums tracking-tight">{stat.value}</span>
               <span className="text-[11px] font-medium text-muted-foreground mt-1">{stat.label}</span>
             </button>
@@ -753,6 +802,54 @@ export default function ProfilePage() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* ── FOLLOW LIST MODAL ── */}
+      <Dialog open={!!followListModal} onOpenChange={() => setFollowListModal(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogTitle>{followListModal === 'followers' ? te('Seguidores', 'Followers') : te('Siguiendo', 'Following')}</DialogTitle>
+          {followListLoading ? (
+            <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+          ) : followList.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">{te("No hay usuarios", "No users")}</p>
+          ) : (
+            <div className="flex flex-col gap-2 max-h-96 overflow-y-auto pr-1">
+              {followList.map(u => {
+                const fullName = [u.nombres, u.apellidos].filter(Boolean).join(' ')
+                return (
+                  <div key={u.userId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50">
+                    <button onClick={() => { setFollowListModal(null); router.push(`/profile/${u.userId}`) }}
+                      className="flex items-center gap-3 flex-1 text-left min-w-0">
+                      <Avatar className="h-10 w-10 shrink-0">
+                        <AvatarImage src={u.profilePictureUrl} />
+                        <AvatarFallback className="bg-primary/10 text-primary">{u.username?.[0]?.toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">{u.username}</p>
+                        {fullName && <p className="text-xs text-muted-foreground truncate">{fullName}</p>}
+                      </div>
+                    </button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {followListModal === 'following' && u.followStatus === 'FOLLOWING' && (
+                        <button onClick={() => void handleUnfollowFromList(u)}
+                          className="text-xs px-3 py-1 rounded-full border border-border text-foreground hover:bg-muted transition-colors">
+                          {te('Siguiendo', 'Following')}
+                        </button>
+                      )}
+                      {followListModal === 'followers' && (
+                        <button onClick={() => handleRemoveFollower(u.userId)}
+                          className="h-8 w-8 rounded-full hover:bg-destructive/10 flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors"
+                          title={te("Eliminar seguidor", "Remove follower")}>
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* ── PHOTO VIEWER ── */}
       <Dialog open={!!viewPhotoUrl} onOpenChange={() => setViewPhotoUrl(null)}>

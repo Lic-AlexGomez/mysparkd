@@ -42,7 +42,11 @@ function getAge(dateOfBirth?: string): number | null {
 interface FollowerUser {
   userId: string
   username: string
+  nombres?: string
+  apellidos?: string
   profilePictureUrl?: string
+  followStatus?: 'NONE' | 'PENDING' | 'FOLLOWING'
+  visibility?: 'PUBLIC' | 'PRIVATE'
 }
 
 export default function UserProfilePage() {
@@ -124,12 +128,32 @@ export default function UserProfilePage() {
     setFollowListModal(type)
     setFollowListLoading(true)
     try {
-      const data = await api.get<FollowerUser[]>(`/api/follow/${type}/${userId}`)
-      setFollowList(data || [])
+      const data = await api.get<{ content: FollowerUser[] } | FollowerUser[]>(`/api/follow/${type}/${userId}`)
+      const list = Array.isArray(data) ? data : (data as { content: FollowerUser[] }).content ?? []
+      setFollowList(list)
     } catch {
       setFollowList([])
     } finally {
       setFollowListLoading(false)
+    }
+  }
+
+  const handleFollowFromList = async (u: FollowerUser) => {
+    try {
+      if (u.followStatus === 'FOLLOWING') {
+        await api.delete(`/api/follow/${u.userId}`)
+        setFollowList(prev => prev.map(x => x.userId === u.userId ? { ...x, followStatus: 'NONE' } : x))
+      } else {
+        await api.post(`/api/follow/${u.userId}`)
+        const next = u.visibility === 'PRIVATE' ? 'PENDING' : 'FOLLOWING'
+        setFollowList(prev => prev.map(x => x.userId === u.userId ? { ...x, followStatus: next } : x))
+      }
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 429) {
+        toast.error(te("Límite de seguimientos alcanzado. Actualiza a Premium 🚀", "Follow limit reached. Upgrade to Premium 🚀"), { duration: 4000 })
+      } else {
+        toast.error(te("Error al seguir", "Error following"))
+      }
     }
   }
 
@@ -588,28 +612,52 @@ export default function UserProfilePage() {
           ) : followList.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">{te("No hay usuarios", "No users")}</p>
           ) : (
-            <div className="flex flex-col gap-2 max-h-80 overflow-y-auto">
-              {followList.map(u => (
-                <div key={u.userId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50">
-                  <button onClick={() => { setFollowListModal(null); router.push(`/profile/${u.userId}`) }}
-                    className="flex items-center gap-3 flex-1 text-left">
-                    <Avatar className="h-10 w-10 shrink-0">
-                      <AvatarImage src={u.profilePictureUrl} />
-                      <AvatarFallback className="bg-primary/10 text-primary">{u.username?.[0]?.toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm font-medium text-foreground">{u.username}</span>
-                  </button>
-                  {followListModal === 'followers' && user?.userId === userId && (
-                    <button
-                      onClick={() => handleRemoveFollower(u.userId)}
-                      className="h-8 w-8 rounded-full hover:bg-destructive/10 flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors shrink-0"
-                      title={te("Eliminar seguidor", "Remove follower")}
-                    >
-                      <X className="h-4 w-4" />
+            <div className="flex flex-col gap-2 max-h-96 overflow-y-auto pr-1">
+              {followList.map(u => {
+                const fullName = [u.nombres, u.apellidos].filter(Boolean).join(' ')
+                const isMe = user?.userId === u.userId
+                return (
+                  <div key={u.userId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50">
+                    <button onClick={() => { setFollowListModal(null); router.push(`/profile/${u.userId}`) }}
+                      className="flex items-center gap-3 flex-1 text-left min-w-0">
+                      <Avatar className="h-10 w-10 shrink-0">
+                        <AvatarImage src={u.profilePictureUrl} />
+                        <AvatarFallback className="bg-primary/10 text-primary">{u.username?.[0]?.toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">{u.username}</p>
+                        {fullName && <p className="text-xs text-muted-foreground truncate">{fullName}</p>}
+                      </div>
                     </button>
-                  )}
-                </div>
-              ))}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {!isMe && (
+                        u.followStatus === 'FOLLOWING' ? (
+                          <button onClick={() => void handleFollowFromList(u)}
+                            className="text-xs px-3 py-1 rounded-full border border-border text-foreground hover:bg-muted transition-colors">
+                            {te('Siguiendo', 'Following')}
+                          </button>
+                        ) : u.followStatus === 'PENDING' ? (
+                          <span className="text-xs px-3 py-1 rounded-full bg-muted text-muted-foreground">
+                            {te('Solicitado', 'Requested')}
+                          </span>
+                        ) : (
+                          <button onClick={() => void handleFollowFromList(u)}
+                            className="text-xs px-3 py-1 rounded-full bg-primary text-primary-foreground hover:opacity-90 transition-opacity font-medium">
+                            {u.visibility === 'PRIVATE' ? te('Solicitar', 'Request') : te('Seguir', 'Follow')}
+                          </button>
+                        )
+                      )}
+                      {followListModal === 'followers' && user?.userId === userId && (
+                        <button onClick={() => handleRemoveFollower(u.userId)}
+                          className="h-8 w-8 rounded-full hover:bg-destructive/10 flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors"
+                          title={te("Eliminar seguidor", "Remove follower")}>
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           )}
         </DialogContent>
