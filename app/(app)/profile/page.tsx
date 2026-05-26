@@ -82,12 +82,18 @@ export default function ProfilePage() {
     }
   }
 
-  const handleUnfollowFromList = async (u: FollowerUser) => {
+  const handleToggleFollowInList = async (u: FollowerUser) => {
     try {
-      await api.delete(`/api/follow/${u.userId}`)
-      setFollowList(prev => prev.map(x => x.userId === u.userId ? { ...x, followStatus: 'NONE' } : x))
-    } catch (err) {
-      toast.error(te('Error al dejar de seguir', 'Error unfollowing'))
+      if (u.followStatus === 'FOLLOWING') {
+        await api.delete(`/api/follow/${u.userId}`)
+        setFollowList(prev => prev.map(x => x.userId === u.userId ? { ...x, followStatus: 'NONE' } : x))
+      } else {
+        await api.post(`/api/follow/${u.userId}`)
+        const next = u.visibility === 'PRIVATE' ? 'PENDING' : 'FOLLOWING'
+        setFollowList(prev => prev.map(x => x.userId === u.userId ? { ...x, followStatus: next } : x))
+      }
+    } catch {
+      toast.error(te('Error al actualizar seguimiento', 'Error updating follow'))
     }
   }
 
@@ -829,11 +835,22 @@ export default function ProfilePage() {
                       </div>
                     </button>
                     <div className="flex items-center gap-1 shrink-0">
-                      {followListModal === 'following' && u.followStatus === 'FOLLOWING' && (
-                        <button onClick={() => void handleUnfollowFromList(u)}
-                          className="text-xs px-3 py-1 rounded-full border border-border text-foreground hover:bg-muted transition-colors">
-                          {te('Siguiendo', 'Following')}
-                        </button>
+                      {followListModal === 'following' && (
+                        u.followStatus === 'FOLLOWING' ? (
+                          <button onClick={() => void handleToggleFollowInList(u)}
+                            className="text-xs px-3 py-1 rounded-full border border-border text-foreground hover:bg-muted transition-colors">
+                            {te('Siguiendo', 'Following')}
+                          </button>
+                        ) : u.followStatus === 'PENDING' ? (
+                          <span className="text-xs px-3 py-1 rounded-full bg-muted text-muted-foreground">
+                            {te('Solicitado', 'Requested')}
+                          </span>
+                        ) : (
+                          <button onClick={() => void handleToggleFollowInList(u)}
+                            className="text-xs px-3 py-1 rounded-full bg-primary text-primary-foreground hover:opacity-90 transition-opacity font-medium">
+                            {u.visibility === 'PRIVATE' ? te('Solicitar', 'Request') : te('Seguir', 'Follow')}
+                          </button>
+                        )
                       )}
                       {followListModal === 'followers' && (
                         <button onClick={() => handleRemoveFollower(u.userId)}
