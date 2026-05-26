@@ -508,6 +508,7 @@ export default function UserProfilePage() {
             >
               {following ? <><UserCheck className="h-4 w-4" /> Siguiendo</>
                 : pending ? <><Clock className="h-4 w-4" /> Solicitado</>
+                : followedBy ? <><UserPlus className="h-4 w-4" /> Follow back</>
                 : <><UserPlus className="h-4 w-4" /> Seguir</>}
             </button>
             )}
