@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { api } from "@/lib/api"
@@ -27,6 +27,7 @@ import {
   SlidersHorizontal,
   Calendar,
   Phone,
+  Camera,
 } from "lucide-react"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
@@ -39,6 +40,20 @@ import {
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { TOP_10_LANGUAGES, type SupportedLanguage, useI18n } from "@/lib/i18n"
+import { SparkBackground } from "@/components/marketing/spark-background"
+
+type InterestedInPref = Sex | "BOTH"
+
+function ageFromDateOfBirth(isoDate: string): number | null {
+  if (!isoDate) return null
+  const dob = new Date(isoDate)
+  if (Number.isNaN(dob.getTime())) return null
+  const today = new Date()
+  let age = today.getFullYear() - dob.getFullYear()
+  const m = today.getMonth() - dob.getMonth()
+  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--
+  return age
+}
 
 /** Ilustraciones SVG para el selector de modo. */
 function SvgModeSocial({ className }: { className?: string }) {
@@ -114,32 +129,36 @@ function SvgModeBoth({ className }: { className?: string }) {
   )
 }
 
-const STEP_META = [
-  {
-    title: "Tu experiencia",
-    description: "Elige cómo quieres usar Sparkd. Podrás cambiar esto más adelante.",
-    icon: Sparkles,
-  },
-  {
-    title: "Sobre ti",
-    description: "Datos básicos para tu perfil y para mejorar las recomendaciones.",
-    icon: User,
-  },
-  {
-    title: "Intereses",
-    description: "Elige temas que te gusten. Ayuda a encontrar gente afín.",
-    icon: Heart,
-  },
-  {
-    title: "Preferencias",
-    description: "Ajusta con quién quieres conectar y cómo apareces en búsquedas.",
-    icon: SlidersHorizontal,
-  },
-] as const
-
 export default function OnboardingPage() {
   const { refreshProfile } = useAuth()
-  const { language, setLanguage, t, te } = useI18n()
+  const { language, setLanguage, t } = useI18n()
+
+  const stepMeta = useMemo(
+    () =>
+      [
+        {
+          title: t("onboarding.step0.title"),
+          description: t("onboarding.step0.description"),
+          icon: Sparkles,
+        },
+        {
+          title: t("onboarding.step1.title"),
+          description: t("onboarding.step1.description"),
+          icon: User,
+        },
+        {
+          title: t("onboarding.step2.title"),
+          description: t("onboarding.step2.description"),
+          icon: Heart,
+        },
+        {
+          title: t("onboarding.step3.title"),
+          description: t("onboarding.step3.description"),
+          icon: SlidersHorizontal,
+        },
+      ] as const,
+    [t]
+  )
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
@@ -151,6 +170,8 @@ export default function OnboardingPage() {
   const [sex, setSex] = useState<Sex>("MALE")
   const [dateOfBirth, setDateOfBirth] = useState("")
   const [telefono, setTelefono] = useState("")
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(
     null
   )
@@ -158,7 +179,7 @@ export default function OnboardingPage() {
   const [allInterests, setAllInterests] = useState<Interest[]>([])
   const [selectedInterests, setSelectedInterests] = useState<string[]>([])
 
-  const [interestedIn, setInterestedIn] = useState<Sex>("FEMALE")
+  const [interestedIn, setInterestedIn] = useState<InterestedInPref>("FEMALE")
   const [ageRange, setAgeRange] = useState([18, 35])
   const [showMe, setShowMe] = useState(true)
 
@@ -175,9 +196,21 @@ export default function OnboardingPage() {
     fetchInterests()
   }, [fetchInterests])
 
+  const handlePhotoPick = (file: File | null) => {
+    if (!file) return
+    setPhotoFile(file)
+    if (photoPreview) URL.revokeObjectURL(photoPreview)
+    setPhotoPreview(URL.createObjectURL(file))
+  }
+
   const handleStep1 = async () => {
     if (!nombres.trim() || !apellidos.trim() || !dateOfBirth) {
-      toast.error(te("Completa los campos obligatorios", "Complete required fields"))
+      toast.error(t("onboarding.error.requiredFields"))
+      return
+    }
+    const age = ageFromDateOfBirth(dateOfBirth)
+    if (age === null || age < 18) {
+      toast.error(t("onboarding.error.ageMin"))
       return
     }
     setIsLoading(true)
@@ -233,9 +266,22 @@ export default function OnboardingPage() {
       }
 
       await api[method]("/api/profile", body)
+      if (photoFile) {
+        const toastId = toast.loading(t("onboarding.photo.uploading"))
+        try {
+          const fd = new FormData()
+          fd.append("file", photoFile)
+          await api.post("/api/photos/profile-picture", fd)
+          toast.dismiss(toastId)
+          toast.success(t("onboarding.photo.success"))
+        } catch {
+          toast.dismiss(toastId)
+          toast.error(t("onboarding.photo.error"))
+        }
+      }
       setStep(2)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : te("Error al guardar perfil", "Error saving profile"))
+      toast.error(err instanceof Error ? err.message : t("onboarding.error.saveProfile"))
     } finally {
       setIsLoading(false)
     }
@@ -262,7 +308,7 @@ export default function OnboardingPage() {
 
       setStep(3)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : te("Error al guardar intereses", "Error saving interests"))
+      toast.error(err instanceof Error ? err.message : t("onboarding.error.saveInterests"))
     } finally {
       setIsLoading(false)
     }
@@ -278,10 +324,10 @@ export default function OnboardingPage() {
         showMe,
       })
       await refreshProfile()
-      toast.success(te("¡Listo! Tu perfil está completo.", "Done! Your profile is complete."))
+      toast.success(t("onboarding.success.complete"))
       router.push("/feed")
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : te("Error al guardar preferencias", "Error saving preferences"))
+      toast.error(err instanceof Error ? err.message : t("onboarding.error.savePreferences"))
     } finally {
       setIsLoading(false)
     }
@@ -293,23 +339,14 @@ export default function OnboardingPage() {
     )
   }
 
-  const categoryNames: Record<string, string> = {
-    ENTRETENIMIENTO: "Entretenimiento",
-    DEPORTE: "Deporte",
-    VIAJES: "Viajes",
-    ESTILO_DE_VIDA: "Estilo de vida",
-    CONOCIMIENTO: "Conocimiento",
-    SOCIAL: "Social",
-    ARTE: "Arte",
-    MUSICA: "Música",
-    GASTRONOMIA: "Gastronomía",
-    NATURALEZA: "Naturaleza",
-    TECNOLOGIA: "Tecnología",
-    NEGOCIOS: "Negocios",
-    BIENESTAR: "Bienestar",
-    CULTURA: "Cultura",
-    AVENTURA: "Aventura",
-  }
+  const categoryLabel = useCallback(
+    (category: string) => {
+      const key = `onboarding.category.${category}`
+      const label = t(key)
+      return label === key ? category : label
+    },
+    [t]
+  )
 
   const categoryEmoji: Record<string, string> = {
     ENTRETENIMIENTO: "🎬",
@@ -332,105 +369,68 @@ export default function OnboardingPage() {
   const categories = [...new Set(allInterests.map((i) => i.category))]
 
   return (
-    <div className="relative flex min-h-dvh w-full min-w-0 flex-col overflow-x-hidden bg-background pt-[env(safe-area-inset-top)] lg:h-dvh lg:max-h-dvh lg:overflow-hidden">
-      {/* Degradado centrado (sin anclajes a bordes): evita bandas laterales en móvil */}
-      <div
-        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-primary/[0.09] via-background to-secondary/[0.06]"
-        aria-hidden
-      />
+    <SparkBackground className="min-h-dvh lg:h-dvh lg:max-h-dvh lg:overflow-hidden">
+      <div className="pointer-events-none absolute -left-20 -top-20 h-[280px] w-[280px] rounded-full bg-[#8B5CF6]/20 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 -right-24 h-[320px] w-[320px] rounded-full bg-[#EC4899]/20 blur-3xl" />
+      <div className="pointer-events-none absolute left-1/2 top-[38%] h-[200px] w-[200px] -translate-x-1/2 rounded-full bg-[#3B82F6]/10 blur-3xl" />
 
       <div className="relative flex w-full flex-1 flex-col min-h-0 max-w-lg min-w-0 px-4 pb-28 pt-6 sm:max-w-xl lg:mx-auto lg:max-h-dvh lg:max-w-xl lg:pb-5 lg:pt-3">
         {/* Progreso: solo timeline de iconos */}
-        <div className="mb-4 flex shrink-0 items-center justify-center gap-1 sm:mb-5 sm:gap-2 lg:mb-3">
-          {STEP_META.map((meta, i) => {
-            const Icon = meta.icon
-            const done = i < step
-            const current = i === step
-            return (
-              <div key={meta.title} className="flex items-center gap-1 sm:gap-2">
-                <div
-                  className={cn(
-                    "flex h-9 w-9 items-center justify-center rounded-full border-2 text-xs font-semibold transition-all sm:h-10 sm:w-10",
-                    done && "border-primary bg-primary/15 text-primary",
-                    current &&
-                      "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/25",
-                    !done && !current && "border-border bg-muted/40 text-muted-foreground"
-                  )}
-                  aria-current={current ? "step" : undefined}
-                >
-                  {done ? (
-                    <Check className="h-4 w-4 sm:h-[18px] sm:w-[18px]" strokeWidth={2.5} />
-                  ) : (
-                    <Icon className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
-                  )}
-                </div>
-                {i < STEP_META.length - 1 && (
+        <div className="mb-4 flex shrink-0 flex-col items-center gap-2 sm:mb-5 lg:mb-3">
+          <div className="flex items-center justify-center gap-1 sm:gap-2">
+            {stepMeta.map((meta, i) => {
+              const Icon = meta.icon
+              const done = i < step
+              const current = i === step
+              return (
+                <div key={meta.title} className="flex items-center gap-1 sm:gap-2">
                   <div
                     className={cn(
-                      "h-0.5 w-3 rounded-full sm:w-8",
-                      i < step ? "bg-primary/60" : "bg-border"
+                      "flex h-9 w-9 items-center justify-center rounded-full border-2 text-xs font-semibold transition-all sm:h-10 sm:w-10",
+                      done && "border-primary bg-primary/15 text-primary",
+                      current &&
+                        "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/25",
+                      !done && !current && "border-border bg-muted/40 text-muted-foreground"
                     )}
-                    aria-hidden
-                  />
-                )}
-              </div>
-            )
-          })}
+                    aria-current={current ? "step" : undefined}
+                    title={meta.title}
+                  >
+                    {done ? (
+                      <Check className="h-4 w-4 sm:h-[18px] sm:w-[18px]" strokeWidth={2.5} />
+                    ) : (
+                      <Icon className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
+                    )}
+                  </div>
+                  {i < stepMeta.length - 1 && (
+                    <div
+                      className={cn(
+                        "h-0.5 w-3 rounded-full sm:w-8",
+                        i < step ? "bg-primary/60" : "bg-border"
+                      )}
+                      aria-hidden
+                    />
+                  )}
+                </div>
+              )
+            })}
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-semibold text-foreground">{stepMeta[step]?.title}</p>
+            <p className="text-xs text-muted-foreground">{stepMeta[step]?.description}</p>
+          </div>
         </div>
 
-        {/* Marca: rayo azul + chispas; titular en tres líneas como pediste */}
-        <header className="mb-4 shrink-0 text-center sm:mb-5 lg:mb-3">
-          <div className="relative mx-auto mb-5 flex w-full max-w-xs flex-col items-center justify-start sm:mb-6 lg:mb-4">
-            <div className="relative mb-4 flex h-[4.75rem] w-full max-w-[12rem] items-center justify-center sm:mb-5 sm:h-[5rem]">
-              <div
-                className="pointer-events-none absolute inset-x-4 top-1/2 h-16 -translate-y-1/2 rounded-full bg-primary/25 blur-3xl"
-                aria-hidden
-              />
-              <SvgModeBoth className="relative z-10 h-14 w-14 text-primary sm:h-16 sm:w-16" />
-              <Sparkles
-                className="absolute right-1 top-0 z-20 h-6 w-6 text-primary sm:right-0 sm:h-7 sm:w-7"
-                strokeWidth={1.75}
-                aria-hidden
-              />
-              <Sparkles
-                className="absolute bottom-1 left-0 z-20 h-5 w-5 text-primary/90 sm:h-6 sm:w-6"
-                strokeWidth={1.75}
-                aria-hidden
-              />
-              <span
-                className="absolute left-4 top-2 z-20 h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_10px_currentColor] sm:left-3"
-                aria-hidden
-              />
-              <span
-                className="absolute right-6 top-8 z-20 h-1 w-1 rounded-full bg-primary sm:right-5"
-                aria-hidden
-              />
-              <span
-                className="absolute bottom-3 right-2 z-20 h-1.5 w-1.5 rounded-full bg-primary/80 shadow-[0_0_8px_currentColor]"
-                aria-hidden
-              />
-            </div>
-            <div className="space-y-1 text-balance">
-              <p className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-2xl">
-                Encuentra
-              </p>
-              <p className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-2xl">
-                <span className="text-primary">conexiones</span>{" "}
-                <span className="text-foreground">reales</span>
-              </p>
-            </div>
-          </div>
-        </header>
+        {/* Header hero removido por petición */}        
 
         <Card className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden border-border/80 bg-card/95 py-0 shadow-2xl shadow-black/20 backdrop-blur-sm lg:min-h-0">
           {step === 0 && (
             <>
               <CardHeader className="space-y-1 border-b border-border/60 bg-muted/20 pb-4 lg:pb-3 lg:pt-4">
                 <CardTitle className="text-lg text-foreground sm:text-xl lg:text-base">
-                  ¿Cómo quieres usar la app?
+                  {t("onboarding.step0.cardTitle")}
                 </CardTitle>
                 <CardDescription className="text-sm lg:text-xs">
-                  {te("Puedes cambiar el modo más adelante en ajustes.", "You can change the mode later in settings.")}
+                  {t("onboarding.step0.changeLater")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto pt-6 lg:gap-3 lg:pt-4 lg:pb-4">
@@ -440,9 +440,9 @@ export default function OnboardingPage() {
                       <Sparkles className="h-5 w-5 text-primary" />
                     </div>
                     <div className="min-w-0 text-left">
-                      <p className="font-semibold text-foreground">{te("Trial premium de bienvenida", "Welcome premium trial")}</p>
+                      <p className="font-semibold text-foreground">{t("onboarding.trial.title")}</p>
                       <p className="mt-1 text-xs leading-snug text-muted-foreground">
-                        {te("Swipes ilimitados, sin anuncios y más ventajas al empezar. Los detalles están en tu cuenta.", "Unlimited swipes, no ads and more benefits when starting. Details are in your account.")}
+                        {t("onboarding.trial.description")}
                       </p>
                     </div>
                   </div>
@@ -476,20 +476,20 @@ export default function OnboardingPage() {
                       {
                         mode: "SOCIAL" as const,
                         Illustration: SvgModeSocial,
-                        title: "Social",
-                        subtitle: "Feed, publicaciones y comunidad.",
+                        title: t("onboarding.mode.social.title"),
+                        subtitle: t("onboarding.mode.social.subtitle"),
                       },
                       {
                         mode: "DATING" as const,
                         Illustration: SvgModeDating,
-                        title: te("Conexión", "Connection"),
-                        subtitle: te("Encuentros y matching.", "Dates and matching."),
+                        title: t("onboarding.mode.dating.title"),
+                        subtitle: t("onboarding.mode.dating.subtitle"),
                       },
                       {
                         mode: "BOTH" as const,
                         Illustration: SvgModeBoth,
-                        title: te("Todo", "Everything"),
-                        subtitle: te("Social y conexión juntos.", "Social and connection together."),
+                        title: t("onboarding.mode.both.title"),
+                        subtitle: t("onboarding.mode.both.subtitle"),
                       },
                     ] as const
                   ).map(({ mode, Illustration, title, subtitle }) => (
@@ -548,32 +548,66 @@ export default function OnboardingPage() {
                   </div>
                   <div className="min-w-0 space-y-1">
                     <CardTitle className="text-lg text-foreground sm:text-xl lg:text-base">
-                      {te("Información básica", "Basic information")}
+                      {t("onboarding.basic.title")}
                     </CardTitle>
                     <CardDescription className="text-sm leading-relaxed lg:text-xs">
-                      Completa tu perfil. Los campos con{" "}
-                      <span className="font-medium text-primary">*</span> son obligatorios.
+                      {t("onboarding.basic.requiredNotePrefix")}
+                      <span className="font-medium text-primary">*</span>
+                      {t("onboarding.basic.requiredNoteSuffix")}
                     </CardDescription>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="flex min-h-0 flex-1 flex-col gap-0 overflow-y-auto pt-5 lg:pt-4 lg:pb-4">
                 <div className="flex flex-col gap-6 lg:gap-5">
+                  <div className="flex flex-col items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => document.getElementById("onb-photo")?.click()}
+                      className="group relative h-24 w-24 overflow-hidden rounded-full border-2 border-dashed border-border bg-muted/30"
+                    >
+                      {photoPreview ? (
+                        <img src={photoPreview} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <span className="flex h-full w-full flex-col items-center justify-center gap-1 text-muted-foreground">
+                          <Camera className="h-6 w-6" aria-hidden />
+                          <span className="text-[10px] font-medium">{t("onboarding.photo.add")}</span>
+                        </span>
+                      )}
+                      <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                        <Camera className="h-5 w-5 text-white" aria-hidden />
+                      </span>
+                    </button>
+                    <input
+                      id="onb-photo"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        handlePhotoPick(e.target.files?.[0] ?? null)
+                        e.target.value = ""
+                      }}
+                    />
+                    <p className="text-center text-[11px] text-muted-foreground">
+                      {t("onboarding.photo.optional")}
+                    </p>
+                  </div>
+
                   {/* Nombre */}
                   <div className="rounded-xl border border-border/60 bg-muted/15 p-4 lg:p-3">
                     <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground lg:mb-2">
-                      {te("Nombre público", "Public name")}
+                      {t("onboarding.basic.sectionPublicName")}
                     </p>
                     <div className="grid gap-4 sm:grid-cols-2 lg:gap-3">
                       <div className="flex flex-col gap-2">
                         <Label htmlFor="onb-nombres" className="text-sm font-medium text-foreground">
-                          {te("Nombres", "First names")} <span className="text-primary">*</span>
+                          {t("onboarding.firstName")} <span className="text-primary">*</span>
                         </Label>
                         <Input
                           id="onb-nombres"
                           value={nombres}
                           onChange={(e) => setNombres(e.target.value)}
-                          placeholder={te("Ej. María", "e.g. Maria")}
+                          placeholder={t("onboarding.firstName.placeholder")}
                           autoComplete="given-name"
                           autoCapitalize="words"
                           className="h-11 border-border/80 bg-background/80 text-foreground shadow-sm transition-colors placeholder:text-muted-foreground/80 focus-visible:border-primary/50 focus-visible:ring-primary/20 lg:h-10"
@@ -581,13 +615,13 @@ export default function OnboardingPage() {
                       </div>
                       <div className="flex flex-col gap-2">
                         <Label htmlFor="onb-apellidos" className="text-sm font-medium text-foreground">
-                          {te("Apellidos", "Last names")} <span className="text-primary">*</span>
+                          {t("onboarding.lastName")} <span className="text-primary">*</span>
                         </Label>
                         <Input
                           id="onb-apellidos"
                           value={apellidos}
                           onChange={(e) => setApellidos(e.target.value)}
-                          placeholder={te("Ej. García López", "e.g. Garcia Lopez")}
+                          placeholder={t("onboarding.lastName.placeholder")}
                           autoComplete="family-name"
                           autoCapitalize="words"
                           className="h-11 border-border/80 bg-background/80 text-foreground shadow-sm transition-colors placeholder:text-muted-foreground/80 focus-visible:border-primary/50 focus-visible:ring-primary/20 lg:h-10"
@@ -599,12 +633,12 @@ export default function OnboardingPage() {
                   {/* Género — segmentado */}
                   <div>
                     <p className="mb-2 text-sm font-medium text-foreground">
-                      {te("Género", "Gender")} <span className="text-primary">*</span>
+                      {t("onboarding.gender")} <span className="text-primary">*</span>
                     </p>
                     <div
                       className="flex gap-1 rounded-2xl border border-border/70 bg-muted/30 p-1 shadow-inner"
                       role="radiogroup"
-                      aria-label={te("Género", "Gender")}
+                      aria-label={t("onboarding.gender")}
                     >
                       {(["MALE", "FEMALE"] as Sex[]).map((s) => {
                         const sel = sex === s
@@ -622,11 +656,14 @@ export default function OnboardingPage() {
                                 : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                             )}
                           >
-                            {s === "MALE" ? te("Hombre", "Man") : te("Mujer", "Woman")}
+                            {s === "MALE" ? t("onboarding.gender.male") : t("onboarding.gender.female")}
                           </button>
                         )
                       })}
                     </div>
+                    <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+                      {t("onboarding.gender.hint")}
+                    </p>
                   </div>
 
                   {/* Fecha */}
@@ -637,7 +674,7 @@ export default function OnboardingPage() {
                         htmlFor="onb-dob"
                         className="text-sm font-medium leading-none text-foreground"
                       >
-                        {te("Fecha de nacimiento", "Date of birth")} <span className="text-primary">*</span>
+                        {t("onboarding.dob")} <span className="text-primary">*</span>
                       </Label>
                     </div>
                     <Input
@@ -658,7 +695,7 @@ export default function OnboardingPage() {
                       className="mt-2 flex items-start gap-1.5 text-xs leading-snug text-muted-foreground lg:text-[11px]"
                     >
                       <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success opacity-80" aria-hidden />
-                      <span>{te("Debes tener al menos 18 años. El calendario usa el formato de tu sistema.", "You must be at least 18 years old. Calendar uses your system format.")}</span>
+                      <span>{t("onboarding.dob.hint")}</span>
                     </p>
                   </div>
 
@@ -667,23 +704,23 @@ export default function OnboardingPage() {
                     <div className="mb-3 flex items-center gap-2 lg:mb-2">
                       <Phone className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                       <Label htmlFor="onb-phone" className="text-sm font-medium text-foreground">
-                        {te("Teléfono", "Phone")}
+                        {t("onboarding.phone")}
                       </Label>
                       <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                        {te("Opcional", "Optional")}
+                        {t("onboarding.optional")}
                       </span>
                     </div>
                     <Input
                       id="onb-phone"
                       value={telefono}
                       onChange={(e) => setTelefono(e.target.value)}
-                      placeholder="+34 600 000 000"
+                      placeholder={t("onboarding.phone.placeholder")}
                       inputMode="tel"
                       autoComplete="tel"
                       className="h-11 border-border/80 bg-background/80 text-foreground shadow-sm placeholder:text-muted-foreground/70 focus-visible:border-primary/50 focus-visible:ring-primary/20 lg:h-10"
                     />
                     <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-                      {te("Útil para avisos o recuperar acceso; puedes dejarlo vacío.", "Useful for notices or account recovery; you can leave it empty.")}
+                      {t("onboarding.phone.hint")}
                     </p>
                   </div>
                 </div>
@@ -727,15 +764,15 @@ export default function OnboardingPage() {
                     <div className="min-w-0 space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <CardTitle className="text-lg text-foreground sm:text-xl lg:text-base">
-                          {te("Tus intereses", "Your interests")}
+                          {t("onboarding.step2.title")}
                         </CardTitle>
                         <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                          {te("Opcional", "Optional")}
+                          {t("onboarding.optional")}
                         </span>
                       </div>
                       <CardDescription className="text-sm leading-relaxed text-muted-foreground lg:text-xs">
-                        {te("Elige temas que te gusten para mejorar recomendaciones y matches. Toca una etiqueta para marcarla o quitarla.", "Choose topics you like to improve recommendations and matches. Tap a tag to add or remove it.")}{" "}
-                        <span className="font-medium text-foreground/90">{te("Puedes avanzar sin marcar ninguna.", "You can continue without selecting any.")}</span>
+                        {t("onboarding.interests.desc")}{" "}
+                        <span className="font-medium text-foreground/90">{t("onboarding.interests.skipAny")}</span>
                       </CardDescription>
                     </div>
                   </div>
@@ -749,14 +786,16 @@ export default function OnboardingPage() {
                   >
                     <Check className="h-3.5 w-3.5 opacity-70" aria-hidden />
                     {selectedInterests.length === 0
-                      ? te("Ninguno aún", "None yet")
+                      ? t("onboarding.interests.noneYet")
                       : `${selectedInterests.length} ${
-                          selectedInterests.length === 1 ? te("elegido", "selected") : te("elegidos", "selected")
+                          selectedInterests.length === 1
+                            ? t("onboarding.interests.selectedOne")
+                            : t("onboarding.interests.selectedMany")
                         }`}
                   </div>
                 </div>
                 <p className="text-[11px] leading-relaxed text-muted-foreground sm:pl-[3.25rem] lg:text-[10px]">
-                  {te("Varios intereses suelen dar mejores resultados, pero no es obligatorio completar la lista.", "Multiple interests usually improve results, but completing the list is optional.")}
+                  {t("onboarding.interests.tip")}
                 </p>
               </CardHeader>
               <CardContent className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden pt-4 lg:pt-3 lg:pb-3">
@@ -772,9 +811,9 @@ export default function OnboardingPage() {
                         </span>
                         <div>
                           <h3 className="text-base font-bold leading-tight text-foreground sm:text-lg">
-                            {categoryNames[category] || category}
+                            {categoryLabel(category)}
                           </h3>
-                          <p className="text-[11px] text-muted-foreground">{te("Toca para añadir o quitar", "Tap to add or remove")}</p>
+                          <p className="text-[11px] text-muted-foreground">{t("onboarding.interests.tapHint")}</p>
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
@@ -827,7 +866,7 @@ export default function OnboardingPage() {
                     <div className="rounded-xl border border-border/60 bg-muted/15 px-4 py-10 text-center">
                       <Heart className="mx-auto mb-2 h-8 w-8 text-muted-foreground/50" aria-hidden />
                       <p className="text-sm text-muted-foreground">
-                        {te("No hay intereses por ahora. Puedes continuar y añadirlos después en tu perfil.", "No interests available right now. You can continue and add them later in your profile.")}
+                        {t("onboarding.interests.empty")}
                       </p>
                     </div>
                   )}
@@ -864,29 +903,35 @@ export default function OnboardingPage() {
           {step === 3 && (
             <>
               <CardHeader className="space-y-1 border-b border-border/60 bg-muted/20 pb-4 lg:pb-3 lg:pt-4">
-                <CardTitle className="text-lg text-foreground sm:text-xl lg:text-base">{te("Preferencias", "Preferences")}</CardTitle>
+                <CardTitle className="text-lg text-foreground sm:text-xl lg:text-base">{t("onboarding.step3.title")}</CardTitle>
                 <CardDescription className="text-sm lg:text-xs">
-                  {te("Ajusta quién quieres ver y cómo te muestras a los demás.", "Adjust who you want to see and how you appear to others.")}
+                  {t("onboarding.prefs.desc")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto pt-6 lg:gap-4 lg:pt-4 lg:pb-4">
                 <div className="flex flex-col gap-3 lg:gap-2">
-                  <span className="text-sm font-medium text-foreground lg:text-xs">{te("Me interesa conocer", "I want to meet")}</span>
-                  <div className="grid grid-cols-2 gap-2">
-                    {(["MALE", "FEMALE"] as Sex[]).map((s) => (
+                  <span className="text-sm font-medium text-foreground lg:text-xs">{t("onboarding.prefs.meet")}</span>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(
+                      [
+                        { value: "MALE" as const, label: t("onboarding.prefs.men") },
+                        { value: "FEMALE" as const, label: t("onboarding.prefs.women") },
+                        { value: "BOTH" as const, label: t("onboarding.prefs.everyone") },
+                      ] as const
+                    ).map(({ value, label }) => (
                       <Button
-                        key={s}
+                        key={value}
                         type="button"
-                        variant={interestedIn === s ? "default" : "outline"}
-                        onClick={() => setInterestedIn(s)}
+                        variant={interestedIn === value ? "default" : "outline"}
+                        onClick={() => setInterestedIn(value)}
                         className={cn(
-                          "h-11 rounded-xl lg:h-9 lg:text-sm",
-                          interestedIn === s
+                          "h-11 rounded-xl px-2 text-xs sm:text-sm lg:h-9",
+                          interestedIn === value
                             ? "bg-primary text-primary-foreground shadow-md"
                             : "border-border text-foreground hover:bg-muted"
                         )}
                       >
-                        {s === "MALE" ? te("Hombres", "Men") : te("Mujeres", "Women")}
+                        {label}
                       </Button>
                     ))}
                   </div>
@@ -894,9 +939,9 @@ export default function OnboardingPage() {
 
                 <div className="rounded-xl border border-border/60 bg-muted/30 p-4 lg:p-3">
                   <div className="mb-3 flex items-center justify-between gap-2 lg:mb-2">
-                    <span className="text-sm font-medium text-foreground lg:text-xs">{te("Rango de edad", "Age range")}</span>
+                    <span className="text-sm font-medium text-foreground lg:text-xs">{t("onboarding.prefs.ageRange")}</span>
                     <span className="rounded-md bg-background/80 px-2 py-1 font-mono text-sm tabular-nums text-primary">
-                      {ageRange[0]} – {ageRange[1]} {te("años", "years")}
+                      {ageRange[0]} – {ageRange[1]} {t("onboarding.prefs.years")}
                     </span>
                   </div>
                   <Slider
@@ -908,17 +953,17 @@ export default function OnboardingPage() {
                     className="w-full py-2"
                   />
                   <p className="mt-2 text-xs text-muted-foreground lg:mt-1 lg:text-[11px]">
-                    {te("Ajusta el mínimo y máximo con los dos controles del deslizador.", "Adjust min and max using the two slider handles.")}
+                    {t("onboarding.prefs.sliderHint")}
                   </p>
                 </div>
 
                 <div className="flex flex-col gap-2 rounded-xl border border-border/60 bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between lg:gap-3 lg:p-3">
                   <div className="space-y-0.5">
                     <Label htmlFor="onb-showme" className="text-foreground cursor-pointer text-base">
-                      {te("Aparecer en búsquedas", "Appear in search")}
+                      {t("onboarding.prefs.showInSearch")}
                     </Label>
                     <p className="text-xs text-muted-foreground">
-                      {te("Si lo desactivas, serás menos visible para nuevas personas.", "If disabled, you'll be less visible to new people.")}
+                      {t("onboarding.prefs.showInSearchHint")}
                     </p>
                   </div>
                   <Switch
@@ -950,7 +995,7 @@ export default function OnboardingPage() {
                     ) : (
                       <Check className="mr-2 h-4 w-4" />
                     )}
-                    {te("Entrar a Sparkd", "Enter Sparkd")}
+                    {t("onboarding.enter")}
                   </Button>
                 </div>
               </CardContent>
@@ -959,9 +1004,9 @@ export default function OnboardingPage() {
         </Card>
 
         <p className="mt-4 shrink-0 text-center text-xs text-muted-foreground lg:mt-2 lg:text-[10px]">
-          {te("Al continuar confirmas que la información es correcta.", "By continuing, you confirm the information is correct.")}
+          {t("onboarding.footer.confirm")}
         </p>
       </div>
-    </div>
+    </SparkBackground>
   )
 }

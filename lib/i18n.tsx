@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react"
+import { ONBOARDING_I18N } from "./onboarding-i18n"
 
 export type SupportedLanguage =
   | "en"
@@ -1672,6 +1673,7 @@ const TRANSLATIONS: Record<string, Record<SupportedLanguage, string>> = {
     ru: "Выберите язык приложения. Мы автоматически определяем язык устройства.",
     ur: "ایپ کی زبان منتخب کریں۔ ہم آپ کے ڈیوائس کی زبان خودکار طور پر پہچانتے ہیں۔",
   },
+  ...ONBOARDING_I18N,
 }
 
 function detectDeviceLanguage(): SupportedLanguage {
@@ -1712,10 +1714,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(STORAGE_KEY, next)
   }, [])
 
-  const t = useCallback(
-    (key: string) => TRANSLATIONS[key]?.[language] ?? TRANSLATIONS[key]?.en ?? key,
-    [language]
-  )
+  const t = useCallback((key: string) => {
+    const row = TRANSLATIONS[key] ?? ONBOARDING_I18N[key]
+    return row?.[language] ?? row?.en ?? key
+  }, [language])
 
   const te = useCallback(
     (spanish: string, english: string) => (language === "es" ? spanish : english),
