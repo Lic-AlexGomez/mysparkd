@@ -1,6 +1,7 @@
 "use client"
 
 import type { ReactNode } from "react"
+import { WelcomeAmbientPhotos } from "@/components/marketing/welcome-ambient-photos"
 
 type SparkBackgroundProps = {
   children: ReactNode
@@ -51,6 +52,8 @@ export function SparkBackground({ children, className = "" }: SparkBackgroundPro
           backgroundSize: "32px 32px",
         }}
       />
+
+      <WelcomeAmbientPhotos />
 
       <div className="relative z-10">{children}</div>
     </div>

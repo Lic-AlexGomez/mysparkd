@@ -81,7 +81,7 @@ export function HomeLanding() {
             className="flex w-full min-h-14 items-center justify-center gap-2.5 rounded-2xl border-[1.5px] border-primary/55 bg-gradient-to-r from-primary to-secondary px-4 text-base font-extrabold tracking-wide text-primary-foreground shadow-[0_4px_24px_rgba(0,229,255,0.35)] transition-transform hover:scale-[1.02] active:scale-[0.98]"
           >
             <Star className="h-[18px] w-[18px] fill-current" />
-            Unirme ahora
+            Comenzar
             <ArrowRight className="h-[18px] w-[18px]" />
           </Link>
         </div>
