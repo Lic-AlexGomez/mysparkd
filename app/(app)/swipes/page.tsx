@@ -412,6 +412,19 @@ export default function SwipesPage() {
             </button>
 
             <button
+              onClick={() => void handleRewind()}
+              disabled={isRewinding || isSwiping || !lastSwipedProfileRef.current}
+              className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-amber-500/30 bg-card shadow-lg transition-all duration-200 hover:scale-110 hover:border-amber-500 hover:bg-amber-500/10 disabled:opacity-30 disabled:hover:scale-100"
+              aria-label="Rewind"
+              title={isPremium ? "Deshacer swipe" : "Rewind (Premium)"}
+            >
+              {isRewinding
+                ? <Loader2 className="h-5 w-5 text-amber-500 animate-spin" />
+                : <RotateCcw className="h-5 w-5 text-amber-500" />
+              }
+            </button>
+
+            <button
               onClick={() => void handleSwipe("right")}
               disabled={isSwiping || swipesUiLocked}
               className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary shadow-xl shadow-primary/40 transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:hover:scale-100"
