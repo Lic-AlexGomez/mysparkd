@@ -136,8 +136,19 @@ async function request<T>(
   }
 
   if (response.status === 401) {
-    clearAuth()
-    throw new ApiError("No autorizado", 401)
+    const hasToken =
+      typeof window !== "undefined" && !!localStorage.getItem("sparkd_token")
+    if (hasToken) {
+      clearAuth()
+      throw new ApiError("No autorizado", 401)
+    }
+    // Sin token = credenciales incorrectas — leer mensaje del body sin redirigir
+    let message = "Usuario o contraseña incorrectos"
+    try {
+      const errorData = (await response.json()) as Record<string, unknown>
+      message = extractErrorMessageFromBody(errorData) ?? message
+    } catch { /* ignore */ }
+    throw new ApiError(message, 401)
   }
 
   if (response.status === 204) {

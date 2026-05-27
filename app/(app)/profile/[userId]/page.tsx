@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Loader2, MoreHorizontal, MessageCircle, UserPlus, UserCheck, ArrowLeft, Heart, Crown, Trash2, Lock, Clock, Star, X, Clapperboard } from "lucide-react"
+import { Loader2, MoreHorizontal, MessageCircle, UserPlus, UserCheck, ArrowLeft, Heart, Crown, Trash2, Lock, Clock, Star, X, Check, Clapperboard } from "lucide-react"
 import { PostCard } from "@/components/feed/post-card"
 import { ReportModal } from "@/components/feed/report-modal"
 import { toast } from "sonner"
@@ -42,7 +42,11 @@ function getAge(dateOfBirth?: string): number | null {
 interface FollowerUser {
   userId: string
   username: string
+  nombres?: string
+  apellidos?: string
   profilePictureUrl?: string
+  followStatus?: 'NONE' | 'PENDING' | 'FOLLOWING'
+  visibility?: 'PUBLIC' | 'PRIVATE'
 }
 
 export default function UserProfilePage() {
@@ -59,6 +63,8 @@ export default function UserProfilePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [following, setFollowing] = useState(false)
   const [pending, setPending] = useState(false)
+  const [followedBy, setFollowedBy] = useState(false)
+  const [receivedRequest, setReceivedRequest] = useState(false)
   const [viewPhotoUrl, setViewPhotoUrl] = useState<string | null>(null)
   const [isMessaging, setIsMessaging] = useState(false)
   const [isLiking, setIsLiking] = useState(false)
@@ -92,7 +98,30 @@ export default function UserProfilePage() {
       const status = await api.get<{ following: boolean; followedBy: boolean; requestPending: boolean; followBack: boolean }>(`/api/follow/status/${userId}`)
       setFollowing(status.following)
       setPending(status.requestPending)
+      setFollowedBy(status.followedBy)
+      setReceivedRequest(status.receivedRequest ?? false)
     } catch {}
+  }
+
+  const handleAcceptFollower = async () => {
+    try {
+      await api.post(`/api/follow/accept/${userId}`)
+      setReceivedRequest(false)
+      setFollowedBy(true)
+      toast.success(te("Solicitud aceptada", "Request accepted"))
+    } catch {
+      toast.error(te("Error al aceptar", "Error accepting"))
+    }
+  }
+
+  const handleRejectFollower = async () => {
+    try {
+      await api.post(`/api/follow/reject/${userId}`)
+      setReceivedRequest(false)
+      toast.success(te("Solicitud rechazada", "Request rejected"))
+    } catch {
+      toast.error(te("Error al rechazar", "Error rejecting"))
+    }
   }
 
   const fetchProfile = useCallback(async () => {
@@ -124,12 +153,32 @@ export default function UserProfilePage() {
     setFollowListModal(type)
     setFollowListLoading(true)
     try {
-      const data = await api.get<FollowerUser[]>(`/api/follow/${type}/${userId}`)
-      setFollowList(data || [])
+      const data = await api.get<{ content: FollowerUser[] } | FollowerUser[]>(`/api/follow/${type}/${userId}`)
+      const list = Array.isArray(data) ? data : (data as { content: FollowerUser[] }).content ?? []
+      setFollowList(list)
     } catch {
       setFollowList([])
     } finally {
       setFollowListLoading(false)
+    }
+  }
+
+  const handleFollowFromList = async (u: FollowerUser) => {
+    try {
+      if (u.followStatus === 'FOLLOWING') {
+        await api.delete(`/api/follow/${u.userId}`)
+        setFollowList(prev => prev.map(x => x.userId === u.userId ? { ...x, followStatus: 'NONE' } : x))
+      } else {
+        await api.post(`/api/follow/${u.userId}`)
+        const next = u.visibility === 'PRIVATE' ? 'PENDING' : 'FOLLOWING'
+        setFollowList(prev => prev.map(x => x.userId === u.userId ? { ...x, followStatus: next } : x))
+      }
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 429) {
+        toast.error(te("Límite de seguimientos alcanzado. Actualiza a Premium 🚀", "Follow limit reached. Upgrade to Premium 🚀"), { duration: 4000 })
+      } else {
+        toast.error(te("Error al seguir", "Error following"))
+      }
     }
   }
 
@@ -335,6 +384,33 @@ export default function UserProfilePage() {
 
   return (
     <div className="mx-auto max-w-2xl pb-10">
+
+      {/* Banner: esta persona te envió solicitud de seguimiento PENDIENTE */}
+      {receivedRequest && (
+        <div className="mx-4 mt-3 mb-1 flex items-center justify-between gap-3 rounded-xl border border-border bg-card/80 px-4 py-3 shadow-sm backdrop-blur-sm">
+          <div className="flex items-center gap-2 min-w-0">
+            <UserPlus className="h-4 w-4 shrink-0 text-primary" />
+            <p className="text-sm font-medium text-foreground truncate">
+              {profile.nombres} {te("quiere seguirte", "wants to follow you")}
+            </p>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <button
+              onClick={() => void handleAcceptFollower()}
+              className="flex items-center gap-1 px-3 h-8 rounded-full bg-primary text-black text-xs font-semibold hover:bg-primary/90 transition-colors"
+            >
+              <Check className="h-3.5 w-3.5" /> {te("Aceptar", "Accept")}
+            </button>
+            <button
+              onClick={() => void handleRejectFollower()}
+              className="flex items-center gap-1 px-3 h-8 rounded-full border border-border text-foreground text-xs font-semibold hover:bg-muted transition-colors"
+            >
+              <X className="h-3.5 w-3.5" /> {te("Cancelar", "Decline")}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Cover */}
       <div className="relative">
         <div
@@ -432,6 +508,7 @@ export default function UserProfilePage() {
             >
               {following ? <><UserCheck className="h-4 w-4" /> Siguiendo</>
                 : pending ? <><Clock className="h-4 w-4" /> Solicitado</>
+                : followedBy ? <><UserPlus className="h-4 w-4" /> Follow back</>
                 : <><UserPlus className="h-4 w-4" /> Seguir</>}
             </button>
             )}
@@ -588,28 +665,52 @@ export default function UserProfilePage() {
           ) : followList.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">{te("No hay usuarios", "No users")}</p>
           ) : (
-            <div className="flex flex-col gap-2 max-h-80 overflow-y-auto">
-              {followList.map(u => (
-                <div key={u.userId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50">
-                  <button onClick={() => { setFollowListModal(null); router.push(`/profile/${u.userId}`) }}
-                    className="flex items-center gap-3 flex-1 text-left">
-                    <Avatar className="h-10 w-10 shrink-0">
-                      <AvatarImage src={u.profilePictureUrl} />
-                      <AvatarFallback className="bg-primary/10 text-primary">{u.username?.[0]?.toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm font-medium text-foreground">{u.username}</span>
-                  </button>
-                  {followListModal === 'followers' && user?.userId === userId && (
-                    <button
-                      onClick={() => handleRemoveFollower(u.userId)}
-                      className="h-8 w-8 rounded-full hover:bg-destructive/10 flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors shrink-0"
-                      title={te("Eliminar seguidor", "Remove follower")}
-                    >
-                      <X className="h-4 w-4" />
+            <div className="flex flex-col gap-2 max-h-96 overflow-y-auto pr-1">
+              {followList.map(u => {
+                const fullName = [u.nombres, u.apellidos].filter(Boolean).join(' ')
+                const isMe = user?.userId === u.userId
+                return (
+                  <div key={u.userId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50">
+                    <button onClick={() => { setFollowListModal(null); router.push(`/profile/${u.userId}`) }}
+                      className="flex items-center gap-3 flex-1 text-left min-w-0">
+                      <Avatar className="h-10 w-10 shrink-0">
+                        <AvatarImage src={u.profilePictureUrl} />
+                        <AvatarFallback className="bg-primary/10 text-primary">{u.username?.[0]?.toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">{u.username}</p>
+                        {fullName && <p className="text-xs text-muted-foreground truncate">{fullName}</p>}
+                      </div>
                     </button>
-                  )}
-                </div>
-              ))}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {!isMe && (
+                        u.followStatus === 'FOLLOWING' ? (
+                          <button onClick={() => void handleFollowFromList(u)}
+                            className="text-xs px-3 py-1 rounded-full border border-border text-foreground hover:bg-muted transition-colors">
+                            {te('Siguiendo', 'Following')}
+                          </button>
+                        ) : u.followStatus === 'PENDING' ? (
+                          <span className="text-xs px-3 py-1 rounded-full bg-muted text-muted-foreground">
+                            {te('Solicitado', 'Requested')}
+                          </span>
+                        ) : (
+                          <button onClick={() => void handleFollowFromList(u)}
+                            className="text-xs px-3 py-1 rounded-full bg-primary text-primary-foreground hover:opacity-90 transition-opacity font-medium">
+                            {u.visibility === 'PRIVATE' ? te('Solicitar', 'Request') : te('Seguir', 'Follow')}
+                          </button>
+                        )
+                      )}
+                      {followListModal === 'followers' && user?.userId === userId && (
+                        <button onClick={() => handleRemoveFollower(u.userId)}
+                          className="h-8 w-8 rounded-full hover:bg-destructive/10 flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors"
+                          title={te("Eliminar seguidor", "Remove follower")}>
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           )}
         </DialogContent>
