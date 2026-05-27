@@ -85,19 +85,14 @@ export default function SearchPage() {
         setCanLoadMorePosts(posts.number < posts.totalPages - 1)
         setActiveTab("hashtags")
       } else {
-        // Búsqueda general: usuarios + posts + hashtags en paralelo
-        const [usersRes, postsRes, hashtagsRes] = await Promise.all([
-          searchService.searchUsers(trimmed, 0, 6),
-          searchService.searchPosts(trimmed, 0, 6),
-          searchService.searchHashtags(trimmed),
-        ])
+        const intelligent = await searchService.searchIntelligent(trimmed)
         setResults({
-          users: usersRes.content || [],
-          posts: postsRes.content || [],
-          hashtags: hashtagsRes || [],
+          users: intelligent.users.slice(0, 12),
+          posts: intelligent.posts.slice(0, 12),
+          hashtags: intelligent.hashtags.slice(0, 12),
         })
-        setCanLoadMoreUsers(usersRes.number < usersRes.totalPages - 1)
-        setCanLoadMorePosts(postsRes.number < postsRes.totalPages - 1)
+        setCanLoadMoreUsers(intelligent.users.length >= 12)
+        setCanLoadMorePosts(intelligent.posts.length >= 12)
         setActiveTab("all")
       }
     } catch {
@@ -439,9 +434,23 @@ export default function SearchPage() {
                         onClick={() => { setQuery("#" + h.tag); doSearch("#" + h.tag) }}
                         className="w-full flex items-center gap-3 p-3 bg-card rounded-xl border hover:border-primary/30 transition-colors text-left"
                       >
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                          <Hash className="h-5 w-5 text-primary" />
-                        </div>
+                        {h.previewUrls && h.previewUrls.length > 0 ? (
+                          <div className="flex gap-1 shrink-0">
+                            {h.previewUrls.slice(0, 3).map((url, i) => (
+                              <img
+                                key={`${h.tag}-${i}`}
+                                src={url}
+                                alt=""
+                                className="h-10 w-10 rounded-md object-cover border border-border"
+                                loading="lazy"
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                            <Hash className="h-5 w-5 text-primary" />
+                          </div>
+                        )}
                         <div>
                           <p className="text-sm font-semibold">#{h.tag}</p>
                           <p className="text-xs text-muted-foreground">{h.usageCount} posts</p>

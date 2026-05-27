@@ -22,7 +22,7 @@ import {
   isVisualAppearanceId,
   type VisualAppearanceId,
 } from "./visual-appearances"
-import { DEFAULT_UI_PREFERENCES, type UiPreferences } from "./types"
+import { DEFAULT_UI_PREFERENCES, type NavbarStyle, type UiPreferences } from "./types"
 
 export type { ThemePalette, VisualAppearanceId }
 export { THEME_PALETTE_OPTIONS } from "./theme"
@@ -35,6 +35,7 @@ interface AppearanceContextValue {
   ready: boolean
   setVisualAppearance: (id: VisualAppearanceId) => void
   setPalette: (id: ThemePalette) => void
+  setNavbarStyle: (style: NavbarStyle) => void
   applyAppearanceChoice: (visual: VisualAppearanceId, palette: ThemePalette) => void
 }
 
@@ -104,6 +105,14 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
     persistUiPrefs(preset)
   }, [])
 
+  const setNavbarStyle = useCallback((style: NavbarStyle) => {
+    setUiPrefs((prev) => {
+      const next = { ...prev, navbarStyle: style }
+      persistUiPrefs(next)
+      return next
+    })
+  }, [])
+
   const value = useMemo(
     () => ({
       visualAppearance,
@@ -112,9 +121,19 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
       ready,
       setVisualAppearance,
       setPalette,
+      setNavbarStyle,
       applyAppearanceChoice,
     }),
-    [visualAppearance, palette, uiPrefs, ready, setVisualAppearance, setPalette, applyAppearanceChoice]
+    [
+      visualAppearance,
+      palette,
+      uiPrefs,
+      ready,
+      setVisualAppearance,
+      setPalette,
+      setNavbarStyle,
+      applyAppearanceChoice,
+    ]
   )
 
   return <AppearanceContext.Provider value={value}>{children}</AppearanceContext.Provider>

@@ -1660,6 +1660,30 @@ export default function EventDetailPage() {
                       </span>
                     )}
                   </p>
+                  {eventData.status === "FINISHED" && !eventData.myRating && (
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <span className="text-xs text-muted-foreground">{te("Tu valoración", "Your rating")}:</span>
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <button
+                          key={n}
+                          type="button"
+                          className="rounded-md border border-border px-2 py-1 text-xs hover:bg-primary/10"
+                          onClick={async () => {
+                            try {
+                              await eventService.rate(eventId, n)
+                              toast.success(te("Gracias por valorar", "Thanks for rating"))
+                              const refreshed = await eventService.getById(eventId)
+                              setEventData(refreshed)
+                            } catch {
+                              toast.error(te("No se pudo enviar la valoración", "Could not submit rating"))
+                            }
+                          }}
+                        >
+                          {n}★
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

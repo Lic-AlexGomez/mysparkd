@@ -45,7 +45,9 @@ import {
   Mail,
   Shield,
   Users,
+  Layout,
 } from "lucide-react"
+import { NavbarStylePicker } from "@/components/settings/navbar-style-picker"
 import { usePushNotifications } from "@/hooks/use-push-notifications"
 import { privacyService } from "@/lib/services/privacy"
 import { authService } from "@/lib/services/auth"
@@ -835,6 +837,23 @@ export default function SettingsPage() {
               ))}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Bottom navigation style */}
+      <Card className="border-border bg-card mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-foreground text-base">
+            <Layout className="h-4 w-4" />
+            Barra de navegación inferior
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-4 text-xs text-muted-foreground leading-relaxed">
+            Elige el estilo de la barra inferior. El dock Sparkd sigue disponible; las opciones plana y
+            dating son las del diseño de referencia.
+          </p>
+          <NavbarStylePicker />
         </CardContent>
       </Card>
 

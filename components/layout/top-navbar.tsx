@@ -244,6 +244,7 @@ export function TopNavbar() {
           "border-b border-transparent bg-gradient-to-r from-background/90 via-card/90 to-background/90 shadow-sm [border-image:linear-gradient(90deg,var(--primary),var(--secondary),var(--accent))_1]",
         navbarStyle === "dock" && "border-b border-white/10 bg-card/80 shadow-lg",
         navbarStyle === "flat" && "border-b border-border bg-card",
+        navbarStyle === "dating-tabs" && "border-b border-border bg-card",
         (navbarStyle === "default" || navbarStyle === "pill" || navbarStyle === "minimal") &&
           "border-b border-border bg-card/95 shadow-sm"
       )}

@@ -149,17 +149,30 @@ export default function UserProfilePage() {
     }).catch(() => {})
   }, [userId, user?.userId])
 
-  const openFollowList = async (type: 'followers' | 'following') => {
+  const [followListPage, setFollowListPage] = useState(0)
+  const [followListHasMore, setFollowListHasMore] = useState(false)
+  const [followListLoadingMore, setFollowListLoadingMore] = useState(false)
+
+  const openFollowList = async (type: 'followers' | 'following', page = 0, reset = true) => {
     setFollowListModal(type)
-    setFollowListLoading(true)
+    if (reset) setFollowListLoading(true)
+    else setFollowListLoadingMore(true)
     try {
-      const data = await api.get<{ content: FollowerUser[] } | FollowerUser[]>(`/api/follow/${type}/${userId}`)
-      const list = Array.isArray(data) ? data : (data as { content: FollowerUser[] }).content ?? []
-      setFollowList(list)
+      const data = await api.get<any>(`/api/follow/${type}/${userId}?page=${page}&size=20`)
+      const list: FollowerUser[] = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.content)
+          ? data.content
+          : []
+      const last = typeof data?.last === "boolean" ? data.last : list.length < 20
+      setFollowList((prev) => (reset ? list : [...prev, ...list]))
+      setFollowListPage(page)
+      setFollowListHasMore(!last)
     } catch {
-      setFollowList([])
+      if (reset) setFollowList([])
     } finally {
-      setFollowListLoading(false)
+      if (reset) setFollowListLoading(false)
+      else setFollowListLoadingMore(false)
     }
   }
 
@@ -583,11 +596,11 @@ export default function UserProfilePage() {
             <span className="text-lg font-bold text-foreground">{totalPostsDisplay}</span>
             <span className="text-xs text-muted-foreground">Posts</span>
           </div>
-          <button onClick={() => openFollowList('followers')} className="flex flex-col items-center hover:opacity-70 transition-opacity">
+          <button onClick={() => void openFollowList('followers', 0, true)} className="flex flex-col items-center hover:opacity-70 transition-opacity">
             <span className="text-lg font-bold text-foreground">{followersCount}</span>
             <span className="text-xs text-muted-foreground">Seguidores</span>
           </button>
-          <button onClick={() => openFollowList('following')} className="flex flex-col items-center hover:opacity-70 transition-opacity">
+          <button onClick={() => void openFollowList('following', 0, true)} className="flex flex-col items-center hover:opacity-70 transition-opacity">
             <span className="text-lg font-bold text-foreground">{followingCount}</span>
             <span className="text-xs text-muted-foreground">Siguiendo</span>
           </button>
@@ -597,6 +610,21 @@ export default function UserProfilePage() {
           </div>
         </div>
         )}
+
+        {!isDatingProfileView && (profile.eventsCreatedCount != null || (profile.eventsCancelledCount ?? 0) > 0) ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {profile.eventsCreatedCount != null ? (
+              <span className="rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-medium">
+                🗓 {profile.eventsCreatedCount} {te("eventos creados", "events created")}
+              </span>
+            ) : null}
+            {(profile.eventsCancelledCount ?? 0) > 0 ? (
+              <span className="rounded-full border border-destructive/30 bg-destructive/10 px-3 py-1 text-xs font-medium text-destructive">
+                ✖ {profile.eventsCancelledCount} {te("cancelados", "cancelled")}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       {profile.visibility === 'PRIVATE' && !following && !isDatingProfileView ? (
@@ -711,6 +739,17 @@ export default function UserProfilePage() {
                   </div>
                 )
               })}
+              {followListHasMore && (
+                <Button
+                  variant="outline"
+                  className="w-full mt-2"
+                  disabled={followListLoadingMore}
+                  onClick={() => followListModal && void openFollowList(followListModal, followListPage + 1, false)}
+                >
+                  {followListLoadingMore ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  {te("Cargar más", "Load more")}
+                </Button>
+              )}
             </div>
           )}
         </DialogContent>

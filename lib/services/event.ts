@@ -233,6 +233,9 @@ export const eventService = {
   join: (eventId: string) =>
     api.post<void>(`/api/events/${eventId}/join`),
 
+  rate: (eventId: string, score: number, comment?: string) =>
+    api.post<void>(`/api/events/${eventId}/rate`, { score, comment: comment?.trim() || undefined }),
+
   approveParticipant: (eventId: string, userId: string) =>
     api.post<void>(`/api/events/${eventId}/participants/${userId}/approve`),
 

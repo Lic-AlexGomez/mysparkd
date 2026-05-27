@@ -210,5 +210,30 @@ export const searchService = {
       post.body.toLowerCase().includes(query.toLowerCase()) ||
       post.username.toLowerCase().includes(query.toLowerCase())
     )
-  }
+  },
+
+  /** GET /api/search/intelligent — posts, users, hashtags en una llamada */
+  async searchIntelligent(query: string): Promise<{ users: UserProfile[]; posts: Post[]; hashtags: HashtagResult[] }> {
+    const q = query.trim()
+    if (!q) return { users: [], posts: [], hashtags: [] }
+    try {
+      const data = await api.get<any>(`/api/search/intelligent?query=${encodeURIComponent(q)}`)
+      const users = Array.isArray(data?.users)
+        ? data.users.map((u: any) => ({
+            userId: String(u.userId || u.id || ""),
+            username: String(u.username || ""),
+            nombres: String(u.nombres || u.fullName || u.username || ""),
+            apellidos: String(u.apellidos || ""),
+            profilePictureUrl: u.profilePictureUrl || u.photo || undefined,
+          } as UserProfile))
+        : []
+      return {
+        users,
+        posts: Array.isArray(data?.posts) ? data.posts : [],
+        hashtags: normalizeHashtags(Array.isArray(data?.hashtags) ? data.hashtags : []),
+      }
+    } catch {
+      return this.autocomplete(q)
+    }
+  },
 }

@@ -1,44 +1,44 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { TrendingUp, Eye, Heart, MessageCircle, Users, BarChart3 } from "lucide-react"
-import { useAuth } from "@/lib/auth-context"
+import { TrendingUp, Eye, Heart, MessageCircle, Users, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useEffect } from "react"
 import { toast } from "sonner"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
 import { useI18n } from "@/lib/i18n"
+import { profileAnalyticsService, type UserAnalytics } from "@/lib/services/profile-analytics"
 
 export default function AnalyticsPage() {
   const { te } = useI18n()
-  const { user } = useAuth()
   const router = useRouter()
   const features = useFeatureFlags()
+  const [analytics, setAnalytics] = useState<UserAnalytics | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!features.analyticsPage) {
       toast.error(te("Esta funcionalidad no está disponible aún", "This feature is not available yet"))
-      router.push('/feed')
+      router.push("/feed")
+      return
     }
-  }, [features.analyticsPage, router])
+    profileAnalyticsService
+      .getMine()
+      .then(setAnalytics)
+      .finally(() => setLoading(false))
+  }, [features.analyticsPage, router, te])
 
-  if (!features.analyticsPage) {
-    return null
-  }
+  if (!features.analyticsPage) return null
 
   const stats = [
-    { label: te("Vistas de perfil", "Profile views"), value: "1,234", change: "+12%", icon: Eye, color: "text-primary" },
-    { label: te("Likes recibidos", "Likes received"), value: "456", change: "+8%", icon: Heart, color: "text-secondary" },
-    { label: te("Comentarios", "Comments"), value: "89", change: "+15%", icon: MessageCircle, color: "text-accent" },
-    { label: te("Nuevos seguidores", "New followers"), value: "67", change: "+23%", icon: Users, color: "text-success" },
+    { label: te("Vistas de perfil", "Profile views"), value: analytics?.profileViews ?? 0, icon: Eye, color: "text-primary" },
+    { label: te("Likes recibidos", "Likes received"), value: analytics?.likesReceived ?? 0, icon: Heart, color: "text-secondary" },
+    { label: te("Comentarios", "Comments"), value: analytics?.commentsReceived ?? 0, icon: MessageCircle, color: "text-accent" },
+    { label: te("Nuevos seguidores", "New followers"), value: analytics?.newFollowers ?? 0, icon: Users, color: "text-success" },
   ]
 
-  const topPosts = [
-    { id: 1, content: te("Mi mejor post del mes...", "My best post of the month..."), likes: 234, comments: 45, views: 1200 },
-    { id: 2, content: te("Increíble experiencia...", "Amazing experience..."), likes: 189, comments: 32, views: 980 },
-    { id: 3, content: te("Nuevo proyecto...", "New project..."), likes: 156, comments: 28, views: 850 },
-  ]
+  const engagementPct =
+    analytics?.engagementRate != null ? Math.min(100, Math.round(analytics.engagementRate * 100)) : 0
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6">
@@ -47,81 +47,52 @@ export default function AnalyticsPage() {
         <p className="text-muted-foreground">{te("Estadísticas de tu perfil", "Your profile stats")}</p>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {stats.map((stat) => (
-          <Card key={stat.label} className="border-border">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between mb-2">
-                <stat.icon className={`h-5 w-5 ${stat.color}`} />
-                <Badge variant="secondary" className="bg-success/10 text-success border-0 text-xs">
-                  {stat.change}
-                </Badge>
-              </div>
-              <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-              <p className="text-xs text-muted-foreground mt-1">{stat.label}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Engagement Rate */}
-      <Card className="border-border mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-primary" />
-            {te("Tasa de engagement", "Engagement rate")}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <div className="h-4 bg-muted rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-primary to-secondary" style={{ width: "68%" }} />
-              </div>
-            </div>
-            <span className="text-2xl font-bold text-foreground">68%</span>
-          </div>
-          <p className="text-sm text-muted-foreground mt-2">
-            {te("Tu contenido tiene un 68% de engagement, ¡excelente!", "Your content has a 68% engagement rate, excellent!")}
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* Top Posts */}
-      <Card className="border-border">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-secondary" />
-            {te("Posts más populares", "Top posts")}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {topPosts.map((post, idx) => (
-              <div key={post.id} className="flex items-center gap-4 p-3 rounded-lg bg-muted/30">
-                <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary/10 text-primary font-bold">
-                  {idx + 1}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{post.content}</p>
-                  <div className="flex items-center gap-4 mt-1">
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Heart className="h-3 w-3" /> {post.likes}
-                    </span>
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <MessageCircle className="h-3 w-3" /> {post.comments}
-                    </span>
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Eye className="h-3 w-3" /> {post.views}
-                    </span>
-                  </div>
-                </div>
-              </div>
+      {loading ? (
+        <div className="flex justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            {stats.map((stat) => (
+              <Card key={stat.label} className="border-border">
+                <CardContent className="pt-6">
+                  <stat.icon className={`h-5 w-5 ${stat.color} mb-2`} />
+                  <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{stat.label}</p>
+                </CardContent>
+              </Card>
             ))}
           </div>
-        </CardContent>
-      </Card>
+
+          <Card className="border-border mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-primary" />
+                {te("Tasa de engagement", "Engagement rate")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <div className="h-4 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-primary to-secondary"
+                      style={{ width: `${engagementPct}%` }}
+                    />
+                  </div>
+                </div>
+                <span className="text-2xl font-bold text-foreground">{engagementPct}%</span>
+              </div>
+              <p className="text-sm text-muted-foreground mt-2">
+                {te("Posts", "Posts")}: {analytics?.postsCount ?? 0} · {te("Reposts", "Reposts")}:{" "}
+                {analytics?.repostsReceived ?? 0} · {te("Guardados", "Bookmarks")}:{" "}
+                {analytics?.bookmarksReceived ?? 0}
+              </p>
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
   )
 }

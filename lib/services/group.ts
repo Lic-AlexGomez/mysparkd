@@ -176,5 +176,13 @@ export const groupService = {
     api.get<Array<{ userId: string; username: string; nombres?: string; apellidos?: string; profilePictureUrl?: string }>>(
       `/api/events/${eventId}/group/join-eligible-users`
     ),
+
+  polls: {
+    list: (groupId: string) => api.get<unknown[]>(`/api/groups/${groupId}/polls`),
+    create: (groupId: string, body: { question: string; options: string[] }) =>
+      api.post<GroupMessage>(`/api/groups/${groupId}/polls`, body),
+    vote: (groupId: string, optionId: string) =>
+      api.post<unknown>(`/api/groups/${groupId}/polls/${optionId}/vote`),
+  },
 }
 

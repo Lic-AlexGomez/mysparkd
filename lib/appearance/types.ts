@@ -1,6 +1,7 @@
 export type NavbarStyle =
   | "default"
   | "flat"
+  | "dating-tabs"
   | "pill"
   | "minimal"
   | "glass"

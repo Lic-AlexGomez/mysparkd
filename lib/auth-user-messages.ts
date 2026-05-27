@@ -1,4 +1,8 @@
 import { ApiError, rateLimitHint } from "@/lib/api"
+import {
+  isIpRegistrationBlockedMessage,
+  ipRegistrationBlockedPresentation,
+} from "@/lib/parity/auth-ip-errors"
 
 export type AuthErrorContext = "login" | "register" | "google" | "passkey" | "forgot-password" | "verify-email"
 
@@ -114,6 +118,10 @@ export function resolveAuthError(
     }
 
     const raw = err.message?.trim() ?? ""
+    if ((context === "register" || context === "login") && isIpRegistrationBlockedMessage(raw)) {
+      return ipRegistrationBlockedPresentation()
+    }
+
     const sanitized = sanitizeApiMessage(raw, err.status, context)
 
     if (context === "login" && isEmailVerificationIssue(raw || sanitized)) {

@@ -140,6 +140,7 @@ export default function ActivityFeedPage() {
   const [items, setItems] = useState<UnifiedFeedItem[]>([])
   const [loading, setLoading] = useState(true)
   const [typeFilter, setTypeFilter] = useState<FeedItemType | undefined>(undefined)
+  const [sort, setSort] = useState<"NEWER" | "OLDER">("NEWER")
 
   const load = useCallback(async (filter: ActivityFeedFilter) => {
     setLoading(true)
@@ -154,8 +155,8 @@ export default function ActivityFeedPage() {
   }, [])
 
   useEffect(() => {
-    load({ type: typeFilter, sort: 'NEWER' })
-  }, [typeFilter, load])
+    load({ type: typeFilter, sort })
+  }, [typeFilter, sort, load])
 
   const handleClick = (item: UnifiedFeedItem) => {
     if (item.type === "MEETUP") router.push(`/events/${item.id}`)
@@ -185,6 +186,20 @@ export default function ActivityFeedPage() {
             }`}
           >
             {f.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex gap-2 mb-5">
+        {(["NEWER", "OLDER"] as const).map((s) => (
+          <button
+            key={s}
+            onClick={() => setSort(s)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+              sort === s ? "bg-muted text-foreground border-border" : "border-transparent text-muted-foreground"
+            }`}
+          >
+            {s === "NEWER" ? te("Más recientes", "Newest") : te("Más antiguos", "Oldest")}
           </button>
         ))}
       </div>

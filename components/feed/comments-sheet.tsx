@@ -43,6 +43,9 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
   const [newComment, setNewComment] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [loadingComments, setLoadingComments] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [page, setPage] = useState(0)
+  const [hasMore, setHasMore] = useState(true)
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
   const [replyText, setReplyText] = useState("")
   const [expandedReplies, setExpandedReplies] = useState<Record<string, CommentReply[]>>({})
@@ -52,12 +55,31 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
   const [editingText, setEditingText] = useState("")
 
-  const fetchComments = useCallback(async () => {
+  const fetchComments = useCallback(async (opts?: { page?: number; reset?: boolean }) => {
+    const pageNum = opts?.page ?? 0
+    const reset = opts?.reset ?? true
     try {
-      setLoadingComments(true)
-      const rows = extractApiRows<CommentType>(await api.get<unknown>(`/api/comments/get/${postId}`))
-      setComments(rows.map((c) => ({ ...c, liked: false })))
+      if (reset) setLoadingComments(true)
+      else setLoadingMore(true)
+
+      const data: any = await api.get<unknown>(`/api/comments/get/${postId}?page=${pageNum}&size=20`)
+      const rows = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.content)
+          ? data.content
+          : extractApiRows<CommentType>(data)
+      const last =
+        typeof data?.last === "boolean"
+          ? data.last
+          : rows.length < 20
+
+      const nextRows = rows.map((c) => ({ ...c, liked: false }))
+      setComments((prev) => (reset ? nextRows : [...prev, ...nextRows]))
+      setPage(pageNum)
+      setHasMore(!last)
+
       setLoadingComments(false)
+      setLoadingMore(false)
       // check privacy si hay postOwnerId y no es el propio usuario
       if (postOwnerId && postOwnerId !== user?.userId) {
         api.get<any>('/api/settings/privacy').then(privacy => {
@@ -65,7 +87,7 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
         }).catch(() => {})
       }
       Promise.all(
-        rows.map(async (comment) => {
+        nextRows.map(async (comment) => {
           try {
             const status = await api.get<any>(`/api/likes/status/${comment.commentsId}`)
             return { id: comment.commentsId, liked: status.reacted, userReaction: status.myReaction, likeCount: status.totalReactions }
@@ -81,15 +103,18 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
       })
     } catch (error) {
       console.error('Error fetching comments:', error)
-      setComments([])
+      if (reset) setComments([])
       setLoadingComments(false)
+      setLoadingMore(false)
     }
   }, [postId, postOwnerId, user?.userId])
 
   useEffect(() => {
     if (open) {
       setLoadingComments(true)
-      fetchComments()
+      setPage(0)
+      setHasMore(true)
+      fetchComments({ page: 0, reset: true })
     }
   }, [open, fetchComments])
 
@@ -100,7 +125,7 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
     try {
       await api.post(`/api/comments/${postId}`, { text: newComment.trim() })
       setNewComment("")
-      fetchComments()
+      fetchComments({ page: 0, reset: true })
       onCommentAdded?.()
       toast.success(te('Comentario publicado', 'Comment posted'))
     } catch (error) {
@@ -118,7 +143,7 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
       setReplyText("")
       setReplyingTo(null)
       fetchReplies(parentId)
-      fetchComments()
+      fetchComments({ page: 0, reset: true })
     } catch {
       toast.error(te("Error al responder", "Error replying"))
     } finally {
@@ -531,6 +556,18 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
                   </div>
                 </div>
               ))
+            )}
+            {hasMore && !loadingComments && (
+              <div className="flex justify-center pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={loadingMore}
+                  onClick={() => fetchComments({ page: page + 1, reset: false })}
+                >
+                  {loadingMore ? "Cargando..." : "Cargar más"}
+                </Button>
+              </div>
             )}
           </div>
         </ScrollArea>

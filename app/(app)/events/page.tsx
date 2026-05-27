@@ -67,6 +67,7 @@ import type {
 } from "@/lib/types"
 import { toast } from "sonner"
 import { useI18n } from "@/lib/i18n"
+import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
 import { FastDateSection } from "@/components/events/fast-date-section"
 import { FastDateOfferCard } from "@/components/events/fast-date-offer-card"
@@ -865,6 +866,12 @@ export default function EventsPage() {
               "Group meetups and Fast Date in one place."
             )}
           </p>
+          <Link
+            href="/activity-feed"
+            className="mt-2 inline-flex text-sm font-medium text-primary hover:underline"
+          >
+            {te("Ver feed unificado de actividades →", "View unified activity feed →")}
+          </Link>
         </div>
         <Button
           className="h-10 shrink-0 sm:self-start"
