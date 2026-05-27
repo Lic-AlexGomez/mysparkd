@@ -21,6 +21,8 @@ import { useFeatureFlags } from "@/hooks/use-feature-flags"
 import { formatDistanceToNow } from "date-fns"
 import { ar, bn, enUS, es, fr, hi, ptBR, ru, zhCN } from "date-fns/locale"
 import { TOP_10_LANGUAGES, useI18n } from "@/lib/i18n"
+import { useAppearanceOptional } from "@/lib/appearance/appearance-provider"
+import { cn } from "@/lib/utils"
 
 type NavNotification = {
   notificationId: string
@@ -53,6 +55,8 @@ export function TopNavbar() {
   const { user, logout } = useAuth()
   const { language, setLanguage, t } = useI18n()
   const features = useFeatureFlags()
+  const appearance = useAppearanceOptional()
+  const navbarStyle = appearance?.uiPrefs.navbarStyle ?? "default"
   const [unreadCount, setUnreadCount] = useState(0)
   const [notifications, setNotifications] = useState<NavNotification[]>([])
   const [showNotifications, setShowNotifications] = useState(false)
@@ -232,7 +236,18 @@ export function TopNavbar() {
     : "?"
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 flex h-16 items-center justify-between border-b border-border bg-card/95 px-4 backdrop-blur-md shadow-sm">
+    <header
+      className={cn(
+        "fixed top-0 left-0 right-0 z-40 flex h-16 items-center justify-between px-4 backdrop-blur-md",
+        navbarStyle === "glass" && "border-b border-primary/25 bg-background/60 shadow-[0_4px_24px_rgba(0,0,0,0.35)]",
+        navbarStyle === "gradient" &&
+          "border-b border-transparent bg-gradient-to-r from-background/90 via-card/90 to-background/90 shadow-sm [border-image:linear-gradient(90deg,var(--primary),var(--secondary),var(--accent))_1]",
+        navbarStyle === "dock" && "border-b border-white/10 bg-card/80 shadow-lg",
+        navbarStyle === "flat" && "border-b border-border bg-card",
+        (navbarStyle === "default" || navbarStyle === "pill" || navbarStyle === "minimal") &&
+          "border-b border-border bg-card/95 shadow-sm"
+      )}
+    >
       {/* Logo */}
       <Link href="/feed" className="flex items-center gap-2">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-secondary shadow-[0_0_20px_rgba(0,229,255,0.3)]">

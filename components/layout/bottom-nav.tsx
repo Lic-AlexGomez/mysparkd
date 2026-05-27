@@ -18,6 +18,8 @@ import { useUnreadChats } from "@/hooks/use-unread-chats"
 import { useAuth } from "@/lib/auth-context"
 import { useExperienceMode } from "@/hooks/use-experience-mode"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useAppearanceOptional } from "@/lib/appearance/appearance-provider"
+import { DEFAULT_UI_PREFERENCES, type NavbarStyle, type UiPreferences } from "@/lib/appearance/types"
 
 type NavKey = "feed" | "groups" | "chat" | "swipes" | "matches" | "profile"
 
@@ -81,6 +83,92 @@ const PRESETS = {
   },
 } as const
 
+type NavPreset = (typeof PRESETS)[keyof typeof PRESETS]
+
+/** Tamaños reducidos para la preview embebida del onboarding (dock desktop). */
+function getPreviewPreset(visibility: keyof typeof PRESETS, embedded?: boolean): NavPreset {
+  const base = PRESETS[visibility]
+  if (!embedded || visibility !== "desktop") return base
+  return {
+    ...base,
+    shellH: 108,
+    barOffset: 28,
+    navTop: 56,
+    navHeight: 40,
+    centerGap: 68,
+    navPx: 12,
+    iconClass: "h-4 w-4",
+    iconSlot: 28,
+    avatarPx: 28,
+    labelMinH: 14,
+    pulse: { outer: 44, mid: 34, core: 24 },
+    labelClass: "text-[8px] font-bold uppercase tracking-[0.16em] leading-none",
+    eventsLabelClass: "text-[8px] font-bold uppercase tracking-[0.2em]",
+    liveClass: "text-[8px] font-extrabold uppercase tracking-[0.18em] text-cyan-400/85",
+  }
+}
+
+function getNavbarShell(style: NavbarStyle) {
+  switch (style) {
+    case "glass":
+      return {
+        navClassExtra: "bottom-5",
+        glow: "drop-shadow(0 0 12px color-mix(in srgb, var(--primary) 45%, transparent))",
+        pathFill: "rgba(10,11,15,0.55)",
+        pathStroke: "color-mix(in srgb, var(--primary) 50%, transparent)",
+        backdrop: "backdrop-blur-2xl bg-white/[0.04]",
+      }
+    case "gradient":
+      return {
+        navClassExtra: "bottom-4",
+        glow: "drop-shadow(0 0 10px color-mix(in srgb, var(--secondary) 40%, transparent))",
+        pathFill: "rgba(8,8,12,0.88)",
+        pathStroke: "url(#navGradStroke)",
+        backdrop: "backdrop-blur-xl",
+      }
+    case "dock":
+      return {
+        navClassExtra: "bottom-6",
+        glow: "drop-shadow(0 8px 24px rgba(0,0,0,0.55)) drop-shadow(0 0 12px color-mix(in srgb, var(--primary) 35%, transparent))",
+        pathFill: "rgba(12,12,18,0.92)",
+        pathStroke: "rgba(255,255,255,0.12)",
+        backdrop: "backdrop-blur-md",
+      }
+    case "flat":
+      return {
+        navClassExtra: "bottom-3",
+        glow: undefined,
+        pathFill: "var(--card)",
+        pathStroke: "var(--border)",
+        backdrop: "",
+      }
+    case "pill":
+      return {
+        navClassExtra: "bottom-4",
+        glow: "drop-shadow(0 0 8px color-mix(in srgb, var(--primary) 30%, transparent))",
+        pathFill: "rgba(10,11,15,0.9)",
+        pathStroke: "var(--border)",
+        backdrop: "backdrop-blur-lg",
+      }
+    case "minimal":
+      return {
+        navClassExtra: "bottom-3",
+        glow: undefined,
+        pathFill: "rgba(10,11,15,0.75)",
+        pathStroke: "transparent",
+        backdrop: "",
+      }
+    default:
+      return {
+        navClassExtra: "",
+        glow: undefined,
+        pathFill: "rgba(10,11,15,0.82)",
+        pathStroke: "color-mix(in srgb, var(--primary) 35%, transparent)",
+        backdrop: "backdrop-blur-xl",
+      }
+  }
+}
+
 function IconSlot({
   preset,
   children,
@@ -124,6 +212,9 @@ function NavBtn({
   active,
   badge,
   preset,
+  showLabels = true,
+  navbarStyle = "default",
+  activeIndicator = "dot",
 }: {
   href: string
   Icon: LucideIcon
@@ -131,8 +222,20 @@ function NavBtn({
   active: boolean
   badge?: number
   preset: (typeof PRESETS)[keyof typeof PRESETS]
+  showLabels?: boolean
+  navbarStyle?: NavbarStyle
+  activeIndicator?: UiPreferences["activeIndicator"]
 }) {
   const icon = <Icon className={preset.iconClass} strokeWidth={2} />
+  const activeWrapClass = cn(
+    "relative flex items-center justify-center",
+    active &&
+      (navbarStyle === "pill"
+        ? "rounded-full bg-primary/20 px-2 py-1 ring-1 ring-primary/40"
+        : activeIndicator === "glow"
+          ? "rounded-full p-1 shadow-[0_0_12px_color-mix(in_srgb,var(--primary)_55%,transparent)]"
+          : "rounded-full bg-white/10 p-1")
+  )
 
   if (preset.hoverNav) {
     return (
@@ -153,17 +256,20 @@ function NavBtn({
             )}
           </div>
         </IconSlot>
-        <LabelSlot preset={preset}>
-          <span
-            className={cn(
-              preset.labelClass,
-              "text-center transition-colors group-hover:text-white",
-              active ? "text-white" : "text-white/40"
-            )}
-          >
-            {label}
-          </span>
-        </LabelSlot>
+        {showLabels && (
+          <LabelSlot preset={preset}>
+            <span
+              className={cn(
+                preset.labelClass,
+                "text-center transition-colors group-hover:text-white",
+                active ? "text-white" : "text-white/40",
+                activeIndicator === "underline" && active && "border-b border-primary"
+              )}
+            >
+              {label}
+            </span>
+          </LabelSlot>
+        )}
       </Link>
     )
   }
@@ -173,11 +279,11 @@ function NavBtn({
       href={href}
       className={cn(
         "flex h-full min-w-0 flex-1 flex-col items-center justify-end px-0.5 pb-0.5",
-        active ? "text-white" : "text-gray-500"
+        active ? "text-primary" : "text-gray-500"
       )}
     >
       <IconSlot preset={preset}>
-        <div className={cn("relative flex items-center justify-center", active && "rounded-full bg-white/10 p-1")}>
+        <div className={activeWrapClass}>
           {icon}
           {!!badge && badge > 0 && (
             <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-secondary px-0.5 text-[8px] font-bold text-black">
@@ -186,25 +292,51 @@ function NavBtn({
           )}
         </div>
       </IconSlot>
-      <LabelSlot preset={preset}>
-        <span className={cn("w-full truncate text-center", preset.labelClass)}>{label}</span>
-      </LabelSlot>
+      {showLabels && (
+        <LabelSlot preset={preset}>
+          <span
+            className={cn(
+              "w-full truncate text-center",
+              preset.labelClass,
+              activeIndicator === "underline" && active && "border-b border-primary"
+            )}
+          >
+            {label}
+          </span>
+        </LabelSlot>
+      )}
     </Link>
   )
 }
 
-export function SparkdNavBar({ visibility }: { visibility: "mobile" | "desktop" }) {
-  const preset = PRESETS[visibility]
+export function SparkdNavBar({
+  visibility,
+  embedded,
+  previewUiPrefs,
+  previewPathname,
+}: {
+  visibility: "mobile" | "desktop"
+  embedded?: boolean
+  previewUiPrefs?: UiPreferences
+  previewPathname?: string
+}) {
+  const preset = getPreviewPreset(visibility, embedded)
   const { w: W, h: H, shellH, barOffset, navTop, navHeight, centerGap: CENTER_GAP, path: PATH } = preset
+  const appearance = useAppearanceOptional()
+  const uiPrefs = previewUiPrefs ?? appearance?.uiPrefs ?? DEFAULT_UI_PREFERENCES
+  const shell = getNavbarShell(uiPrefs.navbarStyle)
+  const showLabels = uiPrefs.showLabels !== false
+  const hideLive = uiPrefs.hideLiveIndicator
 
-  const pathname = usePathname()
+  const pathnameFromRouter = usePathname()
+  const pathname = previewPathname ?? pathnameFromRouter
   const unreadChats = useUnreadChats()
   const { user } = useAuth()
   const experienceMode = useExperienceMode()
-  const showDatingItems = experienceMode === "DATING" || experienceMode === "BOTH"
+  const showDatingItems = embedded ? true : experienceMode === "DATING" || experienceMode === "BOTH"
   const profileSub = user?.username || user?.nombres || ""
 
-  if (pathname.startsWith("/chat/")) return null
+  if (!embedded && pathnameFromRouter.startsWith("/chat/")) return null
 
   const isEventsActive =
     pathname.startsWith("/events") ||
@@ -266,35 +398,123 @@ export function SparkdNavBar({ visibility }: { visibility: "mobile" | "desktop" 
     },
   ]
 
+  const eventsItem: SideNavItem = {
+    key: "events",
+    href: "/events",
+    label: "EVENTS",
+    icon: Radio,
+    isActive: () => isEventsActive,
+  }
+
+  const linearItems: SideNavItem[] = [
+    leftItems[0],
+    leftItems[1],
+    eventsItem,
+    leftItems[2],
+    ...(showDatingItems ? rightItems.filter((i) => i.key === "swipes" || i.key === "matches") : []),
+    rightItems.find((i) => i.key === "profile")!,
+  ]
+
   const visibilityClass = visibility === "mobile" ? "lg:hidden" : "hidden lg:block"
   const profileActive = rightItems.find((i) => i.key === "profile")?.isActive(pathname) ?? false
 
+  const navGlow = shell.glow ?? preset.glow
+  const navPositionClass = embedded
+    ? "relative mx-auto w-full max-w-full"
+    : cn("fixed left-1/2 z-50 max-w-[calc(100vw-16px)] -translate-x-1/2", preset.navClass, shell.navClassExtra)
+
+  const showLive = embedded || !hideLive
+  const dockInnerStyle = embedded
+    ? ({ width: "100%", minHeight: shellH } as const)
+    : ({ width: W, minHeight: shellH } as const)
+  const pulseTop = preset.pulseTop
+
+  const linearNavBtn = (item: SideNavItem) => (
+    <NavBtn
+      key={item.key}
+      href={embedded ? "#" : item.href}
+      Icon={item.icon}
+      label={item.label}
+      active={item.isActive(pathname)}
+      badge={item.badge}
+      preset={preset}
+      showLabels={showLabels}
+      navbarStyle={uiPrefs.navbarStyle}
+      activeIndicator={uiPrefs.activeIndicator}
+    />
+  )
+
+  if (uiPrefs.navbarStyle === "gradient") {
+    return (
+      <nav
+        className={cn(navPositionClass, !embedded && visibilityClass)}
+        style={embedded ? { width: "100%" } : { width: W, filter: navGlow }}
+      >
+        <div className="relative min-h-16 w-full overflow-hidden border-t border-[#2a2b35] bg-[#0a0b0f]">
+          <svg className="absolute inset-0 h-full w-full" preserveAspectRatio="none" aria-hidden>
+            <defs>
+              <linearGradient id="onbNavGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="rgba(0,229,255,0.15)" />
+                <stop offset="50%" stopColor="rgba(168,85,247,0.15)" />
+                <stop offset="100%" stopColor="rgba(249,115,22,0.15)" />
+              </linearGradient>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#onbNavGrad)" />
+          </svg>
+          <div className="relative flex items-stretch justify-between px-0.5 py-2">{linearItems.map(linearNavBtn)}</div>
+        </div>
+      </nav>
+    )
+  }
+
+  if (uiPrefs.navbarStyle === "glass") {
+    return (
+      <nav
+        className={cn(navPositionClass, !embedded && visibilityClass)}
+        style={embedded ? { width: "100%" } : { width: W, filter: navGlow }}
+      >
+        <div className={cn("flex w-full justify-center py-2", embedded ? "px-0" : "px-3")}>
+          <div className="flex w-full max-w-full items-stretch justify-between rounded-[20px] border border-white/10 bg-[rgba(20,22,30,0.85)] px-0.5 py-2.5">
+            {linearItems.map(linearNavBtn)}
+          </div>
+        </div>
+      </nav>
+    )
+  }
+
   return (
     <nav
-      className={cn(
-        "fixed left-1/2 z-50 max-w-[calc(100vw-16px)] -translate-x-1/2",
-        preset.navClass,
-        visibilityClass
-      )}
-      style={{ width: W, filter: preset.glow }}
+      className={cn(navPositionClass, !embedded && visibilityClass)}
+      style={{ width: embedded ? "100%" : W, filter: embedded ? undefined : navGlow }}
     >
-      <div className="relative overflow-visible" style={{ width: W, minHeight: shellH }}>
-        <div
-          className="pointer-events-none absolute inset-x-0 bottom-0 backdrop-blur-xl"
-          style={{
-            top: barOffset,
-            WebkitBackdropFilter: "blur(40px) saturate(180%)",
-          }}
-        />
+      <div
+        className="relative mx-auto overflow-visible"
+        style={dockInnerStyle}
+      >
+        {shell.backdrop ? (
+          <div
+            className={cn("pointer-events-none absolute inset-x-0 bottom-0", shell.backdrop)}
+            style={{
+              top: barOffset,
+              WebkitBackdropFilter: "blur(40px) saturate(180%)",
+            }}
+          />
+        ) : null}
 
         <svg
-          width={W}
+          width={embedded ? "100%" : W}
           height={H}
           viewBox={`0 0 ${W} ${H}`}
+          preserveAspectRatio={embedded ? "xMidYMax meet" : undefined}
           className="relative z-[1] block overflow-visible"
         >
-          {visibility === "desktop" && (
-            <defs>
+          <defs>
+            <linearGradient id="navGradStroke" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="var(--primary)" />
+              <stop offset="50%" stopColor="var(--secondary)" />
+              <stop offset="100%" stopColor="var(--accent)" />
+            </linearGradient>
+            {visibility === "desktop" && (
               <linearGradient id="dockBorderGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                 <stop offset="0%" stopColor="rgba(255,255,255,0)" />
                 <stop offset="30%" stopColor="rgba(255,255,255,0.25)" />
@@ -302,11 +522,11 @@ export function SparkdNavBar({ visibility }: { visibility: "mobile" | "desktop" 
                 <stop offset="70%" stopColor="rgba(255,255,255,0.25)" />
                 <stop offset="100%" stopColor="rgba(255,255,255,0)" />
               </linearGradient>
-            </defs>
-          )}
+            )}
+          </defs>
           <g transform={`translate(0, ${barOffset})`}>
-            <path d={PATH} fill="rgba(10,11,15,0.82)" />
-            <path d={PATH} fill="none" stroke="rgba(0,229,255,0.35)" strokeWidth="1" />
+            <path d={PATH} fill={shell.pathFill} />
+            <path d={PATH} fill="none" stroke={shell.pathStroke} strokeWidth="1" />
           </g>
         </svg>
 
@@ -324,18 +544,21 @@ export function SparkdNavBar({ visibility }: { visibility: "mobile" | "desktop" 
 
         <div
           className="absolute left-1/2 z-20 flex -translate-x-1/2 flex-col items-center pointer-events-none"
-          style={{ top: preset.pulseTop }}
+          style={{ top: pulseTop }}
         >
-          <span className={cn("mb-1 block whitespace-nowrap", preset.liveClass)}>
-            LIVE CITY ACTIVE
-          </span>
+          {showLive ? (
+            <span className={cn("mb-1 block whitespace-nowrap", preset.liveClass)}>
+              LIVE CITY ACTIVE
+            </span>
+          ) : null}
           <Link
-            href="/events"
+            href={embedded ? "#" : "/events"}
             className={cn(
               "pointer-events-auto flex flex-col items-center",
               visibility === "desktop" ? "gap-1.5" : "gap-0.5"
             )}
             aria-label="Eventos"
+            tabIndex={embedded ? -1 : undefined}
           >
             <div
               className={cn(
@@ -359,7 +582,13 @@ export function SparkdNavBar({ visibility }: { visibility: "mobile" | "desktop" 
                   style={{ width: preset.pulse.core, height: preset.pulse.core }}
                 >
                   <Radio
-                    className={visibility === "desktop" ? "h-5 w-5 text-white" : "h-4 w-4 text-white"}
+                    className={
+                      embedded
+                        ? "h-3.5 w-3.5 text-white"
+                        : visibility === "desktop"
+                          ? "h-5 w-5 text-white"
+                          : "h-4 w-4 text-white"
+                    }
                     strokeWidth={2.5}
                   />
                 </div>
@@ -389,12 +618,15 @@ export function SparkdNavBar({ visibility }: { visibility: "mobile" | "desktop" 
             {leftItems.map((item) => (
               <NavBtn
                 key={item.key}
-                href={item.href}
+                href={embedded ? "#" : item.href}
                 Icon={item.icon}
                 label={item.label}
                 active={item.isActive(pathname)}
                 badge={item.badge}
                 preset={preset}
+                showLabels={showLabels}
+                navbarStyle={uiPrefs.navbarStyle}
+                activeIndicator={uiPrefs.activeIndicator}
               />
             ))}
           </div>
@@ -407,7 +639,7 @@ export function SparkdNavBar({ visibility }: { visibility: "mobile" | "desktop" 
                 preset.hoverNav ? (
                   <Link
                     key={item.key}
-                    href={item.href}
+                    href={embedded ? "#" : item.href}
                     className="group flex h-full min-w-0 flex-1 flex-col items-center justify-end px-1 pb-0.5"
                   >
                     <IconSlot preset={preset}>
@@ -451,7 +683,7 @@ export function SparkdNavBar({ visibility }: { visibility: "mobile" | "desktop" 
                 ) : (
                   <Link
                     key={item.key}
-                    href={item.href}
+                    href={embedded ? "#" : item.href}
                     className={cn(
                       "flex h-full min-w-0 flex-1 flex-col items-center justify-end px-0.5 pb-0.5",
                       profileActive ? "text-white" : "text-gray-500"
@@ -477,11 +709,14 @@ export function SparkdNavBar({ visibility }: { visibility: "mobile" | "desktop" 
               ) : (
                 <NavBtn
                   key={item.key}
-                  href={item.href}
+                  href={embedded ? "#" : item.href}
                   Icon={item.icon}
                   label={item.label}
                   active={item.isActive(pathname)}
                   preset={preset}
+                  showLabels={showLabels}
+                  navbarStyle={uiPrefs.navbarStyle}
+                  activeIndicator={uiPrefs.activeIndicator}
                 />
               )
             )}

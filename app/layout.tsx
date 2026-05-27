@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import { Toaster } from 'sonner'
 import { AuthProvider } from '@/lib/auth-context'
 import { LanguageProvider } from '@/lib/i18n'
+import { AppearanceProvider } from '@/lib/appearance/appearance-provider'
 import { SyncPreferredLanguage } from '@/components/sync-preferred-language'
 import './globals.css'
 
@@ -181,9 +182,10 @@ export default function RootLayout({
       </head>
       <body className="font-sans antialiased">
         <LanguageProvider>
-          <AuthProvider>
-            <SyncPreferredLanguage />
-            {children}
+          <AppearanceProvider>
+            <AuthProvider>
+              <SyncPreferredLanguage />
+              {children}
             <Toaster
               theme="dark"
               position="top-center"
@@ -195,7 +197,8 @@ export default function RootLayout({
                 },
               }}
             />
-          </AuthProvider>
+            </AuthProvider>
+          </AppearanceProvider>
         </LanguageProvider>
       </body>
     </html>

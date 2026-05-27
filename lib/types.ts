@@ -1,5 +1,8 @@
 // Enums
 export type Sex = "MALE" | "FEMALE"
+
+/** Preferencia de matching: backend acepta MALE, FEMALE o BOTH (ambos). */
+export type InterestedIn = Sex | "BOTH"
 export type SwipeType = "LIKE" | "DISLIKE"
 
 /** Modo de producto: enum backend `AccountType` (no confundir con `user.premium`). */
@@ -758,14 +761,14 @@ export interface Interest {
 
 // Preferences
 export interface UserPreferences {
-  interestedIn: Sex
+  interestedIn: InterestedIn
   minAge: number
   maxAge: number
   showMe: boolean
 }
 
 export interface SetPreferencesRequest {
-  interestedIn: Sex
+  interestedIn: InterestedIn
   minAge: number
   maxAge: number
   showMe: boolean

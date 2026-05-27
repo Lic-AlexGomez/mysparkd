@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { api } from "@/lib/api"
-import type { AccountType, CreateProfileRequest, Interest, Sex } from "@/lib/types"
+import type { AccountType, CreateProfileRequest, Interest, InterestedIn, Sex } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -28,7 +28,9 @@ import {
   Calendar,
   Phone,
   Camera,
+  Palette,
 } from "lucide-react"
+import { OnboardingAppearanceStep } from "@/components/appearance/onboarding-appearance-step"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import {
@@ -41,8 +43,6 @@ import {
 import { cn } from "@/lib/utils"
 import { TOP_10_LANGUAGES, type SupportedLanguage, useI18n } from "@/lib/i18n"
 import { SparkBackground } from "@/components/marketing/spark-background"
-
-type InterestedInPref = Sex | "BOTH"
 
 function ageFromDateOfBirth(isoDate: string): number | null {
   if (!isoDate) return null
@@ -142,6 +142,11 @@ export default function OnboardingPage() {
           icon: Sparkles,
         },
         {
+          title: t("onboarding.appearance.title"),
+          description: t("onboarding.appearance.description"),
+          icon: Palette,
+        },
+        {
           title: t("onboarding.step1.title"),
           description: t("onboarding.step1.description"),
           icon: User,
@@ -179,7 +184,7 @@ export default function OnboardingPage() {
   const [allInterests, setAllInterests] = useState<Interest[]>([])
   const [selectedInterests, setSelectedInterests] = useState<string[]>([])
 
-  const [interestedIn, setInterestedIn] = useState<InterestedInPref>("FEMALE")
+  const [interestedIn, setInterestedIn] = useState<InterestedIn>("FEMALE")
   const [ageRange, setAgeRange] = useState([18, 35])
   const [showMe, setShowMe] = useState(true)
 
@@ -279,7 +284,7 @@ export default function OnboardingPage() {
           toast.error(t("onboarding.photo.error"))
         }
       }
-      setStep(2)
+      setStep(3)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("onboarding.error.saveProfile"))
     } finally {
@@ -306,7 +311,7 @@ export default function OnboardingPage() {
         )
       }
 
-      setStep(3)
+      setStep(4)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("onboarding.error.saveInterests"))
     } finally {
@@ -470,7 +475,7 @@ export default function OnboardingPage() {
                   </Select>
                 </div>
 
-                <div className="flex flex-col gap-3 lg:gap-2">
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
                   {(
                     [
                       {
@@ -492,39 +497,52 @@ export default function OnboardingPage() {
                         subtitle: t("onboarding.mode.both.subtitle"),
                       },
                     ] as const
-                  ).map(({ mode, Illustration, title, subtitle }) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => setAppMode(mode)}
-                      className={cn(
-                        "flex w-full items-center gap-4 rounded-2xl border-2 p-4 text-left transition-all lg:gap-3 lg:p-3",
-                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                        appMode === mode
-                          ? "border-primary bg-primary/10 shadow-md shadow-primary/10"
-                          : "border-border bg-muted/20 hover:border-primary/40 hover:bg-muted/40"
-                      )}
-                    >
-                      <span
+                  ).map(({ mode, Illustration, title, subtitle }) => {
+                    const selected = appMode === mode
+                    return (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setAppMode(mode)}
+                        aria-pressed={selected}
                         className={cn(
-                          "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl lg:h-10 lg:w-10",
-                          appMode === mode
-                            ? "bg-primary/20 text-primary"
-                            : "bg-muted/60 text-muted-foreground"
+                          "group relative flex min-h-[8.5rem] flex-col items-center justify-start gap-2 rounded-2xl border-2 px-2 pb-3 pt-3 text-center transition-all sm:min-h-[9rem] sm:px-3 sm:pb-4",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                          selected
+                            ? "border-primary bg-gradient-to-b from-primary/15 to-primary/5 shadow-lg shadow-primary/15"
+                            : "border-border/80 bg-muted/15 hover:border-primary/35 hover:bg-muted/30"
                         )}
-                        aria-hidden
                       >
-                        <Illustration className="h-7 w-7 lg:h-6 lg:w-6" />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <h3 className="font-semibold text-foreground">{title}</h3>
-                        <p className="text-sm text-muted-foreground">{subtitle}</p>
-                      </div>
-                      {appMode === mode && (
-                        <Check className="h-5 w-5 shrink-0 text-primary" aria-hidden />
-                      )}
-                    </button>
-                  ))}
+                        {selected ? (
+                          <span
+                            className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm sm:right-2 sm:top-2"
+                            aria-hidden
+                          >
+                            <Check className="h-3 w-3 stroke-[3]" />
+                          </span>
+                        ) : null}
+                        <span
+                          className={cn(
+                            "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-colors sm:h-12 sm:w-12",
+                            selected
+                              ? "bg-primary/25 text-primary"
+                              : "bg-muted/50 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
+                          )}
+                          aria-hidden
+                        >
+                          <Illustration className="h-6 w-6 sm:h-7 sm:w-7" />
+                        </span>
+                        <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5">
+                          <h3 className="text-xs font-bold leading-tight text-foreground sm:text-sm">
+                            {title}
+                          </h3>
+                          <p className="line-clamp-2 text-[10px] leading-snug text-muted-foreground sm:text-[11px]">
+                            {subtitle}
+                          </p>
+                        </div>
+                      </button>
+                    )
+                  })}
                 </div>
 
                 <Button
@@ -540,6 +558,32 @@ export default function OnboardingPage() {
           )}
 
           {step === 1 && (
+            <>
+              <CardHeader className="space-y-2 border-b border-border/60 bg-muted/20 pb-4 lg:pb-3 lg:pt-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+                    <Palette className="h-5 w-5" aria-hidden />
+                  </div>
+                  <div className="min-w-0 space-y-1">
+                    <CardTitle className="text-lg text-foreground sm:text-xl lg:text-base">
+                      {t("onboarding.appearance.title")}
+                    </CardTitle>
+                    <CardDescription className="text-sm leading-relaxed lg:text-xs">
+                      {t("onboarding.appearance.description")}
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain pt-4 pb-4 lg:gap-3 lg:pt-3 lg:pb-4 [scrollbar-gutter:stable]">
+                <OnboardingAppearanceStep
+                  onBack={() => setStep(0)}
+                  onContinue={() => setStep(2)}
+                />
+              </CardContent>
+            </>
+          )}
+
+          {step === 2 && (
             <>
               <CardHeader className="space-y-2 border-b border-border/60 bg-muted/20 pb-4 lg:pb-3 lg:pt-4">
                 <div className="flex items-start gap-3">
@@ -729,7 +773,7 @@ export default function OnboardingPage() {
                   <Button
                     type="button"
                     variant="ghost"
-                    onClick={() => setStep(0)}
+                    onClick={() => setStep(1)}
                     className="h-12 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground sm:h-11 sm:flex-1 lg:h-10"
                   >
                     <ArrowLeft className="mr-2 h-4 w-4" />
@@ -753,7 +797,7 @@ export default function OnboardingPage() {
             </>
           )}
 
-          {step === 2 && (
+          {step === 3 && (
             <>
               <CardHeader className="space-y-3 border-b border-border/60 bg-muted/20 pb-4 lg:pb-3 lg:pt-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
@@ -876,7 +920,7 @@ export default function OnboardingPage() {
                   <Button
                     type="button"
                     variant="ghost"
-                    onClick={() => setStep(1)}
+                    onClick={() => setStep(2)}
                     className="h-12 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground sm:h-11 sm:flex-1 lg:h-10"
                   >
                     <ArrowLeft className="mr-2 h-4 w-4" />
@@ -900,7 +944,7 @@ export default function OnboardingPage() {
             </>
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <>
               <CardHeader className="space-y-1 border-b border-border/60 bg-muted/20 pb-4 lg:pb-3 lg:pt-4">
                 <CardTitle className="text-lg text-foreground sm:text-xl lg:text-base">{t("onboarding.step3.title")}</CardTitle>
@@ -978,7 +1022,7 @@ export default function OnboardingPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setStep(2)}
+                    onClick={() => setStep(3)}
                     className="h-11 flex-1 border-border lg:h-10"
                   >
                     <ArrowLeft className="mr-2 h-4 w-4" />

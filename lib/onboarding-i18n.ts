@@ -45,6 +45,36 @@ export const ONBOARDING_I18N: Record<string, Record<SupportedLanguage, string>> 
       pt: "Escolha como usar o Sparkd. Você pode mudar depois.",
     }
   ),
+  "onboarding.appearance.title": tr("Appearance", "Apariencia", { fr: "Apparence", pt: "Aparência" }),
+  "onboarding.appearance.description": tr(
+    "Pick a visual style and accent colors for the app.",
+    "Elige un estilo visual y los colores de acento de la app."
+  ),
+  "onboarding.appearance.styleTitle": tr("Interface style", "Estilo de interfaz"),
+  "onboarding.appearance.styleHint": tr(
+    "Each option changes the navbar and overall look.",
+    "Cada opción cambia la barra de navegación y el aspecto general."
+  ),
+  "onboarding.appearance.paletteTitle": tr("Color palette", "Paleta de colores"),
+  "onboarding.appearance.paletteHint": tr(
+    "Accent colors for buttons, links and highlights.",
+    "Colores de acento para botones, enlaces y destacados."
+  ),
+  "onboarding.appearance.sparkd.title": tr("Sparkd Classic", "Sparkd clásico"),
+  "onboarding.appearance.sparkd.description": tr(
+    "The original look with the curved dock navbar.",
+    "El aspecto original con la barra curva central."
+  ),
+  "onboarding.appearance.neon.title": tr("Neon Events", "Neon eventos"),
+  "onboarding.appearance.neon.description": tr(
+    "Cyan and magenta accents with a gradient navbar.",
+    "Acentos cyan y magenta con barra en gradiente."
+  ),
+  "onboarding.appearance.cyber.title": tr("Cyber Black", "Cyber negro"),
+  "onboarding.appearance.cyber.description": tr(
+    "Pure black feed with a glass-style floating navbar.",
+    "Feed negro puro con barra flotante estilo cristal."
+  ),
   "onboarding.step1.title": tr("About you", "Sobre ti", { fr: "À propos de toi", pt: "Sobre você" }),
   "onboarding.step1.description": tr(
     "Basic details for your profile and better recommendations.",
@@ -116,8 +146,8 @@ export const ONBOARDING_I18N: Record<string, Record<SupportedLanguage, string>> 
   "onboarding.lastName.placeholder": tr("e.g. Garcia Lopez", "Ej. García López"),
   "onboarding.gender": tr("Gender", "Género", { fr: "Genre", pt: "Gênero" }),
   "onboarding.gender.hint": tr(
-    "Your gender. In the last step you can choose who you want to meet — men, women, or both.",
-    "Tu género. En el último paso eliges a quién quieres conocer: hombres, mujeres o ambos."
+    "Your gender (man or woman). In Preferences you can choose who you want to meet — men, women, or both.",
+    "Tu género (hombre o mujer). En Preferencias eliges a quién quieres conocer: hombres, mujeres o ambos."
   ),
   "onboarding.gender.male": tr("Man", "Hombre", { fr: "Homme", pt: "Homem" }),
   "onboarding.gender.female": tr("Woman", "Mujer", { fr: "Femme", pt: "Mulher" }),

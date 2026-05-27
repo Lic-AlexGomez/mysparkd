@@ -8,6 +8,7 @@ import type {
   AccountType,
   Interest,
   Sex,
+  InterestedIn,
   UpdateProfileRequest,
   UserPreferences,
 } from "@/lib/types"
@@ -96,7 +97,7 @@ export default function SettingsPage() {
 
   // Preferences
   const [preferences, setPreferences] = useState<UserPreferences | null>(null)
-  const [interestedIn, setInterestedIn] = useState<Sex>("FEMALE")
+  const [interestedIn, setInterestedIn] = useState<InterestedIn>("FEMALE")
   const [ageRange, setAgeRange] = useState([18, 35])
   const [showMe, setShowMe] = useState(true)
   const [isPrivate, setIsPrivate] = useState(false)
@@ -178,7 +179,13 @@ export default function SettingsPage() {
         "/api/preferences/get/my/preferences"
       )
       setPreferences(data)
-      setInterestedIn(data.interestedIn)
+      const pref =
+        data.interestedIn === "MALE" ||
+        data.interestedIn === "FEMALE" ||
+        data.interestedIn === "BOTH"
+          ? data.interestedIn
+          : "FEMALE"
+      setInterestedIn(pref)
       setAgeRange([data.minAge, data.maxAge])
       setShowMe(data.showMe)
     } catch {
@@ -990,20 +997,26 @@ export default function SettingsPage() {
             <>
               <div className="flex flex-col gap-2">
                 <Label className="text-foreground">Me interesa</Label>
-                <div className="flex gap-2">
-                  {(["MALE", "FEMALE"] as Sex[]).map((s) => (
+                <div className="grid grid-cols-3 gap-2">
+                  {(
+                    [
+                      { value: "MALE" as const, label: "Hombres" },
+                      { value: "FEMALE" as const, label: "Mujeres" },
+                      { value: "BOTH" as const, label: "Ambos" },
+                    ] as const
+                  ).map(({ value, label }) => (
                     <Button
-                      key={s}
+                      key={value}
                       type="button"
-                      variant={interestedIn === s ? "default" : "outline"}
-                      onClick={() => setInterestedIn(s)}
+                      variant={interestedIn === value ? "default" : "outline"}
+                      onClick={() => setInterestedIn(value)}
                       className={
-                        interestedIn === s
+                        interestedIn === value
                           ? "bg-primary text-primary-foreground"
                           : "border-border text-foreground hover:bg-muted"
                       }
                     >
-                      {s === "MALE" ? "Hombres" : "Mujeres"}
+                      {label}
                     </Button>
                   ))}
                 </div>
