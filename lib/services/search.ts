@@ -39,6 +39,15 @@ const normalizeHashtags = (rows: any[]): HashtagResult[] =>
     }))
     .filter((h) => Boolean(h.tag))
 
+const normalizeAutocompletePosts = (rows: unknown[]): Post[] =>
+  rows.map((raw, i) => {
+    const p = raw as Record<string, unknown>
+    return {
+      ...(p as object),
+      id: String(p.id ?? p.postId ?? `ac-${i}`),
+    } as Post
+  })
+
 export const searchService = {
   normalizeInterestLabel(interest: unknown): string {
     if (typeof interest === "string") return interest
@@ -165,7 +174,7 @@ export const searchService = {
       } as UserProfile)) : []
       return {
         users,
-        posts: Array.isArray(data?.posts) ? data.posts : [],
+        posts: Array.isArray(data?.posts) ? normalizeAutocompletePosts(data.posts) : [],
         hashtags: normalizeHashtags(Array.isArray(data?.hashtags) ? data.hashtags : []),
       }
     } catch {
@@ -229,7 +238,7 @@ export const searchService = {
         : []
       return {
         users,
-        posts: Array.isArray(data?.posts) ? data.posts : [],
+        posts: Array.isArray(data?.posts) ? normalizeAutocompletePosts(data.posts) : [],
         hashtags: normalizeHashtags(Array.isArray(data?.hashtags) ? data.hashtags : []),
       }
     } catch {

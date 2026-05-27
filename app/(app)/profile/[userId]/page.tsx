@@ -32,6 +32,7 @@ import {
   eligibilityMessageKey,
   getDatingDisplayName,
 } from "@/lib/dm-eligibility"
+import { getFollowButtonLabel, shouldShowFollowsYouHint } from "@/lib/follow-labels"
 
 function getAge(dateOfBirth?: string): number | null {
   if (!dateOfBirth) return null
@@ -64,6 +65,7 @@ export default function UserProfilePage() {
   const [following, setFollowing] = useState(false)
   const [pending, setPending] = useState(false)
   const [followedBy, setFollowedBy] = useState(false)
+  const [followBack, setFollowBack] = useState(false)
   const [receivedRequest, setReceivedRequest] = useState(false)
   const [viewPhotoUrl, setViewPhotoUrl] = useState<string | null>(null)
   const [isMessaging, setIsMessaging] = useState(false)
@@ -99,6 +101,7 @@ export default function UserProfilePage() {
       setFollowing(status.following)
       setPending(status.requestPending)
       setFollowedBy(status.followedBy)
+      setFollowBack(Boolean(status.followBack ?? status.followedBy))
       setReceivedRequest(status.receivedRequest ?? false)
     } catch {}
   }

@@ -188,39 +188,45 @@ export default function SearchPage() {
 
       {/* Search input */}
       <div className="relative mb-6">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
-        <Input
-          ref={inputRef}
-          placeholder={datingSearchOnly ? t("dm.searchMatchesOnly") : "Buscar usuarios, posts, #hashtags..."}
-          value={query}
-          onChange={(e) => handleQueryChange(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-          className="pl-10 pr-24 h-12"
-          autoFocus
-          disabled={datingSearchOnly}
-        />
-        {query && (
-          <button
-            onClick={clearSearch}
-            className="absolute right-20 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+        <div className="flex gap-2">
+          <div className="relative flex-1 min-w-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
+            <Input
+              ref={inputRef}
+              placeholder={datingSearchOnly ? t("dm.searchMatchesOnly") : "Buscar usuarios, posts, #hashtags..."}
+              value={query}
+              onChange={(e) => handleQueryChange(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              className={`pl-10 h-12 ${query ? "pr-10" : "pr-4"}`}
+              autoFocus
+              disabled={datingSearchOnly}
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={clearSearch}
+                aria-label={te("Limpiar búsqueda", "Clear search")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          <Button
+            onClick={handleSearch}
+            disabled={datingSearchOnly || isLoading || !query.trim()}
+            className="h-12 shrink-0 px-5"
           >
-            <X className="h-4 w-4" />
-          </button>
-        )}
-        <Button
-          onClick={handleSearch}
-          disabled={datingSearchOnly || isLoading || !query.trim()}
-          className="absolute right-1 top-1/2 -translate-y-1/2 h-10"
-        >
-          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Buscar"}
-        </Button>
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : te("Buscar", "Search")}
+          </Button>
+        </div>
 
         {/* Autocomplete dropdown */}
         {autocomplete && (
-          <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-card border border-border rounded-xl shadow-xl overflow-hidden">
-            {autocomplete.users?.slice(0, 3).map(u => (
+          <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-card border border-border rounded-xl shadow-xl overflow-hidden">
+            {autocomplete.users?.slice(0, 3).map((u, i) => (
               <button
-                key={u.userId}
+                key={`ac-user-${u.userId || i}`}
                 className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors text-left"
                 onClick={() => { setAutocomplete(null); router.push(`/profile/${u.userId}`) }}
               >
@@ -235,9 +241,9 @@ export default function SearchPage() {
                 <User className="h-3.5 w-3.5 text-muted-foreground ml-auto shrink-0" />
               </button>
             ))}
-            {autocomplete.hashtags?.slice(0, 3).map(h => (
+            {autocomplete.hashtags?.slice(0, 3).map((h, i) => (
               <button
-                key={h.tag}
+                key={`ac-hashtag-${h.tag || i}`}
                 className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors text-left"
                 onClick={() => { setQuery("#" + h.tag); setAutocomplete(null); doSearch("#" + h.tag) }}
               >
@@ -248,9 +254,9 @@ export default function SearchPage() {
                 <span className="text-xs text-muted-foreground ml-auto">{h.usageCount} posts</span>
               </button>
             ))}
-            {autocomplete.posts?.slice(0, 2).map(p => (
+            {autocomplete.posts?.slice(0, 2).map((p, i) => (
               <button
-                key={p.id}
+                key={`ac-post-${p.id || i}`}
                 className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors text-left"
                 onClick={() => { setAutocomplete(null); doSearch(query) }}
               >
