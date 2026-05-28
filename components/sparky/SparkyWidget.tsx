@@ -10,9 +10,11 @@ import { useSparkyGazeWeb } from "@/lib/hooks/use-sparky-gaze-web"
 import { useSparkyExpressionTransitionWeb } from "@/lib/hooks/use-sparky-expression-transition-web"
 import { installSparkyFetchInterceptor } from "@/lib/sparky-fetch"
 import { companionNotifyScrollFast } from "@/lib/companion/api-bridge"
-import { SPARKY_ALIVE, pickAliveLine } from "@/lib/sparky-alive-copy"
+import { pickAliveLine } from "@/lib/sparky-alive-copy"
+import { SparkyProactiveThoughtBubble } from "@/components/sparky/SparkyProactiveThoughtBubble"
 import { moodToSparkyExpression } from "@/lib/companion/engine"
 import { cn } from "@/lib/utils"
+import { postSparkyAi } from "@/lib/sparky-ai-api"
 
 function resolveRouteKey(pathname: string): string {
   if (pathname.startsWith("/feed")) return "feed"
@@ -77,10 +79,6 @@ export function SparkyWidget() {
       }
       if (idle >= 180_000) {
         sparky.dispatchCompanion("user_idle", { force: true })
-      } else if (idle >= 90_000) {
-        sparky.dispatchCompanion("user_idle", { force: false })
-      } else if (idle >= 30_000 && !open) {
-        sparky.dispatchCompanion("user_idle", { force: false })
       }
     }, 8000)
     return () => clearInterval(tick)
@@ -112,24 +110,22 @@ export function SparkyWidget() {
     setLoading(true)
     sparky.dispatchCompanion("loading_slow", { force: true })
     try {
-      const res = await fetch("/api/sparky", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tier: "auto",
-          task: "free_chat",
-          userMessage: text,
-          sparkyContext: { pathname: sparky.pathname, routeKey, ...sparky.vibeContext },
-        }),
+      const data = await postSparkyAi({
+        tier: "auto",
+        task: "free_chat",
+        userMessage: text,
+        sparkyContext: { pathname: sparky.pathname, routeKey, ...sparky.vibeContext },
       })
-      const data = (await res.json()) as { suggestions?: string[]; error?: string }
       const suggestion = Array.isArray(data.suggestions) && data.suggestions.length
         ? data.suggestions[0]
         : data.error
           ? "uff…"
           : "mmm…"
       setLastReply(suggestion)
-      sparky.dispatchCompanion(res.ok ? "success" : "error", { force: true })
+      sparky.dispatchCompanion(
+        Array.isArray(data.suggestions) && data.suggestions.length ? "success" : "error",
+        { force: true }
+      )
     } catch {
       setLastReply("sin señal…")
       sparky.dispatchCompanion("error", { force: true })
@@ -175,23 +171,12 @@ export function SparkyWidget() {
       />
 
       {sparky.proactiveCopy && !open ? (
-        <motion.div
-          className={cn(
-            "fixed z-[59] max-w-[200px] rounded-2xl border border-primary/30 bg-card/95 px-3 py-2 text-sm font-medium shadow-lg backdrop-blur-sm",
-            avoidBottomRightChrome ? "bottom-36 left-5" : "bottom-24 right-5"
-          )}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <p>{sparky.proactiveCopy}</p>
-          <button
-            type="button"
-            className="mt-1 text-xs text-muted-foreground"
-            onClick={sparky.clearProactiveCopy}
-          >
-            ok
-          </button>
-        </motion.div>
+        <SparkyProactiveThoughtBubble
+          message={sparky.proactiveCopy}
+          onDismiss={sparky.clearProactiveCopy}
+          tailSide={avoidBottomRightChrome ? "left" : "right"}
+          className={avoidBottomRightChrome ? "bottom-36 left-5" : "bottom-24 right-5"}
+        />
       ) : null}
 
       <motion.button

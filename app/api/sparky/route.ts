@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getSparkyKnowledgeForRoute } from "@/lib/sparky-knowledge.generated"
+import { proxySparkyAiToBackend } from "@/lib/server/sparky-memory-db"
 
 type Tier = "auto" | "fast" | "deep"
 
@@ -258,8 +259,22 @@ async function callGrokDeep(body: SparkyRequest): Promise<string> {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = req.headers.get("authorization")
+  const rawBody = await req.text()
+  const useJava =
+    process.env.SPARKY_PROXY_JAVA === "true" || !process.env.GROQ_API_KEY?.trim()
+
+  if (useJava) {
+    const proxied = await proxySparkyAiToBackend(auth, rawBody)
+    const text = await proxied.text()
+    return new NextResponse(text, {
+      status: proxied.status,
+      headers: { "Content-Type": proxied.headers.get("content-type") ?? "application/json" },
+    })
+  }
+
   try {
-    const body = (await req.json()) as SparkyRequest
+    const body = JSON.parse(rawBody) as SparkyRequest
     const tier = chooseTier(body)
 
     if (tier === "deep") {

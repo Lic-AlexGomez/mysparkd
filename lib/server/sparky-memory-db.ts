@@ -50,18 +50,34 @@ export async function deleteSparkyMemoryFromDb(userId: string): Promise<void> {
 }
 
 /** Reenvía al backend Java si aún no hay tabla en Next pero sí endpoint en Render. */
+function javaApiBase(): string {
+  return (process.env.NEXT_PUBLIC_API_URL || "https://sparkd1-0.onrender.com")
+    .replace(/\/api\/?$/i, "")
+    .replace(/\/$/, "")
+}
+
 export async function proxySparkyMemoryToBackend(
   method: "GET" | "PUT" | "DELETE",
   authHeader: string,
   body?: string
 ): Promise<Response> {
-  const base = (process.env.NEXT_PUBLIC_API_URL || "https://sparkd1-0.onrender.com")
-    .replace(/\/api\/?$/i, "")
-    .replace(/\/$/, "")
   const headers: Record<string, string> = {
     Accept: "application/json",
     Authorization: authHeader,
   }
   if (body) headers["Content-Type"] = "application/json"
-  return fetch(`${base}/api/sparky/memory`, { method, headers, body })
+  return fetch(`${javaApiBase()}/api/sparky/memory`, { method, headers, body })
+}
+
+/** Reenvía POST /api/sparky al backend Java (Render). */
+export async function proxySparkyAiToBackend(
+  authHeader: string | null,
+  body: string
+): Promise<Response> {
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+  }
+  if (authHeader) headers.Authorization = authHeader
+  return fetch(`${javaApiBase()}/api/sparky`, { method: "POST", headers, body })
 }

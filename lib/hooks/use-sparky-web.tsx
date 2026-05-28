@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import type { CompanionEvent } from "@/lib/companion/context-signals"
 import {
   createCompanionEngineState,
+  daysSinceLastOpen,
   dispatchCompanionEvent,
   moodToSparkyExpression,
   tickCompanionEngine,
@@ -19,12 +20,8 @@ import {
   reducePresenceDirector,
 } from "@/lib/companion/presence-director"
 import { relationshipLevelFromBondPoints } from "@/lib/companion/vibe-engine"
-import { updateInsideJokes } from "@/lib/companion/inside-jokes"
-import { updateEmotionalMoments } from "@/lib/companion/emotional-moments"
-import { shouldAllowPacedProactive } from "@/lib/companion/presence-pacing"
-import { applyRepetitionGuard } from "@/lib/companion/repetition-guard"
-import { pickProactiveLine } from "@/lib/companion/proactive-line"
-import { applyLongTermProgression } from "@/lib/companion/progression"
+import { pickProactiveLine, pickProactiveLineForCompanionEvent } from "@/lib/companion/proactive-line"
+import { publishProactiveLine } from "@/lib/companion/publish-proactive"
 import {
   loadSparkyMemory,
   loadSparkyWebSettings,
@@ -57,17 +54,47 @@ export function useSparkyWeb() {
   const moodHydratedRef = useRef(false)
 
   const dispatchCompanion = useCallback(
-    (event: CompanionEvent, opts?: { force?: boolean; copy?: string | null }) => {
+    (event: CompanionEvent, opts?: { force?: boolean }) => {
       setEngine((prev) => {
         const result = dispatchCompanionEvent(prev, event, { force: opts?.force })
         setExpression(result.expression)
-        if (opts?.copy && presence !== "subtle" && settings.sparkyMode !== "quiet") {
-          setProactiveCopy(opts.copy)
-        }
         return result.state
       })
     },
-    [presence, settings.sparkyMode]
+    []
+  )
+
+  const handleCompanionEvent = useCallback(
+    (event: CompanionEvent, opts?: { force?: boolean; proactive?: boolean }) => {
+      dispatchCompanion(event, { force: opts?.force })
+      if (!opts?.proactive || presence === "subtle" || settings.sparkyMode === "quiet") return
+      setMemory((prev) => {
+        const now = new Date()
+        const relationshipLevel = relationshipLevelFromBondPoints(prev.bondPoints ?? 0)
+        const picked = pickProactiveLineForCompanionEvent({
+          memory: prev,
+          relationshipLevel,
+          event,
+          now,
+          daysSinceOpen: daysSinceLastOpen(prev.lastOpenDay) ?? undefined,
+        })
+        if (!picked) return prev
+        const result = publishProactiveLine(prev, {
+          line: picked.line,
+          key: picked.key,
+          relationshipLevel,
+          now,
+          cooldownMs: 90_000,
+        })
+        if (result.allowed) {
+          saveSparkyMemory(result.memory)
+          setProactiveCopy(result.line)
+          return result.memory
+        }
+        return result.memory
+      })
+    },
+    [dispatchCompanion, presence, settings.sparkyMode]
   )
 
   const companionCtx = useCompanionContextWeb({
@@ -75,7 +102,7 @@ export function useSparkyWeb() {
     memory,
     presence,
     sparkyMode: settings.sparkyMode,
-    onEvent: (event, opts) => dispatchCompanion(event, { copy: opts?.copy ?? undefined }),
+    onEvent: handleCompanionEvent,
     onMemoryUpdate: (m) => {
       setMemory(m)
       saveSparkyMemory(m)
@@ -152,39 +179,43 @@ export function useSparkyWeb() {
         openPanel: false,
       })
       presenceDirectorRef.current = reduced.state
-      if (!reduced.event) return
-      const relationshipLevel = relationshipLevelFromBondPoints(memory.bondPoints ?? 0)
+      const presenceEvent = reduced.event
+      if (!presenceEvent || presenceEvent === "idle_breath_glow") return
+
+      if (presence === "subtle" || settings.sparkyMode === "quiet") return
+
       setMemory((prev) => {
-        const nextBase = applyLongTermProgression(updateEmotionalMoments(updateInsideJokes(prev, now), now))
-        if (!shouldAllowPacedProactive(nextBase, relationshipLevel, now)) return nextBase
+        const relationshipLevel = relationshipLevelFromBondPoints(prev.bondPoints ?? 0)
         const picked = pickProactiveLine({
-          memory: nextBase,
+          memory: prev,
           relationshipLevel,
-          event: reduced.event,
+          event: presenceEvent,
           now,
         })
-        if (!picked) return nextBase
-        const guard = applyRepetitionGuard(nextBase, {
-          key: picked.key,
+        if (!picked) return prev
+        const result = publishProactiveLine(prev, {
           line: picked.line,
+          key: picked.key,
+          relationshipLevel,
           now,
-          maxPerHour: nextBase.pacing?.maxProactivePerHour ?? 2,
-          maxPerDay: nextBase.pacing?.maxMentionsPerDay ?? 8,
+          cooldownMs: presenceEvent === "peek_from_edge" ? 45_000 : 60_000,
         })
-        if (!guard.allowed) return guard.memory
-        if (presence !== "subtle") setProactiveCopy(picked.line)
-        const withRelation = applyLongTermProgression({ ...guard.memory, relationshipLevel })
-        saveSparkyMemory(withRelation)
-        return withRelation
+        if (result.allowed) {
+          saveSparkyMemory(result.memory)
+          setProactiveCopy(result.line)
+          return result.memory
+        }
+        return result.memory
       })
-      if (reduced.event === "peek_from_edge") {
+
+      if (presenceEvent === "peek_from_edge") {
         dispatchCompanion("scroll_fast", { force: false })
-      } else if (reduced.event === "curious_scan") {
+      } else if (presenceEvent === "curious_scan") {
         dispatchCompanion("new_message", { force: false })
       }
     }, 8000)
     return () => clearInterval(id)
-  }, [dispatchCompanion, memory.bondPoints, presence])
+  }, [dispatchCompanion, presence, settings.sparkyMode])
 
   useEffect(() => {
     setMemory((prev) => {
@@ -193,9 +224,6 @@ export function useSparkyWeb() {
         sessionMinutes: mins,
         positiveInteraction: true,
       })
-      next = updateInsideJokes(next)
-      next = updateEmotionalMoments(next)
-      next = applyLongTermProgression(next)
       if (next !== prev) saveSparkyMemory(next)
       return next
     })
