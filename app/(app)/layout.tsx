@@ -6,6 +6,7 @@ import { useEffect } from "react"
 import { AppShell } from "@/components/layout/app-shell"
 import { NotificationBanner } from "@/components/ui/notification-banner"
 import { AppLoadingScreen } from "@/components/layout/app-loading-screen"
+import { SparkyWidget } from "@/components/sparky/SparkyWidget"
 
 export default function AppLayout({
   children,
@@ -49,6 +50,7 @@ export default function AppLayout({
   return (
     <>
       <AppShell>{children}</AppShell>
+      <SparkyWidget />
       <NotificationBanner />
     </>
   )

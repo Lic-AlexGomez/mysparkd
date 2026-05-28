@@ -196,7 +196,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Mostrar UI inmediatamente y refrescar perfil en segundo plano.
     setIsLoading(false)
-    void fetchProfile()
+    void fetchProfile().then(() => {
+      void import("@/lib/sparky-memory").then(({ syncSparkyMemoryFromServer }) => {
+        void syncSparkyMemoryFromServer().then(() => {
+          window.dispatchEvent(new Event("sparkd-sparky-memory-synced"))
+        })
+      })
+    })
   }, [fetchProfile])
 
   const login = async (data: LoginRequest) => {
@@ -206,6 +212,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     stashLoginAccountType(response.accountType)
     await fetchProfile()
     setToken(response.token)
+    void import("@/lib/sparky-memory").then(({ syncSparkyMemoryFromServer }) => {
+      void syncSparkyMemoryFromServer().then(() => {
+        window.dispatchEvent(new Event("sparkd-sparky-memory-synced"))
+      })
+    })
   }
 
   const loginWithGoogle = async (idToken: string) => {
@@ -214,12 +225,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     stashLoginAccountType(response.accountType)
     await fetchProfile()
     setToken(response.token)
+    void import("@/lib/sparky-memory").then(({ syncSparkyMemoryFromServer }) => {
+      void syncSparkyMemoryFromServer().then(() => {
+        window.dispatchEvent(new Event("sparkd-sparky-memory-synced"))
+      })
+    })
   }
 
   const loginWithPasskey = async (jwt: string) => {
     localStorage.setItem("sparkd_token", jwt)
     await fetchProfile()
     setToken(jwt)
+    void import("@/lib/sparky-memory").then(({ syncSparkyMemoryFromServer }) => {
+      void syncSparkyMemoryFromServer().then(() => {
+        window.dispatchEvent(new Event("sparkd-sparky-memory-synced"))
+      })
+    })
   }
 
   const register = async (data: RegisterRequest) => {

@@ -23,6 +23,7 @@ import {
   voiceNoteDurationExceededMessage, MAX_VOICE_NOTE_SECONDS, VoiceNoteRecorder,
 } from "@/components/ui/voice-note"
 import { useI18n } from "@/lib/i18n"
+import { getFollowButtonLabel } from "@/lib/follow-labels"
 import { accountTypeBadgeLabels, toBackendAccountType } from "@/lib/account-type"
 import { eventService } from "@/lib/services/event"
 import type { Event } from "@/lib/types"
@@ -858,7 +859,18 @@ export default function ProfilePage() {
                         ) : (
                           <button onClick={() => void handleToggleFollowInList(u)}
                             className="text-xs px-3 py-1 rounded-full bg-primary text-primary-foreground hover:opacity-90 transition-opacity font-medium">
-                            {u.visibility === 'PRIVATE' ? te('Solicitar', 'Request') : te('Seguir', 'Follow')}
+                            {getFollowButtonLabel(
+                              {
+                                following: false,
+                                requestPending: false,
+                                followedBy: false,
+                              },
+                              te,
+                              {
+                                privateAccount: u.visibility === 'PRIVATE',
+                                theyFollowProfileOwner: followListModal === 'followers',
+                              }
+                            )}
                           </button>
                         )
                       )}

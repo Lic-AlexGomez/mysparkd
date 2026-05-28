@@ -522,10 +522,9 @@ export default function UserProfilePage() {
                   : "bg-gradient-to-r from-primary to-secondary text-black"
               }`}
             >
-              {following ? <><UserCheck className="h-4 w-4" /> Siguiendo</>
-                : pending ? <><Clock className="h-4 w-4" /> Solicitado</>
-                : followedBy ? <><UserPlus className="h-4 w-4" /> Follow back</>
-                : <><UserPlus className="h-4 w-4" /> Seguir</>}
+              {following ? <><UserCheck className="h-4 w-4" /> {te("Siguiendo", "Following")}</>
+                : pending ? <><Clock className="h-4 w-4" /> {te("Solicitado", "Requested")}</>
+                : <><UserPlus className="h-4 w-4" /> {getFollowButtonLabel({ following, requestPending: pending, followedBy, followBack }, te)}</>}
             </button>
             )}
           </div>
@@ -551,6 +550,11 @@ export default function UserProfilePage() {
           </div>
           {!isDatingProfileView && profile.username && (
             <p className="text-sm text-muted-foreground mt-0.5">@{profile.username}</p>
+          )}
+          {!isDatingProfileView && shouldShowFollowsYouHint({ following, requestPending: pending, followedBy, followBack }) && (
+            <p className="text-xs text-primary font-medium mt-1">
+              {te("Te sigue", "Follows you")}
+            </p>
           )}
           {profile.bio && <p className="text-sm text-foreground mt-2 leading-relaxed">{profile.bio}</p>}
           {(profile.voiceIntroUrl || (profile as any).voiceNoteUrl) && (
@@ -727,7 +731,19 @@ export default function UserProfilePage() {
                         ) : (
                           <button onClick={() => void handleFollowFromList(u)}
                             className="text-xs px-3 py-1 rounded-full bg-primary text-primary-foreground hover:opacity-90 transition-opacity font-medium">
-                            {u.visibility === 'PRIVATE' ? te('Solicitar', 'Request') : te('Seguir', 'Follow')}
+                            {getFollowButtonLabel(
+                              {
+                                following: false,
+                                requestPending: false,
+                                followedBy: false,
+                              },
+                              te,
+                              {
+                                privateAccount: u.visibility === 'PRIVATE',
+                                theyFollowProfileOwner:
+                                  followListModal === 'followers' && user?.userId === userId,
+                              }
+                            )}
                           </button>
                         )
                       )}
