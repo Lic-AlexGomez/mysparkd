@@ -115,7 +115,7 @@ export function useCompanionContextWeb({
 
   const notifyRageClick = useCallback(() => {
     touchActivity()
-    emit("rage_click", true)
+    emit("rage_click", { force: true, proactive: true })
   }, [emit, touchActivity])
 
   const notifyScrollFast = useCallback(() => {
