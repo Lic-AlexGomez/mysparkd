@@ -11,7 +11,8 @@ export function userIdFromAuthorization(authHeader: string | null): string | nul
       string,
       unknown
     >
-    const id = payload.sub ?? payload.userId ?? payload.id ?? payload.user_id
+    const id =
+      payload.uuid ?? payload.sub ?? payload.userId ?? payload.id ?? payload.user_id
     if (id == null) return null
     return String(id).trim().slice(0, 64) || null
   } catch {

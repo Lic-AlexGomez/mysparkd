@@ -244,7 +244,7 @@ export function useSparkyWeb() {
     setMemory((prev) => {
       const moodUnchanged = prev.currentMood === engine.mood
       const expiresUnchanged = prev.moodExpiresAt === moodExpiresAt
-      const fatigueUnchanged = Math.abs((prev.fatigueLevel ?? 0) - fatigueLevel) < 0.001
+      const fatigueUnchanged = Math.abs((prev.fatigueLevel ?? 0) - fatigueLevel) < 0.05
       if (moodUnchanged && expiresUnchanged && fatigueUnchanged) return prev
 
       const next = {

@@ -22,12 +22,20 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(memory ?? { ...EMPTY_SPARKY_MEMORY })
   }
 
-  const proxied = await proxySparkyMemoryToBackend("GET", auth!)
-  const text = await proxied.text()
-  return new NextResponse(text, {
-    status: proxied.status,
-    headers: { "Content-Type": proxied.headers.get("content-type") ?? "application/json" },
-  })
+  try {
+    const proxied = await proxySparkyMemoryToBackend("GET", auth!)
+    const text = await proxied.text()
+    return new NextResponse(text, {
+      status: proxied.status,
+      headers: { "Content-Type": proxied.headers.get("content-type") ?? "application/json" },
+    })
+  } catch (e) {
+    console.error("[sparky/memory] proxy GET failed:", e)
+    return NextResponse.json(
+      { error: "Backend unreachable", backend: process.env.NEXT_PUBLIC_API_URL },
+      { status: 502 }
+    )
+  }
 }
 
 export async function PUT(req: NextRequest) {
@@ -47,12 +55,20 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json(saved)
   }
 
-  const proxied = await proxySparkyMemoryToBackend("PUT", auth!, JSON.stringify(raw))
-  const text = await proxied.text()
-  return new NextResponse(text, {
-    status: proxied.status,
-    headers: { "Content-Type": proxied.headers.get("content-type") ?? "application/json" },
-  })
+  try {
+    const proxied = await proxySparkyMemoryToBackend("PUT", auth!, JSON.stringify(raw))
+    const text = await proxied.text()
+    return new NextResponse(text, {
+      status: proxied.status,
+      headers: { "Content-Type": proxied.headers.get("content-type") ?? "application/json" },
+    })
+  } catch (e) {
+    console.error("[sparky/memory] proxy PUT failed:", e)
+    return NextResponse.json(
+      { error: "Backend unreachable", backend: process.env.NEXT_PUBLIC_API_URL },
+      { status: 502 }
+    )
+  }
 }
 
 export async function DELETE(req: NextRequest) {
@@ -65,6 +81,14 @@ export async function DELETE(req: NextRequest) {
     return new NextResponse(null, { status: 204 })
   }
 
-  const proxied = await proxySparkyMemoryToBackend("DELETE", auth!)
-  return new NextResponse(null, { status: proxied.status })
+  try {
+    const proxied = await proxySparkyMemoryToBackend("DELETE", auth!)
+    return new NextResponse(null, { status: proxied.status })
+  } catch (e) {
+    console.error("[sparky/memory] proxy DELETE failed:", e)
+    return NextResponse.json(
+      { error: "Backend unreachable", backend: process.env.NEXT_PUBLIC_API_URL },
+      { status: 502 }
+    )
+  }
 }

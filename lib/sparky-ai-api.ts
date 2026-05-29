@@ -6,19 +6,7 @@ export type SparkyAiResponse = {
   error?: string
 }
 
-function apiBase(): string {
-  const raw = process.env.NEXT_PUBLIC_API_URL?.trim()
-  if (raw) return raw.replace(/\/api\/?$/i, "").replace(/\/$/, "")
-  return ""
-}
-
-function sparkyUrls(): string[] {
-  const urls: string[] = []
-  const base = apiBase()
-  if (base) urls.push(`${base}/api/sparky`)
-  urls.push("/api/sparky")
-  return urls
-}
+const SPARKY_AI_URLS = ["/api/sparky", "/api/ai"]
 
 function authHeaders(): Record<string, string> {
   const headers: Record<string, string> = {
@@ -34,7 +22,7 @@ function authHeaders(): Record<string, string> {
 
 export async function postSparkyAi(body: Record<string, unknown>): Promise<SparkyAiResponse> {
   const headers = authHeaders()
-  for (const url of sparkyUrls()) {
+  for (const url of SPARKY_AI_URLS) {
     try {
       const res = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) })
       const data = (await res.json()) as SparkyAiResponse

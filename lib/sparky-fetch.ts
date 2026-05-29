@@ -14,8 +14,9 @@ export function installSparkyFetchInterceptor(): void {
   installed = true
   const original = window.fetch.bind(window)
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
-    const isSparky = url.includes("/api/sparky")
+    const rawUrl =
+      typeof input === "string" ? input : input instanceof URL ? input.href : input.url
+    const isSparky = rawUrl.includes("/api/sparky/")
     if (!isSparky) companionNotifyLoadingStart()
     try {
       const res = await original(input, init)

@@ -200,30 +200,62 @@ export function loadSparkyMemory(): SparkyMemory {
   }
 }
 
-export function saveSparkyMemory(memory: SparkyMemory): void {
-  if (typeof window === "undefined") return
-  const next = { ...sanitizeSparkyMemory(memory), updatedAt: new Date().toISOString() }
-  if (!isMemoryPayloadSafe(next)) return
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+let remotePushTimer: ReturnType<typeof setTimeout> | null = null
+let remotePushPending: SparkyMemory | null = null
+
+function flushSparkyMemoryRemote() {
+  if (typeof window === "undefined" || !remotePushPending) return
+  const payload = remotePushPending
+  remotePushPending = null
   void import("@/lib/sparky-memory-api").then(({ pushSparkyMemoryRemote }) => {
-    void pushSparkyMemoryRemote(next).then((remote) => {
+    void pushSparkyMemoryRemote(payload).then((remote) => {
       if (!remote) return
       localStorage.setItem(STORAGE_KEY, JSON.stringify(remote))
     })
   })
 }
 
+export function saveSparkyMemory(memory: SparkyMemory): void {
+  if (typeof window === "undefined") return
+  const next = { ...sanitizeSparkyMemory(memory), updatedAt: new Date().toISOString() }
+  if (!isMemoryPayloadSafe(next)) return
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+  remotePushPending = next
+  if (remotePushTimer) clearTimeout(remotePushTimer)
+  remotePushTimer = setTimeout(() => {
+    remotePushTimer = null
+    flushSparkyMemoryRemote()
+  }, 5000)
+}
+
+const REMOTE_SYNC_MIN_GAP_MS = 45_000
+let remoteSyncInFlight: Promise<SparkyMemory> | null = null
+let lastRemoteSyncAt = 0
+
 /** Pull desde hosting y fusiona con localStorage (llamar tras login). */
 export async function syncSparkyMemoryFromServer(): Promise<SparkyMemory> {
   if (typeof window === "undefined") return { ...EMPTY_SPARKY_MEMORY }
-  const { fetchSparkyMemoryRemote } = await import("@/lib/sparky-memory-api")
-  const { mergeSparkyMemory } = await import("@/lib/sparky-memory-merge")
-  const local = loadSparkyMemory()
-  const remote = await fetchSparkyMemoryRemote()
-  if (!remote) return local
-  const merged = mergeSparkyMemory(local, remote)
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(merged))
-  return merged
+  const now = Date.now()
+  if (remoteSyncInFlight) return remoteSyncInFlight
+  if (now - lastRemoteSyncAt < REMOTE_SYNC_MIN_GAP_MS) return loadSparkyMemory()
+
+  remoteSyncInFlight = (async () => {
+    try {
+      const { fetchSparkyMemoryRemote } = await import("@/lib/sparky-memory-api")
+      const { mergeSparkyMemory } = await import("@/lib/sparky-memory-merge")
+      const local = loadSparkyMemory()
+      const remote = await fetchSparkyMemoryRemote()
+      lastRemoteSyncAt = Date.now()
+      if (!remote) return local
+      const merged = mergeSparkyMemory(local, remote)
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(merged))
+      return merged
+    } finally {
+      remoteSyncInFlight = null
+    }
+  })()
+
+  return remoteSyncInFlight
 }
 
 export async function clearSparkyMemory(): Promise<void> {
