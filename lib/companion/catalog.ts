@@ -37,6 +37,8 @@ export const COMPANION_CATALOG: CompanionDefinition[] = [
     description: "Tu chispa guía — cálido y listo para ayudar.",
     rarity: "common",
     unlockedByDefault: true,
+    // Habilitar cuando exista public/assets/rive/sparky.riv
+    // riveAsset: "/assets/rive/sparky.riv",
   },
   {
     id: "slime",

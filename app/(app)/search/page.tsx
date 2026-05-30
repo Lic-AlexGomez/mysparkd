@@ -14,6 +14,8 @@ import { useExperienceMode } from "@/hooks/use-experience-mode"
 import { useI18n } from "@/lib/i18n"
 import { isDatingOnlySearchMode } from "@/lib/dm-eligibility"
 import Link from "next/link"
+import { useAuth } from "@/lib/auth-context"
+import { profileHref } from "@/lib/profile-route"
 
 interface SearchResults {
   users: UserProfile[]
@@ -26,6 +28,7 @@ export default function SearchPage() {
   const searchParams = useSearchParams()
   const experienceMode = useExperienceMode()
   const { t, te } = useI18n()
+  const { user } = useAuth()
   const datingSearchOnly = isDatingOnlySearchMode(experienceMode)
 
   const [query, setQuery] = useState(searchParams.get("q") || "")
@@ -228,7 +231,7 @@ export default function SearchPage() {
               <button
                 key={`ac-user-${u.userId || i}`}
                 className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors text-left"
-                onClick={() => { setAutocomplete(null); router.push(`/profile/${u.userId}`) }}
+                onClick={() => { setAutocomplete(null); router.push(profileHref(u.userId, user?.userId)) }}
               >
                 <Avatar className="h-8 w-8 shrink-0">
                   <AvatarImage src={u.profilePictureUrl} />
@@ -335,7 +338,7 @@ export default function SearchPage() {
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Usuarios</p>
                     <div className="space-y-2">
                       {results.users.slice(0, 3).map(u => (
-                        <UserCard key={u.userId} user={u} onClick={() => router.push(`/profile/${u.userId}`)} />
+                        <UserCard key={u.userId} user={u} onClick={() => router.push(profileHref(u.userId, user?.userId))} />
                       ))}
                       {results.users.length > 3 && (
                         <button onClick={() => setActiveTab("users")} className="text-xs text-primary hover:underline pl-1">
@@ -397,7 +400,7 @@ export default function SearchPage() {
                 {results.users.length > 0 ? (
                   <div className="space-y-2">
                     {results.users.map(u => (
-                      <UserCard key={u.userId} user={u} onClick={() => router.push(`/profile/${u.userId}`)} />
+                      <UserCard key={u.userId} user={u} onClick={() => router.push(profileHref(u.userId, user?.userId))} />
                     ))}
                     {canLoadMoreUsers && (
                       <Button variant="outline" className="w-full mt-2" onClick={handleLoadMoreUsers} disabled={isLoadingMore}>

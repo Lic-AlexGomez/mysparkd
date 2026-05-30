@@ -410,7 +410,7 @@ export default function FeedPage() {
       next = next.filter(post => !post.file)
     }
 
-    if (typeof process !== 'undefined' && process.env.NODE_ENV === 'development') {
+  /*   if (typeof process !== 'undefined' && process.env.NODE_ENV === 'development') {
       console.log('[feed page]', {
         feedTab,
         postsHookLen: posts.length,
@@ -419,7 +419,7 @@ export default function FeedPage() {
         deletedPostIds: feedTab === 'global' ? [...deletedPostIds] : [],
         filterType,
       })
-    }
+    } */
 
     return next
   }, [posts, localPosts, followingPosts, feedTab, deletedPostIds, filterType])

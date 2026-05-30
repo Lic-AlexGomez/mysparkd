@@ -15,6 +15,8 @@ export type SparkyArchetype = "roomie" | "bestie" | "deadpan" | "softChaotic"
 export type SparkyMemory = {
   bondPoints?: number
   favoriteCompanion?: string
+  /** Diseño visual del avatar (orb, star, aurora, pixel, bloom, neon). */
+  avatarStyle?: string
   activeHoursHistogram?: Record<string, number>
   interactionStyle?: InteractionStyle
   avgSessionMinutes?: number
@@ -68,6 +70,8 @@ export function sanitizeSparkyMemory(raw: unknown): SparkyMemory {
     bondPoints: typeof o.bondPoints === "number" ? Math.min(100, Math.max(0, o.bondPoints)) : 0,
     favoriteCompanion:
       typeof o.favoriteCompanion === "string" ? o.favoriteCompanion.slice(0, 24) : "sparky",
+    avatarStyle:
+      typeof o.avatarStyle === "string" ? o.avatarStyle.slice(0, 16) : "orb",
     activeHoursHistogram:
       o.activeHoursHistogram && typeof o.activeHoursHistogram === "object" ? o.activeHoursHistogram : {},
     interactionStyle:
@@ -200,32 +204,26 @@ export function loadSparkyMemory(): SparkyMemory {
   }
 }
 
-let remotePushTimer: ReturnType<typeof setTimeout> | null = null
-let remotePushPending: SparkyMemory | null = null
-
-function flushSparkyMemoryRemote() {
-  if (typeof window === "undefined" || !remotePushPending) return
-  const payload = remotePushPending
-  remotePushPending = null
-  void import("@/lib/sparky-memory-api").then(({ pushSparkyMemoryRemote }) => {
-    void pushSparkyMemoryRemote(payload).then((remote) => {
-      if (!remote) return
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(remote))
-    })
-  })
-}
-
 export function saveSparkyMemory(memory: SparkyMemory): void {
   if (typeof window === "undefined") return
   const next = { ...sanitizeSparkyMemory(memory), updatedAt: new Date().toISOString() }
   if (!isMemoryPayloadSafe(next)) return
   localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-  remotePushPending = next
-  if (remotePushTimer) clearTimeout(remotePushTimer)
-  remotePushTimer = setTimeout(() => {
-    remotePushTimer = null
-    flushSparkyMemoryRemote()
-  }, 5000)
+  void import("@/lib/sparky-memory-api")
+    .then((mod) => {
+      const enqueue =
+        typeof mod.enqueueSparkyMemoryRemotePush === "function"
+          ? mod.enqueueSparkyMemoryRemotePush
+          : typeof mod.pushSparkyMemoryRemote === "function"
+            ? (m: SparkyMemory) => {
+                void mod.pushSparkyMemoryRemote(m)
+              }
+            : null
+      if (enqueue) enqueue(next)
+    })
+    .catch(() => {
+      // Fallback silencioso: la memoria local ya quedó persistida.
+    })
 }
 
 const REMOTE_SYNC_MIN_GAP_MS = 45_000

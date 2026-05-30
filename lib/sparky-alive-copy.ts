@@ -1,22 +1,22 @@
+import { stableDaySeed } from "@/lib/sparky-line-pacing"
+
 export const SPARKY_ALIVE = {
-  idle: ["hola otra vez 👀", "aquí sigo", "…👀"],
-  curious: ["¿qué hacemos hoy?", "eso qué es", "mmm interesante"],
-  happy: ["esto se ve divertido ✨", "sí sí sí", "me gusta esto"],
-  sleepy: ["llevo esperando rato 😴", "zzz casi", "modo siesta"],
-  excited: ["¡vamos!", "eso estuvo bien 🔥", "otra vez"],
-  thinking: ["hmmm 👀", "déjame ver…", "ya casi ✨", "pensando…"],
-  sad: ["uff…", "snif"],
-  scared: ["eep", "cuidado"],
-  chatPlaceholder: "susúrrame algo…",
-  homeTitle: "mi rinconcito",
+  idle: ["me quedo cerquita", "aqui estoy contigo", "volviste"],
+  curious: ["que tienes en mente?", "cuentame eso", "mmm, ven"],
+  happy: ["me alegra verte", "eso se siente bonito", "me gusta tu energia"],
+  sleepy: ["me quedo aqui tranquilito", "zzz... pero te escucho", "rinconcito en calma"],
+  excited: ["vamos juntos", "eso estuvo precioso", "otra vez"],
+  thinking: ["dejame pensarlo", "un segundo, lo miro contigo", "ya casi", "pensando..."],
+  sad: ["uff...", "ven, respiremos"],
+  scared: ["estoy aqui", "tranqui"],
+  chatPlaceholder: "susurrame algo...",
+  homeTitle: "Mi rinconcito",
   changeForm: "Cambiar forma",
-  bond: (points: number) => `chispa ${points}/100`,
+  bond: (points: number) => `Chispa ${Math.min(100, Math.max(0, points))}/100`,
 } as const
 
-export function pickAliveLine(
-  mood: string,
-  seed = Date.now()
-): string {
+export function pickAliveLine(mood: string, seed?: number): string {
+  const stableSeed = seed ?? stableDaySeed(mood)
   const map: Record<string, readonly string[]> = {
     idle: SPARKY_ALIVE.idle,
     happy: SPARKY_ALIVE.happy,
@@ -30,5 +30,5 @@ export function pickAliveLine(
     scared: SPARKY_ALIVE.scared,
   }
   const lines = map[mood] ?? SPARKY_ALIVE.idle
-  return lines[seed % lines.length] ?? lines[0]
+  return lines[stableSeed % lines.length] ?? lines[0]
 }

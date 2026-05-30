@@ -155,7 +155,7 @@ export default function MatchesPage() {
                     <div className="relative p-5">
                       <div className="flex items-start gap-4 mb-4">
                         <div className="relative">
-                          <Avatar className="h-20 w-20 cursor-pointer border-4 border-secondary/30 ring-4 ring-secondary/10 group-hover:scale-110 transition-transform" onClick={() => router.push(getProfilePath(match.userId, "DATING"))}>
+                          <Avatar className="h-20 w-20 cursor-pointer border-4 border-secondary/30 ring-4 ring-secondary/10 group-hover:scale-110 transition-transform" onClick={() => router.push(getProfilePath(match.userId, "DATING", { viewerUserId: user?.userId }))}>
                             {match.photoUrl && <AvatarImage src={match.photoUrl} alt={match.nombre} className="object-cover" />}
                             <AvatarFallback className="bg-gradient-to-br from-secondary/20 to-secondary/10 text-secondary font-bold text-xl">{match.nombre?.[0]?.toUpperCase() || "?"}</AvatarFallback>
                           </Avatar>
@@ -167,7 +167,7 @@ export default function MatchesPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-bold text-xl text-foreground truncate cursor-pointer hover:text-primary hover:underline" onClick={() => router.push(getProfilePath(match.userId, "DATING"))}>
+                            <h3 className="font-bold text-xl text-foreground truncate cursor-pointer hover:text-primary hover:underline" onClick={() => router.push(getProfilePath(match.userId, "DATING", { viewerUserId: user?.userId }))}>
                               {match.nombre}{match.apellidos ? ` ${match.apellidos}` : ""}
                             </h3>
                             {match.edad && <span className="text-lg text-muted-foreground">{match.edad}</span>}

@@ -8,11 +8,15 @@ import {
 } from "@/lib/companion/attention-system"
 
 export type SparkyGaze = { x: number; y: number }
+export type SparkyGazeApi = SparkyGaze & {
+  lookAt: (x: number, y: number) => void
+  focusAttention: (source: AttentionSource, x: number, y: number) => void
+}
 
 const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n))
 
 /** Ojos siguen cursor + deambulan; `lookAt` para hover en botones. */
-export function useSparkyGazeWeb(enabled: boolean): SparkyGaze & { lookAt: (x: number, y: number) => void } {
+export function useSparkyGazeWeb(enabled: boolean): SparkyGazeApi {
   const [gaze, setGaze] = useState<SparkyGaze>({ x: 0, y: 0 })
   const [manualUntil, setManualUntil] = useState(0)
   const [targets, setTargets] = useState<AttentionTarget[]>([])
@@ -38,7 +42,7 @@ export function useSparkyGazeWeb(enabled: boolean): SparkyGaze & { lookAt: (x: n
     }
     window.addEventListener("mousemove", onMove, { passive: true })
     return () => window.removeEventListener("mousemove", onMove)
-  }, [enabled, manualUntil])
+  }, [enabled, focusAttention, manualUntil])
 
   useEffect(() => {
     if (!enabled) return
@@ -50,14 +54,14 @@ export function useSparkyGazeWeb(enabled: boolean): SparkyGaze & { lookAt: (x: n
       }
       focusAttention(
         "wander",
-        clamp((Math.random() - 0.5) * 1.2, -1, 1),
-        clamp((Math.random() - 0.5) * 0.8, -1, 1)
+        clamp(Math.sin(Date.now() * 0.001) * 0.6 + (Math.random() - 0.5) * 0.4, -1, 1),
+        clamp(Math.cos(Date.now() * 0.0008) * 0.5 + (Math.random() - 0.5) * 0.35, -1, 1)
       )
       id = window.setTimeout(wander, 2400 + Math.random() * 2000)
     }
     id = window.setTimeout(wander, 4000)
     return () => clearTimeout(id)
-  }, [enabled, manualUntil])
+  }, [enabled, focusAttention, manualUntil])
 
   useEffect(() => {
     if (!enabled) return

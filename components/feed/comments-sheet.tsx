@@ -23,6 +23,7 @@ import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
 import { ReactionPicker, getReactionEmoji } from "./reaction-picker"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
+import { profileHref } from "@/lib/profile-route"
 import { reactionService } from "@/lib/services/reaction"
 import { useI18n } from "@/lib/i18n"
 
@@ -356,7 +357,7 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
                     <div className="flex-1 min-w-0">
                       <div className="bg-muted/50 rounded-2xl px-4 py-3 hover:bg-muted/70 transition-colors">
                         <div className="flex items-center gap-2 mb-1">
-                          <Link href={`/profile/${comment.userId}`} className="text-sm font-bold text-foreground hover:underline">
+                          <Link href={profileHref(comment.userId, user?.userId)} className="text-sm font-bold text-foreground hover:underline">
                             {comment.username}
                           </Link>
                           <span className="text-xs text-muted-foreground">
@@ -501,7 +502,7 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
                               <div className="bg-muted/30 rounded-2xl px-3 py-2.5 hover:bg-muted/50 transition-colors">
                                 <div className="flex items-center gap-2 mb-1">
                                   <Link
-                                    href={`/profile/${reply.userId}`}
+                                    href={profileHref(reply.userId, user?.userId)}
                                     className="text-xs font-bold text-foreground hover:underline"
                                   >
                                     {reply.username}

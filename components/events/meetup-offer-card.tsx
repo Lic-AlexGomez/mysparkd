@@ -1,6 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
+import { profileHref } from "@/lib/profile-route"
 import { motion } from "framer-motion"
 import type { Event } from "@/lib/types"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -123,7 +124,7 @@ export function MeetupOfferCard({
   const creatorUsername = String(event.creatorUsername || "").trim()
   const creatorId = String(event.creatorId || "").trim()
   const openCreatorProfile = () => {
-    if (creatorId) router.push(`/profile/${creatorId}`)
+    if (creatorId) router.push(profileHref(creatorId, currentUserId))
   }
 
   const primaryLocation =

@@ -22,6 +22,8 @@ import {
 import { relationshipLevelFromBondPoints } from "@/lib/companion/vibe-engine"
 import { pickProactiveLine, pickProactiveLineForCompanionEvent } from "@/lib/companion/proactive-line"
 import { publishProactiveLine } from "@/lib/companion/publish-proactive"
+import { useThrottledProactiveCopy } from "@/lib/hooks/use-throttled-proactive-copy"
+import { fetchSparkyMemoryRemote, fetchSparkyContext } from "@/lib/sparky-memory-api"
 import {
   loadSparkyMemory,
   loadSparkyWebSettings,
@@ -31,6 +33,7 @@ import {
 import { addBondPoints, getSparkBond } from "@/lib/sparky-bond"
 import type { SparkyExpression } from "@/components/sparky/sparky-types"
 import type { CompanionId } from "@/lib/companion/catalog"
+import { normalizeAvatarStyle, type AvatarStyleId } from "@/lib/companion/avatar-styles"
 
 function resolvePresence(pathname: string): "full" | "subtle" | "quiet" {
   if (pathname.startsWith("/swipes") || pathname.startsWith("/chat")) return "subtle"
@@ -42,12 +45,13 @@ export function useSparkyWeb() {
   const [memory, setMemory] = useState<SparkyMemory>(() => loadSparkyMemory())
   const [engine, setEngine] = useState<CompanionEngineState>(() => createCompanionEngineState())
   const [expression, setExpression] = useState<SparkyExpression>("happy")
-  const [proactiveCopy, setProactiveCopy] = useState<string | null>(null)
+  const proactive = useThrottledProactiveCopy()
   const [desktopMode, setDesktopMode] = useState(false)
   const settings = useMemo(() => loadSparkyWebSettings(), [])
   const presence = useMemo(() => resolvePresence(pathname), [pathname])
   const bond = useMemo(() => getSparkBond(memory), [memory])
   const companionId = (memory.favoriteCompanion ?? "sparky") as CompanionId
+  const avatarStyle = normalizeAvatarStyle(memory.avatarStyle)
   const sessionStart = useRef(Date.now())
   const lastTouchRef = useRef(Date.now())
   const presenceDirectorRef = useRef(createPresenceDirectorState())
@@ -84,17 +88,17 @@ export function useSparkyWeb() {
           key: picked.key,
           relationshipLevel,
           now,
-          cooldownMs: 90_000,
+          cooldownMs: 120_000,
         })
         if (result.allowed) {
           saveSparkyMemory(result.memory)
-          setProactiveCopy(result.line)
+          proactive.show(result.line)
           return result.memory
         }
         return result.memory
       })
     },
-    [dispatchCompanion, presence, settings.sparkyMode]
+    [dispatchCompanion, presence, settings.sparkyMode, proactive]
   )
 
   const companionCtx = useCompanionContextWeb({
@@ -116,6 +120,10 @@ export function useSparkyWeb() {
     }
     window.addEventListener("sparkd-sparky-memory-synced", onSynced)
     return () => window.removeEventListener("sparkd-sparky-memory-synced", onSynced)
+  }, [])
+
+  useEffect(() => {
+    void fetchSparkyContext().catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -198,11 +206,11 @@ export function useSparkyWeb() {
           key: picked.key,
           relationshipLevel,
           now,
-          cooldownMs: presenceEvent === "peek_from_edge" ? 45_000 : 60_000,
+          cooldownMs: presenceEvent === "peek_from_edge" ? 90_000 : 120_000,
         })
         if (result.allowed) {
           saveSparkyMemory(result.memory)
-          setProactiveCopy(result.line)
+          proactive.show(result.line)
           return result.memory
         }
         return result.memory
@@ -215,7 +223,7 @@ export function useSparkyWeb() {
       }
     }, 8000)
     return () => clearInterval(id)
-  }, [dispatchCompanion, presence, settings.sparkyMode])
+  }, [dispatchCompanion, presence, settings.sparkyMode, proactive])
 
   useEffect(() => {
     setMemory((prev) => {
@@ -281,16 +289,25 @@ export function useSparkyWeb() {
     })
   }, [])
 
-  const clearProactiveCopy = useCallback(() => setProactiveCopy(null), [])
+  const selectAvatarStyle = useCallback((id: AvatarStyleId) => {
+    setMemory((prev) => {
+      const next = { ...prev, avatarStyle: id }
+      saveSparkyMemory(next)
+      return next
+    })
+  }, [])
+
+  const clearProactiveCopy = proactive.clear
 
   return {
     pathname,
     memory,
     engine,
     expression,
-    proactiveCopy,
+    proactiveCopy: proactive.copy,
     clearProactiveCopy,
     companionId,
+    avatarStyle,
     bond,
     vibeContext,
     desktopMode,
@@ -299,6 +316,7 @@ export function useSparkyWeb() {
     dispatchCompanion,
     recordTouch,
     selectCompanion,
+    selectAvatarStyle,
     companionCtx,
     settings,
     presence,

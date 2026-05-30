@@ -24,6 +24,7 @@ import { TOP_10_LANGUAGES, useI18n } from "@/lib/i18n"
 import { useAppearanceOptional } from "@/lib/appearance/appearance-provider"
 import { cn } from "@/lib/utils"
 import { getNotificationPath } from "@/lib/notification-routing"
+import { profileHref } from "@/lib/profile-route"
 import { eventService } from "@/lib/services/event"
 import type { EventGroupJoinRequest } from "@/lib/types"
 import { EventInviteRows } from "@/components/notifications/event-invite-rows"
@@ -491,7 +492,7 @@ export function TopNavbar() {
                           <div key={req.userId} className="px-3 py-3 border-t border-border/50 first:border-t-0">
                             <div className="flex items-center gap-3">
                               <Link
-                                href={`/profile/${req.userId}`}
+                                href={profileHref(req.userId, user?.userId)}
                                 onClick={() => setShowNotifications(false)}
                                 className="shrink-0"
                               >
@@ -571,6 +572,7 @@ export function TopNavbar() {
                                   senderId: n.relatedUserId,
                                   targetId: n.targetId,
                                   targetType: n.targetType,
+                                  viewerUserId: user?.userId,
                                 })}
                                 className="flex-1 min-w-0 pr-6"
                                 onClick={() => {

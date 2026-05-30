@@ -91,6 +91,15 @@ import { CityPulseIndicator } from "@/components/city/city-pulse-indicator"
 import { useCityPulse } from "@/hooks/use-city-pulse"
 import { ActivityCoreStreamStrip } from "@/components/activity/activity-core-stream-strip"
 import type { ActivityCoreExperienceMode } from "@/lib/types/activity-core-stream"
+import { useFeedLocation } from "@/hooks/use-feed-location"
+import {
+  EventExploreLocationFilters,
+  buildActivityFeedGeoFilters,
+} from "@/components/events/event-explore-location-filters"
+import {
+  type DateRangePreset,
+  type DistanceRadiusKm,
+} from "@/lib/event-date-filters"
 
 const FD_CATEGORY_LABELS: Record<string, string> = {
   FOOD: "🍽️ Comida",
@@ -264,6 +273,10 @@ export default function EventsPage() {
 
   const [pendingGroupInvites, setPendingGroupInvites] = useState<any[]>([])
   const [isRespondingInvite, setIsRespondingInvite] = useState<string | null>(null)
+  const [distanceKm, setDistanceKm] = useState<DistanceRadiusKm | null>(25)
+  const [datePreset, setDatePreset] = useState<DateRangePreset>("all")
+  const [geoBusy, setGeoBusy] = useState(false)
+  const feedLocation = useFeedLocation()
 
   const [pulseCoords, setPulseCoords] = useState<{ lat: number; lng: number } | null>(null)
   useEffect(() => {
@@ -320,11 +333,34 @@ export default function EventsPage() {
     }
   }
 
+  const handleRequestEventLocation = async () => {
+    setGeoBusy(true)
+    try {
+      const ok = await feedLocation.requestBrowserAndSave()
+      if (ok) {
+        toast.success(te("Ubicación activada", "Location enabled"))
+        await feedLocation.refresh()
+      } else {
+        toast.error(te("No se pudo obtener ubicación", "Could not get location"))
+      }
+    } finally {
+      setGeoBusy(false)
+    }
+  }
+
   const loadEvents = async () => {
     setIsLoading(true)
     setLoadError(false)
     try {
-      const filter: Record<string, any> = { sort: 'NEWER' }
+      const filter: Record<string, any> = {
+        sort: "NEWER",
+        ...buildActivityFeedGeoFilters({
+          lat: feedLocation.effectiveLat,
+          lng: feedLocation.effectiveLng,
+          distanceKm: feedLocation.hasAnyLocation ? distanceKm : null,
+          datePreset,
+        }),
+      }
       if (category !== "ALL") filter.eventCategory = category
       if (freeOnly === "TRUE") filter.free = true
       else if (freeOnly === "FALSE") filter.free = false
@@ -408,7 +444,15 @@ export default function EventsPage() {
     try {
       let feed: DateCard[] = []
       try {
-        const data = await fastDateService.getFeed({})
+        const fdFilter: Record<string, string | number> = {}
+        const geo = buildActivityFeedGeoFilters({
+          lat: feedLocation.effectiveLat,
+          lng: feedLocation.effectiveLng,
+          distanceKm: feedLocation.hasAnyLocation ? distanceKm : null,
+          datePreset,
+        })
+        if (geo.radiusKm) fdFilter.maxDistanceKm = Number(geo.radiusKm)
+        const data = await fastDateService.getFeed(fdFilter)
         feed = Array.isArray(data) ? data : []
       } catch (e: unknown) {
         handleDateCardLimitError(e)
@@ -448,11 +492,16 @@ export default function EventsPage() {
     user?.nombres,
     user?.apellidos,
     user?.dateOfBirth,
+    feedLocation.effectiveLat,
+    feedLocation.effectiveLng,
+    feedLocation.hasAnyLocation,
+    distanceKm,
+    datePreset,
   ])
 
   useEffect(() => {
     void loadEvents()
-  }, [category, freeOnly])
+  }, [category, freeOnly, distanceKm, datePreset, feedLocation.effectiveLat, feedLocation.effectiveLng])
 
   useEffect(() => {
     void loadFdFeed()
@@ -1593,6 +1642,8 @@ export default function EventsPage() {
                       setQuery("")
                       setCategory("ALL")
                       setFreeOnly("ALL")
+                      setDistanceKm(null)
+                      setDatePreset("all")
                       applyContentFilter("all")
                     }}
                   >
@@ -1604,6 +1655,24 @@ export default function EventsPage() {
           </DropdownMenu>
         </div>
       </div>
+
+      {feedLocation.fromVirtual ? (
+        <div className="mb-3 rounded-xl border border-primary/25 bg-primary/10 px-3 py-2 text-xs font-medium text-primary">
+          {te("Viendo eventos desde tu Sparkd Passport", "Viewing events from your Sparkd Passport")}
+        </div>
+      ) : null}
+
+      <EventExploreLocationFilters
+        className="mb-4"
+        hasLocation={feedLocation.hasAnyLocation}
+        locationLoading={feedLocation.loading || geoBusy}
+        virtualActive={feedLocation.fromVirtual}
+        distanceKm={distanceKm}
+        onDistanceChange={setDistanceKm}
+        onRequestLocation={() => void handleRequestEventLocation()}
+        datePreset={datePreset}
+        onDatePresetChange={setDatePreset}
+      />
 
       <div
         className={cn(

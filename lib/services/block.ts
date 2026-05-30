@@ -50,6 +50,11 @@ class BlockService {
     return true
   }
 
+  async listBlockedUserIds(userId: string): Promise<string[]> {
+    await this.ensureLoaded(userId)
+    return [...(this.blockedUsers.get(userId) ?? [])]
+  }
+
   isBlocked(userId: string, targetId: string): boolean {
     return this.blockedUsers.get(userId)?.has(targetId) || false
   }

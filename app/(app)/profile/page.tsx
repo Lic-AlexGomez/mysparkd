@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Pencil, Loader2, Camera, Newspaper, Bookmark, Heart, Crown,
   MapPin, Globe, Zap, Settings, Trash2, MicOff, Paperclip, CalendarDays, ChevronRight,
-  CalendarClock, Users, X
+  CalendarClock, Users, X, Ticket
 } from "lucide-react"
 import { toast } from "sonner"
 import { PostCard } from "@/components/feed/post-card"
@@ -23,9 +23,11 @@ import {
   voiceNoteDurationExceededMessage, MAX_VOICE_NOTE_SECONDS, VoiceNoteRecorder,
 } from "@/components/ui/voice-note"
 import { useI18n } from "@/lib/i18n"
+import { profileHref } from "@/lib/profile-route"
 import { getFollowButtonLabel } from "@/lib/follow-labels"
 import { accountTypeBadgeLabels, toBackendAccountType } from "@/lib/account-type"
 import { eventService } from "@/lib/services/event"
+import { eventPaymentService, type EventTicket } from "@/lib/services/event-payment"
 import type { Event } from "@/lib/types"
 import { useExperienceMode } from "@/hooks/use-experience-mode"
 
@@ -53,6 +55,8 @@ export default function ProfilePage() {
   const [myParticipatingEvents, setMyParticipatingEvents] = useState<Event[]>([])
   const [eventsTab, setEventsTab] = useState<'created' | 'participating'>('created')
   const [eventsLoading, setEventsLoading] = useState(false)
+  const [myTickets, setMyTickets] = useState<EventTicket[]>([])
+  const [ticketsLoading, setTicketsLoading] = useState(false)
 
   const [followListModal, setFollowListModal] = useState<'followers' | 'following' | null>(null)
   const [followList, setFollowList] = useState<FollowerUser[]>([])
@@ -132,7 +136,15 @@ export default function ProfilePage() {
       .finally(() => setEventsLoading(false))
   }, [user?.userId])
 
-  const handleDragStart = (index: number) => setDraggedIndex(index)
+  useEffect(() => {
+    if (!user?.userId) return
+    setTicketsLoading(true)
+    eventPaymentService
+      .getMyTickets()
+      .then((rows) => setMyTickets(rows))
+      .catch(() => setMyTickets([]))
+      .finally(() => setTicketsLoading(false))
+  }, [user?.userId])
   const handleDragOver = (e: React.DragEvent) => e.preventDefault()
   const handleDrop = async (dropIndex: number) => {
     if (draggedIndex === null || draggedIndex === dropIndex) return
@@ -518,7 +530,7 @@ export default function ProfilePage() {
 
       {/* ── FOTOS · MIS EVENTOS · POSTS (tabs) ── */}
       <Tabs defaultValue="photos" className="mt-5 px-4">
-        <TabsList className="grid h-auto w-full grid-cols-3 gap-1 rounded-xl border border-border/50 bg-muted/45 p-1 shadow-inner dark:bg-muted/25">
+        <TabsList className="grid h-auto w-full grid-cols-4 gap-1 rounded-xl border border-border/50 bg-muted/45 p-1 shadow-inner dark:bg-muted/25">
           <TabsTrigger
             value="photos"
             className="rounded-lg py-2 text-xs font-semibold transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=inactive]:text-muted-foreground sm:text-sm"
@@ -530,6 +542,12 @@ export default function ProfilePage() {
             className="rounded-lg py-2 text-xs font-semibold transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=inactive]:text-muted-foreground sm:text-sm"
           >
             {te("Mis Eventos", "My events")}
+          </TabsTrigger>
+          <TabsTrigger
+            value="tickets"
+            className="rounded-lg py-2 text-xs font-semibold transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=inactive]:text-muted-foreground sm:text-sm"
+          >
+            {te("Tickets", "Tickets")}
           </TabsTrigger>
           <TabsTrigger
             value="posts"
@@ -784,6 +802,62 @@ export default function ProfilePage() {
           )}
         </TabsContent>
 
+        <TabsContent value="tickets" className="mt-4 rounded-xl border border-border/50 bg-card/70 p-3 shadow-sm ring-1 ring-black/[0.03] dark:bg-card/40 dark:ring-white/[0.06]">
+          {ticketsLoading ? (
+            <div className="flex justify-center py-10">
+              <Loader2 className="h-7 w-7 animate-spin text-primary" />
+            </div>
+          ) : myTickets.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border/70 bg-muted/15 px-5 py-14 text-center">
+              <Ticket className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+              <p className="text-sm font-medium text-foreground">
+                {te("Aún no tienes tickets de eventos", "You don't have event tickets yet")}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {myTickets.map((ticket) => {
+                const when = ticket.eventDate
+                  ? new Date(ticket.eventDate).toLocaleString(language === "en" ? "en-US" : "es", {
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : null
+                return (
+                  <button
+                    key={ticket.ticketId}
+                    type="button"
+                    onClick={() => router.push(`/events/payment/tickets/${ticket.ticketId}`)}
+                    className="flex w-full gap-3 rounded-xl border border-border/60 bg-background/80 p-3 text-left transition hover:border-primary/30"
+                  >
+                    <div
+                      className="h-16 w-16 shrink-0 rounded-lg bg-cover bg-center bg-muted"
+                      style={
+                        ticket.eventCoverPhotoUrl
+                          ? { backgroundImage: `url(${ticket.eventCoverPhotoUrl})` }
+                          : undefined
+                      }
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold text-foreground">{ticket.eventTitle}</p>
+                      {when ? <p className="text-xs text-muted-foreground">{when}</p> : null}
+                      {ticket.eventZone ? (
+                        <p className="truncate text-xs text-muted-foreground">{ticket.eventZone}</p>
+                      ) : null}
+                      <p className="mt-1 text-[11px] font-medium text-primary">
+                        {ticket.used ? te("Usado", "Used") : te("Válido · Ver QR", "Valid · View QR")}
+                      </p>
+                    </div>
+                    <ChevronRight className="mt-2 h-4 w-4 shrink-0 text-muted-foreground" />
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </TabsContent>
+
         <TabsContent value="posts" className="mt-4 rounded-xl border border-border/50 bg-card/70 p-3 shadow-sm ring-1 ring-black/[0.03] dark:bg-card/40 dark:ring-white/[0.06]">
           {(experienceMode === 'SOCIAL' || experienceMode === 'BOTH') ? (
             <>
@@ -834,7 +908,7 @@ export default function ProfilePage() {
                 const fullName = [u.nombres, u.apellidos].filter(Boolean).join(' ')
                 return (
                   <div key={u.userId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50">
-                    <button onClick={() => { setFollowListModal(null); router.push(`/profile/${u.userId}`) }}
+                    <button onClick={() => { setFollowListModal(null); router.push(profileHref(u.userId, user?.userId)) }}
                       className="flex items-center gap-3 flex-1 text-left min-w-0">
                       <Avatar className="h-10 w-10 shrink-0">
                         <AvatarImage src={u.profilePictureUrl} />

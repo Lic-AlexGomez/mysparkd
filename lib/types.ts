@@ -511,6 +511,8 @@ export interface EventFilters {
   lat?: number
   lng?: number
   radiusKm?: number
+  dateFrom?: string
+  dateTo?: string
 }
 
 export type EventGroupMediaType = 'IMAGE' | 'VIDEO' | 'AUDIO' | 'FILE'

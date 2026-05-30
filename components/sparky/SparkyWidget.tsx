@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { motion } from "framer-motion"
+import { motion, useReducedMotion } from "framer-motion"
 import { SparkyCharacterWeb } from "@/components/sparky/SparkyCharacterWeb"
 import { SparkyHomePanel } from "@/components/sparky/SparkyHomePanel"
 import { SparkyStageWeb } from "@/components/sparky/SparkyStageWeb"
@@ -11,6 +11,7 @@ import { useSparkyExpressionTransitionWeb } from "@/lib/hooks/use-sparky-express
 import { installSparkyFetchInterceptor } from "@/lib/sparky-fetch"
 import { companionNotifyScrollFast } from "@/lib/companion/api-bridge"
 import { pickAliveLine } from "@/lib/sparky-alive-copy"
+import { useStableSparkyLine } from "@/lib/sparky-line-pacing"
 import { SparkyProactiveThoughtBubble } from "@/components/sparky/SparkyProactiveThoughtBubble"
 import { moodToSparkyExpression } from "@/lib/companion/engine"
 import { cn } from "@/lib/utils"
@@ -43,6 +44,15 @@ export function SparkyWidget() {
 
   const rawExpression = loading ? "thinking" : fabHover ? "happy" : sparky.expression
   const displayExpression = useSparkyExpressionTransitionWeb(rawExpression)
+
+  const reduceMotion = useReducedMotion()
+
+  const peekX = useMemo(() => {
+    const sign = avoidBottomRightChrome ? -1 : 1
+    if (peekState === "hidden") return sign * 42
+    if (peekState === "peeking") return sign * 20
+    return 0
+  }, [avoidBottomRightChrome, peekState])
 
   const effectiveGaze = useMemo(
     () => (loading || displayExpression === "thinking" ? { x: 0, y: -0.65 } : gazeApi),
@@ -91,10 +101,12 @@ export function SparkyWidget() {
         ? "wardrobe_hat"
         : null
 
-  const homeLine =
-    lastReply ??
-    sparky.proactiveCopy ??
-    pickAliveLine(sparky.engine.mood === "idle" ? "idle" : moodToSparkyExpression(sparky.engine.mood))
+  const moodKey =
+    sparky.engine.mood === "idle" ? "idle" : moodToSparkyExpression(sparky.engine.mood)
+  const homeLine = useStableSparkyLine(
+    lastReply ?? sparky.proactiveCopy ?? null,
+    pickAliveLine(moodKey)
+  )
 
   const touch = () => {
     lastTouchMs.current = Date.now()
@@ -119,15 +131,15 @@ export function SparkyWidget() {
       const suggestion = Array.isArray(data.suggestions) && data.suggestions.length
         ? data.suggestions[0]
         : data.error
-          ? "uff…"
-          : "mmm…"
+          ? "uff..."
+          : "mmm..."
       setLastReply(suggestion)
       sparky.dispatchCompanion(
         Array.isArray(data.suggestions) && data.suggestions.length ? "success" : "error",
         { force: true }
       )
     } catch {
-      setLastReply("sin señal…")
+      setLastReply("sin senal...")
       sparky.dispatchCompanion("error", { force: true })
     } finally {
       setLoading(false)
@@ -154,7 +166,7 @@ export function SparkyWidget() {
   const shareQuote = lastReply ?? homeLine
 
   const shareCard = async () => {
-    const text = `Sparky: "${shareQuote.slice(0, 200)}" — Sparkd`
+    const text = `Sparky: "${shareQuote.slice(0, 200)}" - Sparkd`
     if (navigator.share) {
       await navigator.share({ title: "Sparky", text })
     } else {
@@ -175,14 +187,14 @@ export function SparkyWidget() {
           message={sparky.proactiveCopy}
           onDismiss={sparky.clearProactiveCopy}
           tailSide={avoidBottomRightChrome ? "left" : "right"}
-          className={avoidBottomRightChrome ? "bottom-36 left-5" : "bottom-24 right-5"}
+          className={avoidBottomRightChrome ? "bottom-52 left-5" : "bottom-32 right-5"}
         />
       ) : null}
 
       <motion.button
         type="button"
         className={cn(
-          "fixed z-[60] flex h-16 w-16 items-center justify-center rounded-full bg-primary/15 shadow-xl ring-2 ring-primary/50",
+          "fixed z-[60] flex h-20 w-20 items-center justify-center bg-transparent shadow-none",
           avoidBottomRightChrome ? "bottom-24 left-5" : "bottom-5 right-5"
         )}
         onClick={onFabClick}
@@ -192,33 +204,45 @@ export function SparkyWidget() {
           gazeApi.focusAttention("hover", 0.8, 0.8)
         }}
         onMouseLeave={() => setFabHover(false)}
+        onPointerMove={(e) => {
+          const rect = e.currentTarget.getBoundingClientRect()
+          const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1
+          const ny = -(((e.clientY - rect.top) / rect.height) * 2 - 1)
+          gazeApi.focusAttention("hover", nx, ny)
+        }}
         aria-label="Sparky"
         animate={{
-          y: [0, -5, 0],
-          scale: fabHover ? 1.06 : 1,
-          x: avoidBottomRightChrome
-            ? peekState === "hidden"
-              ? -42
-              : peekState === "peeking"
-                ? -20
-                : 0
-            : peekState === "hidden"
-              ? 42
-              : peekState === "peeking"
-                ? 20
-                : 0,
-          opacity: peekState === "hidden" ? 0.8 : 1,
+          x: peekX,
+          opacity: peekState === "hidden" ? 0.82 : 1,
         }}
-        transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
-        whileTap={{ scale: 0.92 }}
+        transition={{
+          x: { type: "spring", stiffness: 110, damping: 16 },
+          opacity: { duration: 0.35 },
+        }}
+        whileTap={{ scale: 0.94 }}
       >
-        <SparkyCharacterWeb
-          expression={displayExpression}
-          companionId={sparky.companionId}
-          wardrobeAccessory={wardrobe}
-          size={52}
-          gaze={effectiveGaze}
-        />
+        <span className="absolute inset-1 rounded-full bg-[radial-gradient(circle,rgba(34,211,238,0.34),rgba(232,121,249,0.18)_45%,transparent_72%)] blur-xl" aria-hidden />
+        <motion.div
+          className="relative flex items-center justify-center"
+          animate={
+            reduceMotion
+              ? undefined
+              : {
+                  y: [0, -4, -1.5, -4, 0],
+                  rotate: [-2.5, 2, -1.5, 2.5, -2.5],
+                  scale: fabHover ? [1.04, 1.08, 1.05, 1.08, 1.04] : [1, 1.035, 1.018, 1.035, 1],
+                }
+          }
+          transition={{ duration: 4.8, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <SparkyCharacterWeb
+            expression={displayExpression}
+            companionId={sparky.companionId}
+            avatarStyle={sparky.avatarStyle}
+            size={66}
+            gaze={effectiveGaze}
+          />
+        </motion.div>
       </motion.button>
 
       <SparkyHomePanel
@@ -231,6 +255,7 @@ export function SparkyWidget() {
         bondPoints={sparky.bond.points}
         expression={displayExpression}
         companionId={sparky.companionId}
+        avatarStyle={sparky.avatarStyle}
         wardrobeAccessory={wardrobe}
         line={homeLine}
         gaze={effectiveGaze}

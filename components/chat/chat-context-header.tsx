@@ -1,6 +1,8 @@
 "use client"
 
 import Link from "next/link"
+import { useAuth } from "@/lib/auth-context"
+import { profileHref } from "@/lib/profile-route"
 import { formatDistanceToNow } from "date-fns"
 import { es, enUS } from "date-fns/locale"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -56,6 +58,7 @@ export function ChatContextHeader({
   te: (es: string, en: string) => string
   language: SupportedLanguage
 }) {
+  const { user } = useAuth()
   const loc = language === "es" ? es : enUS
   const title = context?.context_title || otherUsername || te("Chat", "Chat")
   const subParts: string[] = []
@@ -74,7 +77,7 @@ export function ChatContextHeader({
       <p className="truncate text-sm font-bold leading-tight text-foreground md:text-base">{title}</p>
       {otherUserId ? (
         <Link
-          href={`/profile/${otherUserId}`}
+          href={profileHref(otherUserId, user?.userId)}
           className="truncate text-xs font-medium text-primary hover:underline"
         >
           {te("Con", "With")} @{otherUsername || "…"}

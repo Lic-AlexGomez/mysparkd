@@ -1,6 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
+import { profileHref } from "@/lib/profile-route"
 import { motion } from "framer-motion"
 import type { DateCard, Interest } from "@/lib/types"
 import { compatibilityPercentFromInterestsOnly } from "@/lib/services/compatibility"
@@ -201,7 +202,7 @@ export function FastDateOfferCard({
   }
 
   const openProfile = () => {
-    if (card.userId) router.push(`/profile/${card.userId}`)
+    if (card.userId) router.push(profileHref(card.userId, currentUserId))
   }
 
   const ageYears =

@@ -2,13 +2,17 @@ import type { SparkyMemory } from "@/lib/sparky-memory"
 import { EMPTY_SPARKY_MEMORY, sanitizeSparkyMemory } from "@/lib/sparky-memory"
 import { api } from "@/lib/api"
 
+/**
+ * Memoria remota vía gateway Sparkd1.0 → sparkd-sparky.
+ * `api` usa base `/api/proxy` → Render (`NEXT_PUBLIC_API_URL`).
+ */
 const SPARKY_MEMORY_URL = "/api/sparky/memory"
 
 /** Evita 429 del backend por ráfagas de PUT (mood/touch/companion). */
-const PUT_DEBOUNCE_MS = 5_000
-const PUT_MIN_GAP_MS = 15_000
+const PUT_DEBOUNCE_MS = 4_000
+const PUT_MIN_GAP_MS = 16_000
 const GET_MIN_GAP_MS = 45_000
-const RATE_LIMIT_COOLDOWN_MS = 90_000
+const RATE_LIMIT_COOLDOWN_MS = 18_000
 
 let lastRemoteWarnAt = 0
 let rateLimitUntil = 0
@@ -89,6 +93,7 @@ async function runRemotePut(): Promise<void> {
   } catch (e: unknown) {
     if (e && typeof e === "object" && "status" in e && (e as { status: number }).status === 429) {
       rateLimitUntil = Date.now() + RATE_LIMIT_COOLDOWN_MS
+      lastPutAt = Date.now()
       warnRemoteOnce("sync PUT rate-limited; backing off", 429)
     } else {
       warnRemoteOnce("sync PUT failed", e && typeof e === "object" && "status" in e ? (e as { status: number }).status : undefined)
@@ -166,4 +171,41 @@ export function clearSparkyMemoryLocal(): void {
 
 export function getEmptySparkyMemory(): SparkyMemory {
   return { ...EMPTY_SPARKY_MEMORY }
+}
+
+export type SparkyServerContext = {
+  userId?: string
+  bondLevel?: number
+  bondLabel?: string
+  bondPoints?: number
+  userFirstName?: string
+  userAge?: number
+  username?: string
+  accountType?: string
+  premium?: boolean
+  favoriteCompanion?: string
+  avatarStyle?: string | null
+  relationshipLevel?: string
+  sparkyMode?: string
+  source?: string
+  [key: string]: unknown
+}
+
+export async function fetchSparkyContext(): Promise<SparkyServerContext | null> {
+  if (isRateLimited()) return null
+  try {
+    const data = await api.get<SparkyServerContext>("/api/sparky/context")
+    return data && typeof data === "object" ? data : null
+  } catch (e: unknown) {
+    if (e && typeof e === "object" && "status" in e) {
+      const status = (e as { status: number }).status
+      if (status === 401) return null
+      if (status === 429) {
+        rateLimitUntil = Date.now() + RATE_LIMIT_COOLDOWN_MS
+        return null
+      }
+    }
+    warnRemoteOnce("context GET failed")
+    return null
+  }
 }

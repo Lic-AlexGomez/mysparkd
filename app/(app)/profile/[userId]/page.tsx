@@ -30,9 +30,11 @@ import { useDmEligibility } from "@/hooks/use-dm-eligibility"
 import {
   canShowMessageButton,
   eligibilityMessageKey,
+  dmOpenErrorMessage,
   getDatingDisplayName,
 } from "@/lib/dm-eligibility"
 import { getFollowButtonLabel, shouldShowFollowsYouHint } from "@/lib/follow-labels"
+import { profileHref } from "@/lib/profile-route"
 
 function getAge(dateOfBirth?: string): number | null {
   if (!dateOfBirth) return null
@@ -89,6 +91,12 @@ export default function UserProfilePage() {
 
   const isDatingProfileView = viewerContext === "DATING"
   const showMessageBtn = canShowMessageButton(eligibility)
+
+  useEffect(() => {
+    if (user?.userId && userId && user.userId === userId) {
+      router.replace("/profile")
+    }
+  }, [user?.userId, userId, router])
 
   useEffect(() => {
     if (!user?.userId || !profile) return
@@ -288,13 +296,13 @@ export default function UserProfilePage() {
           return
         }
         if (msg === "PREMIUM_OR_MUTUAL_REQUIRED" || msg.includes("PREMIUM_OR_MUTUAL_REQUIRED")) {
-          toast.error(te(
-            "Para chatear necesitas seguirse mutuamente, tener un match, o ser Premium 👑",
-            "To chat you need to follow each other, have a match, or be Premium 👑"
-          ), { duration: 5000 })
+          toast.error(t("dm.socialMutualFollowRequired"), { duration: 5000 })
           return
         }
-        toast.error(msg || te("No puedes abrir este chat", "You cannot open this chat"))
+        toast.error(
+          dmOpenErrorMessage(msg, t, te("No puedes abrir este chat", "You cannot open this chat")),
+          { duration: 5000 }
+        )
         return
       }
       toast.error(te("Error al abrir chat", "Error opening chat"))
@@ -634,7 +642,7 @@ export default function UserProfilePage() {
         ) : null}
       </div>
 
-      {profile.visibility === 'PRIVATE' && !following && !isDatingProfileView ? (
+      {profile.visibility === 'PRIVATE' && !following && !isDatingProfileView && !viewingOwnProfile ? (
         <div className="flex flex-col items-center justify-center gap-3 py-16 px-4 border-t border-border mt-4">
           <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
             <Lock className="h-8 w-8 text-muted-foreground" />
@@ -706,7 +714,7 @@ export default function UserProfilePage() {
                 const isMe = user?.userId === u.userId
                 return (
                   <div key={u.userId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50">
-                    <button onClick={() => { setFollowListModal(null); router.push(`/profile/${u.userId}`) }}
+                    <button onClick={() => { setFollowListModal(null); router.push(profileHref(u.userId, user?.userId)) }}
                       className="flex items-center gap-3 flex-1 text-left min-w-0">
                       <Avatar className="h-10 w-10 shrink-0">
                         <AvatarImage src={u.profilePictureUrl} />

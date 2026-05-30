@@ -27,6 +27,7 @@ import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
 import { useI18n } from "@/lib/i18n"
 import { getNotificationPath } from "@/lib/notification-routing"
+import { profileHref } from "@/lib/profile-route"
 import { eventService } from "@/lib/services/event"
 import type { EventGroupJoinRequest } from "@/lib/types"
 import { EventInviteRows } from "@/components/notifications/event-invite-rows"
@@ -178,6 +179,7 @@ export default function NotificationsPage() {
         senderId: notification.senderId,
         targetId: notification.targetId,
         targetType: notification.targetType,
+        viewerUserId: user?.userId,
       })
     )
   }
@@ -217,7 +219,7 @@ export default function NotificationsPage() {
 
   const renderFollowRequestRow = (req: FollowRequest, notificationId?: string) => (
     <div key={req.userId} className="flex items-center gap-3 px-4 py-3">
-      <button type="button" onClick={() => router.push(`/profile/${req.userId}`)} className="shrink-0">
+      <button type="button" onClick={() => router.push(profileHref(req.userId, user?.userId))} className="shrink-0">
         <Avatar className="h-11 w-11">
           <AvatarImage src={req.profilePictureUrl} />
           <AvatarFallback className="bg-primary/10 text-primary">
@@ -228,7 +230,7 @@ export default function NotificationsPage() {
       <div className="flex-1 min-w-0">
         <button
           type="button"
-          onClick={() => router.push(`/profile/${req.userId}`)}
+          onClick={() => router.push(profileHref(req.userId, user?.userId))}
           className="text-sm font-semibold text-foreground truncate hover:underline text-left block w-full"
         >
           {req.username || [req.nombres, req.apellidos].filter(Boolean).join(" ") || te("Usuario", "User")}

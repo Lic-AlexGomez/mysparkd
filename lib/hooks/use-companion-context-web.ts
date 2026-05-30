@@ -69,14 +69,21 @@ export function useCompanionContextWeb({
     emit("app_open")
   }, [enabled, emit, memory.lastOpenDay, onMemoryUpdate])
 
+  const lastForegroundOpenRef = useRef(0)
+
   useEffect(() => {
     if (!enabled) return
+    const FOREGROUND_DEBOUNCE_MS = 90_000
     const onVis = () => {
-      if (document.visibilityState === "hidden") emit("app_background")
-      else {
-        touchActivity()
-        emit("app_open")
+      if (document.visibilityState === "hidden") {
+        emit("app_background")
+        return
       }
+      touchActivity()
+      const now = Date.now()
+      if (now - lastForegroundOpenRef.current < FOREGROUND_DEBOUNCE_MS) return
+      lastForegroundOpenRef.current = now
+      emit("app_open")
     }
     document.addEventListener("visibilitychange", onVis)
     return () => document.removeEventListener("visibilitychange", onVis)

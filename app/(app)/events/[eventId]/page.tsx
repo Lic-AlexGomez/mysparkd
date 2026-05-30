@@ -76,6 +76,7 @@ import { cn } from "@/lib/utils"
 import { EventMutualPlansInline } from "@/components/mutual-plans/event-mutual-inline"
 import { PreEventChatHub } from "@/components/events/pre-event-chat-hub"
 import { JoinMeetupDialog } from "@/components/events/join-meetup-dialog"
+import { eventPaymentService, type EventTicket } from "@/lib/services/event-payment"
 import type { JoinEligibleUser } from "@/components/events/join-meetup-dialog"
 import QRCode from "qrcode"
 
@@ -447,6 +448,9 @@ export default function EventDetailPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSending, setIsSending] = useState(false)
   const [joinDialogOpen, setJoinDialogOpen] = useState(false)
+  const [myEventTicket, setMyEventTicket] = useState<EventTicket | null>(null)
+  const [ticketLoading, setTicketLoading] = useState(false)
+  const [buyingTicket, setBuyingTicket] = useState(false)
   const [messageText, setMessageText] = useState("")
   /** UX tipo chat 1:1: hover / tap para barra de acciones */
   const [activeEventMsgKey, setActiveEventMsgKey] = useState<string | null>(null)
@@ -565,6 +569,19 @@ export default function EventDetailPage() {
       }
 
       setEventData(detail)
+      if (detail?.free === false) {
+        setTicketLoading(true)
+        try {
+          const tickets = await eventPaymentService.getMyTickets()
+          setMyEventTicket(eventPaymentService.findTicketForEvent(tickets, eventId))
+        } catch {
+          setMyEventTicket(null)
+        } finally {
+          setTicketLoading(false)
+        }
+      } else {
+        setMyEventTicket(null)
+      }
       void preEventChatService.ensureRoom(eventId)
 
       const normalizedMsgs = (Array.isArray(msgRows) ? msgRows : []).map((m) =>
@@ -1489,6 +1506,25 @@ export default function EventDetailPage() {
   }
   const rawPrice = Number(rawEv?.price ?? NaN)
   const showPaidBadge = rawEv?.free === false || (Number.isFinite(rawPrice) && rawPrice > 0)
+  const isPaidEvent = rawEv?.free === false
+  const priceLabel =
+    Number.isFinite(rawPrice) && rawPrice > 0
+      ? `$${rawPrice.toFixed(2)} ${String(rawEv?.currency || "usd").toUpperCase()}`
+      : te("Pago", "Paid")
+
+  const handleBuyTicket = async () => {
+    setBuyingTicket(true)
+    try {
+      const url = await eventPaymentService.checkout(eventId)
+      window.location.href = url
+    } catch (e: unknown) {
+      toast.error(
+        e instanceof Error ? e.message : te("No se pudo iniciar el pago", "Could not start checkout")
+      )
+    } finally {
+      setBuyingTicket(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -1508,9 +1544,29 @@ export default function EventDetailPage() {
               {te("Eventos", "Events")}
             </Button>
             {!isAdmin && !isModerator && !isGuest && !myPendingInvitation && (
-              <Button type="button" onClick={() => setJoinDialogOpen(true)} className="shrink-0 rounded-xl sm:ml-auto">
-                {te("Unirme", "Join")}
-              </Button>
+              isPaidEvent ? (
+                myEventTicket ? (
+                  <Badge className="shrink-0 rounded-xl px-3 py-2 text-sm font-semibold sm:ml-auto">
+                    {te("Ticket confirmado", "Ticket confirmed")}
+                  </Badge>
+                ) : (
+                  <Button
+                    type="button"
+                    onClick={() => void handleBuyTicket()}
+                    disabled={buyingTicket || ticketLoading}
+                    className="shrink-0 rounded-xl sm:ml-auto"
+                  >
+                    {buyingTicket ? (
+                      <Loader2 className="mr-2 size-4 animate-spin" />
+                    ) : null}
+                    {te("Comprar ticket", "Buy ticket")} — {priceLabel}
+                  </Button>
+                )
+              ) : (
+                <Button type="button" onClick={() => setJoinDialogOpen(true)} className="shrink-0 rounded-xl sm:ml-auto">
+                  {te("Unirme", "Join")}
+                </Button>
+              )
             )}
           </div>
 

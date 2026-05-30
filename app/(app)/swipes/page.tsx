@@ -7,13 +7,21 @@ import { usePremiumStatus } from "@/hooks/use-premium-status"
 import type { UserProfile, SwipeResponse } from "@/lib/types"
 import { SwipeCard } from "@/components/swipes/swipe-card"
 import { MatchModal } from "@/components/swipes/match-modal"
-import { X, Heart, Loader2, Zap, Crown, RefreshCw, RotateCcw } from "lucide-react"
+import { X, Heart, Loader2, Zap, Crown, RefreshCw, RotateCcw, MapPin } from "lucide-react"
 import { AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { useI18n } from "@/lib/i18n"
 import { getDatingDisplayName, recordDatingExposure } from "@/lib/dm-eligibility"
+import { useFeedLocation } from "@/hooks/use-feed-location"
+import { DISCOVER_RADIUS_OPTIONS } from "@/lib/event-date-filters"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 const DISCOVER_PAGE_SIZE = 20
 /** Alineado con backend free tier (mensaje 429). */
@@ -40,6 +48,22 @@ export default function SwipesPage() {
   const [swipesRemaining, setSwipesRemaining] = useState<number | null>(null)
   const [swipeLimitReached, setSwipeLimitReached] = useState(false)
   const [swipeDirection, setSwipeDirection] = useState<"left" | "right" | null>(null)
+  const feedLocation = useFeedLocation()
+  const [locationFilterOn, setLocationFilterOn] = useState(false)
+  const [discoverRadiusKm, setDiscoverRadiusKm] = useState(1500)
+  const [discoverCoords, setDiscoverCoords] = useState<{ lat: number; lng: number } | null>(null)
+  const [locationBusy, setLocationBusy] = useState(false)
+
+  const buildDiscoverQuery = useCallback(
+    (page: number) => {
+      let qs = `/api/discover?page=${page}&size=${DISCOVER_PAGE_SIZE}`
+      if (locationFilterOn && discoverCoords) {
+        qs += `&lat=${discoverCoords.lat}&lng=${discoverCoords.lng}&radiusKm=${discoverRadiusKm}`
+      }
+      return qs
+    },
+    [locationFilterOn, discoverCoords, discoverRadiusKm]
+  )
 
   const mapProfiles = useCallback((rows: any[]) => {
     return rows.map((item: any) => ({
@@ -72,7 +96,7 @@ export default function SwipesPage() {
         setIsFetchingMore(true)
       }
 
-      const response = await api.getPage<any>(`/api/discover?page=${targetPage}&size=${DISCOVER_PAGE_SIZE}`)
+      const response = await api.getPage<any>(buildDiscoverQuery(targetPage))
       const discoverProfiles = Array.isArray(response?.content) ? response.content : []
       const mapped = mapProfiles(discoverProfiles).filter((p) => !swipedIdsRef.current.has(p.userId))
 
@@ -106,7 +130,38 @@ export default function SwipesPage() {
       isFetchingMoreRef.current = false
       setIsFetchingMore(false)
     }
-  }, [mapProfiles])
+  }, [mapProfiles, buildDiscoverQuery])
+
+  const enableLocationFilter = async () => {
+    setLocationBusy(true)
+    try {
+      if (feedLocation.fromVirtual && feedLocation.effectiveLat != null && feedLocation.effectiveLng != null) {
+        setDiscoverCoords({ lat: feedLocation.effectiveLat, lng: feedLocation.effectiveLng })
+        setDiscoverRadiusKm(50)
+        setLocationFilterOn(true)
+        return
+      }
+      const coords = await feedLocation.requestBrowser()
+      if (!coords) {
+        toast.error(t("swipes.locationDenied") || "Permiso de ubicación denegado")
+        return
+      }
+      setDiscoverCoords({ lat: coords.latitude, lng: coords.longitude })
+      setDiscoverRadiusKm(1500)
+      setLocationFilterOn(true)
+    } finally {
+      setLocationBusy(false)
+    }
+  }
+
+  const disableLocationFilter = () => {
+    setLocationFilterOn(false)
+    setDiscoverCoords(null)
+  }
+
+  useEffect(() => {
+    void fetchProfiles(true)
+  }, [fetchProfiles])
 
   useEffect(() => {
     if (isPremium) {
@@ -114,10 +169,6 @@ export default function SwipesPage() {
       setSwipeLimitReached(false)
     }
   }, [isPremium])
-
-  useEffect(() => {
-    void fetchProfiles(true)
-  }, [fetchProfiles])
 
   useEffect(() => {
     const remainingCards = profiles.length - currentIndex - 1
@@ -278,6 +329,58 @@ export default function SwipesPage() {
             <h1 className="bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-2xl font-black tracking-tight text-transparent">
               {t("swipes.title")}
             </h1>
+            {!locationFilterOn ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 rounded-full gap-1.5"
+                disabled={locationBusy}
+                onClick={() => void enableLocationFilter()}
+              >
+                {locationBusy ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <MapPin className="h-3.5 w-3.5" />
+                )}
+                {t("swipes.nearby") || "Cerca"}
+              </Button>
+            ) : (
+              <div className="flex items-center gap-1">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button type="button" size="sm" variant="secondary" className="h-8 rounded-full gap-1">
+                      <MapPin className="h-3.5 w-3.5" />
+                      {DISCOVER_RADIUS_OPTIONS.find((o) => o.km === discoverRadiusKm)?.label ??
+                        `${discoverRadiusKm} km`}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="center">
+                    {DISCOVER_RADIUS_OPTIONS.map((opt) => (
+                      <DropdownMenuItem
+                        key={opt.km}
+                        onClick={() => setDiscoverRadiusKm(opt.km)}
+                      >
+                        {opt.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 rounded-full"
+                  onClick={() => {
+                    disableLocationFilter()
+                    void fetchProfiles(true)
+                  }}
+                  aria-label="Quitar filtro de ubicación"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
             {!isPremium && swipesRemaining !== null && !swipeLimitReached && (
               <Badge variant="secondary" className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold tabular-nums text-primary">
                 {swipesRemaining} / {FREE_DAILY_SWIPE_CAP} {t("swipes.today")}

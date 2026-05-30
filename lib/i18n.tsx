@@ -1562,6 +1562,10 @@ const TRANSLATIONS: Record<string, Record<SupportedLanguage, string>> = {
     en: "Premium is required for this action.",
     es: "Se requiere premium para esta acción.",
   },
+  "dm.followFirstRequired": {
+    en: "Follow this account first to send a direct message.",
+    es: "Primero debes seguir a esta cuenta para enviar un mensaje directo.",
+  },
   "dm.datingSearchRestricted": {
     en: "In Dating mode you can only search within your matches, not the whole network.",
     es: "En modo Dating solo puedes buscar entre tus matches, no en toda la red.",

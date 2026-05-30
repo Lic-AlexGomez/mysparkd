@@ -56,6 +56,15 @@ function javaApiBase(): string {
     .replace(/\/$/, "")
 }
 
+/** Base del microservicio sparkd-sparky (fallback: gateway Java). */
+function sparkyServiceBase(): string {
+  const raw =
+    process.env.SPARKY_MS_URL?.trim() ||
+    process.env.NEXT_PUBLIC_SPARKY_MS_URL?.trim() ||
+    javaApiBase()
+  return raw.replace(/\/api\/?$/i, "").replace(/\/$/, "")
+}
+
 export async function proxySparkyMemoryToBackend(
   method: "GET" | "PUT" | "DELETE",
   authHeader: string,
@@ -66,7 +75,30 @@ export async function proxySparkyMemoryToBackend(
     Authorization: authHeader,
   }
   if (body) headers["Content-Type"] = "application/json"
-  return fetch(`${javaApiBase()}/api/sparky/memory`, { method, headers, body })
+  const bases = [sparkyServiceBase(), javaApiBase()]
+  let last: Response | null = null
+  for (const base of [...new Set(bases)]) {
+    const res = await fetch(`${base}/api/sparky/memory`, { method, headers, body })
+    if (res.ok || res.status === 401 || res.status === 403) return res
+    last = res
+  }
+  return last ?? new Response(JSON.stringify({ error: "Backend unreachable" }), { status: 502 })
+}
+
+/** GET /api/sparky/context — sparkd-sparky o gateway Java. */
+export async function proxySparkyContextToBackend(authHeader: string): Promise<Response> {
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    Authorization: authHeader,
+  }
+  const bases = [sparkyServiceBase(), javaApiBase()]
+  let last: Response | null = null
+  for (const base of [...new Set(bases)]) {
+    const res = await fetch(`${base}/api/sparky/context`, { method: "GET", headers })
+    if (res.ok || res.status === 401 || res.status === 403) return res
+    last = res
+  }
+  return last ?? new Response(JSON.stringify({ error: "Backend unreachable" }), { status: 502 })
 }
 
 /** Reenvía POST /api/sparky al backend Java (Render). */

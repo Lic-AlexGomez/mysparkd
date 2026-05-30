@@ -11,6 +11,7 @@ import {
   type DatingExposureRecord,
   type DatingExposureStatus,
 } from "./contact-permissions"
+import { OWN_PROFILE_PATH, profileHref } from "./profile-route"
 import type { UserProfile } from "./types"
 
 export type SparkdViewerContext = "SOCIAL" | "DATING"
@@ -103,8 +104,10 @@ export function canShowMessageButton(eligibility: EligibilityResult | null | und
 export function getProfilePath(
   targetUserId: string,
   context: SparkdViewerContext,
-  extra?: { compatibility?: string }
+  extra?: { compatibility?: string; viewerUserId?: string | null }
 ): string {
+  const base = profileHref(targetUserId, extra?.viewerUserId)
+  if (base === OWN_PROFILE_PATH) return base
   const qs = new URLSearchParams()
   if (context === "DATING") {
     qs.set("context", "DATING")
@@ -112,7 +115,7 @@ export function getProfilePath(
   }
   if (extra?.compatibility) qs.set("compatibility", extra.compatibility)
   const q = qs.toString()
-  return `/profile/${encodeURIComponent(targetUserId)}${q ? `?${q}` : ""}`
+  return `${base}${q ? `?${q}` : ""}`
 }
 
 /** Perfil dating: ocultar identificadores buscables (defensa si API viejo devuelve todo). */
@@ -159,6 +162,30 @@ export function eligibilityMessageKey(reason: EligibilityReason): string | undef
     default:
       return undefined
   }
+}
+
+/** Mensaje amigable cuando falla POST open chat (403) con códigos del backend. */
+export function dmOpenErrorMessage(
+  rawMessage: string,
+  translate: (key: string) => string,
+  fallback: string
+): string {
+  const msg = rawMessage.trim()
+  if (!msg) return fallback
+  const upper = msg.toUpperCase()
+  if (upper.includes("PREMIUM_REQUIRED")) return translate("dm.premiumRequired")
+  if (upper.includes("PREMIUM_OR_MUTUAL")) {
+    return translate("dm.socialMutualFollowRequired")
+  }
+  if (upper.includes("FOLLOW_FIRST") || upper.includes("PRIVATE_MUST_FOLLOW")) {
+    return translate("dm.followFirstRequired")
+  }
+  if (upper.includes("MUTUAL_FOLLOW_REQUIRED") || upper.includes("SOCIAL_MUTUAL_FOLLOW")) {
+    return translate("dm.socialMutualFollowRequired")
+  }
+  if (upper.includes("DATING_MATCH")) return translate("dm.datingMatchRequired")
+  if (upper.includes("BLOCKED")) return translate("contact.blocked")
+  return msg
 }
 
 type ContactContextApi = {

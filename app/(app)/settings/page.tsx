@@ -44,12 +44,17 @@ import {
   Key,
   Mail,
   Shield,
+  Ban,
   Users,
   Layout,
 } from "lucide-react"
 import { NavbarStylePicker } from "@/components/settings/navbar-style-picker"
 import { usePushNotifications } from "@/hooks/use-push-notifications"
+import { usePremiumStatus } from "@/hooks/use-premium-status"
+import { useFeedLocation } from "@/hooks/use-feed-location"
+import { VirtualLocationCard } from "@/components/settings/virtual-location-card"
 import { privacyService } from "@/lib/services/privacy"
+import { blockService } from "@/lib/services/block"
 import { authService } from "@/lib/services/auth"
 import { PasskeysSection } from "@/components/settings/passkeys-section"
 import { normalizeEmailValue } from "@/lib/email-utils"
@@ -96,6 +101,8 @@ export default function SettingsPage() {
   const { user, logout, refreshProfile } = useAuth()
   const router = useRouter()
   const { permission, requestPermission, isSupported } = usePushNotifications()
+  const { isPremium } = usePremiumStatus()
+  const feedLocation = useFeedLocation()
 
   // Preferences
   const [preferences, setPreferences] = useState<UserPreferences | null>(null)
@@ -123,6 +130,9 @@ export default function SettingsPage() {
   const [savingPrivacy, setSavingPrivacy] = useState(false)
   const [sparklingList, setSparklingList] = useState<SparklingListMember[]>([])
   const [sparklingLoading, setSparklingLoading] = useState(false)
+  const [blockedUsers, setBlockedUsers] = useState<Array<{ userId: string; username?: string; nombres?: string }>>([])
+  const [blockedLoading, setBlockedLoading] = useState(true)
+  const [unblockingId, setUnblockingId] = useState<string | null>(null)
 
   const PENDING_EMAIL_CHANGE_KEY = "sparkd_pending_email_change_v1"
   const PENDING_RECOVERY_KEY = "sparkd_pending_recovery_email_v1"
@@ -265,6 +275,51 @@ export default function SettingsPage() {
     }
   }, [])
 
+  const fetchBlockedUsers = useCallback(async () => {
+    if (!user?.userId) {
+      setBlockedLoading(false)
+      return
+    }
+    setBlockedLoading(true)
+    try {
+      const ids = await blockService.listBlockedUserIds(user.userId)
+      if (!ids.length) {
+        setBlockedUsers([])
+        return
+      }
+      const rows = await Promise.all(
+        ids.map(async (id) => {
+          try {
+            const p = await profileService.getProfile(id)
+            return { userId: id, username: p.username, nombres: p.nombres }
+          } catch {
+            return { userId: id }
+          }
+        })
+      )
+      setBlockedUsers(rows)
+    } catch {
+      setBlockedUsers([])
+    } finally {
+      setBlockedLoading(false)
+    }
+  }, [user?.userId])
+
+  const handleUnblockUser = async (blockedId: string) => {
+    if (!user?.userId) return
+    setUnblockingId(blockedId)
+    try {
+      const ok = await blockService.unblockUser(user.userId, blockedId)
+      if (!ok) throw new Error("unblock failed")
+      setBlockedUsers((prev) => prev.filter((u) => u.userId !== blockedId))
+      toast.success(te("Usuario desbloqueado", "User unblocked"))
+    } catch {
+      toast.error(te("Error al desbloquear", "Error unblocking user"))
+    } finally {
+      setUnblockingId(null)
+    }
+  }
+
   const savePrivacySettings = async () => {
     setSavingPrivacy(true)
     try {
@@ -291,7 +346,8 @@ export default function SettingsPage() {
     fetchPreferences()
     fetchInterests()
     fetchPrivacySettings()
-  }, [fetchPreferences, fetchInterests, fetchPrivacySettings])
+    fetchBlockedUsers()
+  }, [fetchPreferences, fetchInterests, fetchPrivacySettings, fetchBlockedUsers])
 
   useEffect(() => {
     if (!user?.userId) return
@@ -795,6 +851,65 @@ export default function SettingsPage() {
                 Guardar privacidad
               </Button>
             </>
+          )}
+        </CardContent>
+      </Card>
+
+      <VirtualLocationCard
+        isPremium={isPremium}
+        hasVirtual={feedLocation.hasVirtualLocation}
+        loading={feedLocation.loading}
+        onSetVirtual={feedLocation.setVirtualLocation}
+        onClearVirtual={feedLocation.clearVirtualLocation}
+      />
+
+      {/* Blocked users */}
+      <Card className="border-border bg-card mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-foreground text-base">
+            <Ban className="h-4 w-4" />
+            {te("Usuarios bloqueados", "Blocked users")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {blockedLoading ? (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : blockedUsers.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              {te("No has bloqueado a nadie.", "You have not blocked anyone.")}
+            </p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {blockedUsers.map((u) => (
+                <div
+                  key={u.userId}
+                  className="flex items-center justify-between rounded-lg border border-border p-3"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-foreground">
+                      {u.nombres || u.username || te("Usuario", "User")}
+                    </p>
+                    {u.username ? (
+                      <p className="truncate text-xs text-muted-foreground">@{u.username}</p>
+                    ) : null}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={unblockingId === u.userId}
+                    onClick={() => void handleUnblockUser(u.userId)}
+                  >
+                    {unblockingId === u.userId ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      te("Desbloquear", "Unblock")
+                    )}
+                  </Button>
+                </div>
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>

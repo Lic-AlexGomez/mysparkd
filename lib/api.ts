@@ -15,6 +15,7 @@ class ApiError extends Error {
     details?: string,
     retryAfterSeconds?: number
   ) {
+    
     super(message)
     this.status = status
     this.details = details
