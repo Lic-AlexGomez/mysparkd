@@ -108,6 +108,8 @@ export interface UserProfile {
   // Event stats (desde backend commit PET BY FRONT)
   eventsCreatedCount?: number
   eventsCancelledCount?: number
+  /** Fecha de registro en la plataforma (GET /api/profile/me). */
+  fechaRegistro?: string | null
 }
 
 export interface CreateProfileRequest {

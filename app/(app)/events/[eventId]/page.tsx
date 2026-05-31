@@ -1516,6 +1516,10 @@ export default function EventDetailPage() {
     setBuyingTicket(true)
     try {
       const url = await eventPaymentService.checkout(eventId)
+      if (!url) {
+        toast.error(te("Pagos de eventos próximamente", "Event payments coming soon"))
+        return
+      }
       window.location.href = url
     } catch (e: unknown) {
       toast.error(

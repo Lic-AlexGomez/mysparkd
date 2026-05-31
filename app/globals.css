@@ -344,3 +344,31 @@
     animation: none;
   }
 }
+
+/* Stories viewer — barra de progreso por segmento */
+@keyframes story-progress {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+.story-progress-bar {
+  animation-name: story-progress;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-progress-bar {
+    animation: none;
+    width: 100% !important;
+  }
+}
+
+.stories-viewer-grain {
+  background-image: radial-gradient(circle at 20% 20%, rgba(0, 229, 255, 0.08), transparent 45%),
+    radial-gradient(circle at 80% 80%, rgba(217, 70, 239, 0.08), transparent 40%);
+}

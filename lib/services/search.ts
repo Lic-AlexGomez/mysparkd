@@ -63,12 +63,16 @@ export const searchService = {
     if (!q) return { content: [], totalPages: 1, number: 0 }
 
     try {
-      const data = await api.get<any>(
-        `/api/search/users?query=${encodeURIComponent(q)}&page=${page}&size=${size}`
-      )
-      return normalizePaged<UserProfile>(data)
+      const res = await api.get<any>(`/api/search/general?query=${encodeURIComponent(q)}`)
+      const users = Array.isArray(res?.users) ? res.users : []
+      if (users.length > 0) return normalizePaged<UserProfile>({ content: users, totalPages: 1, number: 0 })
+    } catch { /* fall through */ }
+
+    try {
+      const res = await api.get<any>(`/api/search/intelligent?query=${encodeURIComponent(q)}`)
+      const users = Array.isArray(res?.users) ? res.users : []
+      return normalizePaged<UserProfile>({ content: users, totalPages: 1, number: 0 })
     } catch {
-      // Fallback compatible con backend legado.
       try {
         const res = await api.get<any>(`/api/search/autocomplete?q=${encodeURIComponent("@" + q)}`)
         const users = Array.isArray(res?.users) ? res.users : []
@@ -88,23 +92,19 @@ export const searchService = {
     if (!q) return { content: [], totalPages: 1, number: 0 }
 
     try {
-      const data = await api.get<any>(
-        `/api/search/posts?query=${encodeURIComponent(q)}&page=${page}&size=${size}`
-      )
-      return normalizePaged<Post>(data)
-    } catch {
-      // Fallback: endpoint general.
-      try {
-        const res = await api.get<any>(`/api/search/general?query=${encodeURIComponent(q)}`)
-        const posts = Array.isArray(res?.posts) ? res.posts : []
-        return {
-          content: posts as Post[],
-          totalPages: 1,
-          number: 0,
-        }
-      } catch {
-        return { content: [], totalPages: 1, number: 0 }
+      const res = await api.get<any>(`/api/search/general?query=${encodeURIComponent(q)}`)
+      const posts = Array.isArray(res?.posts) ? res.posts : []
+      if (posts.length > 0) {
+        return { content: posts as Post[], totalPages: 1, number: 0 }
       }
+    } catch { /* fall through */ }
+
+    try {
+      const res = await api.get<any>(`/api/search/intelligent?query=${encodeURIComponent(q)}`)
+      const posts = Array.isArray(res?.posts) ? res.posts : []
+      return { content: posts as Post[], totalPages: 1, number: 0 }
+    } catch {
+      return { content: [], totalPages: 1, number: 0 }
     }
   },
 

@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
+import { swipeService } from "@/lib/services/swipe"
 import { api, ApiError } from "@/lib/api"
 import { usePremiumStatus } from "@/hooks/use-premium-status"
 import type { UserProfile, SwipeResponse } from "@/lib/types"
 import { SwipeCard } from "@/components/swipes/swipe-card"
 import { MatchModal } from "@/components/swipes/match-modal"
-import { X, Heart, Loader2, Zap, Crown, RefreshCw, RotateCcw, MapPin } from "lucide-react"
+import { X, Heart, Loader2, Zap, Crown, RefreshCw, RotateCcw, MapPin, List } from "lucide-react"
 import { AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -29,7 +30,7 @@ const FREE_DAILY_SWIPE_CAP = 30
 
 export default function SwipesPage() {
   const { isPremium } = usePremiumStatus()
-  const { t } = useI18n()
+  const { t, te } = useI18n()
   const router = useRouter()
   const [profiles, setProfiles] = useState<UserProfile[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -259,7 +260,8 @@ export default function SwipesPage() {
     }
     setIsRewinding(true)
     try {
-      await api.post("/api/swipes/rewind")
+      const res = await swipeService.rewind()
+      if (!res) throw new ApiError("Error al deshacer el swipe", 500)
       const rewound = lastSwipedProfileRef.current
       lastSwipedProfileRef.current = null
       swipedIdsRef.current.delete(rewound.userId)
@@ -329,6 +331,26 @@ export default function SwipesPage() {
             <h1 className="bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-2xl font-black tracking-tight text-transparent">
               {t("swipes.title")}
             </h1>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="h-8 rounded-full gap-1.5"
+              onClick={() => router.push("/swipes/i-liked")}
+            >
+              <List className="h-3.5 w-3.5" />
+              {t("swipes.iLiked") || "Mis likes"}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="h-8 rounded-full gap-1.5"
+              onClick={() => router.push("/swipes/i-disliked")}
+            >
+              <List className="h-3.5 w-3.5" />
+              {te("Descartados", "Passed")}
+            </Button>
             {!locationFilterOn ? (
               <Button
                 type="button"

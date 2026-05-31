@@ -67,12 +67,12 @@ export type WelcomeAmbientSlot = {
 }
 
 export const WELCOME_AMBIENT_SLOTS: readonly WelcomeAmbientSlot[] = [
-  { id: 0, category: "meetup", top: "5%", left: "1%", width: 118, height: 152, rotate: -8 },
-  { id: 1, category: "fast-date", top: "9%", right: "1%", width: 122, height: 156, rotate: 7 },
-  { id: 2, category: "meetup", top: "33%", left: "0%", width: 110, height: 142, rotate: 4, desktopOnly: true },
-  { id: 3, category: "match", top: "37%", right: "0%", width: 114, height: 146, rotate: -5, desktopOnly: true },
-  { id: 4, category: "social", top: "63%", left: "1%", width: 116, height: 150, rotate: -6 },
-  { id: 5, category: "fast-date", top: "67%", right: "1%", width: 120, height: 154, rotate: 8 },
+  { id: 0, category: "meetup", top: "5%", left: "6%", width: 118, height: 152, rotate: -6 },
+  { id: 1, category: "fast-date", top: "9%", right: "6%", width: 122, height: 156, rotate: 6 },
+  { id: 2, category: "meetup", top: "33%", left: "5%", width: 110, height: 142, rotate: 3, desktopOnly: true },
+  { id: 3, category: "match", top: "37%", right: "5%", width: 114, height: 146, rotate: -4, desktopOnly: true },
+  { id: 4, category: "social", top: "63%", left: "6%", width: 116, height: 150, rotate: -5 },
+  { id: 5, category: "fast-date", top: "67%", right: "6%", width: 120, height: 154, rotate: 6 },
 ]
 
 const categoryCursor: Record<WelcomeAmbientCategory, number> = {

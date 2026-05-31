@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { api } from "@/lib/api"
+import { blockService } from "@/lib/services/block"
 import { chatService } from "@/lib/services/chat"
 import { profileService } from "@/lib/services/profile"
 import {
@@ -84,10 +85,15 @@ export default function MatchesPage() {
   }
 
   const handleBlock = async (userId: string) => {
+    if (!user?.userId) return
     try {
-      await api.post(`/api/matches/${userId}/block`)
-      toast.success(te("Usuario bloqueado", "User blocked"))
-      fetchMatches()
+      const ok = await blockService.blockUser(user.userId, userId)
+      if (ok) {
+        toast.success(te("Usuario bloqueado", "User blocked"))
+        fetchMatches()
+      } else {
+        toast.error(te("Error al bloquear", "Error blocking user"))
+      }
     } catch { toast.error(te("Error al bloquear", "Error blocking user")) }
   }
 

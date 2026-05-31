@@ -36,22 +36,29 @@ function normalizeTicket(raw: Record<string, unknown>): EventTicket | null {
 }
 
 export const eventPaymentService = {
-  async checkout(eventId: string): Promise<string> {
-    const res = await api.post<{ checkoutUrl?: string } | string>(
-      `/api/events/payment/${eventId}/checkout`
-    )
-    if (typeof res === "string" && res.startsWith("http")) return res
-    const url = typeof res === "object" && res?.checkoutUrl ? res.checkoutUrl : ""
-    if (!url) throw new Error("No checkout URL")
-    return url
+  async checkout(eventId: string): Promise<string | null> {
+    try {
+      const res = await api.post<{ checkoutUrl?: string } | string>(
+        `/api/events/payment/${eventId}/checkout`
+      )
+      if (typeof res === "string" && res.startsWith("http")) return res
+      const url = typeof res === "object" && res?.checkoutUrl ? res.checkoutUrl : ""
+      return url || null
+    } catch {
+      return null
+    }
   },
 
   async getMyTickets(): Promise<EventTicket[]> {
-    const rows = await api.get<unknown>("/api/events/payment/tickets/me")
-    if (!Array.isArray(rows)) return []
-    return rows
-      .map((r) => normalizeTicket(r as Record<string, unknown>))
-      .filter((t): t is EventTicket => t != null)
+    try {
+      const rows = await api.get<unknown>("/api/events/payment/tickets/me")
+      if (!Array.isArray(rows)) return []
+      return rows
+        .map((r) => normalizeTicket(r as Record<string, unknown>))
+        .filter((t): t is EventTicket => t != null)
+    } catch {
+      return []
+    }
   },
 
   async getTicket(ticketId: string): Promise<EventTicket | null> {

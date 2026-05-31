@@ -17,6 +17,7 @@ import {
   isThemePalette,
   type ThemePalette,
 } from "./theme"
+import { uiPreferencesApi } from "@/lib/services/ui-preferences-api"
 import {
   getVisualAppearanceUi,
   isVisualAppearanceId,
@@ -54,6 +55,7 @@ function loadUiPrefs(): UiPreferences {
 
 function persistUiPrefs(prefs: UiPreferences) {
   localStorage.setItem(THEME_STORAGE_KEYS.uiPreferences, JSON.stringify(prefs))
+  void uiPreferencesApi.saveRemote(prefs)
 }
 
 export function AppearanceProvider({ children }: { children: ReactNode }) {
@@ -67,8 +69,13 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
     const storedPalette = localStorage.getItem(THEME_STORAGE_KEYS.palette)
     if (isVisualAppearanceId(storedVisual)) setVisualAppearanceState(storedVisual)
     if (isThemePalette(storedPalette)) setPaletteState(storedPalette)
-    setUiPrefs(loadUiPrefs())
-    setReady(true)
+    const local = loadUiPrefs()
+    void uiPreferencesApi.fetchRemote().then((remote) => {
+      const merged = uiPreferencesApi.mergeRemote(local, remote)
+      setUiPrefs(merged)
+      persistUiPrefs(merged)
+      setReady(true)
+    })
   }, [])
 
   const colors = useMemo(

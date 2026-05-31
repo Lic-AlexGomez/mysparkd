@@ -4,7 +4,7 @@ import {
   ipRegistrationBlockedPresentation,
 } from "@/lib/parity/auth-ip-errors"
 
-export type AuthErrorContext = "login" | "register" | "google" | "passkey" | "forgot-password" | "verify-email"
+export type AuthErrorContext = "login" | "register" | "google" | "apple" | "passkey" | "forgot-password" | "verify-email"
 
 export type AuthErrorPresentation = {
   title: string
@@ -64,6 +64,8 @@ function defaultTitle(context: AuthErrorContext): string {
       return "No se pudo crear la cuenta"
     case "google":
       return "Error con Google"
+    case "apple":
+      return "Error con Apple"
     case "passkey":
       return "Error con passkey"
     case "forgot-password":

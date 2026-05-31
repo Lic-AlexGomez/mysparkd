@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { isStoriesRoute } from "@/lib/is-stories-route"
 import {
   Home,
   Calendar,
@@ -142,6 +143,10 @@ export function ClassicFlatNav({ variant = "full" }: { variant?: "social" | "ful
   const tabs = buildTabs(variant).map((t) =>
     t.key === "chat" ? { ...t, badge: unreadChats } : t
   )
+
+  if (isStoriesRoute(pathname) || pathname.startsWith("/chat/")) {
+    return null
+  }
 
   return (
     <nav

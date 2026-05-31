@@ -133,7 +133,7 @@ function AmbientSlotCard({
       aria-hidden
     >
       <div
-        className={`relative h-full w-full overflow-hidden rounded-2xl border-2 bg-black/60 transition-all duration-[900ms] ease-in-out ${borderClassForCategory(slot.category)} ${
+        className={`relative h-full w-full overflow-hidden rounded-2xl border bg-black transition-all duration-[900ms] ease-in-out ${borderClassForCategory(slot.category)} ${
           visible ? "opacity-[0.48] scale-100" : "opacity-0 scale-[0.94]"
         }`}
       >
@@ -142,7 +142,7 @@ function AmbientSlotCard({
           key={displayPhoto.id}
           src={displayPhoto.url}
           alt=""
-          className="h-full w-full object-cover object-center"
+          className="absolute inset-0 h-[116%] w-[116%] max-w-none -translate-x-[8%] -translate-y-[8%] object-cover object-center"
           loading="lazy"
           decoding="async"
           draggable={false}
@@ -163,7 +163,7 @@ export function WelcomeAmbientPhotos() {
 
   return (
     <AmbientRegistryProvider>
-      <div className="pointer-events-none absolute inset-0 z-[2] overflow-hidden" aria-hidden>
+      <div className="pointer-events-none absolute inset-0 z-[2] overflow-visible" aria-hidden>
         {WELCOME_AMBIENT_SLOTS.map((slot) => (
           <AmbientSlotCard
             key={slot.id}

@@ -25,8 +25,10 @@ import {
   checkRegistrationPasswordRules,
   getRegistrationPasswordError,
 } from "@/lib/password-policy"
+import { AUTH_PLACEHOLDERS } from "@/lib/auth-placeholders"
 import { AuthCard } from "@/components/auth/auth-card"
 import { GoogleSignInButton } from "@/components/ui/google-signin-button"
+import { AppleSignInButton } from "@/components/ui/apple-signin-button"
 import { PasskeyLoginButton } from "@/components/auth/passkey-login-button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -42,7 +44,7 @@ type AuthScreenProps = {
 export function AuthScreen({ defaultMode = "login" }: AuthScreenProps) {
   const router = useRouter()
   const pathname = usePathname() ?? ""
-  const { login, register, loginWithGoogle, loginWithPasskey } = useAuth()
+  const { login, register, loginWithGoogle, loginWithApple, loginWithPasskey } = useAuth()
 
   const [mode, setMode] = useState<AuthMode>(
     defaultMode ?? (pathname.includes("/register") ? "register" : "login")
@@ -207,10 +209,10 @@ export function AuthScreen({ defaultMode = "login" }: AuthScreenProps) {
             <Input
               id="auth-username"
               type="text"
-              placeholder="Tu nombre de usuario"
+              placeholder={isLogin ? AUTH_PLACEHOLDERS.usernameLogin : AUTH_PLACEHOLDERS.usernameRegister}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="h-11 border-border bg-muted/40 pl-10"
+              className="h-11 border-border bg-muted/40 pl-10 placeholder:text-muted-foreground/70"
               disabled={loading}
               autoComplete="username"
             />
@@ -242,10 +244,10 @@ export function AuthScreen({ defaultMode = "login" }: AuthScreenProps) {
               <Input
                 id="auth-email"
                 type="email"
-                placeholder="tu@email.com"
+                placeholder={AUTH_PLACEHOLDERS.emailRegister}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="h-11 border-border bg-muted/40 pl-10"
+                className="h-11 border-border bg-muted/40 pl-10 placeholder:text-muted-foreground/70"
                 disabled={loading}
                 autoComplete="email"
               />
@@ -275,10 +277,10 @@ export function AuthScreen({ defaultMode = "login" }: AuthScreenProps) {
             <Input
               id="auth-password"
               type={showPassword ? "text" : "password"}
-              placeholder={isLogin ? "Tu contraseña" : "Ej. Mi_clave1"}
+              placeholder={isLogin ? AUTH_PLACEHOLDERS.passwordLogin : AUTH_PLACEHOLDERS.passwordRegister}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="h-11 border-border bg-muted/40 pl-10 pr-10"
+              className="h-11 border-border bg-muted/40 pl-10 pr-10 placeholder:text-muted-foreground/70"
               disabled={loading}
               autoComplete={isLogin ? "current-password" : "new-password"}
             />
@@ -381,6 +383,21 @@ export function AuthScreen({ defaultMode = "login" }: AuthScreenProps) {
           }
         }}
         onError={(error) => showAuthErrorToast(resolveAuthError(error, "google"), toast)}
+      />
+
+      <AppleSignInButton
+        text={isLogin ? "Continuar con Apple" : "Registrarse con Apple"}
+        onSuccess={async (identityToken) => {
+          setLoading(true)
+          try {
+            await loginWithApple(identityToken)
+          } catch (err) {
+            showAuthErrorToast(resolveAuthError(err, "apple"), toast)
+          } finally {
+            setLoading(false)
+          }
+        }}
+        onError={(error) => showAuthErrorToast(resolveAuthError(error, "apple"), toast)}
       />
     </AuthCard>
   )

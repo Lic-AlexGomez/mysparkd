@@ -40,6 +40,7 @@ import { toast } from "sonner"
 import type { Group, GroupInviteLink, GroupMember, GroupMessage, GroupMessageMediaType } from "@/lib/types"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
 import { groupService } from "@/lib/services/group"
+import { groupAnalyticsService, type GroupAnalytics } from "@/lib/services/group-analytics"
 import { useAuth } from "@/lib/auth-context"
 import { useWebSocket } from "@/hooks/use-websocket"
 import { useI18n } from "@/lib/i18n"
@@ -94,6 +95,8 @@ export default function GroupDetailPage() {
   const [inviteLinks, setInviteLinks] = useState<GroupInviteLink[]>([])
   const [pinnedIds, setPinnedIds] = useState<string[]>([])
   const [group, setGroup] = useState<Group | null>(null)
+  const [groupAnalytics, setGroupAnalytics] = useState<GroupAnalytics | null>(null)
+  const [analyticsLoading, setAnalyticsLoading] = useState(false)
   const [members, setMembers] = useState<GroupMember[]>([])
   const [messages, setMessages] = useState<GroupMessage[]>([])
   const [coverFallbackStyle, setCoverFallbackStyle] =
@@ -270,6 +273,18 @@ export default function GroupDetailPage() {
       }
     })()
   }, [activeTab, groupId, polls.length, isLoadingPolls, te])
+
+  const canViewAnalytics =
+    group?.myRole === "ADMIN" || group?.myRole === "MODERATOR"
+
+  useEffect(() => {
+    if (activeTab !== "summary" || !canViewAnalytics || !groupId) return
+    setAnalyticsLoading(true)
+    void groupAnalyticsService.getForGroup(groupId).then((data) => {
+      setGroupAnalytics(data)
+      setAnalyticsLoading(false)
+    })
+  }, [activeTab, canViewAnalytics, groupId])
 
   useEffect(() => {
     setCoverFallbackStyle(getStoredFallbackStyle())
@@ -1333,6 +1348,36 @@ export default function GroupDetailPage() {
         </TabsContent>
 
         <TabsContent value="summary" className="mt-6 space-y-4">
+          {canViewAnalytics && (
+            <div className="rounded-xl border border-border bg-card p-4">
+              <p className="text-sm font-semibold mb-3">{te("Analíticas del grupo", "Group analytics")}</p>
+              {analyticsLoading ? (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : groupAnalytics ? (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {[
+                    [te("Miembros", "Members"), groupAnalytics.totalMembers],
+                    [te("Activos (7d)", "Active (7d)"), groupAnalytics.activeMembers],
+                    [te("Mensajes", "Messages"), groupAnalytics.totalMessages],
+                    [te("Hoy", "Today"), groupAnalytics.messagesToday],
+                    [te("Encuestas", "Polls"), groupAnalytics.totalPolls],
+                    [te("Activas", "Active polls"), groupAnalytics.activePolls],
+                  ].map(([label, value]) => (
+                    <div key={String(label)} className="rounded-lg bg-muted/40 px-3 py-2">
+                      <p className="text-[10px] uppercase text-muted-foreground">{label}</p>
+                      <p className="text-lg font-bold tabular-nums">{value ?? "—"}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {te("Analíticas no disponibles aún", "Analytics not available yet")}
+                </p>
+              )}
+            </div>
+          )}
           <div className="rounded-xl border border-border bg-card p-4">
             <p className="text-sm font-semibold mb-2">{te("Categoría y temas", "Category and topics")}</p>
             {group.category ? (

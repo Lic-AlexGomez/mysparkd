@@ -45,8 +45,8 @@ export const groupService = {
     const endpoints = [
       `/api/search/autocomplete?q=${encodeURIComponent("@" + candidate)}`,
       `/api/search/autocomplete?q=${encodeURIComponent(candidate)}`,
-      `/api/search/users?query=${encodeURIComponent(candidate)}`,
       `/api/search/general?query=${encodeURIComponent(candidate)}`,
+      `/api/search/intelligent?query=${encodeURIComponent(candidate)}`,
     ]
 
     for (const endpoint of endpoints) {
@@ -172,10 +172,16 @@ export const groupService = {
   },
 
   // Usuarios elegibles para invitar al grupo (matches + seguidores)
-  getJoinEligibleUsers: (eventId: string) =>
-    api.get<Array<{ userId: string; username: string; nombres?: string; apellidos?: string; profilePictureUrl?: string }>>(
-      `/api/events/${eventId}/group/join-eligible-users`
-    ),
+  getJoinEligibleUsers: async (eventId: string) => {
+    try {
+      const rows = await api.get<Array<{ userId: string; username: string; nombres?: string; apellidos?: string; profilePictureUrl?: string }>>(
+        `/api/events/${eventId}/group/join-eligible-users`
+      )
+      return Array.isArray(rows) ? rows : []
+    } catch {
+      return []
+    }
+  },
 
   polls: {
     list: (groupId: string) => api.get<unknown[]>(`/api/groups/${groupId}/polls`),

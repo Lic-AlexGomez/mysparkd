@@ -28,6 +28,7 @@ import { profileHref } from "@/lib/profile-route"
 import { eventService } from "@/lib/services/event"
 import type { EventGroupJoinRequest } from "@/lib/types"
 import { EventInviteRows } from "@/components/notifications/event-invite-rows"
+import { isStoriesRoute } from "@/lib/is-stories-route"
 
 type NavNotification = {
   notificationId: string
@@ -297,6 +298,10 @@ export function TopNavbar() {
   const initials = user
     ? `${user.nombres?.[0] || ""}${user.apellidos?.[0] || ""}`.toUpperCase()
     : "?"
+
+  if (isStoriesRoute(pathname) || pathname.startsWith("/chat/")) {
+    return null
+  }
 
   return (
     <header

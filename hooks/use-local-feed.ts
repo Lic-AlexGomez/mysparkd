@@ -29,15 +29,16 @@ export function useLocalFeed(radiusKm: number = 50) {
       await locationService.updateLocation(location)
       const data = await locationService.getLocalFeed(radiusKm)
 
-      if (!Array.isArray(data)) {
-        setPosts([])
-        setLocationEnabled(true)
-        return
-      }
+      const rows = Array.isArray(data)
+        ? data
+        : data && typeof data === "object" && Array.isArray((data as { content?: unknown[] }).content)
+          ? (data as { content: unknown[] }).content
+          : []
 
-      const normalizedPosts: Post[] = data
+      const normalizedPosts: Post[] = rows
         .map((item: unknown) => normalizePost(item))
         .filter(isDisplayableFeedPost)
+      setPosts(normalizedPosts)
       setLocationEnabled(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar feed local')

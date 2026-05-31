@@ -17,6 +17,8 @@ import {
 import { toast } from "sonner"
 import { PostCard } from "@/components/feed/post-card"
 import { useRouter } from "next/navigation"
+import { format } from "date-fns"
+import { es } from "date-fns/locale"
 import { uploadToCloudinary } from "@/lib/cloudinary"
 import {
   VoiceNotePlayer, validateVoiceNoteFile, getAudioDurationSeconds,
@@ -183,6 +185,9 @@ export default function ProfilePage() {
     return withoutPlusCode.replace(/,\s*,/g, ',').trim()
   }
   const location = formatLocation(user?.location)
+  const memberSinceLabel = user?.fechaRegistro
+    ? format(new Date(user?.fechaRegistro), "MMMM yyyy", { locale: es })
+    : null
 
   if (isLoading) return (
     <div className="flex h-screen items-center justify-center">
@@ -444,6 +449,12 @@ export default function ProfilePage() {
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
             {user.sex === "MALE" ? "👨 Hombre" : "👩 Mujer"}
           </span>
+          {memberSinceLabel && (
+            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+              <CalendarDays className="h-3.5 w-3.5" />
+              {te("Miembro desde", "Member since")} {memberSinceLabel}
+            </span>
+          )}
         </div>
 
         {/* Stats */}

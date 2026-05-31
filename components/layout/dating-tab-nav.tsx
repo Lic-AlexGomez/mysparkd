@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth-context"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAppearanceOptional } from "@/lib/appearance/appearance-provider"
 import { DEFAULT_UI_PREFERENCES } from "@/lib/appearance/types"
+import { isStoriesRoute } from "@/lib/is-stories-route"
 
 const TABS = [
   {
@@ -64,6 +65,10 @@ export function DatingTabNav() {
   const { user } = useAuth()
   const uiPrefs = useAppearanceOptional()?.uiPrefs ?? DEFAULT_UI_PREFERENCES
   const showLabels = uiPrefs.showLabels !== false
+
+  if (isStoriesRoute(pathname) || pathname.startsWith("/chat/")) {
+    return null
+  }
 
   return (
     <nav

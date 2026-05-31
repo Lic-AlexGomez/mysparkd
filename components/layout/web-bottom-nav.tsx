@@ -7,6 +7,7 @@ import { useExperienceMode } from "@/hooks/use-experience-mode"
 import { ClassicFlatNav } from "./classic-flat-nav"
 import { DatingTabNav } from "./dating-tab-nav"
 import { SparkdNavBar } from "./bottom-nav"
+import { isStoriesRoute } from "@/lib/is-stories-route"
 
 /**
  * Capa de navegación inferior web:
@@ -20,7 +21,7 @@ export function WebBottomNav() {
   const uiPrefs = useAppearanceOptional()?.uiPrefs ?? DEFAULT_UI_PREFERENCES
   const style = uiPrefs.navbarStyle
 
-  if (pathname.startsWith("/chat/")) return null
+  if (pathname.startsWith("/chat/") || isStoriesRoute(pathname)) return null
 
   if (style === "dating-tabs") {
     return <DatingTabNav />

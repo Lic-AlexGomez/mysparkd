@@ -492,7 +492,20 @@ export default function SettingsPage() {
       }
       fetchInterests()
       await refreshProfile()
-    } catch {
+    } catch (err) {
+      const status =
+        err && typeof err === "object" && "status" in err
+          ? Number((err as { status: number }).status)
+          : 0
+      if (isSelected && (status === 404 || status === 405)) {
+        toast.error(
+          te(
+            "Quitar intereses aún no está en el servidor (falta DELETE /api/interests/remove en backend).",
+            "Removing interests is not available on the server yet."
+          )
+        )
+        return
+      }
       // Fallback: guardar localmente
       let updated: Interest[]
       if (isSelected) {
