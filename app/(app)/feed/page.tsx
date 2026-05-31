@@ -41,8 +41,6 @@ import { useExperienceMode } from "@/hooks/use-experience-mode"
 import { recommendationGraphV2Service } from "@/lib/services/recommendation-graph-v2"
 import { conversionLoopService } from "@/lib/services/conversion-loop"
 import { ActivityCoreStreamStrip } from "@/components/activity/activity-core-stream-strip"
-import { FeedRankingStrip } from "@/components/feed/feed-ranking-strip"
-import { FeedEngagementSummary } from "@/components/feed/feed-engagement-summary"
 import { postService } from "@/lib/services/post"
 import type { ActivityCoreExperienceMode } from "@/lib/types/activity-core-stream"
 
@@ -484,15 +482,6 @@ export default function FeedPage() {
   return (
     <div className="mx-auto max-w-2xl">
       <StoriesBar />
-
-      {feedTab === "global" && user?.userId && (
-        <FeedEngagementSummary className="mt-2" />
-      )}
-      {feedTab === "global" && <FeedRankingStrip mode="global" />}
-      {feedTab === "local" && locationEnabled && (
-        <FeedRankingStrip mode="local" radiusKm={localFeedRadius} />
-      )}
-      {feedTab === "following" && <FeedRankingStrip mode="following" />}
 
       {/* Banner de ubicación — solo cuando hay posts pero sin ubicación */}
       {feedTab === 'local' && locationError && localPosts.length > 0 && (

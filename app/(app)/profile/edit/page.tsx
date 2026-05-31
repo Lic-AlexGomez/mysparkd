@@ -18,6 +18,7 @@ import { toast } from "sonner"
 import { Switch } from "@/components/ui/switch"
 import { VoiceNoteRecorder, type VoiceNoteRecorderHandle } from "@/components/ui/voice-note"
 import { useI18n } from "@/lib/i18n"
+import { getUsernameFormatError } from "@/lib/username-policy"
 
 export default function EditProfilePage() {
   const { te, t, language } = useI18n()
@@ -63,13 +64,14 @@ export default function EditProfilePage() {
   }, [user])
 
   const validateUsername = (raw: string): string | null => {
-    const u = raw.trim()
-    if (u.length < 3) return te("Mínimo 3 caracteres", "Minimum 3 characters")
-    if (u.length > 30) return te("Máximo 30 caracteres", "Maximum 30 characters")
-    if (!/^[a-zA-Z0-9._]+$/.test(u)) {
-      return te("Solo letras, números, punto y guion bajo", "Only letters, numbers, dot and underscore")
-    }
-    return null
+    const err = getUsernameFormatError(raw)
+    if (!err) return null
+    if (err.includes("al menos")) return te("Mínimo 3 caracteres", "Minimum 3 characters")
+    if (err.includes("Máximo")) return te("Máximo 30 caracteres", "Maximum 30 characters")
+    return te(
+      "Solo letras sin acento, números; punto y guion bajo solo en medio",
+      "ASCII letters and numbers only; dot and underscore only in the middle"
+    )
   }
 
   const handleSubmit = async (e?: React.FormEvent) => {

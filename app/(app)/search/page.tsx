@@ -8,7 +8,9 @@ import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Search, Loader2, User, Hash, FileText, TrendingUp, X } from "lucide-react"
+import { Search, Loader2, User, Hash, FileText, TrendingUp, X, Trophy } from "lucide-react"
+import { FeedRankingStrip } from "@/components/feed/feed-ranking-strip"
+import { FeedEngagementSummary } from "@/components/feed/feed-engagement-summary"
 import { PostCard } from "@/components/feed/post-card"
 import { useExperienceMode } from "@/hooks/use-experience-mode"
 import { useI18n } from "@/lib/i18n"
@@ -43,8 +45,23 @@ export default function SearchPage() {
   const [postsPage, setPostsPage] = useState(0)
   const [canLoadMoreUsers, setCanLoadMoreUsers] = useState(false)
   const [canLoadMorePosts, setCanLoadMorePosts] = useState(false)
+  const [rankingMode, setRankingMode] = useState<"global" | "local" | "following">("global")
+  const [localFeedRadius, setLocalFeedRadius] = useState(50)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!user?.userId) return
+    try {
+      const saved = localStorage.getItem(`sparkd_settings_${user.userId}`)
+      if (saved) {
+        const settings = JSON.parse(saved)
+        setLocalFeedRadius(settings.localFeedRadius ?? 50)
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [user?.userId])
 
   useEffect(() => {
     searchService.getTrendingHashtags(10)
@@ -273,8 +290,54 @@ export default function SearchPage() {
         )}
       </div>
 
+      {/* Explorar — ranking y tendencias (solo sin búsqueda activa) */}
+      {!hasSearched && !datingSearchOnly && (
+        <div className="mb-6 space-y-4">
+          {user?.userId ? (
+            <div>
+              <p className="mb-2 text-sm font-semibold">
+                {te("Tu actividad", "Your activity")}
+              </p>
+              <FeedEngagementSummary className="mx-0 mb-0 mt-0" />
+            </div>
+          ) : null}
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <Trophy className="h-4 w-4 text-primary" />
+              <p className="text-sm font-semibold">{te("Ranking", "Ranking")}</p>
+            </div>
+            <div className="mb-2 flex flex-wrap gap-2">
+              {(
+                [
+                  { id: "global" as const, labelEs: "Global", labelEn: "Global" },
+                  { id: "local" as const, labelEs: "Cerca", labelEn: "Nearby" },
+                  { id: "following" as const, labelEs: "Siguiendo", labelEn: "Following" },
+                ] as const
+              ).map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setRankingMode(m.id)}
+                  className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                    rankingMode === m.id
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  }`}
+                >
+                  {te(m.labelEs, m.labelEn)}
+                </button>
+              ))}
+            </div>
+            <FeedRankingStrip
+              mode={rankingMode}
+              radiusKm={localFeedRadius}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Trending — solo cuando no hay búsqueda */}
-      {!hasSearched && trendingHashtags.length > 0 && (
+      {!hasSearched && !datingSearchOnly && trendingHashtags.length > 0 && (
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp className="h-4 w-4 text-primary" />

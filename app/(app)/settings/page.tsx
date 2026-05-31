@@ -61,6 +61,8 @@ import { normalizeEmailValue } from "@/lib/email-utils"
 import type { PrivacySettings, SparklingListMember } from "@/lib/types"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useI18n } from "@/lib/i18n"
+import { getRegistrationPasswordError } from "@/lib/password-policy"
+import { PasswordRulesChecklist } from "@/components/auth/password-rules-checklist"
 
 /** Valores UI de la sección Experiencia (Ajustes). */
 type ExperienceObjective = "social" | "connection" | "both"
@@ -726,8 +728,9 @@ export default function SettingsPage() {
       toast.error(te("Completa todos los campos", "Fill all fields"))
       return
     }
-    if (newPassword.length < 6) {
-      toast.error(te("La nueva contraseña debe tener al menos 6 caracteres", "New password must be at least 6 characters"))
+    const pwdErr = getRegistrationPasswordError(newPassword)
+    if (pwdErr) {
+      toast.error(pwdErr)
       return
     }
     if (newPassword !== confirmNewPassword) {
@@ -1677,10 +1680,11 @@ export default function SettingsPage() {
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="Mínimo 8 caracteres + complejidad"
                   className="bg-background border-border"
                   disabled={changingPassword}
                 />
+                <PasswordRulesChecklist password={newPassword} showHintWhenEmpty={false} />
               </div>
               <div className="flex flex-col gap-2">
                 <Label className="text-foreground text-sm">Confirmar nueva contraseña</Label>

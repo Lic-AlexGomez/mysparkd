@@ -3,28 +3,16 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import {
-  Check,
-  Eye,
-  EyeOff,
-  Loader2,
-  Lock,
-  Mail,
-  Sparkles,
-  User,
-  X,
-} from "lucide-react"
+import { Eye, EyeOff, Loader2, Lock, Mail, Sparkles, User } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { resolveAuthError, showAuthErrorToast } from "@/lib/auth-user-messages"
 import {
   loadRememberedLoginUsername,
   setRememberLoginUsername,
 } from "@/lib/remember-login-username"
-import {
-  REGISTRATION_PASSWORD_HINT,
-  checkRegistrationPasswordRules,
-  getRegistrationPasswordError,
-} from "@/lib/password-policy"
+import { getRegistrationPasswordError, REGISTRATION_PASSWORD_HINT } from "@/lib/password-policy"
+import { getUsernameFormatError, USERNAME_FORMAT_HINT } from "@/lib/username-policy"
+import { PasswordRulesChecklist } from "@/components/auth/password-rules-checklist"
 import { AUTH_PLACEHOLDERS } from "@/lib/auth-placeholders"
 import { AuthCard } from "@/components/auth/auth-card"
 import { GoogleSignInButton } from "@/components/ui/google-signin-button"
@@ -57,7 +45,6 @@ export function AuthScreen({ defaultMode = "login" }: AuthScreenProps) {
   const [rememberUsername, setRememberUsername] = useState(false)
 
   const isLogin = mode === "login"
-  const passwordRules = checkRegistrationPasswordRules(password)
 
   useEffect(() => {
     if (!pathname) return
@@ -110,8 +97,9 @@ export function AuthScreen({ defaultMode = "login" }: AuthScreenProps) {
       toast.error("Completa todos los campos")
       return
     }
-    if (username.trim().length < 3) {
-      toast.error("El usuario debe tener al menos 3 caracteres")
+    const usernameErr = getUsernameFormatError(username)
+    if (usernameErr) {
+      toast.error(usernameErr)
       return
     }
     const pwdErr = getRegistrationPasswordError(password)
@@ -217,6 +205,9 @@ export function AuthScreen({ defaultMode = "login" }: AuthScreenProps) {
               autoComplete="username"
             />
           </div>
+          {!isLogin ? (
+            <p className="text-xs text-muted-foreground">{USERNAME_FORMAT_HINT}</p>
+          ) : null}
         </div>
 
         {isLogin ? (
@@ -293,33 +284,8 @@ export function AuthScreen({ defaultMode = "login" }: AuthScreenProps) {
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
-          {!isLogin && password.length > 0 ? (
-            <ul
-              className={cn(
-                "space-y-1 rounded-lg border px-3 py-2 text-xs",
-                passwordRules.every((r) => r.ok)
-                  ? "border-emerald-500/30 bg-emerald-500/5"
-                  : "border-border bg-muted/30"
-              )}
-              aria-live="polite"
-            >
-              {passwordRules.map((rule) => (
-                <li
-                  key={rule.id}
-                  className={cn(
-                    "flex items-center gap-2 font-medium",
-                    rule.ok ? "text-emerald-500" : "text-muted-foreground"
-                  )}
-                >
-                  {rule.ok ? (
-                    <Check className="h-3.5 w-3.5 shrink-0" />
-                  ) : (
-                    <X className="h-3.5 w-3.5 shrink-0 text-destructive" />
-                  )}
-                  {rule.label}
-                </li>
-              ))}
-            </ul>
+          {!isLogin ? (
+            <PasswordRulesChecklist password={password} showHintWhenEmpty={false} />
           ) : null}
         </div>
 
