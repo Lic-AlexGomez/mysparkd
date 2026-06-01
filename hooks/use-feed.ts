@@ -5,6 +5,7 @@ import { api } from '@/lib/api'
 import { normalizePost } from '@/lib/normalize-post'
 import { feedService, FEED_PAGE_SIZE } from '@/lib/services/feed'
 import type { Post } from '@/lib/types'
+import { readGlobalFeedCache, writeGlobalFeedCache } from '@/lib/feed-session-cache'
 
 type SortMode = 'chronological' | 'relevant' | 'compatible' | 'top'
 
@@ -286,7 +287,8 @@ export function useFeed() {
     prefetchPromiseRef.current = null
 
     try {
-      setLoading(true)
+      const hadCache = Boolean(readGlobalFeedCache(sortMode)?.posts.length)
+      if (!hadCache) setLoading(true)
       const [firstPage] = await Promise.all([
         fetchServerPage(0),
         fetchMomentsAffinityHint(),
@@ -312,6 +314,13 @@ export function useFeed() {
         setPage(0)
         setHasMore(firstPage.hasMore)
         setVisibleCount(FEED_PAGE_SIZE)
+        writeGlobalFeedCache(sortMode, {
+          posts: sortedFirst,
+          hasMore: firstPage.hasMore,
+          page: 0,
+          useServerPagination: true,
+          visibleCount: FEED_PAGE_SIZE,
+        })
         if (firstPage.hasMore) {
           void prefetchServerPage(1, epoch)
         }
@@ -325,6 +334,13 @@ export function useFeed() {
       setVisibleCount(FEED_PAGE_SIZE)
       setPage(0)
       setHasMore(sortedAll.length > FEED_PAGE_SIZE)
+      writeGlobalFeedCache(sortMode, {
+        posts: sortedAll,
+        hasMore: sortedAll.length > FEED_PAGE_SIZE,
+        page: 0,
+        useServerPagination: false,
+        visibleCount: FEED_PAGE_SIZE,
+      })
     } catch (error: any) {
       if (error?.name !== 'AbortError') {
         feedDebug('loadPosts error:', error)
@@ -416,9 +432,19 @@ export function useFeed() {
   }, [sortWithMoments])
 
   useEffect(() => {
+    const cached = readGlobalFeedCache(sortMode)
+    if (cached?.posts.length) {
+      setAllPosts(cached.posts)
+      setHasMore(cached.hasMore)
+      setPage(cached.page)
+      setUseServerPagination(cached.useServerPagination)
+      setVisibleCount(cached.visibleCount)
+      setLoading(false)
+    }
+
     loadPosts()
     return () => abortRef.current?.abort()
-  }, [loadPosts])
+  }, [loadPosts, sortMode])
 
   const posts = useMemo(() => {
     if (useServerPagination) return allPosts

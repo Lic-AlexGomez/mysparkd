@@ -2,15 +2,18 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { api } from "@/lib/api"
 import { extractApiRows } from "@/lib/extract-api-rows"
 import { chatService } from "@/lib/services/chat"
+import { groupService } from "@/lib/services/group"
+import { eventService } from "@/lib/services/event"
 import { useAuth } from "@/lib/auth-context"
 import { useWebSocket } from "@/hooks/use-websocket"
-import type { Chat } from "@/lib/types"
+import type { Chat, EventGroupJoinRequest } from "@/lib/types"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { MessageCircle, EyeOff, Trash2, MoreVertical, Eye, Users } from "lucide-react"
+import { MessageCircle, EyeOff, Trash2, MoreVertical, Eye, Users, CalendarDays, Loader2, CheckCircle2, Clock, XCircle } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
 import { toast } from "sonner"
@@ -26,21 +29,49 @@ const GroupsPage = dynamic(
   { ssr: false }
 )
 
+type UnifiedItem = {
+  id: string
+  type: 'direct' | 'general' | 'group' | 'meetup' | 'date'
+  label: string
+  name: string
+  avatarUrl?: string | null
+  lastMessage?: string | null
+  lastMessageAt?: string | null
+  unread?: number
+  href: string
+  isOnline?: boolean
+}
+
+const TYPE_LABEL_ES: Record<UnifiedItem['type'], string> = {
+  direct: 'Directo', general: 'General', group: 'Grupo', meetup: 'MeetUp', date: 'Date',
+}
+const TYPE_LABEL_EN: Record<UnifiedItem['type'], string> = {
+  direct: 'Direct', general: 'General', group: 'Group', meetup: 'MeetUp', date: 'Date',
+}
+const TYPE_COLOR: Record<UnifiedItem['type'], string> = {
+  direct: 'bg-primary/15 text-primary',
+  general: 'bg-muted text-muted-foreground',
+  group: 'bg-violet-500/15 text-violet-700 dark:text-violet-300',
+  meetup: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
+  date: 'bg-rose-500/15 text-rose-700 dark:text-rose-300',
+}
+
 export default function ChatListPage() {
   const { te, t } = useI18n()
   const { user } = useAuth()
-  const searchParams = useSearchParams()
-  const [mainTab, setMainTab] = useState<'chats' | 'groups'>(() =>
-    typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tab') === 'groups' ? 'groups' : 'chats'
-  )
+  const router = useRouter()
+  const [mainTab, setMainTab] = useState<'chats' | 'groups'>('chats')
   const [chats, setChats] = useState<Chat[]>([])
   const [hiddenChats, setHiddenChats] = useState<Chat[]>([])
   const [showHidden, setShowHidden] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set())
   const fetchChatsRef = useRef<() => void>(() => {})
-  const [swipedChatId, setSwipedChatId] = useState<string | null>(null)
-  const [chatListTab, setChatListTab] = useState<"direct" | "general">("direct")
+  const [chatListTab, setChatListTab] = useState<"all" | "direct" | "general">("all")
+  const [allGroups, setAllGroups] = useState<Array<{ id: string; name: string; coverPhotoUrl?: string }>>([])
+  const [eventGroups, setEventGroups] = useState<Array<{ eventId: string; eventTitle: string; lastMessageContent?: string | null; lastMessageAt?: string | null }>>([])
+  const [outgoingRequests, setOutgoingRequests] = useState<EventGroupJoinRequest[]>([])
+  const [isSubmittingNow, setIsSubmittingNow] = useState<string | null>(null)
 
   const directChats = useMemo(
     () => chats.filter((c) => c.chatCategory === "DIRECT"),
@@ -50,7 +81,7 @@ export default function ChatListPage() {
     () => chats.filter((c) => c.chatCategory !== "DIRECT"),
     [chats]
   )
-  const listedChats = chatListTab === "direct" ? directChats : generalChats
+  const listedChats = chatListTab === "direct" ? directChats : chatListTab === "general" ? generalChats : []
   const unreadDirect = useMemo(
     () => directChats.reduce((s, c) => s + (c.unread || 0), 0),
     [directChats]
@@ -59,6 +90,65 @@ export default function ChatListPage() {
     () => generalChats.reduce((s, c) => s + (c.unread || 0), 0),
     [generalChats]
   )
+
+  const unifiedItems = useMemo((): UnifiedItem[] => {
+    const items: UnifiedItem[] = []
+    for (const c of chats) {
+      const type: UnifiedItem['type'] = c.linkedFastDateId
+        ? 'date'
+        : c.linkedEventId
+        ? 'meetup'
+        : c.linkedGroupId
+        ? 'group'
+        : c.chatCategory === 'DIRECT'
+        ? 'direct'
+        : 'general'
+      items.push({
+        id: c.chatId,
+        type,
+        label: TYPE_LABEL_ES[type],
+        name: c.otherUsername,
+        avatarUrl: c.otherUserPhoto,
+        lastMessage: c.lastMessage,
+        lastMessageAt: c.lastMessageAt,
+        unread: c.unread,
+        href: c.linkedEventId ? `/events/${c.linkedEventId}/chat` : c.linkedGroupId ? `/groups/${c.linkedGroupId}` : `/chat/${c.chatId}`,
+        isOnline: onlineUsers.has(c.otherUserId),
+      })
+    }
+    for (const g of allGroups) {
+      if (items.some((i) => i.href === `/groups/${g.id}`)) continue
+      items.push({
+        id: `group-${g.id}`,
+        type: 'group',
+        label: TYPE_LABEL_ES.group,
+        name: g.name,
+        avatarUrl: g.coverPhotoUrl,
+        lastMessage: null,
+        lastMessageAt: null,
+        href: `/groups/${g.id}`,
+      })
+    }
+    for (const eg of eventGroups) {
+      if (items.some((i) => i.href.startsWith(`/events/${eg.eventId}/chat`))) continue
+      items.push({
+        id: `event-${eg.eventId}`,
+        type: 'meetup',
+        label: TYPE_LABEL_ES.meetup,
+        name: eg.eventTitle,
+        avatarUrl: null,
+        lastMessage: eg.lastMessageContent,
+        lastMessageAt: eg.lastMessageAt,
+        href: `/events/${eg.eventId}/chat?title=${encodeURIComponent(eg.eventTitle)}`,
+      })
+    }
+    return items.sort((a, b) => {
+      if (!a.lastMessageAt && !b.lastMessageAt) return 0
+      if (!a.lastMessageAt) return 1
+      if (!b.lastMessageAt) return -1
+      return new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+    })
+  }, [chats, allGroups, eventGroups, onlineUsers])
 
   const refreshPresence = useCallback(async (chatList: Chat[]) => {
     if (chatList.length === 0) return
@@ -208,6 +298,32 @@ export default function ChatListPage() {
     fetchChats()
   }, [fetchChats])
 
+  useEffect(() => {
+    if (!user?.userId) return
+    groupService.myGroups()
+      .then((rows) => setAllGroups(rows.map((g) => ({ id: g.id, name: g.name, coverPhotoUrl: g.coverPhotoUrl }))))
+      .catch(() => {})
+    eventService.groupJoinRequests.myEventGroups()
+      .then((rows) => setEventGroups(Array.isArray(rows) ? rows : []))
+      .catch(() => {})
+    eventService.groupJoinRequests.myOutgoing()
+      .then((rows) => setOutgoingRequests(Array.isArray(rows) ? rows : []))
+      .catch(() => {})
+  }, [user?.userId])
+
+  const handleSubmitNow = async (requestId: string) => {
+    setIsSubmittingNow(requestId)
+    try {
+      await eventService.groupJoinRequests.submitNow(requestId)
+      setOutgoingRequests((prev) => prev.filter((r) => r.id !== requestId))
+      toast.success(te("Solicitud enviada al organizador con los que aceptaron.", "Request sent to organizer with those who accepted."))
+    } catch (error: any) {
+      toast.error(error?.message || te("No se pudo enviar", "Could not send"))
+    } finally {
+      setIsSubmittingNow(null)
+    }
+  }
+
   // Refrescar presencia cada 30s para detectar desconexiones
   useEffect(() => {
     const interval = setInterval(() => {
@@ -249,30 +365,22 @@ export default function ChatListPage() {
         <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-xl border-b border-primary/20 shadow-lg shadow-primary/5">
           <div className="px-6 py-4">
             <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent">
-              {mainTab === 'chats' ? te("Mensajes", "Messages") : te("Grupos", "Groups")}
+              {te("Mensajes", "Messages")}
             </h1>
-            <div className="flex items-center justify-between mt-1">
-              {mainTab === 'chats' && (
-                <p className="text-sm text-muted-foreground">
-                  {listedChats.length}{" "}
-                  {listedChats.length === 1 ? te("conversación", "conversation") : te("conversaciones", "conversations")}
-                </p>
-              )}
-              {mainTab === 'chats' && hiddenChats.length > 0 && (
-                <button
-                  onClick={() => setShowHidden(!showHidden)}
-                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <EyeOff className="h-3.5 w-3.5" />
-                  {hiddenChats.length} {te(hiddenChats.length > 1 ? 'ocultos' : 'oculto', 'hidden')}
-                </button>
-              )}
-            </div>
-            {/* Selector */}
+            {mainTab === 'chats' && hiddenChats.length > 0 && (
+              <button
+                onClick={() => setShowHidden(!showHidden)}
+                className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <EyeOff className="h-3.5 w-3.5" />
+                {hiddenChats.length} {te(hiddenChats.length > 1 ? 'ocultos' : 'oculto', 'hidden')}
+              </button>
+            )}
+            {/* Selector principal */}
             <div className="flex gap-1 mt-3 p-1 bg-muted rounded-xl w-fit">
               <button
                 onClick={() => setMainTab('chats')}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
                   mainTab === 'chats' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -280,7 +388,7 @@ export default function ChatListPage() {
               </button>
               <button
                 onClick={() => setMainTab('groups')}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
                   mainTab === 'groups' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -289,6 +397,17 @@ export default function ChatListPage() {
             </div>
             {mainTab === "chats" && (
               <div className="flex gap-2 mt-3 w-full max-w-md">
+                <button
+                  type="button"
+                  onClick={() => setChatListTab("all")}
+                  className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition-colors sm:text-sm ${
+                    chatListTab === "all"
+                      ? "bg-card text-foreground shadow-sm ring-1 ring-primary/25"
+                      : "bg-muted/60 text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {te("Todo", "All")}
+                </button>
                 <button
                   type="button"
                   onClick={() => setChatListTab("direct")}
@@ -326,11 +445,111 @@ export default function ChatListPage() {
           </div>
         </div>
 
+        {/* ── ALL TAB ── */}
+        {mainTab === 'chats' && chatListTab === 'all' && (
+          <div className="p-4 space-y-3">
+            {/* Solicitudes grupales salientes (invitador esperando respuestas) */}
+            {outgoingRequests.length > 0 && (
+              <div className="mb-2 space-y-2">
+                <p className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {te("Invitaciones enviadas en espera", "Sent group invitations — awaiting responses")}
+                </p>
+                {outgoingRequests.map((req) => (
+                  <div key={req.id} className="rounded-2xl border border-primary/25 bg-primary/6 px-4 py-3">
+                    <p className="text-sm font-medium">
+                      {te(`Solicitud para "${req.eventTitle}"`, `Request for "${req.eventTitle}"`)}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {req.members.filter((m) => m.userId !== user?.userId?.toString()).map((m) => (
+                        <span key={m.userId} className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium">
+                          {m.status === 'ACCEPTED' && <CheckCircle2 className="size-3 text-emerald-500" />}
+                          {m.status === 'PENDING' && <Clock className="size-3 text-amber-500" />}
+                          {m.status === 'DECLINED' && <XCircle className="size-3 text-destructive" />}
+                          @{m.username}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="mt-3 flex gap-2">
+                      <button
+                        onClick={() => router.push(`/events/${req.eventId}`)}
+                        className="rounded-xl border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted transition-colors"
+                      >
+                        {te("Ver evento", "View event")}
+                      </button>
+                      <button
+                        onClick={() => handleSubmitNow(req.id)}
+                        disabled={isSubmittingNow === req.id || !req.members.some((m) => m.status === 'ACCEPTED' && m.userId !== user?.userId?.toString())}
+                        className="rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-40 transition-colors"
+                      >
+                        {isSubmittingNow === req.id
+                          ? <Loader2 className="size-3 animate-spin" />
+                          : te("Enviar con los que aceptaron", "Send with those who accepted")}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Lista unificada */}
+            {unifiedItems.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-3 py-20 px-6 text-center">
+                <MessageCircle className="h-16 w-16 text-muted-foreground/40" />
+                <p className="text-base font-semibold text-muted-foreground">{te("No hay conversaciones aún", "No conversations yet")}</p>
+              </div>
+            ) : (
+              unifiedItems.map((item) => (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  className="flex items-center gap-4 p-4 bg-gradient-to-br from-card to-muted/20 rounded-2xl border border-primary/10 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 group"
+                >
+                  <div className="relative shrink-0">
+                    <div className="h-14 w-14 rounded-full border-2 border-primary/30 ring-4 ring-primary/10 group-hover:scale-110 transition-transform overflow-hidden bg-muted flex items-center justify-center">
+                      {item.avatarUrl
+                        ? <img src={item.avatarUrl} alt={item.name} className="h-full w-full object-cover" />
+                        : item.type === 'meetup'
+                        ? <CalendarDays className="size-6 text-emerald-500" />
+                        : item.type === 'group'
+                        ? <Users className="size-6 text-violet-500" />
+                        : <MessageCircle className="size-6 text-primary" />}
+                    </div>
+                    {item.isOnline !== undefined && (
+                      <span className={`absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full border-2 border-background ${item.isOnline ? 'bg-green-500' : 'bg-muted-foreground/50'}`} />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${TYPE_COLOR[item.type]}`}>
+                        {item.label}
+                      </span>
+                      {item.lastMessageAt && (
+                        <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(item.lastMessageAt), { addSuffix: true, locale: es })}
+                        </span>
+                      )}
+                    </div>
+                    <p className="font-bold text-foreground truncate">{item.name}</p>
+                    <p className={`text-sm truncate ${item.unread && item.unread > 0 ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
+                      {item.lastMessage || te("Sin mensajes aún", "No messages yet")}
+                    </p>
+                  </div>
+                  {item.unread && item.unread > 0 ? (
+                    <span className="shrink-0 flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full bg-primary text-black text-xs font-bold">
+                      {item.unread > 99 ? '99+' : item.unread}
+                    </span>
+                  ) : null}
+                </Link>
+              ))
+            )}
+          </div>
+        )}
+
         {/* Grupos */}
         {mainTab === 'groups' && <GroupsPage />}
 
         {/* Chats */}
-        {mainTab === 'chats' && (<>
+        {mainTab === 'chats' && chatListTab !== 'all' && (<>
 
         {chats.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-4 py-20 px-6">

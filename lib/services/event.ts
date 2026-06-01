@@ -233,6 +233,9 @@ export const eventService = {
   join: (eventId: string) =>
     api.post<void>(`/api/events/${eventId}/join`),
 
+  rate: (eventId: string, score: number, comment?: string) =>
+    api.post<void>(`/api/events/${eventId}/rate`, { score, comment: comment?.trim() || undefined }),
+
   approveParticipant: (eventId: string, userId: string) =>
     api.post<void>(`/api/events/${eventId}/participants/${userId}/approve`),
 
@@ -254,8 +257,8 @@ export const eventService = {
 
   // 2) Event group messages
   groupMessages: {
-    list: (eventId: string) =>
-      api.get<EventGroupMessage[]>(`/api/events/${eventId}/group/messages`),
+    list: (eventId: string, page = 0, size = 50) =>
+      api.get<EventGroupMessage[]>(`/api/events/${eventId}/group/messages?page=${page}&size=${size}`),
     send: (
       eventId: string,
       payload: {
@@ -396,12 +399,23 @@ export const eventService = {
         return null
       }
     },
-    create: (eventId: string, inviteeUserIds: string[]) =>
-      api.post<EventGroupJoinRequest>(`/api/events/${eventId}/group/join-requests`, { inviteeUserIds }),
+    create: (eventId: string, inviteeUserIds: string[], message?: string) =>
+      api.post<EventGroupJoinRequest>(`/api/events/${eventId}/group/join-requests`, {
+        inviteeUserIds,
+        ...(message?.trim() ? { message: message.trim() } : {}),
+      }),
     respond: (requestId: string, accept: boolean) =>
       api.post<EventGroupJoinRequest>(`/api/group-join-requests/${requestId}/respond`, { accept }),
+    submitNow: (requestId: string) =>
+      api.post<EventGroupJoinRequest>(`/api/group-join-requests/${requestId}/submit-now`),
     myPending: () =>
       api.get<EventGroupJoinRequest[]>("/api/group-join-requests/me"),
+    myOutgoing: () =>
+      api.get<EventGroupJoinRequest[]>("/api/group-join-requests/my-outgoing"),
+    myEventGroups: () =>
+      api.get<Array<{ eventId: string; eventTitle: string; lastMessageContent?: string | null; lastMessageAt?: string | null }>>(
+        "/api/group-join-requests/my-event-groups"
+      ),
     pendingAdmin: (eventId: string) =>
       api.get<EventGroupJoinRequest[]>(`/api/events/${eventId}/group/join-requests`),
     approve: (eventId: string, requestId: string) =>

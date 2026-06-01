@@ -78,13 +78,23 @@ export type MutualPlansJoinEventBody = {
 }
 
 /** POST /api/mutual-plans/interest — register “interested” for overlap scoring */
-export async function postMutualPlansInterest(body: MutualPlansInterestBody): Promise<void> {
-  await api.post("/api/mutual-plans/interest", body)
+export async function postMutualPlansInterest(body: MutualPlansInterestBody): Promise<boolean> {
+  try {
+    await api.post("/api/mutual-plans/interest", body)
+    return true
+  } catch {
+    return false
+  }
 }
 
 /** POST /api/mutual-plans/join-event — explicit join for mutual graph (may mirror RSVP) */
-export async function postMutualPlansJoinEvent(body: MutualPlansJoinEventBody): Promise<void> {
-  await api.post("/api/mutual-plans/join-event", body)
+export async function postMutualPlansJoinEvent(body: MutualPlansJoinEventBody): Promise<boolean> {
+  try {
+    await api.post("/api/mutual-plans/join-event", body)
+    return true
+  } catch {
+    return false
+  }
 }
 
 export { ApiError }

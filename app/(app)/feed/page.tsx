@@ -8,7 +8,6 @@ import { locationService } from "@/lib/services/location"
 import { PostCard } from "@/components/feed/post-card"
 import { CreatePostDialog } from "@/components/feed/create-post-dialog"
 import { StoriesBar } from "@/components/feed/stories-bar"
-import { FeedTonightCta } from "@/components/tonight/feed-tonight-cta"
 import { SkeletonPost } from "@/components/ui/skeleton-post"
 import {
   Loader2,
@@ -20,6 +19,7 @@ import {
   LayoutGrid,
   List,
   MapPin,
+  Repeat2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -41,6 +41,7 @@ import { useExperienceMode } from "@/hooks/use-experience-mode"
 import { recommendationGraphV2Service } from "@/lib/services/recommendation-graph-v2"
 import { conversionLoopService } from "@/lib/services/conversion-loop"
 import { ActivityCoreStreamStrip } from "@/components/activity/activity-core-stream-strip"
+import { postService } from "@/lib/services/post"
 import type { ActivityCoreExperienceMode } from "@/lib/types/activity-core-stream"
 
 const sortOptions = [
@@ -148,7 +149,7 @@ export default function FeedPage() {
     }, 100)
     return () => clearInterval(interval)
   }, [scrollToPostId, loading, localLoading])
-  const [feedTab, setFeedTab] = useState<'global' | 'local' | 'following'>('global')
+  const [feedTab, setFeedTab] = useState<'global' | 'local' | 'following' | 'reshares'>('global')
   const [filterType, setFilterType] = useState<'all' | 'withImage' | 'withoutImage'>('all')
   const [viewMode, setViewMode] = useState<'card' | 'compact'>('card')
   const [followingPosts, setFollowingPosts] = useState<Post[]>([])
@@ -157,6 +158,9 @@ export default function FeedPage() {
   const [followingPage, setFollowingPage] = useState(0)
   const [followingHasMore, setFollowingHasMore] = useState(false)
   const [followingUseServerPagination, setFollowingUseServerPagination] = useState(false)
+  const [resharesPosts, setResharesPosts] = useState<Post[]>([])
+  const [resharesLoading, setResharesLoading] = useState(false)
+  const [pinnedHighlightPost, setPinnedHighlightPost] = useState<Post | null>(null)
   const [locationError, setLocationError] = useState(() => {
     // Verificar si ya se permitió la ubicación antes
     if (typeof window !== 'undefined') {
@@ -199,6 +203,32 @@ export default function FeedPage() {
 
     void loadFollowingFeed()
   }, [feedTab])
+
+  useEffect(() => {
+    if (feedTab !== "reshares") return
+    setResharesLoading(true)
+    void feedService.getResharesPage(0, FEED_PAGE_SIZE).then((res) => {
+      setResharesPosts(res.posts)
+      setResharesLoading(false)
+    })
+  }, [feedTab])
+
+  useEffect(() => {
+    if (!highlightPostId) {
+      setPinnedHighlightPost(null)
+      return
+    }
+    const inFeed =
+      posts.some((p) => p.id === highlightPostId) ||
+      followingPosts.some((p) => p.id === highlightPostId) ||
+      localPosts.some((p) => p.id === highlightPostId) ||
+      resharesPosts.some((p) => p.id === highlightPostId)
+    if (inFeed) {
+      setPinnedHighlightPost(null)
+      return
+    }
+    void postService.getById(highlightPostId).then((p) => setPinnedHighlightPost(p))
+  }, [highlightPostId, posts, followingPosts, localPosts, resharesPosts])
 
   const loadFollowingMore = useCallback(async () => {
     if (
@@ -399,6 +429,8 @@ export default function FeedPage() {
       list = Array.isArray(localPosts) ? localPosts : []
     } else if (feedTab === 'following') {
       list = Array.isArray(followingPosts) ? followingPosts : []
+    } else if (feedTab === 'reshares') {
+      list = Array.isArray(resharesPosts) ? resharesPosts : []
     } else {
       const baseGlobal = Array.isArray(posts) ? posts : []
       list = baseGlobal.filter((p) => !deletedPostIds.has(p.id))
@@ -411,7 +443,7 @@ export default function FeedPage() {
       next = next.filter(post => !post.file)
     }
 
-    if (typeof process !== 'undefined' && process.env.NODE_ENV === 'development') {
+  /*   if (typeof process !== 'undefined' && process.env.NODE_ENV === 'development') {
       console.log('[feed page]', {
         feedTab,
         postsHookLen: posts.length,
@@ -420,10 +452,16 @@ export default function FeedPage() {
         deletedPostIds: feedTab === 'global' ? [...deletedPostIds] : [],
         filterType,
       })
-    }
+    } */
 
     return next
-  }, [posts, localPosts, followingPosts, feedTab, deletedPostIds, filterType])
+  }, [posts, localPosts, followingPosts, resharesPosts, feedTab, deletedPostIds, filterType])
+
+  const displayPosts = useMemo(() => {
+    if (!pinnedHighlightPost) return filteredPosts
+    if (filteredPosts.some((p) => p.id === pinnedHighlightPost.id)) return filteredPosts
+    return [pinnedHighlightPost, ...filteredPosts]
+  }, [filteredPosts, pinnedHighlightPost])
 
   if (loading && posts.length === 0) {
     return (
@@ -438,13 +476,12 @@ export default function FeedPage() {
   const isLoadingFeed =
     (feedTab === 'local' && localLoading) ||
     (feedTab === 'global' && loading) ||
-    (feedTab === 'following' && followingLoading)
+    (feedTab === 'following' && followingLoading) ||
+    (feedTab === 'reshares' && resharesLoading)
 
   return (
     <div className="mx-auto max-w-2xl">
       <StoriesBar />
-
-      <FeedTonightCta />
 
       {/* Banner de ubicación — solo cuando hay posts pero sin ubicación */}
       {feedTab === 'local' && locationError && localPosts.length > 0 && (
@@ -496,10 +533,10 @@ export default function FeedPage() {
               {features.personalizedFeed ? (
                 <Tabs
                   value={feedTab}
-                  onValueChange={(v) => setFeedTab(v as "global" | "local" | "following")}
+                  onValueChange={(v) => setFeedTab(v as "global" | "local" | "following" | "reshares")}
                   className="w-full min-w-0 flex-row items-center gap-2 min-[600px]:flex-1"
                 >
-                  <TabsList className="grid h-11 w-full flex-1 grid-cols-3 gap-0.5 rounded-xl border border-border/60 bg-gradient-to-b from-muted/80 to-muted/50 p-1 shadow-inner sm:h-10">
+                  <TabsList className="grid h-11 w-full flex-1 grid-cols-4 gap-0.5 rounded-xl border border-border/60 bg-gradient-to-b from-muted/80 to-muted/50 p-1 shadow-inner sm:h-10">
                     <TabsTrigger
                       value="global"
                       className="flex items-center justify-center gap-1.5 rounded-lg px-1.5 text-xs font-medium data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:gap-2 sm:px-2 sm:text-sm"
@@ -520,6 +557,13 @@ export default function FeedPage() {
                     >
                       <Users className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden />
                       <span className="truncate">{t("common.following")}</span>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="reshares"
+                      className="flex min-w-0 items-center justify-center gap-1.5 rounded-lg px-1.5 text-xs font-medium data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm sm:gap-2 sm:px-2 sm:text-sm"
+                    >
+                      <Repeat2 className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden />
+                      <span className="truncate">{te("Reposts", "Reposts")}</span>
                     </TabsTrigger>
                   </TabsList>
 
@@ -627,7 +671,7 @@ export default function FeedPage() {
             <SkeletonPost key={i} />
           ))}
         </div>
-      ) : filteredPosts.length === 0 ? (
+      ) : displayPosts.length === 0 ? (
         feedTab === 'local' && locationError ? (
           <div className="flex flex-col items-center justify-center gap-4 py-20 px-6">
             <div className="h-20 w-20 rounded-full bg-yellow-500/10 flex items-center justify-center">
@@ -666,6 +710,8 @@ export default function FeedPage() {
               ? te('Sigue a más personas para ver su contenido', 'Follow more people to see their content')
               : feedTab === 'local'
               ? te('No hay posts en tu zona aún', 'No posts in your area yet')
+              : feedTab === 'reshares'
+              ? te('No hay reposts en tu red aún', 'No reposts in your network yet')
               : te('Se el primero en publicar algo!', 'Be the first to post something!')}
           </p>
           <ActivityCoreStreamStrip
@@ -680,7 +726,7 @@ export default function FeedPage() {
         )
       ) : (
         <div className="p-4">
-          {filteredPosts.map((post) => (
+          {displayPosts.map((post) => (
             <PostCard
               key={post.id}
               post={post}
@@ -707,7 +753,7 @@ export default function FeedPage() {
           {feedTab === 'following' &&
             followingHasMore &&
             followingUseServerPagination &&
-            filteredPosts.length > 0 && (
+            displayPosts.length > 0 && (
               <div ref={followingLoadMoreRef} className="py-6 flex justify-center">
                 {followingLoadingMore ? (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">

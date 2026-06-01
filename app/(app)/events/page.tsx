@@ -67,10 +67,15 @@ import type {
 } from "@/lib/types"
 import { toast } from "sonner"
 import { useI18n } from "@/lib/i18n"
+import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
 import { FastDateSection } from "@/components/events/fast-date-section"
 import { FastDateOfferCard } from "@/components/events/fast-date-offer-card"
 import { MeetupOfferCard } from "@/components/events/meetup-offer-card"
+import { JoinMeetupDialog } from "@/components/events/join-meetup-dialog"
+import type { JoinEligibleUser } from "@/components/events/join-meetup-dialog"
+import { followService } from "@/lib/services/follow"
+import { api } from "@/lib/api"
 import { AddressMapPicker } from "@/components/ui/address-map-picker"
 import {
   fastDateService,
@@ -86,6 +91,15 @@ import { CityPulseIndicator } from "@/components/city/city-pulse-indicator"
 import { useCityPulse } from "@/hooks/use-city-pulse"
 import { ActivityCoreStreamStrip } from "@/components/activity/activity-core-stream-strip"
 import type { ActivityCoreExperienceMode } from "@/lib/types/activity-core-stream"
+import { useFeedLocation } from "@/hooks/use-feed-location"
+import {
+  EventExploreLocationFilters,
+  buildActivityFeedGeoFilters,
+} from "@/components/events/event-explore-location-filters"
+import {
+  type DateRangePreset,
+  type DistanceRadiusKm,
+} from "@/lib/event-date-filters"
 
 const FD_CATEGORY_LABELS: Record<string, string> = {
   FOOD: "🍽️ Comida",
@@ -225,6 +239,10 @@ export default function EventsPage() {
   /** Meetups vienen de `/api/activity-feed` (solo tipo MEETUP). Fast Date de `fastDateService.getFeed`. */
   const [contentFilter, setContentFilter] = useState<ExploreFilter>("all")
   const [joiningEventId, setJoiningEventId] = useState<string | null>(null)
+  const [joinDialogEventId, setJoinDialogEventId] = useState<string | null>(null)
+  const [joinDialogSpots, setJoinDialogSpots] = useState<number | null>(null)
+  const [joinDialogPool, setJoinDialogPool] = useState<JoinEligibleUser[]>([])
+  const [joinDialogLoading, setJoinDialogLoading] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
   const [createFlow, setCreateFlow] = useState<"choose" | "meetup" | "fastdate">("choose")
   const [meetupCoords, setMeetupCoords] = useState<{ latitude: number; longitude: number } | null>(null)
@@ -252,6 +270,13 @@ export default function EventsPage() {
     detail: "",
     plans: [] as Plan[],
   })
+
+  const [pendingGroupInvites, setPendingGroupInvites] = useState<any[]>([])
+  const [isRespondingInvite, setIsRespondingInvite] = useState<string | null>(null)
+  const [distanceKm, setDistanceKm] = useState<DistanceRadiusKm | null>(25)
+  const [datePreset, setDatePreset] = useState<DateRangePreset>("all")
+  const [geoBusy, setGeoBusy] = useState(false)
+  const feedLocation = useFeedLocation()
 
   const [pulseCoords, setPulseCoords] = useState<{ lat: number; lng: number } | null>(null)
   useEffect(() => {
@@ -284,11 +309,58 @@ export default function EventsPage() {
       plans: prev.plans.includes(plan) ? prev.plans.filter((p) => p !== plan) : [...prev.plans, plan],
     }))
 
+  useEffect(() => {
+    if (!user?.userId) return
+    eventService.groupJoinRequests.myPending()
+      .then((rows) => setPendingGroupInvites(Array.isArray(rows) ? rows : []))
+      .catch(() => {/* silencioso */})
+  }, [user?.userId])
+
+  const handleRespondGroupInvite = async (requestId: string, accept: boolean) => {
+    setIsRespondingInvite(requestId)
+    try {
+      await eventService.groupJoinRequests.respond(requestId, accept)
+      setPendingGroupInvites((prev) => prev.filter((r) => r.id !== requestId))
+      if (accept) {
+        toast.success(te("Invitación aceptada. Cuando todos acepten llegará al organizador.", "Invitation accepted. When everyone accepts, the organizer will be notified."))
+      } else {
+        toast.success(te("Invitación rechazada.", "Invitation declined."))
+      }
+    } catch (error: any) {
+      toast.error(error?.message || te("No se pudo responder", "Could not respond"))
+    } finally {
+      setIsRespondingInvite(null)
+    }
+  }
+
+  const handleRequestEventLocation = async () => {
+    setGeoBusy(true)
+    try {
+      const ok = await feedLocation.requestBrowserAndSave()
+      if (ok) {
+        toast.success(te("Ubicación activada", "Location enabled"))
+        await feedLocation.refresh()
+      } else {
+        toast.error(te("No se pudo obtener ubicación", "Could not get location"))
+      }
+    } finally {
+      setGeoBusy(false)
+    }
+  }
+
   const loadEvents = async () => {
     setIsLoading(true)
     setLoadError(false)
     try {
-      const filter: Record<string, any> = { sort: 'NEWER' }
+      const filter: Record<string, any> = {
+        sort: "NEWER",
+        ...buildActivityFeedGeoFilters({
+          lat: feedLocation.effectiveLat,
+          lng: feedLocation.effectiveLng,
+          distanceKm: feedLocation.hasAnyLocation ? distanceKm : null,
+          datePreset,
+        }),
+      }
       if (category !== "ALL") filter.eventCategory = category
       if (freeOnly === "TRUE") filter.free = true
       else if (freeOnly === "FALSE") filter.free = false
@@ -372,7 +444,15 @@ export default function EventsPage() {
     try {
       let feed: DateCard[] = []
       try {
-        const data = await fastDateService.getFeed({})
+        const fdFilter: Record<string, string | number> = {}
+        const geo = buildActivityFeedGeoFilters({
+          lat: feedLocation.effectiveLat,
+          lng: feedLocation.effectiveLng,
+          distanceKm: feedLocation.hasAnyLocation ? distanceKm : null,
+          datePreset,
+        })
+        if (geo.radiusKm) fdFilter.maxDistanceKm = Number(geo.radiusKm)
+        const data = await fastDateService.getFeed(fdFilter)
         feed = Array.isArray(data) ? data : []
       } catch (e: unknown) {
         handleDateCardLimitError(e)
@@ -412,11 +492,16 @@ export default function EventsPage() {
     user?.nombres,
     user?.apellidos,
     user?.dateOfBirth,
+    feedLocation.effectiveLat,
+    feedLocation.effectiveLng,
+    feedLocation.hasAnyLocation,
+    distanceKm,
+    datePreset,
   ])
 
   useEffect(() => {
     void loadEvents()
-  }, [category, freeOnly])
+  }, [category, freeOnly, distanceKm, datePreset, feedLocation.effectiveLat, feedLocation.effectiveLng])
 
   useEffect(() => {
     void loadFdFeed()
@@ -544,31 +629,125 @@ export default function EventsPage() {
     }
   }
 
-  const handleJoinEvent = async (eventId: string) => {
-    setJoiningEventId(eventId)
-    try {
-      await eventService.join(eventId)
-      const ev = items.find((i) => i._id === eventId || i.eventId === eventId)
-      recordJoinMeetup({
-        eventId,
-        eventTitle: ev?._title,
-        zone: ev?.zone || ev?.locationZone,
-        user: user
-          ? {
-              userId: String(user.userId),
-              username: user.username,
-              profilePictureUrl: user.profilePictureUrl,
-            }
-          : undefined,
-      })
-      toast.success(te("Solicitud enviada", "Request sent"))
-      router.push(`/events/${eventId}`)
-    } catch (error: any) {
-      toast.error(error?.message || te("No se pudo unir", "Could not join"))
-    } finally {
-      setJoiningEventId(null)
-    }
+  const handleOpenJoinDialog = (eventId: string, availableSpots: number | null) => {
+    setJoinDialogEventId(eventId)
+    setJoinDialogSpots(availableSpots)
+    setJoinDialogPool([])
   }
+
+  useEffect(() => {
+    if (!joinDialogEventId || !user?.userId) return
+    let cancelled = false
+    ;(async () => {
+      setJoinDialogLoading(true)
+      try {
+        const fromApi = await eventService.groupJoinRequests.listEligibleInvitees(joinDialogEventId)
+        if (cancelled) return
+        if (fromApi !== null) {
+          setJoinDialogPool(fromApi.filter((u) => String(u.userId) !== String(user.userId)))
+          return
+        }
+        const myId = String(user.userId)
+        const [matchesRows, followersRows, followingRows] = await Promise.all([
+          api.get<unknown[]>("/api/matches/my/matches").catch(() => []),
+          followService.getFollowers(myId).catch(() => []),
+          followService.getFollowing(myId).catch(() => []),
+        ])
+        if (cancelled) return
+
+        const seen = new Set<string>()
+        const pool: JoinEligibleUser[] = []
+
+        const extractId = (u: any, hint?: "follower" | "following"): string =>
+          String(
+            u?.userId ?? u?.memberId ??
+            (hint === "follower" ? u?.followerId : undefined) ??
+            (hint === "following" ? u?.followingId : undefined) ??
+            u?.id ?? ""
+          ).trim()
+
+        const extractProfile = (u: any) => {
+          const nombres = String(u?.nombres || u?.nombre || "").trim()
+          const apellidos = String(u?.apellidos || "").trim()
+          const fullName = [nombres, apellidos].filter(Boolean).join(" ") || undefined
+          const rawUsername = String(u?.username || u?.userName || "").trim()
+          const fallback = fullName
+            ? fullName.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, "").toLowerCase().slice(0, 24)
+            : ""
+          return {
+            username: rawUsername || fallback,
+            fullName,
+            photo: (u?.profilePictureUrl || u?.photoUrl || u?.photo) as string | undefined || undefined,
+          }
+        }
+
+        // Matches
+        for (const u of Array.isArray(matchesRows) ? matchesRows : []) {
+          const id = extractId(u as any)
+          if (!id || id === myId || seen.has(id)) continue
+          seen.add(id)
+          pool.push({ userId: id, ...extractProfile(u as any) })
+        }
+
+        // Mutual followers only (followers ∩ following)
+        const followerById = new Map<string, unknown>()
+        for (const u of Array.isArray(followersRows) ? followersRows : []) {
+          const id = extractId(u as any, "follower")
+          if (id && id !== myId) followerById.set(id, u)
+        }
+        for (const u of Array.isArray(followingRows) ? followingRows : []) {
+          const id = extractId(u as any, "following")
+          if (!id || id === myId || !followerById.has(id) || seen.has(id)) continue
+          seen.add(id)
+          const followerData = followerById.get(id) as any
+          const pFollow = extractProfile(u as any)
+          const pFollower = extractProfile(followerData)
+          pool.push({
+            userId: id,
+            username: pFollow.username || pFollower.username || `user-${id.slice(0, 6)}`,
+            fullName: pFollow.fullName || pFollower.fullName,
+            photo: pFollow.photo || pFollower.photo,
+          })
+        }
+
+        // Batch-fetch profiles for users still missing username or photo
+        const needsProfile = pool.filter(u => !u.username || !u.photo)
+        if (needsProfile.length > 0 && !cancelled) {
+          const results = await Promise.allSettled(
+            needsProfile.map(u => api.get<any>(`/api/profile/${encodeURIComponent(u.userId)}`))
+          )
+          if (!cancelled) {
+            for (let i = 0; i < needsProfile.length; i++) {
+              const res = results[i]
+              if (res.status !== "fulfilled" || !res.value) continue
+              const p = res.value
+              const idx = pool.findIndex(u => u.userId === needsProfile[i].userId)
+              if (idx < 0) continue
+              const pUsername = String(p?.username || "").trim()
+              const pNames = [p?.nombres, p?.nombre, p?.apellidos].filter(Boolean).join(" ").trim()
+              const pPhoto = p?.profilePictureUrl || p?.photoUrl || p?.photo
+              const derivedUsername = pNames
+                ? pNames.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, "").toLowerCase().slice(0, 24)
+                : ""
+              pool[idx] = {
+                ...pool[idx],
+                username: pool[idx].username || pUsername || derivedUsername || pool[idx].username,
+                fullName: pool[idx].fullName || pNames || undefined,
+                photo: pool[idx].photo || pPhoto || undefined,
+              }
+            }
+          }
+        }
+
+        if (!cancelled) setJoinDialogPool(pool)
+      } catch {
+        if (!cancelled) setJoinDialogPool([])
+      } finally {
+        if (!cancelled) setJoinDialogLoading(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [joinDialogEventId, user?.userId])
 
   const handleSendFastDateInterest = async () => {
     if (!interestCard) return
@@ -736,6 +915,12 @@ export default function EventsPage() {
               "Group meetups and Fast Date in one place."
             )}
           </p>
+          <Link
+            href="/activity-feed"
+            className="mt-2 inline-flex text-sm font-medium text-primary hover:underline"
+          >
+            {te("Ver feed unificado de actividades →", "View unified activity feed →")}
+          </Link>
         </div>
         <Button
           className="h-10 shrink-0 sm:self-start"
@@ -748,6 +933,51 @@ export default function EventsPage() {
           {te("Crear", "Create")}
         </Button>
       </div>
+
+      {/* Invitaciones grupales pendientes */}
+      {pendingGroupInvites.length > 0 && (
+        <div className="mb-6 space-y-3">
+          <h2 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+            <Users className="size-4 text-primary" aria-hidden />
+            {te("Invitaciones grupales pendientes", "Pending group invitations")}
+          </h2>
+          {pendingGroupInvites.map((invite: any) => (
+            <div
+              key={invite.id}
+              className="rounded-2xl border border-primary/25 bg-primary/6 px-4 py-3 shadow-sm"
+            >
+              <p className="text-sm font-medium text-foreground">
+                <span className="font-semibold">@{invite.inviterUsername}</span>
+                {te(` te invitó a "${invite.eventTitle}"`, ` invited you to "${invite.eventTitle}"`)}
+              </p>
+              {invite.message ? (
+                <p className="mt-0.5 text-xs italic text-muted-foreground">"{invite.message}"</p>
+              ) : null}
+              <div className="mt-2.5 flex gap-2">
+                <Button
+                  size="sm"
+                  className="h-7 flex-1 rounded-xl text-xs"
+                  disabled={isRespondingInvite === invite.id}
+                  onClick={() => handleRespondGroupInvite(invite.id, true)}
+                >
+                  {isRespondingInvite === invite.id
+                    ? <Loader2 className="size-3 animate-spin" aria-hidden />
+                    : te("Aceptar", "Accept")}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 flex-1 rounded-xl text-xs"
+                  disabled={isRespondingInvite === invite.id}
+                  onClick={() => handleRespondGroupInvite(invite.id, false)}
+                >
+                  {te("Rechazar", "Decline")}
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {(experienceMode === "SOCIAL" || experienceMode === "BOTH") && <NearbyActivityLayer context="events" />}
 
@@ -1412,6 +1642,8 @@ export default function EventsPage() {
                       setQuery("")
                       setCategory("ALL")
                       setFreeOnly("ALL")
+                      setDistanceKm(null)
+                      setDatePreset("all")
                       applyContentFilter("all")
                     }}
                   >
@@ -1423,6 +1655,24 @@ export default function EventsPage() {
           </DropdownMenu>
         </div>
       </div>
+
+      {feedLocation.fromVirtual ? (
+        <div className="mb-3 rounded-xl border border-primary/25 bg-primary/10 px-3 py-2 text-xs font-medium text-primary">
+          {te("Viendo eventos desde tu Sparkd Passport", "Viewing events from your Sparkd Passport")}
+        </div>
+      ) : null}
+
+      <EventExploreLocationFilters
+        className="mb-4"
+        hasLocation={feedLocation.hasAnyLocation}
+        locationLoading={feedLocation.loading || geoBusy}
+        virtualActive={feedLocation.fromVirtual}
+        distanceKm={distanceKm}
+        onDistanceChange={setDistanceKm}
+        onRequestLocation={() => void handleRequestEventLocation()}
+        datePreset={datePreset}
+        onDatePresetChange={setDatePreset}
+      />
 
       <div
         className={cn(
@@ -1555,7 +1805,7 @@ export default function EventsPage() {
                 localeCode={language === "en" ? "en" : "es"}
                 currentUserId={user?.userId}
                 joiningEventId={joiningEventId}
-                onJoin={handleJoinEvent}
+                onJoin={handleOpenJoinDialog}
               />
             )
               })}
@@ -1636,6 +1886,50 @@ export default function EventsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <JoinMeetupDialog
+        open={joinDialogEventId !== null}
+        onOpenChange={(open) => { if (!open) setJoinDialogEventId(null) }}
+        availableSpots={joinDialogSpots}
+        eligiblePool={joinDialogPool}
+        eligibleLoading={joinDialogLoading}
+        te={te}
+        onSoloJoin={async (msg) => {
+          if (!joinDialogEventId) return
+          setJoiningEventId(joinDialogEventId)
+          try {
+            await eventService.groupJoinRequests.create(joinDialogEventId, [], msg)
+            toast.success(te("Solicitud enviada", "Request sent"))
+            router.push(`/events/${joinDialogEventId}`)
+          } catch (e: any) {
+            toast.error(e?.message || te("No se pudo enviar", "Could not send"))
+          } finally {
+            setJoiningEventId(null)
+          }
+        }}
+        onGroupJoin={async (invitees, msg) => {
+          if (!joinDialogEventId) return
+          setJoiningEventId(joinDialogEventId)
+          try {
+            await eventService.groupJoinRequests.create(
+              joinDialogEventId,
+              invitees.map((u) => u.userId),
+              msg
+            )
+            toast.success(
+              te(
+                "Solicitud grupal enviada. Todos deben aceptar antes de que llegue al organizador.",
+                "Group request sent. Everyone must accept before it reaches the organizer."
+              )
+            )
+            router.push(`/events/${joinDialogEventId}`)
+          } catch (e: any) {
+            toast.error(e?.message || te("No se pudo enviar", "Could not send"))
+          } finally {
+            setJoiningEventId(null)
+          }
+        }}
+      />
     </div>
   )
 }

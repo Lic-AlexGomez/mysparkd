@@ -1,5 +1,8 @@
 // Enums
 export type Sex = "MALE" | "FEMALE"
+
+/** Preferencia de matching: backend acepta MALE, FEMALE o BOTH (ambos). */
+export type InterestedIn = Sex | "BOTH"
 export type SwipeType = "LIKE" | "DISLIKE"
 
 /** Modo de producto: enum backend `AccountType` (no confundir con `user.premium`). */
@@ -105,6 +108,8 @@ export interface UserProfile {
   // Event stats (desde backend commit PET BY FRONT)
   eventsCreatedCount?: number
   eventsCancelledCount?: number
+  /** Fecha de registro en la plataforma (GET /api/profile/me). */
+  fechaRegistro?: string | null
 }
 
 export interface CreateProfileRequest {
@@ -508,6 +513,8 @@ export interface EventFilters {
   lat?: number
   lng?: number
   radiusKm?: number
+  dateFrom?: string
+  dateTo?: string
 }
 
 export type EventGroupMediaType = 'IMAGE' | 'VIDEO' | 'AUDIO' | 'FILE'
@@ -547,6 +554,7 @@ export interface EventGroupMessage {
   editedAt?: string | null
   deleted: boolean
   system: boolean
+  pinned?: boolean
   mediaType?: EventGroupMediaType | null
   mediaUrl?: string | null
   durationSeconds?: number | null
@@ -591,6 +599,7 @@ export interface EventGroupJoinRequest {
   inviterId: string
   inviterUsername: string
   inviterProfilePictureUrl?: string | null
+  message?: string | null
   status: EventGroupInviteRequestStatus
   createdAt: string
   members: EventGroupJoinRequestMember[]
@@ -756,14 +765,14 @@ export interface Interest {
 
 // Preferences
 export interface UserPreferences {
-  interestedIn: Sex
+  interestedIn: InterestedIn
   minAge: number
   maxAge: number
   showMe: boolean
 }
 
 export interface SetPreferencesRequest {
-  interestedIn: Sex
+  interestedIn: InterestedIn
   minAge: number
   maxAge: number
   showMe: boolean

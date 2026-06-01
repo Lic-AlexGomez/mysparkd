@@ -4,6 +4,23 @@ import type { Post } from '../types'
 
 export const FEED_PAGE_SIZE = 12
 
+export type RankingEntry = {
+  userId: string
+  username?: string
+  profilePictureUrl?: string
+  score?: number
+  rank?: number
+}
+
+export type EngagementSummary = {
+  totalLikes?: number
+  totalComments?: number
+  totalReposts?: number
+  postsCount?: number
+  engagementRate?: number
+  avgEngagementPerPost?: number
+}
+
 type SortMode = 'chronological' | 'relevant' | 'compatible' | 'top'
 
 type PaginatedFollowingResponse = {
@@ -129,5 +146,87 @@ export const feedService = {
       default:
         return sorted
     }
-  }
+  },
+
+  async getGlobalRanking(): Promise<RankingEntry[]> {
+    try {
+      const rows = await api.get<unknown>("/api/feed/ranking/global")
+      return normalizeRankingRows(rows)
+    } catch {
+      return []
+    }
+  },
+
+  async getLocalRanking(radiusKm = 50): Promise<RankingEntry[]> {
+    try {
+      const rows = await api.get<unknown>(
+        `/api/feed/ranking/local?radiusKm=${encodeURIComponent(String(radiusKm))}`
+      )
+      return normalizeRankingRows(rows)
+    } catch {
+      return []
+    }
+  },
+
+  async getFollowingRanking(): Promise<RankingEntry[]> {
+    try {
+      const rows = await api.get<unknown>("/api/feed/ranking/following")
+      return normalizeRankingRows(rows)
+    } catch {
+      return []
+    }
+  },
+
+  async getResharesPage(
+    page = 0,
+    size = FEED_PAGE_SIZE
+  ): Promise<{ posts: Post[]; hasMore: boolean }> {
+    try {
+      const data = await api.getPage<PaginatedFollowingResponse | unknown[]>(
+        `/api/feed/reshares?page=${page}&size=${size}`
+      )
+      const parsed = parseFollowingPage(
+        data as PaginatedFollowingResponse | unknown[],
+        page,
+        size
+      )
+      return { posts: parsed.posts, hasMore: parsed.hasMore }
+    } catch {
+      return { posts: [], hasMore: false }
+    }
+  },
+
+  async getEngagementSummary(): Promise<EngagementSummary | null> {
+    try {
+      const data = await api.get<EngagementSummary>("/api/feed/my-engagement/summary")
+      return data && typeof data === "object" ? data : null
+    } catch {
+      return null
+    }
+  },
+}
+
+function normalizeRankingRows(rows: unknown): RankingEntry[] {
+  const list = Array.isArray(rows)
+    ? rows
+    : rows && typeof rows === "object" && Array.isArray((rows as Record<string, unknown>).content)
+      ? (rows as Record<string, unknown>).content
+      : []
+  if (!Array.isArray(list)) return []
+  return list
+    .map((item, i) => {
+      if (!item || typeof item !== "object") return null
+      const o = item as Record<string, unknown>
+      const userId = String(o.userId ?? o.id ?? "").trim()
+      if (!userId) return null
+      return {
+        userId,
+        username: typeof o.username === "string" ? o.username : undefined,
+        profilePictureUrl:
+          typeof o.profilePictureUrl === "string" ? o.profilePictureUrl : undefined,
+        score: typeof o.score === "number" ? o.score : Number(o.score) || undefined,
+        rank: typeof o.rank === "number" ? o.rank : i + 1,
+      } satisfies RankingEntry
+    })
+    .filter(Boolean) as RankingEntry[]
 }

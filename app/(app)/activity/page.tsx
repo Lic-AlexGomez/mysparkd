@@ -18,7 +18,7 @@ import { useCityPulse } from "@/hooks/use-city-pulse"
 import { useI18n } from "@/lib/i18n"
 import { recommendationGraphV2Service } from "@/lib/services/recommendation-graph-v2"
 import { conversionLoopService } from "@/lib/services/conversion-loop"
-import { EngagementStats } from "@/components/feed/engagement-stats"
+import { FeedEngagementSummary } from "@/components/feed/feed-engagement-summary"
 import { CityPulseIndicator } from "@/components/city/city-pulse-indicator"
 import { NearbyActivityLayer } from "@/components/activity/nearby-activity-layer"
 import { SparkdMomentsRail } from "@/components/moments/sparkd-moments-rail"
@@ -175,9 +175,26 @@ export default function DiscoverActivityPage() {
           </Section>
         ) : null}
 
-        {posts.length > 0 ? (
+        {user?.userId ? (
           <Section icon={BarChart3} title={t("discover.section.engagement")}>
-            <EngagementStats posts={posts} className="mx-0 mt-0 mb-0" />
+            <FeedEngagementSummary
+              className="mx-0 mt-0 mb-0"
+              fallback={
+                posts.length > 0
+                  ? {
+                      totalLikes: posts.reduce((s, p) => s + (p.likeCount || 0), 0),
+                      totalComments: posts.reduce((s, p) => s + (p.commentsCount || 0), 0),
+                      totalReposts: posts.reduce((s, p) => s + (p.repostCount || 0), 0),
+                      avgEngagement: Math.round(
+                        posts.reduce(
+                          (s, p) => s + (p.likeCount || 0) + (p.commentsCount || 0) + (p.repostCount || 0),
+                          0
+                        ) / posts.length
+                      ),
+                    }
+                  : undefined
+              }
+            />
           </Section>
         ) : null}
 

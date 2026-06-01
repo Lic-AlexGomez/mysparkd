@@ -4,10 +4,10 @@ import { useState } from "react"
 import { motion, useMotionValue, useTransform, type PanInfo } from "framer-motion"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { reputationService } from "@/lib/services/reputation"
-import Link from "next/link"
 import { VoiceNotePlayer } from "@/components/ui/voice-note"
 import type { Interest, Photo } from "@/lib/types"
 import { useI18n } from "@/lib/i18n"
+import { getDatingDisplayName } from "@/lib/dm-eligibility"
 
 function IconChevronDown({ className = "" }: { className?: string }) {
   return (
@@ -141,7 +141,7 @@ export function SwipeCard({ user, onSwipe, isTop, compatibility, exitDirection, 
   const reputation = user.reputation || 75
   const reputationColor = reputationService.getReputationColor(reputation)
   const age = getAge(user.dateOfBirth)
-  const fullName = `${user.nombres || ""} ${user.apellidos || ""}`.trim() || user.nombres || "Usuario"
+  const displayName = getDatingDisplayName(user.nombres, "Usuario")
   const shortBio = (user.bio || "").trim()
   const safeCompatibility = Math.max(0, Math.min(100, compatibility || 0))
   const compatibilityTheme = getCompatibilityTheme(safeCompatibility, t)
@@ -267,15 +267,12 @@ export function SwipeCard({ user, onSwipe, isTop, compatibility, exitDirection, 
             {/* Name + info button */}
             <div className="flex items-center justify-between">
               <div>
-                <Link
-                  href={`/profile/${user.userId}${compatibility ? `?compatibility=${compatibility}` : ''}`}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={(e) => e.stopPropagation()}
-                  className="text-3xl font-black text-white tracking-tight hover:underline"
-                >
-                  {fullName}
-                  {age && <span className="ml-2 text-2xl font-light text-white/80">{age}</span>}
-                </Link>
+                <p className="text-3xl font-black text-white tracking-tight">
+                  {displayName}
+                  {age != null && (
+                    <span className="ml-2 text-2xl font-light text-white/80">{age}</span>
+                  )}
+                </p>
               </div>
               {isTop && (
                 <button
@@ -366,16 +363,9 @@ export function SwipeCard({ user, onSwipe, isTop, compatibility, exitDirection, 
                     </div>
                   </div>
                 )}
-                <div>
-                  <Link
-                    href={`/profile/${user.userId}${compatibility ? `?compatibility=${compatibility}` : ''}`}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => e.stopPropagation()}
-                    className="inline-flex items-center rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-white/20"
-                  >
-                    {t("swipeCard.seeFullProfile")}
-                  </Link>
-                </div>
+                <p className="text-xs text-white/50 italic">
+                  {t("swipeCard.datingProfileOnly")}
+                </p>
                 {!user.bio && !user.location && (
                   <p className="text-sm text-white/50 italic">{t("swipeCard.incompleteProfile")}</p>
                 )}

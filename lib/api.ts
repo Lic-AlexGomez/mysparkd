@@ -15,6 +15,7 @@ class ApiError extends Error {
     details?: string,
     retryAfterSeconds?: number
   ) {
+    
     super(message)
     this.status = status
     this.details = details
@@ -136,8 +137,19 @@ async function request<T>(
   }
 
   if (response.status === 401) {
-    clearAuth()
-    throw new ApiError("No autorizado", 401)
+    const hasToken =
+      typeof window !== "undefined" && !!localStorage.getItem("sparkd_token")
+    if (hasToken) {
+      clearAuth()
+      throw new ApiError("No autorizado", 401)
+    }
+    // Sin token = credenciales incorrectas — leer mensaje del body sin redirigir
+    let message = "Usuario o contraseña incorrectos"
+    try {
+      const errorData = (await response.json()) as Record<string, unknown>
+      message = extractErrorMessageFromBody(errorData) ?? message
+    } catch { /* ignore */ }
+    throw new ApiError(message, 401)
   }
 
   if (response.status === 204) {
@@ -208,9 +220,10 @@ async function request<T>(
 
 export const api = {
   /** GET con unwrap automático de `Page.content` (mensajes, notificaciones, etc.). */
-  get: async <T>(endpoint: string) => {
+  get: async <T>(endpoint: string, init?: RequestInit) => {
     const raw = await request<unknown>(endpoint, {
       method: "GET",
+      ...init,
       ...(endpoint.includes("/api/profile/me")
         ? { cache: "no-store" as RequestCache }
         : {}),
@@ -227,9 +240,10 @@ export const api = {
         : {}),
     }),
 
-  post: <T>(endpoint: string, body?: unknown) =>
+  post: <T>(endpoint: string, body?: unknown, init?: RequestInit) =>
     request<T>(endpoint, {
       method: "POST",
+      ...init,
       body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
     }),
 

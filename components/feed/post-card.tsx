@@ -63,6 +63,7 @@ import {
 import { ReputationStars } from "@/components/ui/reputation-stars"
 import { OptimizedImage } from "@/components/ui/optimized-image"
 import { useI18n } from "@/lib/i18n"
+import { profileHref } from "@/lib/profile-route"
 
 interface PostCardProps {
   post: Post
@@ -458,7 +459,7 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
         {/* Header */}
         <div className="flex items-start justify-between">
           <Link
-            href={`/profile/${post.userId}`}
+            href={profileHref(post.userId, user?.userId)}
             className="flex items-center gap-3"
           >
             <Avatar className={`border-2 border-primary/50 ring-2 ring-primary/20 ring-offset-2 ring-offset-background ${

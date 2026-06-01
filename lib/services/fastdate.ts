@@ -1,4 +1,5 @@
 import { api } from '../api'
+import { parseMyDateCardsMineResponse, type MyDateCardsGrouped } from "@/lib/parity/fastdate-mine"
 import { computeAgeFromDateOfBirth } from '../utils'
 import { extractAuthorInterestsFromDateCardRaw } from './compatibility'
 import type {
@@ -360,9 +361,17 @@ export const fastDateService = {
   },
 
   async getMine(): Promise<MyDateCard[]> {
+    const grouped = await this.getMineGrouped()
+    return [...grouped.activeCards, ...grouped.expiredCards]
+  },
+
+  async getMineGrouped(): Promise<MyDateCardsGrouped> {
     const raw = await api.get<unknown>('/api/date-cards/mine')
-    if (!Array.isArray(raw)) return []
-    return raw.map(normalizeMyDateCardFromApi).filter((x): x is MyDateCard => x != null)
+    const grouped = parseMyDateCardsMineResponse(raw)
+    return {
+      activeCards: grouped.activeCards.map(normalizeMyDateCardFromApi).filter((x): x is MyDateCard => x != null),
+      expiredCards: grouped.expiredCards.map(normalizeMyDateCardFromApi).filter((x): x is MyDateCard => x != null),
+    }
   },
 
   async sendInterest(dateCardId: string, message?: string): Promise<void> {

@@ -6,8 +6,12 @@ import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { MessageCircle, Zap, Loader2 } from "lucide-react"
 import { chatService } from "@/lib/services/chat"
+import {
+  DmEligibilityBlockedError,
+  eligibilityMessageKey,
+  ensureCanOpenDm,
+} from "@/lib/dm-eligibility"
 import { toast } from "sonner"
-import type { Chat } from "@/lib/types"
 import { useI18n } from "@/lib/i18n"
 
 interface MatchModalProps {
@@ -26,10 +30,16 @@ export function MatchModal({ open, onOpenChange, matchedUserId, matchedUserName 
     if (!matchedUserId) return
     setIsLoading(true)
     try {
-      const chat = await chatService.openChat(matchedUserId)
+      await ensureCanOpenDm(matchedUserId, "DATING")
+      const chat = await chatService.openChat(matchedUserId, { context: "DATING" })
       onOpenChange(false)
       router.push(`/chat/${encodeURIComponent(chat.chatId)}`)
-    } catch {
+    } catch (err) {
+      if (err instanceof DmEligibilityBlockedError) {
+        const key = eligibilityMessageKey(err.eligibility.reason)
+        toast.error(key ? t(key) : t("match.openChatError"))
+        return
+      }
       toast.error(t("match.openChatError"))
     } finally {
       setIsLoading(false)

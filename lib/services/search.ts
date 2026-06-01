@@ -39,6 +39,15 @@ const normalizeHashtags = (rows: any[]): HashtagResult[] =>
     }))
     .filter((h) => Boolean(h.tag))
 
+const normalizeAutocompletePosts = (rows: unknown[]): Post[] =>
+  rows.map((raw, i) => {
+    const p = raw as Record<string, unknown>
+    return {
+      ...(p as object),
+      id: String(p.id ?? p.postId ?? `ac-${i}`),
+    } as Post
+  })
+
 export const searchService = {
   normalizeInterestLabel(interest: unknown): string {
     if (typeof interest === "string") return interest
@@ -54,12 +63,16 @@ export const searchService = {
     if (!q) return { content: [], totalPages: 1, number: 0 }
 
     try {
-      const data = await api.get<any>(
-        `/api/search/users?query=${encodeURIComponent(q)}&page=${page}&size=${size}`
-      )
-      return normalizePaged<UserProfile>(data)
+      const res = await api.get<any>(`/api/search/general?query=${encodeURIComponent(q)}`)
+      const users = Array.isArray(res?.users) ? res.users : []
+      if (users.length > 0) return normalizePaged<UserProfile>({ content: users, totalPages: 1, number: 0 })
+    } catch { /* fall through */ }
+
+    try {
+      const res = await api.get<any>(`/api/search/intelligent?query=${encodeURIComponent(q)}`)
+      const users = Array.isArray(res?.users) ? res.users : []
+      return normalizePaged<UserProfile>({ content: users, totalPages: 1, number: 0 })
     } catch {
-      // Fallback compatible con backend legado.
       try {
         const res = await api.get<any>(`/api/search/autocomplete?q=${encodeURIComponent("@" + q)}`)
         const users = Array.isArray(res?.users) ? res.users : []
@@ -79,23 +92,19 @@ export const searchService = {
     if (!q) return { content: [], totalPages: 1, number: 0 }
 
     try {
-      const data = await api.get<any>(
-        `/api/search/posts?query=${encodeURIComponent(q)}&page=${page}&size=${size}`
-      )
-      return normalizePaged<Post>(data)
-    } catch {
-      // Fallback: endpoint general.
-      try {
-        const res = await api.get<any>(`/api/search/general?query=${encodeURIComponent(q)}`)
-        const posts = Array.isArray(res?.posts) ? res.posts : []
-        return {
-          content: posts as Post[],
-          totalPages: 1,
-          number: 0,
-        }
-      } catch {
-        return { content: [], totalPages: 1, number: 0 }
+      const res = await api.get<any>(`/api/search/general?query=${encodeURIComponent(q)}`)
+      const posts = Array.isArray(res?.posts) ? res.posts : []
+      if (posts.length > 0) {
+        return { content: posts as Post[], totalPages: 1, number: 0 }
       }
+    } catch { /* fall through */ }
+
+    try {
+      const res = await api.get<any>(`/api/search/intelligent?query=${encodeURIComponent(q)}`)
+      const posts = Array.isArray(res?.posts) ? res.posts : []
+      return { content: posts as Post[], totalPages: 1, number: 0 }
+    } catch {
+      return { content: [], totalPages: 1, number: 0 }
     }
   },
 
@@ -165,7 +174,7 @@ export const searchService = {
       } as UserProfile)) : []
       return {
         users,
-        posts: Array.isArray(data?.posts) ? data.posts : [],
+        posts: Array.isArray(data?.posts) ? normalizeAutocompletePosts(data.posts) : [],
         hashtags: normalizeHashtags(Array.isArray(data?.hashtags) ? data.hashtags : []),
       }
     } catch {
@@ -210,5 +219,30 @@ export const searchService = {
       post.body.toLowerCase().includes(query.toLowerCase()) ||
       post.username.toLowerCase().includes(query.toLowerCase())
     )
-  }
+  },
+
+  /** GET /api/search/intelligent — posts, users, hashtags en una llamada */
+  async searchIntelligent(query: string): Promise<{ users: UserProfile[]; posts: Post[]; hashtags: HashtagResult[] }> {
+    const q = query.trim()
+    if (!q) return { users: [], posts: [], hashtags: [] }
+    try {
+      const data = await api.get<any>(`/api/search/intelligent?query=${encodeURIComponent(q)}`)
+      const users = Array.isArray(data?.users)
+        ? data.users.map((u: any) => ({
+            userId: String(u.userId || u.id || ""),
+            username: String(u.username || ""),
+            nombres: String(u.nombres || u.fullName || u.username || ""),
+            apellidos: String(u.apellidos || ""),
+            profilePictureUrl: u.profilePictureUrl || u.photo || undefined,
+          } as UserProfile))
+        : []
+      return {
+        users,
+        posts: Array.isArray(data?.posts) ? normalizeAutocompletePosts(data.posts) : [],
+        hashtags: normalizeHashtags(Array.isArray(data?.hashtags) ? data.hashtags : []),
+      }
+    } catch {
+      return this.autocomplete(q)
+    }
+  },
 }

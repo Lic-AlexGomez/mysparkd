@@ -1,0 +1,62 @@
+/* Sparky — spritesheet uniforme V1 */
+
+.sparkySpriteRoot {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sparkySprite {
+  border-radius: 50%;
+  background-image: url("/assets/sparky_spritesheet.png");
+  background-repeat: no-repeat;
+  image-rendering: auto;
+  will-change: transform, background-position;
+}
+
+.sparkySpriteFloat {
+  animation: sparkySpriteFloat 2.6s ease-in-out infinite;
+}
+
+@keyframes sparkySpriteFloat {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  35% {
+    transform: translateY(-6px) scale(1.03);
+  }
+  65% {
+    transform: translateY(-3px) scale(1.01);
+  }
+}
+
+.sparkySpriteGlow {
+  position: absolute;
+  inset: -8%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(244, 114, 182, 0.28) 0%, transparent 68%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.sparkySpriteBody {
+  position: relative;
+  z-index: 1;
+}
+
+.sparkyWardrobe {
+  position: absolute;
+  left: 50%;
+  z-index: 2;
+  transform: translateX(-50%);
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sparkySpriteFloat {
+    animation: none;
+  }
+}

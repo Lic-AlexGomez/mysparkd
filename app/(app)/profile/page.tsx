@@ -12,21 +12,36 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Pencil, Loader2, Camera, Newspaper, Bookmark, Heart, Crown,
   MapPin, Globe, Zap, Settings, Trash2, MicOff, Paperclip, CalendarDays, ChevronRight,
-  CalendarClock, Users
+  CalendarClock, Users, X, Ticket
 } from "lucide-react"
 import { toast } from "sonner"
 import { PostCard } from "@/components/feed/post-card"
 import { useRouter } from "next/navigation"
+import { format } from "date-fns"
+import { es } from "date-fns/locale"
 import { uploadToCloudinary } from "@/lib/cloudinary"
 import {
   VoiceNotePlayer, validateVoiceNoteFile, getAudioDurationSeconds,
   voiceNoteDurationExceededMessage, MAX_VOICE_NOTE_SECONDS, VoiceNoteRecorder,
 } from "@/components/ui/voice-note"
 import { useI18n } from "@/lib/i18n"
+import { profileHref } from "@/lib/profile-route"
+import { getFollowButtonLabel } from "@/lib/follow-labels"
 import { accountTypeBadgeLabels, toBackendAccountType } from "@/lib/account-type"
 import { eventService } from "@/lib/services/event"
+import { eventPaymentService, type EventTicket } from "@/lib/services/event-payment"
 import type { Event } from "@/lib/types"
 import { useExperienceMode } from "@/hooks/use-experience-mode"
+
+interface FollowerUser {
+  userId: string
+  username: string
+  nombres?: string
+  apellidos?: string
+  profilePictureUrl?: string
+  followStatus?: 'NONE' | 'PENDING' | 'FOLLOWING'
+  visibility?: 'PUBLIC' | 'PRIVATE'
+}
 
 export default function ProfilePage() {
   const { te, t, language } = useI18n()
@@ -42,6 +57,65 @@ export default function ProfilePage() {
   const [myParticipatingEvents, setMyParticipatingEvents] = useState<Event[]>([])
   const [eventsTab, setEventsTab] = useState<'created' | 'participating'>('created')
   const [eventsLoading, setEventsLoading] = useState(false)
+  const [myTickets, setMyTickets] = useState<EventTicket[]>([])
+  const [ticketsLoading, setTicketsLoading] = useState(false)
+
+  const [followListModal, setFollowListModal] = useState<'followers' | 'following' | null>(null)
+  const [followList, setFollowList] = useState<FollowerUser[]>([])
+  const [followListLoading, setFollowListLoading] = useState(false)
+
+  const [followListPage, setFollowListPage] = useState(0)
+  const [followListHasMore, setFollowListHasMore] = useState(false)
+  const [followListLoadingMore, setFollowListLoadingMore] = useState(false)
+
+  const openFollowList = async (type: 'followers' | 'following', page = 0, reset = true) => {
+    if (!user?.userId) return
+    setFollowListModal(type)
+    if (reset) setFollowListLoading(true)
+    else setFollowListLoadingMore(true)
+    try {
+      const data = await api.get<any>(`/api/follow/${type}/${user.userId}?page=${page}&size=20`)
+      const list: FollowerUser[] = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.content)
+          ? data.content
+          : []
+      const last = typeof data?.last === "boolean" ? data.last : list.length < 20
+      setFollowList((prev) => (reset ? list : [...prev, ...list]))
+      setFollowListPage(page)
+      setFollowListHasMore(!last)
+    } catch {
+      if (reset) setFollowList([])
+    } finally {
+      if (reset) setFollowListLoading(false)
+      else setFollowListLoadingMore(false)
+    }
+  }
+
+  const handleRemoveFollower = async (followerId: string) => {
+    try {
+      await api.delete(`/api/follow/follower/${followerId}`)
+      setFollowList(prev => prev.filter(u => u.userId !== followerId))
+      toast.success(te('Seguidor eliminado', 'Follower removed'))
+    } catch {
+      toast.error(te('Error al eliminar seguidor', 'Error removing follower'))
+    }
+  }
+
+  const handleToggleFollowInList = async (u: FollowerUser) => {
+    try {
+      if (u.followStatus === 'FOLLOWING') {
+        await api.delete(`/api/follow/${u.userId}`)
+        setFollowList(prev => prev.map(x => x.userId === u.userId ? { ...x, followStatus: 'NONE' } : x))
+      } else {
+        await api.post(`/api/follow/${u.userId}`)
+        const next = u.visibility === 'PRIVATE' ? 'PENDING' : 'FOLLOWING'
+        setFollowList(prev => prev.map(x => x.userId === u.userId ? { ...x, followStatus: next } : x))
+      }
+    } catch {
+      toast.error(te('Error al actualizar seguimiento', 'Error updating follow'))
+    }
+  }
 
   const showPremiumBadge = typeof window !== 'undefined'
     ? localStorage.getItem(`sparkd_show_premium_${user?.userId}`) !== 'false'
@@ -64,7 +138,15 @@ export default function ProfilePage() {
       .finally(() => setEventsLoading(false))
   }, [user?.userId])
 
-  const handleDragStart = (index: number) => setDraggedIndex(index)
+  useEffect(() => {
+    if (!user?.userId) return
+    setTicketsLoading(true)
+    eventPaymentService
+      .getMyTickets()
+      .then((rows) => setMyTickets(rows))
+      .catch(() => setMyTickets([]))
+      .finally(() => setTicketsLoading(false))
+  }, [user?.userId])
   const handleDragOver = (e: React.DragEvent) => e.preventDefault()
   const handleDrop = async (dropIndex: number) => {
     if (draggedIndex === null || draggedIndex === dropIndex) return
@@ -103,6 +185,9 @@ export default function ProfilePage() {
     return withoutPlusCode.replace(/,\s*,/g, ',').trim()
   }
   const location = formatLocation(user?.location)
+  const memberSinceLabel = user?.fechaRegistro
+    ? format(new Date(user?.fechaRegistro), "MMMM yyyy", { locale: es })
+    : null
 
   if (isLoading) return (
     <div className="flex h-screen items-center justify-center">
@@ -176,12 +261,11 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="mx-auto min-h-screen max-w-2xl bg-gradient-to-b from-background via-muted/[0.35] to-muted/50 pb-24 dark:via-background dark:to-muted/25 lg:max-w-5xl xl:max-w-6xl">
+    <div className="mx-auto min-h-screen max-w-2xl bg-gradient-to-b from-background via-muted/[0.35] to-muted/50 pb-20 dark:via-background dark:to-muted/25 lg:max-w-3xl">
 
       {/* ── HERO: portada visible + tarjeta con avatar en flujo (sin tapar el nombre) ── */}
       <div className="relative isolate">
-        {/* Cover — más altura + menos solape del panel = más foto visible */}
-        <div className="group relative h-52 overflow-hidden sm:h-60 md:h-72 lg:h-80">
+        <div className="group relative h-40 overflow-hidden sm:h-44 md:h-48 lg:h-52">
           {coverPhoto
             ? <img src={coverPhoto} alt="cover" className="h-full w-full object-cover" />
             : <div className="h-full bg-gradient-to-br from-primary via-primary/60 to-secondary/50" />
@@ -226,17 +310,15 @@ export default function ProfilePage() {
           </div>
         </div>
 
-      {/* Tarjeta: solape suave para dejar más banda de portada visible */}
-      <div className="relative z-[1] -mt-5 rounded-t-[1.85rem] border-x border-t border-border/50 bg-background/95 px-5 pb-2 pt-4 shadow-[0_-6px_28px_-10px_rgba(0,0,0,0.08)] backdrop-blur-md dark:border-border/30 dark:bg-background/95 dark:shadow-[0_-10px_36px_-14px_rgba(0,0,0,0.35)] sm:-mt-6 sm:pt-5 md:-mt-7">
-        <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-end sm:gap-6">
-          {/* Avatar — encaja con el nuevo solape */}
-          <div className="-mt-[4.25rem] flex shrink-0 justify-center sm:-mt-[5rem] sm:justify-start md:-mt-[5.5rem]">
+      <div className="relative z-[1] -mt-4 rounded-t-[1.5rem] border-x border-t border-border/50 bg-background/95 px-4 pb-2 pt-3 shadow-[0_-6px_28px_-10px_rgba(0,0,0,0.08)] backdrop-blur-md dark:border-border/30 dark:bg-background/95 dark:shadow-[0_-10px_36px_-14px_rgba(0,0,0,0.35)] sm:-mt-5 sm:pt-4">
+        <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-end sm:gap-4">
+          <div className="-mt-[3.25rem] flex shrink-0 justify-center sm:-mt-[3.75rem] sm:justify-start">
             <div className="relative group">
               <div className="absolute inset-0 scale-110 rounded-full bg-gradient-to-br from-primary to-secondary opacity-50 blur-md" />
-              <div className="relative rounded-full bg-background p-[3px] shadow-xl ring-4 ring-background">
-                <Avatar className="h-[5.5rem] w-[5.5rem] sm:h-24 sm:w-24">
+              <div className="relative rounded-full bg-background p-[2px] shadow-lg ring-2 ring-background">
+                <Avatar className="h-20 w-20 sm:h-[5.5rem] sm:w-[5.5rem]">
                   <AvatarImage src={primaryPhoto?.url} alt={user.nombres} className="object-cover" />
-                  <AvatarFallback className="bg-gradient-to-br from-primary/30 to-secondary/30 text-2xl font-black">
+                  <AvatarFallback className="bg-gradient-to-br from-primary/30 to-secondary/30 text-xl font-black">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
@@ -274,7 +356,7 @@ export default function ProfilePage() {
 
           <div className="min-w-0 flex-1 space-y-0.5 text-center sm:pb-1 sm:text-left">
             <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-              <h1 className="text-xl font-black tracking-tight sm:text-2xl">{user.nombres} {user.apellidos}</h1>
+              <h1 className="text-lg font-black tracking-tight sm:text-xl">{user.nombres} {user.apellidos}</h1>
               {user.premium && showPremiumBadge && (
                 <span className="flex items-center gap-1 self-center rounded-full border border-yellow-500/20 bg-yellow-500/10 px-2.5 py-0.5 text-[11px] font-bold text-yellow-500">
                   <Crown className="h-3 w-3" /> Premium
@@ -367,18 +449,25 @@ export default function ProfilePage() {
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
             {user.sex === "MALE" ? "👨 Hombre" : "👩 Mujer"}
           </span>
+          {memberSinceLabel && (
+            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+              <CalendarDays className="h-3.5 w-3.5" />
+              {te("Miembro desde", "Member since")} {memberSinceLabel}
+            </span>
+          )}
         </div>
 
         {/* Stats */}
-        <div className="mt-5 flex items-center divide-x divide-border/80 rounded-2xl border border-border/60 bg-gradient-to-b from-card to-card/80 shadow-sm ring-1 ring-black/[0.03] dark:from-card/90 dark:to-muted/20 dark:ring-white/[0.06] overflow-hidden">
+        <div className="mt-4 flex items-center divide-x divide-border/80 rounded-xl border border-border/60 bg-gradient-to-b from-card to-card/80 shadow-sm ring-1 ring-black/[0.03] dark:from-card/90 dark:to-muted/20 dark:ring-white/[0.06] overflow-hidden">
           {[
-            { value: totalPostsCount, label: "Posts" },
-            { value: followersCount, label: "Seguidores" },
-            { value: followingCount, label: "Siguiendo" },
-            ...(user.eventsCreatedCount !== undefined ? [{ value: user.eventsCreatedCount, label: "Eventos" }] : []),
+            { value: totalPostsCount, label: "Posts", onClick: undefined },
+            { value: followersCount, label: "Seguidores", onClick: () => void openFollowList('followers', 0, true) },
+            { value: followingCount, label: "Siguiendo", onClick: () => void openFollowList('following', 0, true) },
+            ...(user.eventsCreatedCount !== undefined ? [{ value: user.eventsCreatedCount, label: "Eventos", onClick: undefined }] : []),
           ].map(stat => (
-            <button key={stat.label} className="flex-1 flex flex-col items-center py-3.5 transition-colors hover:bg-muted/40">
-              <span className="text-xl font-black leading-none tabular-nums tracking-tight">{stat.value}</span>
+            <button key={stat.label} onClick={stat.onClick}
+              className="flex-1 flex flex-col items-center py-2.5 transition-colors hover:bg-muted/40">
+              <span className="text-lg font-black leading-none tabular-nums tracking-tight">{stat.value}</span>
               <span className="text-[11px] font-medium text-muted-foreground mt-1">{stat.label}</span>
             </button>
           ))}
@@ -386,7 +475,7 @@ export default function ProfilePage() {
 
         {/* Reputación (solo si /me incluye número) */}
         {showReputation && reputationColor && (
-          <div className="mt-4 rounded-2xl border border-border/60 bg-gradient-to-br from-card to-muted/20 p-4 shadow-sm ring-1 ring-black/[0.03] dark:from-card/80 dark:to-muted/30 dark:ring-white/[0.06]">
+          <div className="mt-3 rounded-xl border border-border/60 bg-gradient-to-br from-card to-muted/20 p-3 shadow-sm ring-1 ring-black/[0.03] dark:from-card/80 dark:to-muted/30 dark:ring-white/[0.06]">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-muted-foreground">Reputación</span>
               <span className="text-xs font-black" style={{ color: reputationColor }}>
@@ -414,7 +503,7 @@ export default function ProfilePage() {
 
         {/* Intereses */}
         {profileInterests.length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-1.5">
+          <div className="mt-3 flex flex-wrap gap-1.5">
             {profileInterests.slice(0, 8).map((interest, i) => (
               <span key={i} className="rounded-full border border-border/60 bg-muted/50 px-3 py-1 text-xs font-medium shadow-sm">{interest}</span>
             ))}
@@ -429,7 +518,7 @@ export default function ProfilePage() {
       </div>
 
       {/* ── ACCESOS RÁPIDOS ── */}
-      <div className="mt-6 px-5 grid grid-cols-3 gap-2.5 sm:gap-3">
+      <div className="mt-4 px-4 grid grid-cols-3 gap-2 sm:gap-2.5">
         {[
           // Guardados - común para todos
           { icon: Bookmark, label: "Guardados", value: savedPostsCount, path: '/saved', color: "text-primary", bg: "bg-primary/12", modes: ['SOCIAL', 'DATING', 'BOTH'] },
@@ -439,41 +528,47 @@ export default function ProfilePage() {
           { icon: Heart, label: "Likes", value: null, path: '/likes', color: "text-rose-500", bg: "bg-rose-500/12", modes: ['DATING', 'BOTH'] },
         ].filter(item => item.modes.includes(experienceMode)).map(item => (
           <button key={item.label} onClick={() => router.push(item.path)}
-            className="group flex flex-col items-center gap-2 rounded-2xl border border-border/60 bg-card/90 p-3.5 shadow-sm ring-1 ring-black/[0.03] transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md hover:shadow-primary/5 dark:bg-card/60 dark:ring-white/[0.05] sm:p-4"
+            className="group flex flex-col items-center gap-1.5 rounded-xl border border-border/60 bg-card/90 p-2.5 shadow-sm ring-1 ring-black/[0.03] transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md hover:shadow-primary/5 dark:bg-card/60 dark:ring-white/[0.05] sm:p-3"
           >
-            <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${item.bg} shadow-inner ring-1 ring-black/5 transition-transform group-hover:scale-105 dark:ring-white/10`}>
-              <item.icon className={`h-5 w-5 ${item.color}`} />
+            <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${item.bg} shadow-inner ring-1 ring-black/5 transition-transform group-hover:scale-105 dark:ring-white/10`}>
+              <item.icon className={`h-4 w-4 ${item.color}`} />
             </div>
-            {item.value !== null && <p className="text-sm font-black tabular-nums">{item.value}</p>}
+            {item.value !== null && <p className="text-sm font-bold tabular-nums">{item.value}</p>}
             <p className="text-[11px] font-medium text-muted-foreground sm:text-xs">{item.label}</p>
           </button>
         ))}
       </div>
 
       {/* ── FOTOS · MIS EVENTOS · POSTS (tabs) ── */}
-      <Tabs defaultValue="photos" className="mt-8 px-5">
-        <TabsList className="grid h-auto w-full grid-cols-3 gap-1.5 rounded-2xl border border-border/50 bg-muted/45 p-1.5 shadow-inner dark:bg-muted/25">
+      <Tabs defaultValue="photos" className="mt-5 px-4">
+        <TabsList className="grid h-auto w-full grid-cols-4 gap-1 rounded-xl border border-border/50 bg-muted/45 p-1 shadow-inner dark:bg-muted/25">
           <TabsTrigger
             value="photos"
-            className="rounded-xl py-3 text-xs font-semibold transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=inactive]:text-muted-foreground sm:text-sm"
+            className="rounded-lg py-2 text-xs font-semibold transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=inactive]:text-muted-foreground sm:text-sm"
           >
             {te("Fotos", "Photos")}
           </TabsTrigger>
           <TabsTrigger
             value="events"
-            className="rounded-xl py-3 text-xs font-semibold transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=inactive]:text-muted-foreground sm:text-sm"
+            className="rounded-lg py-2 text-xs font-semibold transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=inactive]:text-muted-foreground sm:text-sm"
           >
             {te("Mis Eventos", "My events")}
           </TabsTrigger>
           <TabsTrigger
+            value="tickets"
+            className="rounded-lg py-2 text-xs font-semibold transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=inactive]:text-muted-foreground sm:text-sm"
+          >
+            {te("Tickets", "Tickets")}
+          </TabsTrigger>
+          <TabsTrigger
             value="posts"
-            className="rounded-xl py-3 text-xs font-semibold transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=inactive]:text-muted-foreground sm:text-sm"
+            className="rounded-lg py-2 text-xs font-semibold transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=inactive]:text-muted-foreground sm:text-sm"
           >
             {te("Posts", "Posts")}
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="photos" className="mt-5 rounded-2xl border border-border/50 bg-card/70 p-4 shadow-sm ring-1 ring-black/[0.03] dark:bg-card/40 dark:ring-white/[0.06]">
+        <TabsContent value="photos" className="mt-4 rounded-xl border border-border/50 bg-card/70 p-3 shadow-sm ring-1 ring-black/[0.03] dark:bg-card/40 dark:ring-white/[0.06]">
           <div className="mb-4 flex items-center justify-between border-b border-border/40 pb-3">
             <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{te("Galería", "Gallery")}</span>
             <span className="rounded-full bg-muted/80 px-2.5 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground">{localPhotos.length}/6</span>
@@ -516,7 +611,7 @@ export default function ProfilePage() {
             </div>
           ) : (
             <button onClick={() => document.getElementById('first-photo-upload')?.click()}
-              className="flex h-32 w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border/70 bg-muted/15 transition-all hover:border-primary hover:bg-primary/5 text-muted-foreground hover:text-primary"
+              className="flex h-28 w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border/70 bg-muted/15 transition-all hover:border-primary hover:bg-primary/5 text-muted-foreground hover:text-primary"
             >
               <Camera className="h-7 w-7" />
               <p className="text-sm font-medium">{te("Agrega tu primera foto", "Add your first photo")}</p>
@@ -548,7 +643,7 @@ export default function ProfilePage() {
           />
         </TabsContent>
 
-        <TabsContent value="events" className="mt-5 rounded-2xl border border-border/50 bg-card/70 p-4 shadow-sm ring-1 ring-black/[0.03] dark:bg-card/40 dark:ring-white/[0.06]">
+        <TabsContent value="events" className="mt-4 rounded-xl border border-border/50 bg-card/70 p-3 shadow-sm ring-1 ring-black/[0.03] dark:bg-card/40 dark:ring-white/[0.06]">
           {(experienceMode === 'SOCIAL' || experienceMode === 'BOTH') ? (
             <>
               <div className="mb-4 flex gap-1 rounded-2xl bg-muted/50 p-1 dark:bg-muted/25">
@@ -718,7 +813,63 @@ export default function ProfilePage() {
           )}
         </TabsContent>
 
-        <TabsContent value="posts" className="mt-5 rounded-2xl border border-border/50 bg-card/70 p-4 shadow-sm ring-1 ring-black/[0.03] dark:bg-card/40 dark:ring-white/[0.06]">
+        <TabsContent value="tickets" className="mt-4 rounded-xl border border-border/50 bg-card/70 p-3 shadow-sm ring-1 ring-black/[0.03] dark:bg-card/40 dark:ring-white/[0.06]">
+          {ticketsLoading ? (
+            <div className="flex justify-center py-10">
+              <Loader2 className="h-7 w-7 animate-spin text-primary" />
+            </div>
+          ) : myTickets.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border/70 bg-muted/15 px-5 py-14 text-center">
+              <Ticket className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+              <p className="text-sm font-medium text-foreground">
+                {te("Aún no tienes tickets de eventos", "You don't have event tickets yet")}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {myTickets.map((ticket) => {
+                const when = ticket.eventDate
+                  ? new Date(ticket.eventDate).toLocaleString(language === "en" ? "en-US" : "es", {
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : null
+                return (
+                  <button
+                    key={ticket.ticketId}
+                    type="button"
+                    onClick={() => router.push(`/events/payment/tickets/${ticket.ticketId}`)}
+                    className="flex w-full gap-3 rounded-xl border border-border/60 bg-background/80 p-3 text-left transition hover:border-primary/30"
+                  >
+                    <div
+                      className="h-16 w-16 shrink-0 rounded-lg bg-cover bg-center bg-muted"
+                      style={
+                        ticket.eventCoverPhotoUrl
+                          ? { backgroundImage: `url(${ticket.eventCoverPhotoUrl})` }
+                          : undefined
+                      }
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold text-foreground">{ticket.eventTitle}</p>
+                      {when ? <p className="text-xs text-muted-foreground">{when}</p> : null}
+                      {ticket.eventZone ? (
+                        <p className="truncate text-xs text-muted-foreground">{ticket.eventZone}</p>
+                      ) : null}
+                      <p className="mt-1 text-[11px] font-medium text-primary">
+                        {ticket.used ? te("Usado", "Used") : te("Válido · Ver QR", "Valid · View QR")}
+                      </p>
+                    </div>
+                    <ChevronRight className="mt-2 h-4 w-4 shrink-0 text-muted-foreground" />
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="posts" className="mt-4 rounded-xl border border-border/50 bg-card/70 p-3 shadow-sm ring-1 ring-black/[0.03] dark:bg-card/40 dark:ring-white/[0.06]">
           {(experienceMode === 'SOCIAL' || experienceMode === 'BOTH') ? (
             <>
               <div className="mb-4 flex items-center justify-between border-b border-border/40 pb-3">
@@ -753,6 +904,87 @@ export default function ProfilePage() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* ── FOLLOW LIST MODAL ── */}
+      <Dialog open={!!followListModal} onOpenChange={() => setFollowListModal(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogTitle>{followListModal === 'followers' ? te('Seguidores', 'Followers') : te('Siguiendo', 'Following')}</DialogTitle>
+          {followListLoading ? (
+            <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+          ) : followList.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">{te("No hay usuarios", "No users")}</p>
+          ) : (
+            <div className="flex flex-col gap-2 max-h-96 overflow-y-auto pr-1">
+              {followList.map(u => {
+                const fullName = [u.nombres, u.apellidos].filter(Boolean).join(' ')
+                return (
+                  <div key={u.userId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50">
+                    <button onClick={() => { setFollowListModal(null); router.push(profileHref(u.userId, user?.userId)) }}
+                      className="flex items-center gap-3 flex-1 text-left min-w-0">
+                      <Avatar className="h-10 w-10 shrink-0">
+                        <AvatarImage src={u.profilePictureUrl} />
+                        <AvatarFallback className="bg-primary/10 text-primary">{u.username?.[0]?.toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">{u.username}</p>
+                        {fullName && <p className="text-xs text-muted-foreground truncate">{fullName}</p>}
+                      </div>
+                    </button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {followListModal === 'following' && (
+                        u.followStatus === 'FOLLOWING' ? (
+                          <button onClick={() => void handleToggleFollowInList(u)}
+                            className="text-xs px-3 py-1 rounded-full border border-border text-foreground hover:bg-muted transition-colors">
+                            {te('Siguiendo', 'Following')}
+                          </button>
+                        ) : u.followStatus === 'PENDING' ? (
+                          <span className="text-xs px-3 py-1 rounded-full bg-muted text-muted-foreground">
+                            {te('Solicitado', 'Requested')}
+                          </span>
+                        ) : (
+                          <button onClick={() => void handleToggleFollowInList(u)}
+                            className="text-xs px-3 py-1 rounded-full bg-primary text-primary-foreground hover:opacity-90 transition-opacity font-medium">
+                            {getFollowButtonLabel(
+                              {
+                                following: false,
+                                requestPending: false,
+                                followedBy: false,
+                              },
+                              te,
+                              {
+                                privateAccount: u.visibility === 'PRIVATE',
+                                theyFollowProfileOwner: followListModal === 'followers',
+                              }
+                            )}
+                          </button>
+                        )
+                      )}
+                      {followListModal === 'followers' && (
+                        <button onClick={() => handleRemoveFollower(u.userId)}
+                          className="h-8 w-8 rounded-full hover:bg-destructive/10 flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors"
+                          title={te("Eliminar seguidor", "Remove follower")}>
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+              {followListHasMore && (
+                <Button
+                  variant="outline"
+                  className="w-full mt-2"
+                  disabled={followListLoadingMore}
+                  onClick={() => followListModal && void openFollowList(followListModal, followListPage + 1, false)}
+                >
+                  {followListLoadingMore ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  {te("Cargar más", "Load more")}
+                </Button>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* ── PHOTO VIEWER ── */}
       <Dialog open={!!viewPhotoUrl} onOpenChange={() => setViewPhotoUrl(null)}>

@@ -22,10 +22,11 @@ export const reactionService = {
     return api.get(`/api/likes/status/${targetId}`)
   },
 
-  async getUsersByReaction(targetId: string, targetType: ReactionTargetType, reactionType: ReactionType) {
-    // Este endpoint probablemente no existe aún, retornar array vacío
+  async getUsersByReaction(targetId: string, targetType: ReactionTargetType, reactionType?: ReactionType) {
     try {
-      return api.get(`/api/likes/users/${targetId}?reaction=${reactionType}`)
+      const qs = reactionType ? `?reactionType=${encodeURIComponent(reactionType)}` : ""
+      const rows = await api.get<unknown>(`/api/reactions/users/${targetId}${qs}`)
+      return Array.isArray(rows) ? rows : []
     } catch {
       return []
     }
