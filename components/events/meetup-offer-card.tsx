@@ -1,6 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
+import { profileHref } from "@/lib/profile-route"
 import { motion } from "framer-motion"
 import type { Event } from "@/lib/types"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -31,7 +32,7 @@ type MeetupOfferCardProps = {
   localeCode?: string
   currentUserId?: string | null
   joiningEventId: string | null
-  onJoin: (eventId: string) => void
+  onJoin: (eventId: string, availableSpots: number | null) => void
   className?: string
 }
 
@@ -123,7 +124,7 @@ export function MeetupOfferCard({
   const creatorUsername = String(event.creatorUsername || "").trim()
   const creatorId = String(event.creatorId || "").trim()
   const openCreatorProfile = () => {
-    if (creatorId) router.push(`/profile/${creatorId}`)
+    if (creatorId) router.push(profileHref(creatorId, currentUserId))
   }
 
   const primaryLocation =
@@ -482,7 +483,7 @@ export function MeetupOfferCard({
                 <Button
                   type="button"
                   className="h-10 w-full rounded-[0.875rem] border-0 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 font-bold text-black shadow-[0_8px_32px_-10px_rgba(16,185,129,0.62),0_0_52px_-14px_rgba(6,182,212,0.42)] transition-[filter,box-shadow] duration-300 ease-out hover:brightness-[1.08] hover:shadow-[0_12px_40px_-10px_rgba(16,185,129,0.72),0_0_60px_-12px_rgba(6,182,212,0.48)] active:brightness-95"
-                  onClick={() => onJoin(event._id)}
+                  onClick={() => onJoin(event._id, event.maxGuests != null ? available : null)}
                   disabled={joiningEventId === event._id}
                 >
                   {joiningEventId === event._id

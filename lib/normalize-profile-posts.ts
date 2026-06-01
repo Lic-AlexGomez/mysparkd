@@ -1,3 +1,4 @@
+import { applyLockedPostFields } from "@/lib/locked-post-preview"
 import type { Poll, Post, ReactionType } from "@/lib/types"
 
 /** Alinea campos opcionales que el perfil puede devolver distinto al feed (poll vote, reacción del viewer). */
@@ -17,10 +18,14 @@ export function normalizeProfilePosts(posts: Post[] | undefined | null): Post[] 
       poll = { ...pol, userVoted }
     }
 
-    return {
+    const next = {
       ...p,
       userReaction: userReaction ?? undefined,
       poll,
     }
+    if (!next.file && next.media?.mediaUrl) {
+      next.file = next.media.mediaUrl
+    }
+    return applyLockedPostFields(next)
   })
 }

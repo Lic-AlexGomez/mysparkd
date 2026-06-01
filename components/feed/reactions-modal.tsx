@@ -9,6 +9,8 @@ import { ReactionType } from "@/lib/types"
 import { getReactionEmoji } from "./reaction-picker"
 import { api } from "@/lib/api"
 import Link from "next/link"
+import { useAuth } from "@/lib/auth-context"
+import { profileHref } from "@/lib/profile-route"
 
 interface ReactionsModalProps {
   open: boolean
@@ -24,6 +26,7 @@ interface ReactorUser {
 }
 
 export function ReactionsModal({ open, onOpenChange, postId }: ReactionsModalProps) {
+  const { user } = useAuth()
   const [loading, setLoading] = useState(true)
   const [reactions, setReactions] = useState<ReactorUser[]>([])
   const [activeTab, setActiveTab] = useState<'all' | ReactionType>('all')
@@ -88,7 +91,7 @@ export function ReactionsModal({ open, onOpenChange, postId }: ReactionsModalPro
                 {filteredReactions.map((reactor) => (
                   <Link
                     key={reactor.userId}
-                    href={`/profile/${reactor.userId}`}
+                    href={profileHref(reactor.userId, user?.userId)}
                     className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition-colors"
                     onClick={() => onOpenChange(false)}
                   >

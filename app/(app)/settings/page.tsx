@@ -8,6 +8,7 @@ import type {
   AccountType,
   Interest,
   Sex,
+  InterestedIn,
   UpdateProfileRequest,
   UserPreferences,
 } from "@/lib/types"
@@ -43,15 +44,25 @@ import {
   Key,
   Mail,
   Shield,
+  Ban,
   Users,
+  Layout,
 } from "lucide-react"
+import { NavbarStylePicker } from "@/components/settings/navbar-style-picker"
 import { usePushNotifications } from "@/hooks/use-push-notifications"
+import { usePremiumStatus } from "@/hooks/use-premium-status"
+import { useFeedLocation } from "@/hooks/use-feed-location"
+import { VirtualLocationCard } from "@/components/settings/virtual-location-card"
 import { privacyService } from "@/lib/services/privacy"
+import { blockService } from "@/lib/services/block"
 import { authService } from "@/lib/services/auth"
+import { PasskeysSection } from "@/components/settings/passkeys-section"
 import { normalizeEmailValue } from "@/lib/email-utils"
 import type { PrivacySettings, SparklingListMember } from "@/lib/types"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useI18n } from "@/lib/i18n"
+import { getRegistrationPasswordError } from "@/lib/password-policy"
+import { PasswordRulesChecklist } from "@/components/auth/password-rules-checklist"
 
 /** Valores UI de la sección Experiencia (Ajustes). */
 type ExperienceObjective = "social" | "connection" | "both"
@@ -88,14 +99,16 @@ function objectiveFromAccountTypeAndLocal(
 }
 
 export default function SettingsPage() {
-  const { te } = useI18n()
+  const { te, t } = useI18n()
   const { user, logout, refreshProfile } = useAuth()
   const router = useRouter()
   const { permission, requestPermission, isSupported } = usePushNotifications()
+  const { isPremium } = usePremiumStatus()
+  const feedLocation = useFeedLocation()
 
   // Preferences
   const [preferences, setPreferences] = useState<UserPreferences | null>(null)
-  const [interestedIn, setInterestedIn] = useState<Sex>("FEMALE")
+  const [interestedIn, setInterestedIn] = useState<InterestedIn>("FEMALE")
   const [ageRange, setAgeRange] = useState([18, 35])
   const [showMe, setShowMe] = useState(true)
   const [isPrivate, setIsPrivate] = useState(false)
@@ -105,6 +118,7 @@ export default function SettingsPage() {
   const [prefLoading, setPrefLoading] = useState(true)
   const [savingPref, setSavingPref] = useState(false)
   const [savingExperience, setSavingExperience] = useState(false)
+  const [showExperienceConfirm, setShowExperienceConfirm] = useState(false)
 
   // Privacy Settings
   const [privacySettings, setPrivacySettings] = useState<PrivacySettings>({
@@ -118,6 +132,9 @@ export default function SettingsPage() {
   const [savingPrivacy, setSavingPrivacy] = useState(false)
   const [sparklingList, setSparklingList] = useState<SparklingListMember[]>([])
   const [sparklingLoading, setSparklingLoading] = useState(false)
+  const [blockedUsers, setBlockedUsers] = useState<Array<{ userId: string; username?: string; nombres?: string }>>([])
+  const [blockedLoading, setBlockedLoading] = useState(true)
+  const [unblockingId, setUnblockingId] = useState<string | null>(null)
 
   const PENDING_EMAIL_CHANGE_KEY = "sparkd_pending_email_change_v1"
   const PENDING_RECOVERY_KEY = "sparkd_pending_recovery_email_v1"
@@ -176,7 +193,13 @@ export default function SettingsPage() {
         "/api/preferences/get/my/preferences"
       )
       setPreferences(data)
-      setInterestedIn(data.interestedIn)
+      const pref =
+        data.interestedIn === "MALE" ||
+        data.interestedIn === "FEMALE" ||
+        data.interestedIn === "BOTH"
+          ? data.interestedIn
+          : "FEMALE"
+      setInterestedIn(pref)
       setAgeRange([data.minAge, data.maxAge])
       setShowMe(data.showMe)
     } catch {
@@ -254,6 +277,51 @@ export default function SettingsPage() {
     }
   }, [])
 
+  const fetchBlockedUsers = useCallback(async () => {
+    if (!user?.userId) {
+      setBlockedLoading(false)
+      return
+    }
+    setBlockedLoading(true)
+    try {
+      const ids = await blockService.listBlockedUserIds(user.userId)
+      if (!ids.length) {
+        setBlockedUsers([])
+        return
+      }
+      const rows = await Promise.all(
+        ids.map(async (id) => {
+          try {
+            const p = await profileService.getProfile(id)
+            return { userId: id, username: p.username, nombres: p.nombres }
+          } catch {
+            return { userId: id }
+          }
+        })
+      )
+      setBlockedUsers(rows)
+    } catch {
+      setBlockedUsers([])
+    } finally {
+      setBlockedLoading(false)
+    }
+  }, [user?.userId])
+
+  const handleUnblockUser = async (blockedId: string) => {
+    if (!user?.userId) return
+    setUnblockingId(blockedId)
+    try {
+      const ok = await blockService.unblockUser(user.userId, blockedId)
+      if (!ok) throw new Error("unblock failed")
+      setBlockedUsers((prev) => prev.filter((u) => u.userId !== blockedId))
+      toast.success(te("Usuario desbloqueado", "User unblocked"))
+    } catch {
+      toast.error(te("Error al desbloquear", "Error unblocking user"))
+    } finally {
+      setUnblockingId(null)
+    }
+  }
+
   const savePrivacySettings = async () => {
     setSavingPrivacy(true)
     try {
@@ -280,7 +348,8 @@ export default function SettingsPage() {
     fetchPreferences()
     fetchInterests()
     fetchPrivacySettings()
-  }, [fetchPreferences, fetchInterests, fetchPrivacySettings])
+    fetchBlockedUsers()
+  }, [fetchPreferences, fetchInterests, fetchPrivacySettings, fetchBlockedUsers])
 
   useEffect(() => {
     if (!user?.userId) return
@@ -300,6 +369,17 @@ export default function SettingsPage() {
   const verifiedRecoveryEmail = user?.recoveryEmail?.trim()
   const recoveryEmailDisplayLine =
     verifiedRecoveryEmail || pendingRecoveryTargetEmail || ""
+
+  const handleSaveExperienceClick = () => {
+    if (!user) return
+    const nextAccountType = experienceObjectiveToAccountType(objective)
+    const currentAccountType = (user.accountType ?? "").toUpperCase()
+    if (nextAccountType !== currentAccountType) {
+      setShowExperienceConfirm(true)
+    } else {
+      saveExperience()
+    }
+  }
 
   const saveExperience = async () => {
     if (!user) {
@@ -354,7 +434,12 @@ export default function SettingsPage() {
 
       toast.success(te("Experiencia guardada", "Experience saved"))
     } catch (err) {
-      if (err instanceof ApiError) {
+      if (err instanceof ApiError && err.status === 429) {
+        toast.error(te(
+          "Solo puedes cambiar el tipo de cuenta una vez por mes.",
+          "You can only change your account type once per month."
+        ))
+      } else if (err instanceof ApiError) {
         toast.error(err.message)
       } else {
         toast.error(
@@ -409,7 +494,20 @@ export default function SettingsPage() {
       }
       fetchInterests()
       await refreshProfile()
-    } catch {
+    } catch (err) {
+      const status =
+        err && typeof err === "object" && "status" in err
+          ? Number((err as { status: number }).status)
+          : 0
+      if (isSelected && (status === 404 || status === 405)) {
+        toast.error(
+          te(
+            "Quitar intereses aún no está en el servidor (falta DELETE /api/interests/remove en backend).",
+            "Removing interests is not available on the server yet."
+          )
+        )
+        return
+      }
       // Fallback: guardar localmente
       let updated: Interest[]
       if (isSelected) {
@@ -630,8 +728,9 @@ export default function SettingsPage() {
       toast.error(te("Completa todos los campos", "Fill all fields"))
       return
     }
-    if (newPassword.length < 6) {
-      toast.error(te("La nueva contraseña debe tener al menos 6 caracteres", "New password must be at least 6 characters"))
+    const pwdErr = getRegistrationPasswordError(newPassword)
+    if (pwdErr) {
+      toast.error(pwdErr)
       return
     }
     if (newPassword !== confirmNewPassword) {
@@ -772,6 +871,65 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
+      <VirtualLocationCard
+        isPremium={isPremium}
+        hasVirtual={feedLocation.hasVirtualLocation}
+        loading={feedLocation.loading}
+        onSetVirtual={feedLocation.setVirtualLocation}
+        onClearVirtual={feedLocation.clearVirtualLocation}
+      />
+
+      {/* Blocked users */}
+      <Card className="border-border bg-card mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-foreground text-base">
+            <Ban className="h-4 w-4" />
+            {te("Usuarios bloqueados", "Blocked users")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {blockedLoading ? (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : blockedUsers.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              {te("No has bloqueado a nadie.", "You have not blocked anyone.")}
+            </p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {blockedUsers.map((u) => (
+                <div
+                  key={u.userId}
+                  className="flex items-center justify-between rounded-lg border border-border p-3"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-foreground">
+                      {u.nombres || u.username || te("Usuario", "User")}
+                    </p>
+                    {u.username ? (
+                      <p className="truncate text-xs text-muted-foreground">@{u.username}</p>
+                    ) : null}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={unblockingId === u.userId}
+                    onClick={() => void handleUnblockUser(u.userId)}
+                  >
+                    {unblockingId === u.userId ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      te("Desbloquear", "Unblock")
+                    )}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Sparkling List */}
       <Card className="border-border bg-card mb-6">
         <CardHeader>
@@ -810,6 +968,23 @@ export default function SettingsPage() {
               ))}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Bottom navigation style */}
+      <Card className="border-border bg-card mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-foreground text-base">
+            <Layout className="h-4 w-4" />
+            Barra de navegación inferior
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-4 text-xs text-muted-foreground leading-relaxed">
+            Elige el estilo de la barra inferior. El dock Sparkd sigue disponible; las opciones plana y
+            dating son las del diseño de referencia.
+          </p>
+          <NavbarStylePicker />
         </CardContent>
       </Card>
 
@@ -890,9 +1065,12 @@ export default function SettingsPage() {
                 </button>
               ))}
             </div>
+            <p className="mt-3 text-xs text-muted-foreground leading-relaxed">
+              {t("dm.accountModeIsolationHint")}
+            </p>
             <Button
               type="button"
-              onClick={saveExperience}
+              onClick={handleSaveExperienceClick}
               disabled={savingExperience || !user}
               className="mt-3 w-full bg-primary text-primary-foreground hover:bg-primary/90 sm:w-auto"
             >
@@ -904,6 +1082,33 @@ export default function SettingsPage() {
               Guardar experiencia
             </Button>
           </div>
+
+          <AlertDialog open={showExperienceConfirm} onOpenChange={setShowExperienceConfirm}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  {te("¿Cambiar tipo de cuenta?", "Change account type?")}
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  {te(
+                    "Solo puedes cambiar el tipo de cuenta una vez por mes. Esta acción no se puede deshacer hasta que pase ese tiempo. ¿Deseas continuar?",
+                    "You can only change your account type once per month. This action cannot be undone until that time passes. Do you want to continue?"
+                  )}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{te("Cancelar", "Cancel")}</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    setShowExperienceConfirm(false)
+                    saveExperience()
+                  }}
+                >
+                  {te("Sí, cambiar", "Yes, change")}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           <div className="p-4 rounded-lg border border-primary/30 bg-card">
             <Label className="text-foreground font-medium mb-3 block">Radio de Feed Local</Label>
             <p className="text-xs text-muted-foreground mb-4">
@@ -942,20 +1147,26 @@ export default function SettingsPage() {
             <>
               <div className="flex flex-col gap-2">
                 <Label className="text-foreground">Me interesa</Label>
-                <div className="flex gap-2">
-                  {(["MALE", "FEMALE"] as Sex[]).map((s) => (
+                <div className="grid grid-cols-3 gap-2">
+                  {(
+                    [
+                      { value: "MALE" as const, label: "Hombres" },
+                      { value: "FEMALE" as const, label: "Mujeres" },
+                      { value: "BOTH" as const, label: "Ambos" },
+                    ] as const
+                  ).map(({ value, label }) => (
                     <Button
-                      key={s}
+                      key={value}
                       type="button"
-                      variant={interestedIn === s ? "default" : "outline"}
-                      onClick={() => setInterestedIn(s)}
+                      variant={interestedIn === value ? "default" : "outline"}
+                      onClick={() => setInterestedIn(value)}
                       className={
-                        interestedIn === s
+                        interestedIn === value
                           ? "bg-primary text-primary-foreground"
                           : "border-border text-foreground hover:bg-muted"
                       }
                     >
-                      {s === "MALE" ? "Hombres" : "Mujeres"}
+                      {label}
                     </Button>
                   ))}
                 </div>
@@ -1079,6 +1290,8 @@ export default function SettingsPage() {
           <CardTitle className="text-foreground text-base">Cuenta</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
+          <PasskeysSection user={user} />
+
           <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
             <div className="flex items-center gap-2 text-foreground">
               <Mail className="h-4 w-4 shrink-0" />
@@ -1467,10 +1680,11 @@ export default function SettingsPage() {
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="Mínimo 8 caracteres + complejidad"
                   className="bg-background border-border"
                   disabled={changingPassword}
                 />
+                <PasswordRulesChecklist password={newPassword} showHintWhenEmpty={false} />
               </div>
               <div className="flex flex-col gap-2">
                 <Label className="text-foreground text-sm">Confirmar nueva contraseña</Label>

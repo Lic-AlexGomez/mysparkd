@@ -1,3 +1,5 @@
+import { unwrapSpringPage } from "@/lib/extract-api-rows"
+
 const API_BASE_URL = "/api/proxy"
 const REQUEST_TIMEOUT_MS = 20_000
 
@@ -13,6 +15,7 @@ class ApiError extends Error {
     details?: string,
     retryAfterSeconds?: number
   ) {
+    
     super(message)
     this.status = status
     this.details = details
@@ -134,8 +137,19 @@ async function request<T>(
   }
 
   if (response.status === 401) {
-    clearAuth()
-    throw new ApiError("No autorizado", 401)
+    const hasToken =
+      typeof window !== "undefined" && !!localStorage.getItem("sparkd_token")
+    if (hasToken) {
+      clearAuth()
+      throw new ApiError("No autorizado", 401)
+    }
+    // Sin token = credenciales incorrectas — leer mensaje del body sin redirigir
+    let message = "Usuario o contraseña incorrectos"
+    try {
+      const errorData = (await response.json()) as Record<string, unknown>
+      message = extractErrorMessageFromBody(errorData) ?? message
+    } catch { /* ignore */ }
+    throw new ApiError(message, 401)
   }
 
   if (response.status === 204) {
@@ -205,16 +219,31 @@ async function request<T>(
 }
 
 export const api = {
-  get: <T>(endpoint: string) =>
+  /** GET con unwrap automático de `Page.content` (mensajes, notificaciones, etc.). */
+  get: async <T>(endpoint: string, init?: RequestInit) => {
+    const raw = await request<unknown>(endpoint, {
+      method: "GET",
+      ...init,
+      ...(endpoint.includes("/api/profile/me")
+        ? { cache: "no-store" as RequestCache }
+        : {}),
+    })
+    return unwrapSpringPage<T>(raw)
+  },
+
+  /** GET sin unwrap: conserva `{ content, totalPages, last, ... }` para paginación. */
+  getPage: <T>(endpoint: string) =>
     request<T>(endpoint, {
       method: "GET",
-      // Refuerzo: el proxy ya no cachea /me; el cliente tampoco reutiliza respuestas viejas.
-      ...(endpoint.includes("/api/profile/me") ? { cache: "no-store" as RequestCache } : {}),
+      ...(endpoint.includes("/api/profile/me")
+        ? { cache: "no-store" as RequestCache }
+        : {}),
     }),
 
-  post: <T>(endpoint: string, body?: unknown) =>
+  post: <T>(endpoint: string, body?: unknown, init?: RequestInit) =>
     request<T>(endpoint, {
       method: "POST",
+      ...init,
       body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
     }),
 

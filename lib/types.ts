@@ -1,5 +1,8 @@
 // Enums
 export type Sex = "MALE" | "FEMALE"
+
+/** Preferencia de matching: backend acepta MALE, FEMALE o BOTH (ambos). */
+export type InterestedIn = Sex | "BOTH"
 export type SwipeType = "LIKE" | "DISLIKE"
 
 /** Modo de producto: enum backend `AccountType` (no confundir con `user.premium`). */
@@ -27,6 +30,12 @@ export interface RegisterRequest {
 export interface RegisterResponse {
   username: string
   message: string
+}
+
+export interface EventRating {
+  score: number
+  comment?: string
+  createdAt?: string
 }
 
 export interface ForgotPasswordRequest {
@@ -96,6 +105,11 @@ export interface UserProfile {
   compatibilityScore?: number
   visibility?: 'PUBLIC' | 'PRIVATE'
   preferredLanguage?: string
+  // Event stats (desde backend commit PET BY FRONT)
+  eventsCreatedCount?: number
+  eventsCancelledCount?: number
+  /** Fecha de registro en la plataforma (GET /api/profile/me). */
+  fechaRegistro?: string | null
 }
 
 export interface CreateProfileRequest {
@@ -268,6 +282,18 @@ export interface Poll {
   allowMultiple: boolean
 }
 
+/** Estado de boost de un post permanente (`GET /api/posts/{id}/boost/info`). */
+export interface PostBoostInfo {
+  postId: string
+  permanent: boolean
+  feedActive: boolean
+  expiresAt: string | null
+  timeUntilExpiry: string
+  boostCount: number
+  nextBoostPriceCents: number
+  nextBoostPriceUsd: number
+}
+
 // Posts
 export type PostVisibility = 'PUBLIC' | 'FOLLOWERS' | 'PRIVATE'
 
@@ -377,7 +403,7 @@ export interface SwipeRequest {
 export interface SwipeResponse {
   match: boolean
   message: string
-  /** Complementario: si el backend no lo envía, el cliente sigue restando en local. */
+  /** Swipes restantes hoy (solo cuenta free). `null` en premium. */
   swipesRemaining?: number
   /** Si el usuario autenticado es premium, el backend puede omitir límites. */
   premium?: boolean
@@ -473,6 +499,10 @@ export interface Event {
   zone?: string
   /** Alias que a veces envía `/api/activity-feed` u otros DTOs. */
   locationZone?: string
+  // Rating fields (desde backend commit PET BY FRONT)
+  averageRating?: number
+  ratingCount?: number
+  myRating?: EventRating
 }
 
 export interface EventFilters {
@@ -483,6 +513,8 @@ export interface EventFilters {
   lat?: number
   lng?: number
   radiusKm?: number
+  dateFrom?: string
+  dateTo?: string
 }
 
 export type EventGroupMediaType = 'IMAGE' | 'VIDEO' | 'AUDIO' | 'FILE'
@@ -522,6 +554,7 @@ export interface EventGroupMessage {
   editedAt?: string | null
   deleted: boolean
   system: boolean
+  pinned?: boolean
   mediaType?: EventGroupMediaType | null
   mediaUrl?: string | null
   durationSeconds?: number | null
@@ -566,6 +599,7 @@ export interface EventGroupJoinRequest {
   inviterId: string
   inviterUsername: string
   inviterProfilePictureUrl?: string | null
+  message?: string | null
   status: EventGroupInviteRequestStatus
   createdAt: string
   members: EventGroupJoinRequestMember[]
@@ -681,6 +715,11 @@ export interface Chat {
   otherUserLastSeen?: string | null
   /** Backend: DIRECT (DM desde perfil) vs GENERAL (resto, p. ej. match). */
   chatCategory?: "DIRECT" | "GENERAL"
+  /** Optional server hints for context-aware UI (BFF / future JVM). */
+  linkedEventId?: string
+  linkedGroupId?: string
+  linkedFastDateId?: string
+  linkedContextTitle?: string
 }
 
 export interface Message {
@@ -726,14 +765,14 @@ export interface Interest {
 
 // Preferences
 export interface UserPreferences {
-  interestedIn: Sex
+  interestedIn: InterestedIn
   minAge: number
   maxAge: number
   showMe: boolean
 }
 
 export interface SetPreferencesRequest {
-  interestedIn: Sex
+  interestedIn: InterestedIn
   minAge: number
   maxAge: number
   showMe: boolean

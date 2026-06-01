@@ -115,6 +115,21 @@ class RepostService {
       this.upsertCache(postId, next)
     }
   }
+
+  async getMyReposts(page = 0, size = 20): Promise<{ items: RepostItem[]; hasMore: boolean }> {
+    try {
+      const data = await api.getPage<unknown>(`/api/me/reposts?page=${page}&size=${size}`)
+      const rows = this.unwrapListPayload(data)
+      const items = this.toArray(rows)
+      const last =
+        data && typeof data === "object" && typeof (data as { last?: boolean }).last === "boolean"
+          ? (data as { last: boolean }).last
+          : items.length < size
+      return { items, hasMore: !last }
+    } catch {
+      return { items: [], hasMore: false }
+    }
+  }
 }
 
 export const repostService = new RepostService()

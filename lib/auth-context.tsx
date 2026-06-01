@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react"
 import { api } from "@/lib/api"
+import { pushTokenService } from "@/lib/services/push-token"
 import { normalizeProfilePosts } from "@/lib/normalize-profile-posts"
 import type {
   User,
@@ -72,6 +73,9 @@ function normalizeProfileFromApi(profile: UserProfile): UserProfile {
     recovery_email?: string | null
     total_posts?: number
     preferred_language?: string
+    fecha_registro?: string | null
+    createdAt?: string | null
+    created_at?: string | null
   }
   // Initialize next before using it
   let next: UserProfile = profile
@@ -103,6 +107,16 @@ function normalizeProfileFromApi(profile: UserProfile): UserProfile {
     next = { ...next, preferredLanguage }
   }
 
+  const fechaRegistro =
+    profile.fechaRegistro ??
+    r.fecha_registro ??
+    r.createdAt ??
+    r.created_at ??
+    undefined
+  if (fechaRegistro && fechaRegistro !== profile.fechaRegistro) {
+    next = { ...next, fechaRegistro }
+  }
+
   if (recovery === undefined || recovery === null) {
     next = { ...next, posts: normalizeProfilePosts(next.posts) }
     return next
@@ -124,8 +138,10 @@ interface AuthContextType {
   isLoading: boolean
   login: (data: LoginRequest) => Promise<void>
   loginWithGoogle: (idToken: string) => Promise<void>
+  loginWithApple: (identityToken: string) => Promise<void>
+  loginWithPasskey: (token: string) => Promise<void>
   register: (data: RegisterRequest) => Promise<RegisterResponse>
-  logout: () => void
+  logout: () => void | Promise<void>
   refreshProfile: () => Promise<void>
   updateUser: (patch: Partial<UserProfile>) => void
 }
@@ -145,18 +161,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearStashedLoginAccountTypeIfSynced(profile)
       setUser(profile)
       localStorage.setItem("sparkd_user", JSON.stringify(profile))
-    } catch (error) {
+      if (profile.userId) {
+        localStorage.setItem("sparkd_user_id", String(profile.userId))
+      }
+      if (profile.username) {
+        localStorage.setItem("sparkd_username", profile.username)
+      }
+    } catch {
       const savedUser = localStorage.getItem("sparkd_user")
       if (savedUser) {
-        let parsed = normalizeProfileFromApi(
-          JSON.parse(savedUser) as UserProfile
-        )
-        parsed = mergeProfileWithStashedLoginAccountType(parsed)
-        setUser(parsed)
-        localStorage.setItem("sparkd_user", JSON.stringify(parsed))
-      } else {
-        setUser(null)
+        try {
+          let parsed = normalizeProfileFromApi(
+            JSON.parse(savedUser) as UserProfile
+          )
+          parsed = mergeProfileWithStashedLoginAccountType(parsed)
+          setUser(parsed)
+          localStorage.setItem("sparkd_user", JSON.stringify(parsed))
+          return
+        } catch {
+          localStorage.removeItem("sparkd_user")
+        }
       }
+      setUser(null)
+      setToken(null)
+      localStorage.removeItem("sparkd_token")
+      localStorage.removeItem("sparkd_user_id")
     }
   }, [])
 
@@ -182,7 +211,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Mostrar UI inmediatamente y refrescar perfil en segundo plano.
     setIsLoading(false)
-    void fetchProfile()
+    void fetchProfile().then(() => {
+      void import("@/lib/sparky-memory").then(({ syncSparkyMemoryFromServer }) => {
+        void syncSparkyMemoryFromServer().then(() => {
+          window.dispatchEvent(new Event("sparkd-sparky-memory-synced"))
+        })
+      })
+    })
   }, [fetchProfile])
 
   const login = async (data: LoginRequest) => {
@@ -190,23 +225,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("sparkd_token", response.token)
     localStorage.setItem("sparkd_username", data.username)
     stashLoginAccountType(response.accountType)
-    setToken(response.token)
     await fetchProfile()
+    setToken(response.token)
+    void import("@/lib/sparky-memory").then(({ syncSparkyMemoryFromServer }) => {
+      void syncSparkyMemoryFromServer().then(() => {
+        window.dispatchEvent(new Event("sparkd-sparky-memory-synced"))
+      })
+    })
   }
 
   const loginWithGoogle = async (idToken: string) => {
     const response = await api.post<LoginResponse>("/auth/google", { token: idToken })
     localStorage.setItem("sparkd_token", response.token)
     stashLoginAccountType(response.accountType)
-    setToken(response.token)
     await fetchProfile()
+    setToken(response.token)
+    void import("@/lib/sparky-memory").then(({ syncSparkyMemoryFromServer }) => {
+      void syncSparkyMemoryFromServer().then(() => {
+        window.dispatchEvent(new Event("sparkd-sparky-memory-synced"))
+      })
+    })
+  }
+
+  const loginWithApple = async (identityToken: string) => {
+    const response = await api.post<LoginResponse>("/auth/apple", { identityToken })
+    localStorage.setItem("sparkd_token", response.token)
+    stashLoginAccountType(response.accountType)
+    await fetchProfile()
+    setToken(response.token)
+    void import("@/lib/sparky-memory").then(({ syncSparkyMemoryFromServer }) => {
+      void syncSparkyMemoryFromServer().then(() => {
+        window.dispatchEvent(new Event("sparkd-sparky-memory-synced"))
+      })
+    })
+  }
+
+  const loginWithPasskey = async (jwt: string) => {
+    localStorage.setItem("sparkd_token", jwt)
+    await fetchProfile()
+    setToken(jwt)
+    void import("@/lib/sparky-memory").then(({ syncSparkyMemoryFromServer }) => {
+      void syncSparkyMemoryFromServer().then(() => {
+        window.dispatchEvent(new Event("sparkd-sparky-memory-synced"))
+      })
+    })
   }
 
   const register = async (data: RegisterRequest) => {
     return api.post<RegisterResponse>("/auth/register", data)
   }
 
-  const logout = () => {
+  const logout = async () => {
+    await pushTokenService.unregister()
     localStorage.removeItem("sparkd_token")
     localStorage.removeItem("sparkd_user_id")
     localStorage.removeItem("sparkd_username")
@@ -241,6 +311,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         login,
         loginWithGoogle,
+        loginWithApple,
+        loginWithPasskey,
         register,
         logout,
         refreshProfile,

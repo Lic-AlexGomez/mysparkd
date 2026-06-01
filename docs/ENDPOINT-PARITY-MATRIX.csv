@@ -1,0 +1,158 @@
+Dominio,Metodo,Ruta,Campos request,Campos response,Web,Movil,Notas
+Auth,POST,/auth/login,"username, password","token, userId, uuid",OK,OK,
+Auth,POST,/auth/register,"email, password, username","token, message",OK,OK,
+Auth,POST,/auth/google,idToken,SesionAuthResponse,OK,OK,
+Auth,POST,/auth/apple,identityToken,SesionAuthResponse,OK,OK,Web Apple JS SDK + env
+Auth,POST,/auth/verify-email,code,SesionAuthResponse,OK,OK,
+Auth,POST,/auth/forgot-password,email,message,OK,OK,
+Auth,POST,/auth/reset-password,"token, newPassword",message,OK,OK,
+Auth,POST,/auth/change-password,"oldPassword, newPassword",message,OK,OK,
+Auth,POST,/auth/request-email-change,newEmail,message,OK,OK,
+Auth,POST,/auth/verify-email-change,code,message,OK,OK,
+Passkeys,POST,/auth/passkeys/register/options,username,"challenge, rp",OK,OK,
+Passkeys,POST,/auth/passkeys/register/verify,credential,verified,OK,OK,
+Passkeys,POST,/auth/passkeys/login/options,username?,challenge,OK,OK,
+Passkeys,POST,/auth/passkeys/login/verify,credential,token,OK,OK,
+Passkeys,GET,/auth/passkeys/me,-,passkeys[],OK,OK,
+Passkeys,DELETE,/auth/passkeys/{passkeyId},-,-,OK,OK,
+Perfil,GET,/api/profile/me,-,"userId, username, bio, photos, posts, premium, fechaRegistro, reputation, engagementSummary",OK,Parcial,Web muestra fechaRegistro
+Perfil,GET,/api/profile/{userId},-,UserProfileResponseDTO + followStatus,OK,OK,reputation condicional privacidad
+Perfil,PUT,/api/profile,UserProfileRequestDTO,UserProfileResponseDTO,OK,OK,
+Perfil,POST,/api/profile,UserProfileRequestDTO,UserProfileResponseDTO,OK,OK,Onboarding
+Perfil,POST,/api/profile/voice-note,multipart file,url,OK,OK,
+Perfil,DELETE,/api/profile/delete/voice,-,-,OK,OK,
+Perfil,GET,/api/profile/me/analytics,-,UserAnalyticsDTO,OK,No,Movil analytics.tsx usa admin
+Perfil,GET,/api/profile/me/summary,-,SparkyProfileSummaryDTO,No,No,Solo sparkd-sparky interno
+Perfil,PUT,/api/profile/fcm-token,token,-,OK,OK,Web push hook 2026-05
+Fotos,POST,/api/photos/add,multipart,photo,OK,OK,
+Fotos,POST,/api/photos/profile-picture,multipart,url,OK,OK,Fix movil 2026-05
+Fotos,POST,/api/photos/cover-picture,multipart,url,OK,OK,
+Fotos,DELETE,/api/photos/delete/{id},-,-,OK,OK,
+Preferencias,GET,/api/preferences/get/my/preferences,-,UserPreferencesResponseDTO,OK,OK,Dating filters
+Preferencias,POST,/api/preferences/set/preferences,UserPreferencesRequestDTO,UserPreferencesResponseDTO,OK,OK,
+Preferencias,GET,/api/preferences/ui,-,"navbarStyle, hiddenElements, tabOrder",OK,OK,Sync remoto 2026-05
+Preferencias,PUT,/api/preferences/ui,UiPreferencesDTO,UiPreferencesDTO,OK,OK,Sync remoto 2026-05
+Feed,GET,/api/feed/feed,"page, size",Page<PostResponseDTO>,OK,OK,
+Feed,GET,/api/feed/following,"page, size",Page<PostResponseDTO>,OK,OK,
+Feed,GET,/api/feed/local,"radiusKm, page",Page<PostResponseDTO> + distance,OK,OK,Fix setPosts 2026-05
+Feed,POST,/api/feed/location,"latitude, longitude",-,OK,OK,
+Feed,GET,/api/feed/location,-,"lat, lng, virtualLat, virtualLng, hasVirtual",OK,OK,Passport
+Feed,PUT,/api/feed/location/virtual,"latitude, longitude",-,OK,OK,Premium required
+Feed,DELETE,/api/feed/location/virtual,-,-,OK,OK,
+Feed,GET,/api/feed/ranking/global,-,RankingEntryDTO[],OK,No,
+Feed,GET,/api/feed/ranking/local,radiusKm?,RankingEntryDTO[],OK,No,
+Feed,GET,/api/feed/reshares,"page, size",Page<RepostFeedItemDTO>,OK,No,
+Feed,GET,/api/feed/my-engagement/summary,-,EngagementSummaryDTO,OK,Parcial,
+Posts,POST,/api/posts/new,"body, file, visibility, poll, permanent",PostResponseDTO,OK,OK,multipart
+Posts,GET,/api/posts/{postId},-,PostResponseDTO,OK,Parcial,
+Posts,PUT,/api/posts/update/{postId},PostRequestDTO,PostResponseDTO,OK,OK,
+Posts,DELETE,/api/posts/delete/{postId},-,-,OK,OK,
+Posts,GET,/api/posts/me,"page, size",Page<PostResponseDTO>,OK,OK,
+Posts,POST,/api/posts/{id}/unlock,multipart file,PostResponseDTO,OK,OK,
+Posts,GET,/api/posts/{id}/boost/info,-,"boostCount, active, expiresAt",OK,OK,
+Posts,POST,/api/posts/{id}/boost/checkout,-,checkoutUrl,OK,OK,
+Posts,POST,/api/posts/{id}/repost,comment?,RepostResponseDTO,OK,OK,
+Posts,DELETE,/api/posts/{id}/repost,-,-,OK,OK,
+Posts,GET,/api/me/reposts,"page, size",Page<RepostFeedItemDTO>,OK,Parcial,
+Comentarios,GET,/api/comments/get/{postId},"page, size",comments[],OK,OK,
+Comentarios,POST,/api/comments/{postId},body,Comment,OK,OK,
+Comentarios,PUT,/api/comments/update/{id},body,Comment,OK,OK,
+Comentarios,DELETE,/api/comments/delete/{id},-,-,OK,OK,
+Reacciones,POST,/api/likes/toggle,"targetId, reaction",message,OK,OK,
+Reacciones,GET,/api/likes/status/{targetId},-,"userReacted, reactionType",OK,OK,
+Reacciones,GET,/api/reactions/users/{targetId},reactionType?,UserReactionDTO[],OK,No,Modal quien reacciono
+Polls,POST,/api/polls/vote/{optionId},-,PollResponse,OK,OK,
+Bookmarks,POST,/api/bookmarks/toggle,postId,saved,OK,OK,
+Bookmarks,GET,/api/bookmarks,"page, size",Page<Post>,OK,OK,
+Discover,GET,/api/discover,"page, size, lat, lng, radiusKm",Page<DiscoverProfileDTO>,OK,OK,
+Swipes,POST,/api/swipes/perform/swipe,"targetUserId, type","match, swipesRemaining",OK,OK,
+Swipes,GET,/api/swipes/liked-me,-,DiscoverProfileDTO[],OK,OK,
+Swipes,POST,/api/swipes/liked-me/checkout,-,checkoutUrl,OK,OK,
+Swipes,POST,/api/swipes/rewind,-,RewindResponseDTO,OK,No,
+Swipes,GET,/api/swipes/i-liked,-,DiscoverProfileDTO[],OK,No,
+Matches,GET,/api/matches/my/matches,-,MatchResponseDTO[],OK,OK,
+Matches,POST,/api/matches/{userId}/unmatch,-,-,OK,Parcial,
+Bloqueos,POST,/api/users/{userId}/block,-,{blocked: boolean},OK,OK,Toggle - fix 2026-05
+Bloqueos,GET,/api/users/blocked,-,"userId, username, profilePictureUrl, blockedAt[]",OK,OK,Fix 2026-05
+Follow,POST,/api/follow/{userId},-,-,OK,OK,
+Follow,DELETE,/api/follow/{userId},-,-,OK,OK,
+Follow,GET,/api/follow/followers/{userId},"page, size",users[],OK,OK,
+Follow,GET,/api/follow/following/{userId},"page, size",users[],OK,OK,
+Follow,GET,/api/follow/requests,-,requests[],OK,OK,
+Search,GET,/api/search/intelligent,query,"users, posts, hashtags",OK,OK,
+Search,GET,/api/search/general,query,mixed,OK,OK,
+Search,GET,/api/search/autocomplete,q,"users, posts, hashtags",OK,OK,
+Search,GET,/api/search/hashtags/trending,limit,hashtags[],OK,OK,
+Search,GET,/api/search/hashtags/{tag}/posts,"page, size",posts[],OK,OK,
+Intereses,GET,/api/interests/all/interest,-,InterestResponseDTO[],OK,OK,
+Intereses,GET,/api/interests/me,-,InterestResponseDTO[],OK,OK,
+Intereses,POST,/api/interests/add/{interestId},-,-,OK,OK,
+Intereses,DELETE,/api/interests/remove/{interestId},-,-,OK,OK,BE anadido 2026-05
+Chat,GET,/api/chat/chats,-,chats[],OK,OK,
+Chat,POST,/api/chat/open/{userId},category?,chatId,OK,OK,
+Chat,POST,/api/chat/chats/{id}/read,-,-,OK,OK,
+Chat,POST,/api/chat/upload/media,multipart,mediaUrl,OK,OK,
+Chat,GET,/api/messages/{chatId}/messages,"page, size",messages[],OK,OK,
+Chat,POST,/api/messages/send,multipart/text,Message,OK,OK,
+Chat,PUT,/api/messages/messages/{messageId},content,Message,OK,OK,
+Chat,DELETE,/api/messages/messages/{id}/me,-,-,OK,OK,
+Chat,DELETE,/api/messages/messages/{id}/everyone,-,-,OK,OK,
+Chat,STOMP,/chat.send,"chatId, content",message push,OK,OK,
+Chat,STOMP,/chat.typing,chatId,typing event,OK,OK,
+Activity,GET,/api/activity-feed,"type, sort, lat, lng, radiusKm, dateFrom, dateTo, minAge, maxAge",UnifiedFeedItemDTO[],OK,OK,
+Eventos,POST,/api/events,EventRequestDTO,EventResponseDTO,OK,OK,
+Eventos,GET,/api/events/{eventId},-,EventResponseDTO,OK,OK,
+Eventos,PUT,/api/events/{eventId},EventRequestDTO,EventResponseDTO,OK,OK,
+Eventos,POST,/api/events/{eventId}/join,accompanyingCount?,EventParticipantResponseDTO,OK,OK,
+Eventos,POST,/api/events/{eventId}/rate,"score, comment",EventRatingResponseDTO,Parcial,Parcial,
+Eventos,PUT,/api/events/{eventId}/group/location,"address, lat, lng, zone",EventGroupMessage,OK,OK,
+Eventos grupo,GET,/api/events/{id}/group/messages,"page, size",messages[],OK,OK,
+Eventos grupo,POST,/api/events/{id}/group/messages,"content, media?",EventGroupMessage,OK,OK,
+Eventos grupo,PUT,/api/events/{id}/group/messages/{msgId},content,EventGroupMessage,OK,OK,
+Eventos grupo,PATCH,/api/events/{id}/group/settings,EventGroupSettingsDTO,-,OK,OK,
+Eventos grupo,GET,/api/events/{id}/group/join-eligible-users,-,users[],OK,Rota,FE fallback + try/catch
+Tickets,POST,/api/events/payment/{eventId}/checkout,-,checkoutUrl,OK,Rota,FE graceful hasta BE
+Tickets,GET,/api/events/payment/tickets/me,-,EventTicket[],OK,Rota,FE graceful hasta BE
+Tickets,GET,/api/events/payment/tickets/{ticketId},-,EventTicket + QR,OK,Rota,FE graceful hasta BE
+Date cards,GET,/api/date-cards/feed,"maxDistanceKm, minAge, maxAge, minCompatibility, beforeDateTime",DateCardResponse[],OK,OK,
+Date cards,GET,/api/date-cards/mine,-,DateCardResponse[],OK,OK,
+Date cards,POST,/api/date-cards/create,DateCardRequestDTO,DateCardResponse,OK,OK,
+Fast date,POST,/api/fast-date/interests/interested,"dateCardId, message",-,OK,OK,
+Fast date,POST,/api/fast-date/interests/respond,"interestId, accept",chatId?,OK,OK,
+Grupos,POST,/api/groups,"name, description",Group,OK,OK,
+Grupos,GET,/api/groups/discover,-,Group[],OK,OK,
+Grupos,GET/POST,/api/groups/{id}/messages,content,GroupMessage,OK,OK,
+Grupos,GET,/api/groups/analytics,-,stats,OK,No,FE tab resumen admin 2026-05
+Grupos,PUT,/api/groups/{id}/cover,multipart,url,OK,No,
+Stories,POST,/api/stories,"mediaUrl, caption",StoryResponse,OK,OK,CreateStoryModal movil
+Stories,GET,/api/stories/feed,-,StoryGroup[],OK,OK,
+Stories,POST,/api/stories/{id}/view,-,-,OK,OK,
+Stories,POST,/api/stories/{id}/react,reaction,-,OK,OK,
+Notificaciones,GET,/api/notifications/{userId},"page, type?",Notification[],OK,OK,Filtro en cliente
+Notificaciones,GET,/api/notifications/{userId}/count,-,unread count,OK,OK,
+Notificaciones,PUT,/api/notifications/{id}/read,-,-,OK,OK,
+Notificaciones,DELETE,/api/notifications/{id},-,-,OK,OK,
+Reports,POST,/api/reports,"targetType, targetId, reason",-,OK,OK,
+Premium,POST,/api/subscription/checkout,-,checkoutUrl,OK,OK,Movil + RevenueCat
+Premium,GET,/api/user-subscription/status,-,UserSubscriptionResponseDTO,OK,OK,
+Sparky,GET,/api/sparky/memory,-,memory JSON,OK,OK,Proxy a sparkd-sparky
+Sparky,PUT,/api/sparky/memory,memory JSON,memory JSON,OK,OK,
+Sparky,GET,/api/sparky/context,-,memory + perfil,OK,OK,
+Sparky,POST,/api/sparky,"tier, task, userMessage, sparkyContext","suggestions, text",OK,OK,
+Sparky,POST,/api/ai,"messages, task",text,OK,OK,Legacy alias
+Mutual plans,GET,/api/mutual-plans/user/{userId},-,"connections, sharedPlans",OK,Rota,FE graceful hasta BE
+Mutual plans,GET,/api/mutual-plans/event/{eventId},-,overlaps,OK,Rota,FE graceful hasta BE
+Mutual plans,POST,/api/mutual-plans/interest,planId,-,OK,Rota,FE graceful hasta BE
+DM,GET,/api/contact-permissions/can-message/{userId},-,"allowed, reason",OK,Rota,FE graceful hasta BE
+DM,POST,/api/dating/exposure,"viewedUserId, source",-,OK,Rota,FE graceful hasta BE
+BFF Web,GET,/api/city/pulse,-,"activeUsers, heatmap",OK,No,Movil ya no llama Java
+BFF Web,GET,/api/feed/live,-,live items,OK,No,
+BFF Web,GET,/api/moments/trending,-,moments[],OK,No,
+BFF Web,GET,/api/tonight/stream,-,SSE stream,OK,No,
+BFF Web,GET,/api/loop/insights/{userId},-,insights,OK,No,
+BFF Web,GET,/api/graph/similarity/{userId},-,similarity,OK,No,
+BFF Web,GET,/api/geocode,q,"lat, lng, label",OK,Parcial,Movil fallback opcional
+Admin,GET,/api/admin/stats,-,AdminStatsDTO,OK,Parcial,
+Admin,GET,/api/admin/users,"page, filters",Page<AdminUserDTO>,OK,Parcial,
+Admin,GET,/api/manager/activity,"page, limit",activity[],OK,Parcial,
+Admin,GET,/api/admin/metrics/stripe/*,varios,metrics,Parcial,Parcial,~22 rutas

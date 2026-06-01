@@ -2,27 +2,35 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
+import { swipeService } from "@/lib/services/swipe"
 import { api, ApiError } from "@/lib/api"
-import { useAuth } from "@/lib/auth-context"
 import { usePremiumStatus } from "@/hooks/use-premium-status"
 import type { UserProfile, SwipeResponse } from "@/lib/types"
 import { SwipeCard } from "@/components/swipes/swipe-card"
 import { MatchModal } from "@/components/swipes/match-modal"
-import { X, Heart, Loader2, Zap, Crown, RefreshCw } from "lucide-react"
+import { X, Heart, Loader2, Zap, Crown, RefreshCw, RotateCcw, MapPin, List } from "lucide-react"
 import { AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { useI18n } from "@/lib/i18n"
+import { getDatingDisplayName, recordDatingExposure } from "@/lib/dm-eligibility"
+import { useFeedLocation } from "@/hooks/use-feed-location"
+import { DISCOVER_RADIUS_OPTIONS } from "@/lib/event-date-filters"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 const DISCOVER_PAGE_SIZE = 20
 /** Alineado con backend free tier (mensaje 429). */
 const FREE_DAILY_SWIPE_CAP = 30
 
 export default function SwipesPage() {
-  const { user } = useAuth()
   const { isPremium } = usePremiumStatus()
-  const { t } = useI18n()
+  const { t, te } = useI18n()
   const router = useRouter()
   const [profiles, setProfiles] = useState<UserProfile[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -30,15 +38,33 @@ export default function SwipesPage() {
   const [showMatch, setShowMatch] = useState(false)
   const [matchedUser, setMatchedUser] = useState<{ id: string; name: string } | null>(null)
   const swipedIdsRef = useRef<Set<string>>(new Set())
+  const lastSwipedProfileRef = useRef<UserProfile | null>(null)
+  const [isRewinding, setIsRewinding] = useState(false)
   const discoverPageRef = useRef(0)
   const hasMoreProfilesRef = useRef(true)
   const isFetchingMoreRef = useRef(false)
   const [hasMoreProfiles, setHasMoreProfiles] = useState(true)
   const [isFetchingMore, setIsFetchingMore] = useState(false)
   const [isSwiping, setIsSwiping] = useState(false)
-  const [remainingSwipes, setRemainingSwipes] = useState<number | null>(null)
+  const [swipesRemaining, setSwipesRemaining] = useState<number | null>(null)
   const [swipeLimitReached, setSwipeLimitReached] = useState(false)
   const [swipeDirection, setSwipeDirection] = useState<"left" | "right" | null>(null)
+  const feedLocation = useFeedLocation()
+  const [locationFilterOn, setLocationFilterOn] = useState(false)
+  const [discoverRadiusKm, setDiscoverRadiusKm] = useState(1500)
+  const [discoverCoords, setDiscoverCoords] = useState<{ lat: number; lng: number } | null>(null)
+  const [locationBusy, setLocationBusy] = useState(false)
+
+  const buildDiscoverQuery = useCallback(
+    (page: number) => {
+      let qs = `/api/discover?page=${page}&size=${DISCOVER_PAGE_SIZE}`
+      if (locationFilterOn && discoverCoords) {
+        qs += `&lat=${discoverCoords.lat}&lng=${discoverCoords.lng}&radiusKm=${discoverRadiusKm}`
+      }
+      return qs
+    },
+    [locationFilterOn, discoverCoords, discoverRadiusKm]
+  )
 
   const mapProfiles = useCallback((rows: any[]) => {
     return rows.map((item: any) => ({
@@ -71,7 +97,7 @@ export default function SwipesPage() {
         setIsFetchingMore(true)
       }
 
-      const response = await api.get<any>(`/api/discover?page=${targetPage}&size=${DISCOVER_PAGE_SIZE}`)
+      const response = await api.getPage<any>(buildDiscoverQuery(targetPage))
       const discoverProfiles = Array.isArray(response?.content) ? response.content : []
       const mapped = mapProfiles(discoverProfiles).filter((p) => !swipedIdsRef.current.has(p.userId))
 
@@ -105,33 +131,45 @@ export default function SwipesPage() {
       isFetchingMoreRef.current = false
       setIsFetchingMore(false)
     }
-  }, [mapProfiles])
+  }, [mapProfiles, buildDiscoverQuery])
 
-  const fetchRemainingSwipes = useCallback(async () => {
-    if (!user?.userId) return
-    if (isPremium) {
-      setRemainingSwipes(null)
-      setSwipeLimitReached(false)
-      return
-    }
+  const enableLocationFilter = async () => {
+    setLocationBusy(true)
     try {
-      const data = await api.get<{ remainingSwipes?: number; swipesRemaining?: number }>(
-        `/api/swipes/remaining/${user.userId}`,
-      )
-      const raw = data.swipesRemaining ?? data.remainingSwipes
-      if (typeof raw === "number") {
-        setRemainingSwipes(raw)
-        setSwipeLimitReached(raw === 0)
+      if (feedLocation.fromVirtual && feedLocation.effectiveLat != null && feedLocation.effectiveLng != null) {
+        setDiscoverCoords({ lat: feedLocation.effectiveLat, lng: feedLocation.effectiveLng })
+        setDiscoverRadiusKm(50)
+        setLocationFilterOn(true)
+        return
       }
-    } catch {
-      // Sin contador: el POST de swipe o un 429 actualizará estado
+      const coords = await feedLocation.requestBrowser()
+      if (!coords) {
+        toast.error(t("swipes.locationDenied") || "Permiso de ubicación denegado")
+        return
+      }
+      setDiscoverCoords({ lat: coords.latitude, lng: coords.longitude })
+      setDiscoverRadiusKm(1500)
+      setLocationFilterOn(true)
+    } finally {
+      setLocationBusy(false)
     }
-  }, [user?.userId, isPremium])
+  }
+
+  const disableLocationFilter = () => {
+    setLocationFilterOn(false)
+    setDiscoverCoords(null)
+  }
 
   useEffect(() => {
     void fetchProfiles(true)
-    fetchRemainingSwipes()
-  }, [fetchProfiles, fetchRemainingSwipes])
+  }, [fetchProfiles])
+
+  useEffect(() => {
+    if (isPremium) {
+      setSwipesRemaining(null)
+      setSwipeLimitReached(false)
+    }
+  }, [isPremium])
 
   useEffect(() => {
     const remainingCards = profiles.length - currentIndex - 1
@@ -140,13 +178,19 @@ export default function SwipesPage() {
     }
   }, [currentIndex, profiles.length, isLoading, hasMoreProfiles, fetchProfiles])
 
+  useEffect(() => {
+    const current = profiles[currentIndex]
+    if (!current?.userId) return
+    void recordDatingExposure(current.userId, "dating_feed")
+  }, [currentIndex, profiles])
+
   const swipesUiLocked =
-    !isPremium && (swipeLimitReached || (typeof remainingSwipes === "number" && remainingSwipes <= 0))
+    !isPremium && (swipeLimitReached || (typeof swipesRemaining === "number" && swipesRemaining <= 0))
 
   const handleSwipe = useCallback(async (direction: "left" | "right") => {
     const currentProfile = profiles[currentIndex]
     if (!currentProfile || isSwiping) return
-    if (!isPremium && remainingSwipes !== null && remainingSwipes <= 0) {
+    if (!isPremium && swipesRemaining !== null && swipesRemaining <= 0) {
       setSwipeLimitReached(true)
       return
     }
@@ -162,30 +206,28 @@ export default function SwipesPage() {
         type,
       })
       if (response.premium) {
-        setRemainingSwipes(null)
+        setSwipesRemaining(null)
         setSwipeLimitReached(false)
       } else if (typeof response.swipesRemaining === "number") {
-        setRemainingSwipes(response.swipesRemaining)
+        setSwipesRemaining(response.swipesRemaining)
         setSwipeLimitReached(response.swipesRemaining === 0)
-      } else if (!isPremium && remainingSwipes !== null) {
-        const next = Math.max(0, remainingSwipes - 1)
-        setRemainingSwipes(next)
-        setSwipeLimitReached(next === 0)
-      } else if (!isPremium && remainingSwipes === null) {
-        void fetchRemainingSwipes()
       }
       if (response.match) {
-        setMatchedUser({ id: currentProfile.userId, name: `${currentProfile.nombres} ${currentProfile.apellidos}` })
+        setMatchedUser({
+          id: currentProfile.userId,
+          name: getDatingDisplayName(currentProfile.nombres),
+        })
         setShowMatch(true)
       }
       swipedIdsRef.current.add(currentProfile.userId)
+      lastSwipedProfileRef.current = currentProfile
       if (typeof navigator !== "undefined" && "vibrate" in navigator) {
         navigator.vibrate(10)
       }
     } catch (error) {
       if (error instanceof ApiError && (error.status === 429 || error.status === 403)) {
         setSwipeLimitReached(true)
-        void fetchRemainingSwipes()
+        setSwipesRemaining(0)
         toast.error(
           error.message ||
             `${t("swipes.limitMessage")} (${FREE_DAILY_SWIPE_CAP})`,
@@ -208,7 +250,36 @@ export default function SwipesPage() {
       setSwipeDirection(null)
       setIsSwiping(false)
     }, shouldAdvance ? 200 : 120)
-  }, [profiles, currentIndex, isSwiping, isPremium, remainingSwipes, fetchRemainingSwipes])
+  }, [profiles, currentIndex, isSwiping, isPremium, swipesRemaining, t])
+
+  const handleRewind = useCallback(async () => {
+    if (isRewinding || isSwiping) return
+    if (!lastSwipedProfileRef.current) {
+      toast.error("No hay ningún swipe para deshacer")
+      return
+    }
+    setIsRewinding(true)
+    try {
+      const res = await swipeService.rewind()
+      if (!res) throw new ApiError("Error al deshacer el swipe", 500)
+      const rewound = lastSwipedProfileRef.current
+      lastSwipedProfileRef.current = null
+      swipedIdsRef.current.delete(rewound.userId)
+      setCurrentIndex((prev) => Math.max(0, prev - 1))
+      setShowMatch(false)
+      setMatchedUser(null)
+      toast.success("¡Swipe deshecho! 🔄")
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 403) {
+        toast.error("El Rewind es exclusivo de Premium 👑", { duration: 4000 })
+        router.push("/premium")
+      } else {
+        toast.error(err instanceof ApiError ? err.message : "Error al deshacer el swipe")
+      }
+    } finally {
+      setIsRewinding(false)
+    }
+  }, [isRewinding, isSwiping, router])
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -260,9 +331,81 @@ export default function SwipesPage() {
             <h1 className="bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-2xl font-black tracking-tight text-transparent">
               {t("swipes.title")}
             </h1>
-            {!isPremium && remainingSwipes !== null && !swipeLimitReached && (
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="h-8 rounded-full gap-1.5"
+              onClick={() => router.push("/swipes/i-liked")}
+            >
+              <List className="h-3.5 w-3.5" />
+              {t("swipes.iLiked") || "Mis likes"}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="h-8 rounded-full gap-1.5"
+              onClick={() => router.push("/swipes/i-disliked")}
+            >
+              <List className="h-3.5 w-3.5" />
+              {te("Descartados", "Passed")}
+            </Button>
+            {!locationFilterOn ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 rounded-full gap-1.5"
+                disabled={locationBusy}
+                onClick={() => void enableLocationFilter()}
+              >
+                {locationBusy ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <MapPin className="h-3.5 w-3.5" />
+                )}
+                {t("swipes.nearby") || "Cerca"}
+              </Button>
+            ) : (
+              <div className="flex items-center gap-1">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button type="button" size="sm" variant="secondary" className="h-8 rounded-full gap-1">
+                      <MapPin className="h-3.5 w-3.5" />
+                      {DISCOVER_RADIUS_OPTIONS.find((o) => o.km === discoverRadiusKm)?.label ??
+                        `${discoverRadiusKm} km`}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="center">
+                    {DISCOVER_RADIUS_OPTIONS.map((opt) => (
+                      <DropdownMenuItem
+                        key={opt.km}
+                        onClick={() => setDiscoverRadiusKm(opt.km)}
+                      >
+                        {opt.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 rounded-full"
+                  onClick={() => {
+                    disableLocationFilter()
+                    void fetchProfiles(true)
+                  }}
+                  aria-label="Quitar filtro de ubicación"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+            {!isPremium && swipesRemaining !== null && !swipeLimitReached && (
               <Badge variant="secondary" className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold tabular-nums text-primary">
-                {remainingSwipes} / {FREE_DAILY_SWIPE_CAP} {t("swipes.today")}
+                {swipesRemaining} / {FREE_DAILY_SWIPE_CAP} {t("swipes.today")}
               </Badge>
             )}
           </div>
@@ -272,28 +415,28 @@ export default function SwipesPage() {
         </div>
 
         {/* Swipe limit bar */}
-        {!isPremium && remainingSwipes !== null && (
+        {!isPremium && swipesRemaining !== null && (
           <div className="mb-3 rounded-2xl border border-border/60 bg-card/70 px-3.5 py-3 shadow-md backdrop-blur-sm">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-xs text-muted-foreground flex items-center gap-1">
                 <Zap className="h-3 w-3 text-primary" />
                 {t("swipes.daily")}
               </span>
-              <span className={`text-xs font-bold ${remainingSwipes <= 3 ? 'text-destructive' : 'text-primary'}`}>
-                {remainingSwipes}/{FREE_DAILY_SWIPE_CAP}
+              <span className={`text-xs font-bold ${swipesRemaining <= 3 ? 'text-destructive' : 'text-primary'}`}>
+                {swipesRemaining}/{FREE_DAILY_SWIPE_CAP}
               </span>
             </div>
             <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all duration-500 ${
-                  remainingSwipes <= 3
+                  swipesRemaining <= 3
                     ? 'bg-destructive'
                     : 'bg-gradient-to-r from-primary to-secondary'
                 }`}
-                style={{ width: `${Math.min(100, (remainingSwipes / FREE_DAILY_SWIPE_CAP) * 100)}%` }}
+                style={{ width: `${Math.min(100, (swipesRemaining / FREE_DAILY_SWIPE_CAP) * 100)}%` }}
               />
             </div>
-            {remainingSwipes <= 3 && remainingSwipes > 0 && (
+            {swipesRemaining <= 3 && swipesRemaining > 0 && (
               <button
                 onClick={() => router.push('/premium')}
                 className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg bg-primary/10 py-1.5 text-center text-xs font-medium text-primary transition-colors hover:bg-primary/15"
@@ -391,6 +534,19 @@ export default function SwipesPage() {
               aria-label={t("swipes.pass")}
             >
               <X className="h-6 w-6 text-destructive" />
+            </button>
+
+            <button
+              onClick={() => void handleRewind()}
+              disabled={isRewinding || isSwiping || !lastSwipedProfileRef.current}
+              className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-amber-500/30 bg-card shadow-lg transition-all duration-200 hover:scale-110 hover:border-amber-500 hover:bg-amber-500/10 disabled:opacity-30 disabled:hover:scale-100"
+              aria-label="Rewind"
+              title={isPremium ? "Deshacer swipe" : "Rewind (Premium)"}
+            >
+              {isRewinding
+                ? <Loader2 className="h-5 w-5 text-amber-500 animate-spin" />
+                : <RotateCcw className="h-5 w-5 text-amber-500" />
+              }
             </button>
 
             <button

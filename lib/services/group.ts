@@ -45,8 +45,8 @@ export const groupService = {
     const endpoints = [
       `/api/search/autocomplete?q=${encodeURIComponent("@" + candidate)}`,
       `/api/search/autocomplete?q=${encodeURIComponent(candidate)}`,
-      `/api/search/users?query=${encodeURIComponent(candidate)}`,
       `/api/search/general?query=${encodeURIComponent(candidate)}`,
+      `/api/search/intelligent?query=${encodeURIComponent(candidate)}`,
     ]
 
     for (const endpoint of endpoints) {
@@ -169,6 +169,26 @@ export const groupService = {
       api.get<GroupInviteLink[]>(`/api/groups/${groupId}/invite-links`),
     remove: (groupId: string, inviteId: string) =>
       api.delete<void>(`/api/groups/${groupId}/invite-links/${inviteId}`),
+  },
+
+  // Usuarios elegibles para invitar al grupo (matches + seguidores)
+  getJoinEligibleUsers: async (eventId: string) => {
+    try {
+      const rows = await api.get<Array<{ userId: string; username: string; nombres?: string; apellidos?: string; profilePictureUrl?: string }>>(
+        `/api/events/${eventId}/group/join-eligible-users`
+      )
+      return Array.isArray(rows) ? rows : []
+    } catch {
+      return []
+    }
+  },
+
+  polls: {
+    list: (groupId: string) => api.get<unknown[]>(`/api/groups/${groupId}/polls`),
+    create: (groupId: string, body: { question: string; options: string[] }) =>
+      api.post<GroupMessage>(`/api/groups/${groupId}/polls`, body),
+    vote: (groupId: string, optionId: string) =>
+      api.post<unknown>(`/api/groups/${groupId}/polls/${optionId}/vote`),
   },
 }
 

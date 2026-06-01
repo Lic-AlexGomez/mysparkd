@@ -1,0 +1,12 @@
+export type SparkyExpression =
+  | "idle"
+  | "happy"
+  | "excited"
+  | "thinking"
+  | "wink"
+  | "speaking"
+  | "celebrating"
+  | "sleepy"
+  | "confused"
+  | "sad"
+  | "scared"

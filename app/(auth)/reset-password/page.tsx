@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
+import { getRegistrationPasswordError } from "@/lib/password-policy"
+import { PasswordRulesChecklist } from "@/components/auth/password-rules-checklist"
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams()
@@ -25,8 +27,9 @@ function ResetPasswordForm() {
       toast.error("Completa todos los campos")
       return
     }
-    if (newPassword.length < 6) {
-      toast.error("Minimo 6 caracteres")
+    const pwdErr = getRegistrationPasswordError(newPassword)
+    if (pwdErr) {
+      toast.error(pwdErr)
       return
     }
     if (newPassword !== confirmPassword) {
@@ -56,12 +59,13 @@ function ResetPasswordForm() {
             <Input
               id="newPassword"
               type="password"
-              placeholder="Minimo 6 caracteres"
+              placeholder="Mínimo 8 caracteres + complejidad"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
               disabled={isLoading}
             />
+            <PasswordRulesChecklist password={newPassword} showHintWhenEmpty={false} />
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="confirmPassword" className="text-foreground">

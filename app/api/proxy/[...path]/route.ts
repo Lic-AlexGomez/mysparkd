@@ -1,3 +1,5 @@
+import { aggregateLiveFeed } from "@/lib/server/live-feed-aggregator"
+
 const normalizeBackend = (raw: string) =>
   raw.replace(/\/api\/?$/, "").replace(/\/$/, "")
 
@@ -29,6 +31,49 @@ async function handler(
   // stale bundles or extensions still get a valid list response.
   if (request.method === "GET") {
     const trimmed = endpoint.replace(/\/+$/, "") || "/"
+
+    /** BFF: unified live activity stream (proximity + recency + engagement rank). */
+    if (trimmed === "/api/activity/live-feed") {
+      const lat = Number(searchParams.get("lat"))
+      const lng = Number(searchParams.get("lng"))
+      const lim = Number(searchParams.get("limit"))
+      const authHeaderEarly = request.headers.get("authorization")
+      try {
+        const body = await aggregateLiveFeed({
+          backendBaseUrl: selectedBackend,
+          authHeader: authHeaderEarly,
+          lat: Number.isFinite(lat) ? lat : undefined,
+          lng: Number.isFinite(lng) ? lng : undefined,
+          limit: Number.isFinite(lim) ? lim : undefined,
+        })
+        return Response.json(body, {
+          headers: {
+            "Content-Type": "application/json",
+            "Cache-Control": "private, max-age=15",
+          },
+        })
+      } catch (e) {
+        console.error("[proxy] live-feed aggregation failed", e)
+        return Response.json(
+          {
+            items: [],
+            generatedAt: new Date().toISOString(),
+            meta: {
+              weights: { engagement: 0.4, recency: 0.35, proximity: 0.25 },
+              partial: true,
+            },
+          },
+          {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+              "Cache-Control": "private, max-age=10",
+            },
+          }
+        )
+      }
+    }
+
     const legacy = trimmed.match(/^\/api\/bookmarks\/([^/]+)$/i)
     const segment = legacy?.[1]
     if (

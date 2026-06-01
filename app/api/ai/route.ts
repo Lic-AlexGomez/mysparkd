@@ -5,7 +5,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     console.log('Body recibido:', body)
-    const { type, otherUsername, lastMessages } = body
+    const { type, otherUsername, lastMessages, contextTitle } = body
 
     const apiKey = process.env.GROQ_API_KEY
     if (!apiKey) return NextResponse.json({ error: "No API key" }, { status: 500 })
@@ -21,6 +21,11 @@ export async function POST(req: NextRequest) {
       prompt = `Eres un asistente de una app de citas llamada Sparkd. Sugiere 3 ideas de citas creativas y específicas en español. Responde SOLO con un JSON array de strings. Ejemplo: ["Ir a ver una película este sábado", "Visitar el mercado local el domingo"]`
     } else if (type === "game_trivia") {
       prompt = `Eres un asistente de una app de citas llamada Sparkd. Genera 8 preguntas de trivia divertidas y variadas en español (cultura general, entretenimiento, curiosidades). Responde SOLO con un JSON array de objetos con este formato exacto: [{"q":"pregunta","options":["A","B","C","D"],"answer":0}] donde answer es el índice (0-3) de la opción correcta. Varía los temas y dificultad.`
+    } else if (type === "coordination") {
+      const ctx = typeof contextTitle === "string" && contextTitle.trim() ? contextTitle.trim() : "a meetup"
+      const contextMsgs =
+        lastMessages?.filter((m: { content?: string }) => m.content?.trim()).map((m: { content: string }) => m.content).join(" | ") || ""
+      prompt = `You help Sparkd users coordinate real-world plans. Context: "${ctx}". Recent messages: ${contextMsgs}. Reply with ONLY a JSON array of 3 short strings: one logistics question, one time proposal, one place/invite suggestion. Language: Spanish. Example: ["¿Te viene bien el jueves 20:00?", "Podemos quedar en la puerta del venue", "¿Llevamos a alguien más?"]`
     } else if (type === "game_truth") {
       const context = lastMessages?.filter((m: any) => m.content?.trim()).map((m: any) => m.content).join(" | ") || ""
       prompt = `Eres un asistente de una app de citas llamada Sparkd. Genera 12 preguntas y retos divertidos para que ${otherUsername || 'dos personas'} se conozcan mejor. ${context ? `Contexto de su conversación: ${context}.` : ''} Mezcla preguntas personales, divertidas y románticas. Responde SOLO con un JSON array de objetos: [{"type":"truth","text":"pregunta"},{"type":"dare","text":"reto"}]. Alterna entre truth y dare.`

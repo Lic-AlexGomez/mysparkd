@@ -27,6 +27,7 @@ import {
   Share2,
   Bookmark,
   Flag,
+  Rocket,
   Check,
   Globe,
   Users as UsersIcon,
@@ -46,8 +47,10 @@ import { ReactionPicker, getReactionEmoji } from "./reaction-picker"
 import { ReactionsModal } from "./reactions-modal"
 import { ShareModal } from "./share-modal"
 import { UnlockPostModal } from "./unlock-post-modal"
+import { LockedPostMedia } from "./locked-post-media"
 import { parseTextWithLinks } from "@/lib/utils/text-parser"
 import { PollComponent } from "./poll-component"
+import { PostBoostDialog } from "./post-boost-dialog"
 import { ReportModal } from "./report-modal"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
 import { usePremiumStatus } from "@/hooks/use-premium-status"
@@ -60,6 +63,7 @@ import {
 import { ReputationStars } from "@/components/ui/reputation-stars"
 import { OptimizedImage } from "@/components/ui/optimized-image"
 import { useI18n } from "@/lib/i18n"
+import { profileHref } from "@/lib/profile-route"
 
 interface PostCardProps {
   post: Post
@@ -126,16 +130,33 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
   const [showImageModal, setShowImageModal] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
+  const [showBoostDialog, setShowBoostDialog] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [editedBody, setEditedBody] = useState(post.body || '')
   const [editedVisibility, setEditedVisibility] = useState<PostVisibility>(post.visibility || 'PUBLIC')
   const [isSaving, setIsSaving] = useState(false)
   const isOwn = user?.userId === post.userId
+  const canBoost = isOwn && Boolean(post.permanent)
+  const feedActive =
+    canBoost && post.expiresAt ? new Date(post.expiresAt) > new Date() : false
+  const feedExpiryLabel =
+    canBoost && post.expiresAt
+      ? feedActive
+        ? te("En feed", "In feed")
+        : te("Fuera del feed", "Off feed")
+      : null
   const reputation = post.reputation
   const reputationColor = reputation ? reputationService.getReputationColor(reputation) : undefined
   const shouldShowLocked = post.locked && !post.unlocked && !isOwn && !isPremium
   const isAccessDenied = !post.body && !post.file && !!post.message && !post.locked && !post.canUnlock
   const bodyText = post.body || ''
+  const lockedDescription = shouldShowLocked
+    ? (post.message?.trim() || bodyText.trim())
+    : ""
+  const lockedIsVideo =
+    Boolean(post.file?.match(/\.(mp4|webm|ogg|mov|avi|mkv)$/i)) ||
+    post.media?.mediaType === "VIDEO" ||
+    Boolean(post.file?.includes("cloudinary.com") && post.file?.includes("/video/"))
 
   const handleReaction = useCallback(async (type: ReactionType) => {
     const prevReaction = userReaction
@@ -438,7 +459,7 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
         {/* Header */}
         <div className="flex items-start justify-between">
           <Link
-            href={`/profile/${post.userId}`}
+            href={profileHref(post.userId, user?.userId)}
             className="flex items-center gap-3"
           >
             <Avatar className={`border-2 border-primary/50 ring-2 ring-primary/20 ring-offset-2 ring-offset-background ${
@@ -488,6 +509,20 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
                 {te("Temporal", "Temporary")}
               </span>
             )}
+            {feedExpiryLabel ? (
+              <button
+                type="button"
+                onClick={() => setShowBoostDialog(true)}
+                className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${
+                  feedActive
+                    ? "bg-secondary/15 text-secondary"
+                    : "bg-destructive/10 text-destructive"
+                }`}
+              >
+                <Rocket className="h-3 w-3" />
+                {feedExpiryLabel}
+              </button>
+            ) : null}
             {isOwn && post.locked && (
               <span className="flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
                 <Lock className="h-3 w-3" />
@@ -541,6 +576,15 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
                     <Pencil className="mr-2 h-4 w-4" />
                     {t("common.edit")}
                   </DropdownMenuItem>
+                  {canBoost ? (
+                    <DropdownMenuItem
+                      onClick={() => setShowBoostDialog(true)}
+                      className="cursor-pointer"
+                    >
+                      <Rocket className="mr-2 h-4 w-4 text-secondary" />
+                      {te("Boost del post", "Post boost")}
+                    </DropdownMenuItem>
+                  ) : null}
                   <DropdownMenuItem
                     onClick={() => setShowDeleteConfirm(true)}
                     className="text-destructive cursor-pointer"
@@ -615,21 +659,13 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
           ) : (
             <div className="text-sm text-foreground leading-relaxed whitespace-pre-wrap break-words overflow-hidden">
               {shouldShowLocked ? (
-                <div className="relative select-none cursor-pointer py-4" onClick={() => setShowUnlockModal(true)}>
-                  {/* Texto ficticio con blur */}
-                  <div className="blur-sm opacity-60 pointer-events-none text-sm text-foreground leading-relaxed">
-                    {post.body
-                      ? post.body
-                      : te('Contenido premium bloqueado. Desbloquea para ver este mensaje.', 'Premium content locked. Unlock to view this message.')}
-                  </div>
-                  {/* Overlay con candado */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="flex items-center gap-2 bg-background/80 backdrop-blur-sm border border-primary/30 rounded-full px-4 py-2 shadow-lg">
-                      <Lock className="h-4 w-4 text-primary" />
-                      <span className="text-xs font-semibold text-primary">{te("Desbloquear contenido", "Unlock content")}</span>
-                    </div>
-                  </div>
-                </div>
+                lockedDescription ? (
+                  <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap break-words">
+                    {features.hashtagsAndMentions
+                      ? parseTextWithLinks(lockedDescription)
+                      : lockedDescription}
+                  </p>
+                ) : null
               ) : isAccessDenied ? (
                 <p className="text-muted-foreground italic select-none flex items-center gap-1.5">
                   <Lock className="h-3.5 w-3.5 shrink-0" />
@@ -643,26 +679,16 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
         </div>
 
         {/* Image/Video */}
-        {post.file && !compact && (
+        {!compact && shouldShowLocked ? (
+          <LockedPostMedia
+            uri={post.file}
+            isVideo={lockedIsVideo}
+            compact={compact}
+            onClick={() => setShowUnlockModal(true)}
+          />
+        ) : post.file && !compact ? (
           <div className="mt-3 overflow-hidden rounded-xl relative">
-            {shouldShowLocked ? (
-              <div className="relative overflow-hidden rounded-xl cursor-pointer" onClick={() => setShowUnlockModal(true)}>
-                <img
-                  src={post.file}
-                  alt="Post media"
-                  className="w-full max-h-96 object-cover blur-xl scale-105 brightness-50 select-none pointer-events-none"
-                />
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/30 backdrop-blur-sm">
-                  <div className="h-12 w-12 rounded-full bg-black/50 flex items-center justify-center">
-                    <Lock className="h-6 w-6 text-white" />
-                  </div>
-                  <p className="text-white font-semibold text-sm">{te("Contenido Premium", "Premium content")}</p>
-                  <span className="text-xs border border-white/50 text-white rounded-full px-4 py-1.5 hover:bg-white/20 transition-colors">
-                    {te("Desbloquear", "Unlock")}
-                  </span>
-                </div>
-              </div>
-            ) : post.file.match(/\.(mp4|webm|ogg|mov|avi|mkv)$/i) || post.media?.mediaType === 'VIDEO' || (post.file.includes('cloudinary.com') && post.file.includes('/video/')) ? (
+            {post.file.match(/\.(mp4|webm|ogg|mov|avi|mkv)$/i) || post.media?.mediaType === 'VIDEO' || (post.file.includes('cloudinary.com') && post.file.includes('/video/')) ? (
               <video
                 src={post.file}
                 controls
@@ -681,7 +707,7 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
               </div>
             )}
           </div>
-        )}
+        ) : null}
 
         {/* Poll */}
         {features.polls && pollState && (
@@ -852,6 +878,15 @@ export const PostCard = memo(function PostCard({ post, onDelete, onUpdate, highl
         />
       )}
       
+      {canBoost ? (
+        <PostBoostDialog
+          open={showBoostDialog}
+          onOpenChange={setShowBoostDialog}
+          postId={post.id}
+          onBoostStarted={() => onUpdate?.(post.id)}
+        />
+      ) : null}
+
       {/* Delete Confirm Dialog */}
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <DialogContent className="max-w-sm bg-card border-border" aria-describedby={undefined}>

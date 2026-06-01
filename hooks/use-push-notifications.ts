@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { api } from "@/lib/api"
 import { toast } from "sonner"
 
 export function usePushNotifications() {
@@ -38,10 +37,11 @@ export function usePushNotifications() {
       setPermission(result)
 
       if (result === "granted") {
-        const mockToken = `fcm_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        const mockToken = `web_push_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`
         setToken(mockToken)
         try {
-          await api.post("/api/device-tokens", { token: mockToken })
+          const { pushTokenService } = await import("@/lib/services/push-token")
+          await pushTokenService.register(mockToken)
         } catch {
           // ignorar
         }

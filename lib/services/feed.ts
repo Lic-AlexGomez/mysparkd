@@ -1,7 +1,25 @@
 import { api } from '../api'
+import { isDisplayableFeedPost, normalizePost } from '../normalize-post'
 import type { Post } from '../types'
 
 export const FEED_PAGE_SIZE = 12
+
+export type RankingEntry = {
+  userId: string
+  username?: string
+  profilePictureUrl?: string
+  score?: number
+  rank?: number
+}
+
+export type EngagementSummary = {
+  totalLikes?: number
+  totalComments?: number
+  totalReposts?: number
+  postsCount?: number
+  engagementRate?: number
+  avgEngagementPerPost?: number
+}
 
 type SortMode = 'chronological' | 'relevant' | 'compatible' | 'top'
 
@@ -11,53 +29,8 @@ type PaginatedFollowingResponse = {
   totalPages?: number
 }
 
-function normalizePost(post: any): Post {
-  const reactionsObj: Record<string, any> = {}
-  if (Array.isArray(post?.reactions)) {
-    post.reactions.forEach((reaction: any) => {
-      reactionsObj[reaction.reaction] = {
-        type: reaction.reaction,
-        count: reaction.count,
-        userReacted: post.myReaction === reaction.reaction,
-      }
-    })
-  }
-
-  return {
-    id: post?.id || '',
-    body: post?.body ?? null,
-    userId: post?.userId ? String(post.userId) : '',
-    username: post?.username || 'Usuario',
-    userPhoto: post?.profilePictureUrl || post?.userPhoto || '',
-    createdAt: post?.createdAt || new Date().toISOString(),
-    file: post?.file || null,
-    visibility: post?.visibility || 'PUBLIC',
-    likeCount: post?.likeCount || 0,
-    commentsCount: post?.commentsCount || 0,
-    viewCount: post?.viewCount || 0,
-    shareCount: post?.shareCount || 0,
-    liked: post?.likedByCurrentUser || false,
-    saved: post?.saved || false,
-    userReaction: post?.myReaction || null,
-    reactions: reactionsObj,
-    totalReactions: post?.totalReactions || 0,
-    locked: post?.locked || false,
-    canUnlock: post?.canUnlock || false,
-    unlocked: post?.unlocked || false,
-    permanent: post?.permanent !== false,
-    expiresAt: post?.expiresAt || null,
-    message: post?.message || null,
-    reputation: post?.reputation,
-    verificationLevel: post?.verificationLevel,
-    repostCount: post?.repostCount || 0,
-    repostedByCurrentUser: post?.repostedByCurrentUser || false,
-    media: post?.media || null,
-    poll: null,
-  } as Post
-}
-
 function filterDisplayable(post: Post) {
-  return !(post.message && !post.body && !post.file)
+  return isDisplayableFeedPost(post)
 }
 
 function extractFollowingRows(data: any): any[] {
@@ -100,7 +73,7 @@ export const feedService = {
     page: number,
     size: number = FEED_PAGE_SIZE
   ): Promise<{ posts: Post[]; hasMore: boolean; isPaginated: boolean }> {
-    const data = await api.get<any[] | PaginatedFollowingResponse>(
+    const data = await api.getPage<any[] | PaginatedFollowingResponse>(
       `/api/feed/following?page=${page}&size=${size}`
     )
     return parseFollowingPage(data, page, size)
@@ -112,7 +85,12 @@ export const feedService = {
     return posts
   },
 
-  sortPosts(posts: Post[], mode: SortMode, currentUserId?: string): Post[] {
+  sortPosts(
+    posts: Post[],
+    mode: SortMode,
+    currentUserId?: string,
+    opts?: { momentAffinityBoost?: number; cityPulseBoost?: number }
+  ): Post[] {
     const sorted = [...posts]
     
     switch (mode) {
@@ -121,29 +99,46 @@ export const feedService = {
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         )
       
-      case 'relevant':
+      case 'relevant': {
+        const pulse = Number(opts?.cityPulseBoost ?? 0) || 0
         return sorted.sort((a, b) => {
           const engagementA = (a.likeCount || 0) + (a.commentsCount || 0) * 2 + (a.repostCount || 0) * 3
           const engagementB = (b.likeCount || 0) + (b.commentsCount || 0) * 2 + (b.repostCount || 0) * 3
-          
+
           const timeA = new Date(a.createdAt).getTime()
           const timeB = new Date(b.createdAt).getTime()
           const now = Date.now()
           const decayA = 1 - (now - timeA) / (1000 * 60 * 60 * 24 * 7)
           const decayB = 1 - (now - timeB) / (1000 * 60 * 60 * 24 * 7)
-          
-          const scoreA = engagementA * Math.max(0.1, decayA)
-          const scoreB = engagementB * Math.max(0.1, decayB)
-          
+
+          const bump = (eng: number) =>
+            1 + Math.min(0.22, pulse / 110) * Math.min(1, eng / 35)
+
+          const scoreA = engagementA * Math.max(0.1, decayA) * bump(engagementA)
+          const scoreB = engagementB * Math.max(0.1, decayB) * bump(engagementB)
+
           return scoreB - scoreA
         })
+      }
       
-      case 'compatible':
-        return sorted.sort((a, b) => {
-          const repA = (a.reputation || 50) + (a.verificationLevel || 0) * 10
-          const repB = (b.reputation || 50) + (b.verificationLevel || 0) * 10
+      case 'compatible': {
+        const momentBoost = Number(opts?.momentAffinityBoost ?? 0) || 0
+        const pulseBoost = Number(opts?.cityPulseBoost ?? 0) || 0
+        const blendBoost = momentBoost + pulseBoost * 0.85
+        return sorted.sort((aPost, bPost) => {
+          const hotA = (aPost.likeCount || 0) + (aPost.commentsCount || 0)
+          const hotB = (bPost.likeCount || 0) + (bPost.commentsCount || 0)
+          const repA =
+            (aPost.reputation || 50) +
+            (aPost.verificationLevel || 0) * 10 +
+            blendBoost * Math.min(1, hotA / 20)
+          const repB =
+            (bPost.reputation || 50) +
+            (bPost.verificationLevel || 0) * 10 +
+            blendBoost * Math.min(1, hotB / 20)
           return repB - repA
         })
+      }
       
       case 'top':
         return sorted.sort((a, b) => (b.likeCount || 0) - (a.likeCount || 0))
@@ -151,5 +146,87 @@ export const feedService = {
       default:
         return sorted
     }
-  }
+  },
+
+  async getGlobalRanking(): Promise<RankingEntry[]> {
+    try {
+      const rows = await api.get<unknown>("/api/feed/ranking/global")
+      return normalizeRankingRows(rows)
+    } catch {
+      return []
+    }
+  },
+
+  async getLocalRanking(radiusKm = 50): Promise<RankingEntry[]> {
+    try {
+      const rows = await api.get<unknown>(
+        `/api/feed/ranking/local?radiusKm=${encodeURIComponent(String(radiusKm))}`
+      )
+      return normalizeRankingRows(rows)
+    } catch {
+      return []
+    }
+  },
+
+  async getFollowingRanking(): Promise<RankingEntry[]> {
+    try {
+      const rows = await api.get<unknown>("/api/feed/ranking/following")
+      return normalizeRankingRows(rows)
+    } catch {
+      return []
+    }
+  },
+
+  async getResharesPage(
+    page = 0,
+    size = FEED_PAGE_SIZE
+  ): Promise<{ posts: Post[]; hasMore: boolean }> {
+    try {
+      const data = await api.getPage<PaginatedFollowingResponse | unknown[]>(
+        `/api/feed/reshares?page=${page}&size=${size}`
+      )
+      const parsed = parseFollowingPage(
+        data as PaginatedFollowingResponse | unknown[],
+        page,
+        size
+      )
+      return { posts: parsed.posts, hasMore: parsed.hasMore }
+    } catch {
+      return { posts: [], hasMore: false }
+    }
+  },
+
+  async getEngagementSummary(): Promise<EngagementSummary | null> {
+    try {
+      const data = await api.get<EngagementSummary>("/api/feed/my-engagement/summary")
+      return data && typeof data === "object" ? data : null
+    } catch {
+      return null
+    }
+  },
+}
+
+function normalizeRankingRows(rows: unknown): RankingEntry[] {
+  const list = Array.isArray(rows)
+    ? rows
+    : rows && typeof rows === "object" && Array.isArray((rows as Record<string, unknown>).content)
+      ? (rows as Record<string, unknown>).content
+      : []
+  if (!Array.isArray(list)) return []
+  return list
+    .map((item, i) => {
+      if (!item || typeof item !== "object") return null
+      const o = item as Record<string, unknown>
+      const userId = String(o.userId ?? o.id ?? "").trim()
+      if (!userId) return null
+      return {
+        userId,
+        username: typeof o.username === "string" ? o.username : undefined,
+        profilePictureUrl:
+          typeof o.profilePictureUrl === "string" ? o.profilePictureUrl : undefined,
+        score: typeof o.score === "number" ? o.score : Number(o.score) || undefined,
+        rank: typeof o.rank === "number" ? o.rank : i + 1,
+      } satisfies RankingEntry
+    })
+    .filter(Boolean) as RankingEntry[]
 }

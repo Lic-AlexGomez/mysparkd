@@ -8,8 +8,16 @@ import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Search, Loader2, User, Hash, FileText, TrendingUp, X } from "lucide-react"
+import { Search, Loader2, User, Hash, FileText, TrendingUp, X, Trophy } from "lucide-react"
+import { FeedRankingStrip } from "@/components/feed/feed-ranking-strip"
+import { FeedEngagementSummary } from "@/components/feed/feed-engagement-summary"
 import { PostCard } from "@/components/feed/post-card"
+import { useExperienceMode } from "@/hooks/use-experience-mode"
+import { useI18n } from "@/lib/i18n"
+import { isDatingOnlySearchMode } from "@/lib/dm-eligibility"
+import Link from "next/link"
+import { useAuth } from "@/lib/auth-context"
+import { profileHref } from "@/lib/profile-route"
 
 interface SearchResults {
   users: UserProfile[]
@@ -20,6 +28,10 @@ interface SearchResults {
 export default function SearchPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const experienceMode = useExperienceMode()
+  const { t, te } = useI18n()
+  const { user } = useAuth()
+  const datingSearchOnly = isDatingOnlySearchMode(experienceMode)
 
   const [query, setQuery] = useState(searchParams.get("q") || "")
   const [activeTab, setActiveTab] = useState<"all" | "users" | "posts" | "hashtags">("all")
@@ -33,8 +45,23 @@ export default function SearchPage() {
   const [postsPage, setPostsPage] = useState(0)
   const [canLoadMoreUsers, setCanLoadMoreUsers] = useState(false)
   const [canLoadMorePosts, setCanLoadMorePosts] = useState(false)
+  const [rankingMode, setRankingMode] = useState<"global" | "local" | "following">("global")
+  const [localFeedRadius, setLocalFeedRadius] = useState(50)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!user?.userId) return
+    try {
+      const saved = localStorage.getItem(`sparkd_settings_${user.userId}`)
+      if (saved) {
+        const settings = JSON.parse(saved)
+        setLocalFeedRadius(settings.localFeedRadius ?? 50)
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [user?.userId])
 
   useEffect(() => {
     searchService.getTrendingHashtags(10)
@@ -51,6 +78,7 @@ export default function SearchPage() {
   const doSearch = useCallback(async (q: string) => {
     const trimmed = q.trim()
     if (!trimmed) return
+    if (datingSearchOnly) return
     setIsLoading(true)
     setHasSearched(true)
     setAutocomplete(null)
@@ -77,19 +105,14 @@ export default function SearchPage() {
         setCanLoadMorePosts(posts.number < posts.totalPages - 1)
         setActiveTab("hashtags")
       } else {
-        // Búsqueda general: usuarios + posts + hashtags en paralelo
-        const [usersRes, postsRes, hashtagsRes] = await Promise.all([
-          searchService.searchUsers(trimmed, 0, 6),
-          searchService.searchPosts(trimmed, 0, 6),
-          searchService.searchHashtags(trimmed),
-        ])
+        const intelligent = await searchService.searchIntelligent(trimmed)
         setResults({
-          users: usersRes.content || [],
-          posts: postsRes.content || [],
-          hashtags: hashtagsRes || [],
+          users: intelligent.users.slice(0, 12),
+          posts: intelligent.posts.slice(0, 12),
+          hashtags: intelligent.hashtags.slice(0, 12),
         })
-        setCanLoadMoreUsers(usersRes.number < usersRes.totalPages - 1)
-        setCanLoadMorePosts(postsRes.number < postsRes.totalPages - 1)
+        setCanLoadMoreUsers(intelligent.users.length >= 12)
+        setCanLoadMorePosts(intelligent.posts.length >= 12)
         setActiveTab("all")
       }
     } catch {
@@ -97,9 +120,10 @@ export default function SearchPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [datingSearchOnly])
 
   const handleQueryChange = (val: string) => {
+    if (datingSearchOnly) return
     setQuery(val)
     if (debounceRef.current) clearTimeout(debounceRef.current)
     if (val.length >= 2) {
@@ -170,42 +194,61 @@ export default function SearchPage() {
     <div className="mx-auto max-w-2xl px-4 py-6">
       <h1 className="text-2xl font-bold mb-4">Buscar</h1>
 
+      {datingSearchOnly && (
+        <div className="mb-6 rounded-xl border border-primary/25 bg-primary/5 p-4 text-center">
+          <p className="text-sm text-foreground">{t("dm.datingSearchRestricted")}</p>
+          <Link
+            href="/matches"
+            className="mt-3 inline-block text-sm font-semibold text-primary hover:underline"
+          >
+            {t("dm.searchMatchesOnly")}
+          </Link>
+        </div>
+      )}
+
       {/* Search input */}
       <div className="relative mb-6">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
-        <Input
-          ref={inputRef}
-          placeholder="Buscar usuarios, posts, #hashtags..."
-          value={query}
-          onChange={(e) => handleQueryChange(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-          className="pl-10 pr-24 h-12"
-          autoFocus
-        />
-        {query && (
-          <button
-            onClick={clearSearch}
-            className="absolute right-20 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+        <div className="flex gap-2">
+          <div className="relative flex-1 min-w-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
+            <Input
+              ref={inputRef}
+              placeholder={datingSearchOnly ? t("dm.searchMatchesOnly") : "Buscar usuarios, posts, #hashtags..."}
+              value={query}
+              onChange={(e) => handleQueryChange(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              className={`pl-10 h-12 ${query ? "pr-10" : "pr-4"}`}
+              autoFocus
+              disabled={datingSearchOnly}
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={clearSearch}
+                aria-label={te("Limpiar búsqueda", "Clear search")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          <Button
+            onClick={handleSearch}
+            disabled={datingSearchOnly || isLoading || !query.trim()}
+            className="h-12 shrink-0 px-5"
           >
-            <X className="h-4 w-4" />
-          </button>
-        )}
-        <Button
-          onClick={handleSearch}
-          disabled={isLoading || !query.trim()}
-          className="absolute right-1 top-1/2 -translate-y-1/2 h-10"
-        >
-          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Buscar"}
-        </Button>
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : te("Buscar", "Search")}
+          </Button>
+        </div>
 
         {/* Autocomplete dropdown */}
         {autocomplete && (
-          <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-card border border-border rounded-xl shadow-xl overflow-hidden">
-            {autocomplete.users?.slice(0, 3).map(u => (
+          <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-card border border-border rounded-xl shadow-xl overflow-hidden">
+            {autocomplete.users?.slice(0, 3).map((u, i) => (
               <button
-                key={u.userId}
+                key={`ac-user-${u.userId || i}`}
                 className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors text-left"
-                onClick={() => { setAutocomplete(null); router.push(`/profile/${u.userId}`) }}
+                onClick={() => { setAutocomplete(null); router.push(profileHref(u.userId, user?.userId)) }}
               >
                 <Avatar className="h-8 w-8 shrink-0">
                   <AvatarImage src={u.profilePictureUrl} />
@@ -218,9 +261,9 @@ export default function SearchPage() {
                 <User className="h-3.5 w-3.5 text-muted-foreground ml-auto shrink-0" />
               </button>
             ))}
-            {autocomplete.hashtags?.slice(0, 3).map(h => (
+            {autocomplete.hashtags?.slice(0, 3).map((h, i) => (
               <button
-                key={h.tag}
+                key={`ac-hashtag-${h.tag || i}`}
                 className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors text-left"
                 onClick={() => { setQuery("#" + h.tag); setAutocomplete(null); doSearch("#" + h.tag) }}
               >
@@ -231,9 +274,9 @@ export default function SearchPage() {
                 <span className="text-xs text-muted-foreground ml-auto">{h.usageCount} posts</span>
               </button>
             ))}
-            {autocomplete.posts?.slice(0, 2).map(p => (
+            {autocomplete.posts?.slice(0, 2).map((p, i) => (
               <button
-                key={p.id}
+                key={`ac-post-${p.id || i}`}
                 className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors text-left"
                 onClick={() => { setAutocomplete(null); doSearch(query) }}
               >
@@ -247,8 +290,54 @@ export default function SearchPage() {
         )}
       </div>
 
+      {/* Explorar — ranking y tendencias (solo sin búsqueda activa) */}
+      {!hasSearched && !datingSearchOnly && (
+        <div className="mb-6 space-y-4">
+          {user?.userId ? (
+            <div>
+              <p className="mb-2 text-sm font-semibold">
+                {te("Tu actividad", "Your activity")}
+              </p>
+              <FeedEngagementSummary className="mx-0 mb-0 mt-0" />
+            </div>
+          ) : null}
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <Trophy className="h-4 w-4 text-primary" />
+              <p className="text-sm font-semibold">{te("Ranking", "Ranking")}</p>
+            </div>
+            <div className="mb-2 flex flex-wrap gap-2">
+              {(
+                [
+                  { id: "global" as const, labelEs: "Global", labelEn: "Global" },
+                  { id: "local" as const, labelEs: "Cerca", labelEn: "Nearby" },
+                  { id: "following" as const, labelEs: "Siguiendo", labelEn: "Following" },
+                ] as const
+              ).map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setRankingMode(m.id)}
+                  className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                    rankingMode === m.id
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  }`}
+                >
+                  {te(m.labelEs, m.labelEn)}
+                </button>
+              ))}
+            </div>
+            <FeedRankingStrip
+              mode={rankingMode}
+              radiusKm={localFeedRadius}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Trending — solo cuando no hay búsqueda */}
-      {!hasSearched && trendingHashtags.length > 0 && (
+      {!hasSearched && !datingSearchOnly && trendingHashtags.length > 0 && (
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp className="h-4 w-4 text-primary" />
@@ -312,7 +401,7 @@ export default function SearchPage() {
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Usuarios</p>
                     <div className="space-y-2">
                       {results.users.slice(0, 3).map(u => (
-                        <UserCard key={u.userId} user={u} onClick={() => router.push(`/profile/${u.userId}`)} />
+                        <UserCard key={u.userId} user={u} onClick={() => router.push(profileHref(u.userId, user?.userId))} />
                       ))}
                       {results.users.length > 3 && (
                         <button onClick={() => setActiveTab("users")} className="text-xs text-primary hover:underline pl-1">
@@ -374,7 +463,7 @@ export default function SearchPage() {
                 {results.users.length > 0 ? (
                   <div className="space-y-2">
                     {results.users.map(u => (
-                      <UserCard key={u.userId} user={u} onClick={() => router.push(`/profile/${u.userId}`)} />
+                      <UserCard key={u.userId} user={u} onClick={() => router.push(profileHref(u.userId, user?.userId))} />
                     ))}
                     {canLoadMoreUsers && (
                       <Button variant="outline" className="w-full mt-2" onClick={handleLoadMoreUsers} disabled={isLoadingMore}>
@@ -417,9 +506,23 @@ export default function SearchPage() {
                         onClick={() => { setQuery("#" + h.tag); doSearch("#" + h.tag) }}
                         className="w-full flex items-center gap-3 p-3 bg-card rounded-xl border hover:border-primary/30 transition-colors text-left"
                       >
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                          <Hash className="h-5 w-5 text-primary" />
-                        </div>
+                        {h.previewUrls && h.previewUrls.length > 0 ? (
+                          <div className="flex gap-1 shrink-0">
+                            {h.previewUrls.slice(0, 3).map((url, i) => (
+                              <img
+                                key={`${h.tag}-${i}`}
+                                src={url}
+                                alt=""
+                                className="h-10 w-10 rounded-md object-cover border border-border"
+                                loading="lazy"
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                            <Hash className="h-5 w-5 text-primary" />
+                          </div>
+                        )}
                         <div>
                           <p className="text-sm font-semibold">#{h.tag}</p>
                           <p className="text-xs text-muted-foreground">{h.usageCount} posts</p>

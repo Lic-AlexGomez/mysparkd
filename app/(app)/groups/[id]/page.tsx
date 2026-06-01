@@ -40,6 +40,7 @@ import { toast } from "sonner"
 import type { Group, GroupInviteLink, GroupMember, GroupMessage, GroupMessageMediaType } from "@/lib/types"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
 import { groupService } from "@/lib/services/group"
+import { groupAnalyticsService, type GroupAnalytics } from "@/lib/services/group-analytics"
 import { useAuth } from "@/lib/auth-context"
 import { useWebSocket } from "@/hooks/use-websocket"
 import { useI18n } from "@/lib/i18n"
@@ -94,11 +95,18 @@ export default function GroupDetailPage() {
   const [inviteLinks, setInviteLinks] = useState<GroupInviteLink[]>([])
   const [pinnedIds, setPinnedIds] = useState<string[]>([])
   const [group, setGroup] = useState<Group | null>(null)
+  const [groupAnalytics, setGroupAnalytics] = useState<GroupAnalytics | null>(null)
+  const [analyticsLoading, setAnalyticsLoading] = useState(false)
   const [members, setMembers] = useState<GroupMember[]>([])
   const [messages, setMessages] = useState<GroupMessage[]>([])
   const [coverFallbackStyle, setCoverFallbackStyle] =
     useState<GroupCoverFallbackStyle>("MOMENTS")
   const [isUploadingCover, setIsUploadingCover] = useState(false)
+  const [polls, setPolls] = useState<any[]>([])
+  const [isLoadingPolls, setIsLoadingPolls] = useState(false)
+  const [isCreatingPoll, setIsCreatingPoll] = useState(false)
+  const [pollQuestion, setPollQuestion] = useState("")
+  const [pollOptions, setPollOptions] = useState<string[]>(["", ""])
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const coverInputRef = useRef<HTMLInputElement | null>(null)
 
@@ -249,6 +257,34 @@ export default function GroupDetailPage() {
     if (!features.groupsPage) return
     void loadGroup()
   }, [features.groupsPage, groupId])
+
+  useEffect(() => {
+    if (activeTab !== "polls") return
+    if (!groupId || polls.length > 0 || isLoadingPolls) return
+    ;(async () => {
+      setIsLoadingPolls(true)
+      try {
+        const rows = await groupService.polls.list(groupId)
+        setPolls(Array.isArray(rows) ? rows : [])
+      } catch (e: any) {
+        toast.error(e?.message || te("No se pudieron cargar las encuestas", "Could not load polls"))
+      } finally {
+        setIsLoadingPolls(false)
+      }
+    })()
+  }, [activeTab, groupId, polls.length, isLoadingPolls, te])
+
+  const canViewAnalytics =
+    group?.myRole === "ADMIN" || group?.myRole === "MODERATOR"
+
+  useEffect(() => {
+    if (activeTab !== "summary" || !canViewAnalytics || !groupId) return
+    setAnalyticsLoading(true)
+    void groupAnalyticsService.getForGroup(groupId).then((data) => {
+      setGroupAnalytics(data)
+      setAnalyticsLoading(false)
+    })
+  }, [activeTab, canViewAnalytics, groupId])
 
   useEffect(() => {
     setCoverFallbackStyle(getStoredFallbackStyle())
@@ -902,9 +938,10 @@ export default function GroupDetailPage() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList
-          className={`w-full grid ${features.groupRoles ? "grid-cols-3" : "grid-cols-2"}`}
+          className={`w-full grid ${features.groupRoles ? "grid-cols-4" : "grid-cols-3"}`}
         >
           <TabsTrigger value="messages">{te("Chat", "Chat")}</TabsTrigger>
+          <TabsTrigger value="polls">{te("Encuestas", "Polls")}</TabsTrigger>
           <TabsTrigger value="summary">{te("Resumen", "Summary")}</TabsTrigger>
           {features.groupRoles && <TabsTrigger value="members">{t("common.members")}</TabsTrigger>}
         </TabsList>
@@ -1198,7 +1235,149 @@ export default function GroupDetailPage() {
           )}
         </TabsContent>
 
+        <TabsContent value="polls" className="mt-6 space-y-4">
+          <div className="rounded-xl border border-border bg-card p-4">
+            <p className="text-sm font-semibold mb-2">{te("Crear encuesta", "Create poll")}</p>
+            <Textarea
+              value={pollQuestion}
+              onChange={(e) => setPollQuestion(e.target.value)}
+              placeholder={te("Pregunta…", "Question…")}
+              className="min-h-20 resize-none"
+              maxLength={240}
+            />
+            <div className="mt-3 space-y-2">
+              {pollOptions.map((opt, idx) => (
+                <Input
+                  key={idx}
+                  value={opt}
+                  onChange={(e) => {
+                    const v = e.target.value
+                    setPollOptions((prev) => prev.map((x, i) => (i === idx ? v : x)))
+                  }}
+                  placeholder={te(`Opción ${idx + 1}`, `Option ${idx + 1}`)}
+                />
+              ))}
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setPollOptions((prev) => [...prev, ""])}
+                >
+                  {te("Agregar opción", "Add option")}
+                </Button>
+                <Button
+                  type="button"
+                  disabled={isCreatingPoll}
+                  onClick={async () => {
+                    const question = pollQuestion.trim()
+                    const options = pollOptions.map((o) => o.trim()).filter(Boolean)
+                    if (!question || options.length < 2) {
+                      toast.error(te("Ingresa una pregunta y al menos 2 opciones", "Enter a question and at least 2 options"))
+                      return
+                    }
+                    setIsCreatingPoll(true)
+                    try {
+                      await groupService.polls.create(groupId, { question, options })
+                      setPollQuestion("")
+                      setPollOptions(["", ""])
+                      const rows = await groupService.polls.list(groupId)
+                      setPolls(Array.isArray(rows) ? rows : [])
+                      toast.success(te("Encuesta creada", "Poll created"))
+                    } catch (e: any) {
+                      toast.error(e?.message || te("No se pudo crear la encuesta", "Could not create poll"))
+                    } finally {
+                      setIsCreatingPoll(false)
+                    }
+                  }}
+                >
+                  {isCreatingPoll ? te("Creando…", "Creating…") : te("Crear", "Create")}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {isLoadingPolls ? (
+            <div className="flex justify-center py-10">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : polls.length === 0 ? (
+            <div className="rounded-xl border border-border bg-card p-4">
+              <p className="text-sm text-muted-foreground">{te("Aún no hay encuestas.", "No polls yet.")}</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {polls.map((poll: any, idx: number) => (
+                <div key={String(poll?.id || idx)} className="rounded-xl border border-border bg-card p-4">
+                  <p className="text-sm font-semibold text-foreground">
+                    {String(poll?.question || te("Encuesta", "Poll"))}
+                  </p>
+                  <div className="mt-3 space-y-2">
+                    {(Array.isArray(poll?.options) ? poll.options : []).map((opt: any) => {
+                      const votedByMe = Boolean(opt?.votedByMe)
+                      const optionId = String(opt?.id || opt?.optionId || "")
+                      const text = String(opt?.optionText || opt?.text || opt?.label || "")
+                      const voteCount = Number(opt?.voteCount || 0)
+                      return (
+                        <button
+                          key={optionId || text}
+                          type="button"
+                          className={`w-full flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left transition-colors ${
+                            votedByMe ? "border-primary/40 bg-primary/10" : "border-border hover:bg-muted/40"
+                          }`}
+                          onClick={async () => {
+                            if (!optionId) return
+                            try {
+                              await groupService.polls.vote(groupId, optionId)
+                              const rows = await groupService.polls.list(groupId)
+                              setPolls(Array.isArray(rows) ? rows : [])
+                            } catch (e: any) {
+                              toast.error(e?.message || te("No se pudo votar", "Could not vote"))
+                            }
+                          }}
+                        >
+                          <span className="text-sm text-foreground">{text || te("Opción", "Option")}</span>
+                          <span className="text-xs text-muted-foreground">{voteCount}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
         <TabsContent value="summary" className="mt-6 space-y-4">
+          {canViewAnalytics && (
+            <div className="rounded-xl border border-border bg-card p-4">
+              <p className="text-sm font-semibold mb-3">{te("Analíticas del grupo", "Group analytics")}</p>
+              {analyticsLoading ? (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : groupAnalytics ? (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {[
+                    [te("Miembros", "Members"), groupAnalytics.totalMembers],
+                    [te("Activos (7d)", "Active (7d)"), groupAnalytics.activeMembers],
+                    [te("Mensajes", "Messages"), groupAnalytics.totalMessages],
+                    [te("Hoy", "Today"), groupAnalytics.messagesToday],
+                    [te("Encuestas", "Polls"), groupAnalytics.totalPolls],
+                    [te("Activas", "Active polls"), groupAnalytics.activePolls],
+                  ].map(([label, value]) => (
+                    <div key={String(label)} className="rounded-lg bg-muted/40 px-3 py-2">
+                      <p className="text-[10px] uppercase text-muted-foreground">{label}</p>
+                      <p className="text-lg font-bold tabular-nums">{value ?? "—"}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {te("Analíticas no disponibles aún", "Analytics not available yet")}
+                </p>
+              )}
+            </div>
+          )}
           <div className="rounded-xl border border-border bg-card p-4">
             <p className="text-sm font-semibold mb-2">{te("Categoría y temas", "Category and topics")}</p>
             {group.category ? (

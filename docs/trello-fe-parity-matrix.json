@@ -1,0 +1,1777 @@
+{
+  "boardId": "69b316a06238dae98730288d",
+  "generatedAt": "2026-05-27T01:07:35.175Z",
+  "source": "trello-frontend-all-lists.json",
+  "totalCards": 104,
+  "moveReadyCount": 70,
+  "cards": [
+    {
+      "id": "U2tsIrMf",
+      "idShort": 125,
+      "name": "[Backend] Fix: Incluir notificationId en respuesta de notificaciones",
+      "url": "https://trello.com/c/U2tsIrMf",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/notifications/{userId}"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /notification/i"
+    },
+    {
+      "id": "Fd959IDo",
+      "idShort": 126,
+      "name": "[Backend] Modifico response del endpoint ver mis cards (Las que postee), ver mas dentro de la tarjeta...",
+      "url": "https://trello.com/c/Fd959IDo",
+      "listName": "Terminado",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": null
+      },
+      "web": "PARTIAL",
+      "mobile": "PARTIAL",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /date.?cards?|mis cards|my cards|datecards\\/mine/i | Cierre cola revisión 2026-05-26"
+    },
+    {
+      "id": "IrR9m1tk",
+      "idShort": 127,
+      "name": "[Backend] IMPLEMENTAR ENDPOINT BUSQUEDA INTELIGENTE. ESTE BUSCA POR POST, USUARIOS, HASHTAGS Y CONTENT DEL POST.",
+      "url": "https://trello.com/c/IrR9m1tk",
+      "listName": "Terminado",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": null
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /busqueda inteligente|intelligent search|search.*completo/i | QA cerrado 2026-05-26"
+    },
+    {
+      "id": "t771hUrF",
+      "idShort": 128,
+      "name": "[Backend] Sistema de Búsqueda Completo",
+      "url": "https://trello.com/c/t771hUrF",
+      "listName": "Terminado",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": null
+      },
+      "web": "PARTIAL",
+      "mobile": "PARTIAL",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE | Cierre cola revisión 2026-05-26"
+    },
+    {
+      "id": "4BYvWZxo",
+      "idShort": 130,
+      "name": "[Backend] Debo poder eliminar mensajes de otro usuario (Para mi)",
+      "url": "https://trello.com/c/4BYvWZxo",
+      "listName": "Terminado",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": null
+      },
+      "web": "PARTIAL",
+      "mobile": "PARTIAL",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE | Cierre cola revisión 2026-05-26"
+    },
+    {
+      "id": "XttEwFEP",
+      "idShort": 131,
+      "name": "[Backend] feed para seguidores GET /api/feed/following",
+      "url": "https://trello.com/c/XttEwFEP",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/feed/following"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /feed.*following|feed para seguidores/i"
+    },
+    {
+      "id": "D7dUfGwe",
+      "idShort": 132,
+      "name": "[Backend] Controlar que el limite de opciones en el poll sea menor o igual a 10",
+      "url": "https://trello.com/c/D7dUfGwe",
+      "listName": "Terminado",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": null
+      },
+      "web": "PARTIAL",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /poll/i | Cierre cola revisión 2026-05-26"
+    },
+    {
+      "id": "k09cxgng",
+      "idShort": 133,
+      "name": "[Backend] Manejar excepción cuando el poll haya expirado",
+      "url": "https://trello.com/c/k09cxgng",
+      "listName": "Terminado",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": null
+      },
+      "web": "PARTIAL",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /poll/i | Cierre cola revisión 2026-05-26"
+    },
+    {
+      "id": "CMOy3IRp",
+      "idShort": 134,
+      "name": "[Backend] Modulo Stories",
+      "url": "https://trello.com/c/CMOy3IRp",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "/api/stories"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /stories?|historia/i"
+    },
+    {
+      "id": "uQ4YFxnO",
+      "idShort": 135,
+      "name": "[Backend] Ver follows request, acceptados, a quienes sigue el usuario",
+      "url": "https://trello.com/c/uQ4YFxnO",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/follow/requests"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /seguidores|followers|following|contadores de seguidores|follows request/i"
+    },
+    {
+      "id": "lJBd26gi",
+      "idShort": 136,
+      "name": "[Backend] contadores de seguidores, seguidos... Tanto en get me, como en profile.",
+      "url": "https://trello.com/c/lJBd26gi",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/profile/{userId}"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /seguidores|followers|following|contadores de seguidores|follows request/i"
+    },
+    {
+      "id": "GY8luANg",
+      "idShort": 137,
+      "name": "[Backend] Sparkling list, Tipo Close friend. Historias tendrán privacidad. PUBLIC, SPARKLING LIST",
+      "url": "https://trello.com/c/GY8luANg",
+      "listName": "Terminado",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": null
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /sparkling/i | QA cerrado 2026-05-26"
+    },
+    {
+      "id": "nsgDKzYB",
+      "idShort": 138,
+      "name": "[Backend] GET /api/stories/{storyId}/view-count",
+      "url": "https://trello.com/c/nsgDKzYB",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/stories/{storyId}/view-count"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /stories?|historia/i"
+    },
+    {
+      "id": "3bZLblcK",
+      "idShort": 139,
+      "name": "[Backend] POST /api/stories/{storyId}/react?reaction=LIKE",
+      "url": "https://trello.com/c/3bZLblcK",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "POST /api/stories/{storyId}/react?reaction=LIKE"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /stories?|historia/i"
+    },
+    {
+      "id": "Ydj4RTil",
+      "idShort": 140,
+      "name": "[Backend] GET /api/stories/{storyId}/reactions",
+      "url": "https://trello.com/c/Ydj4RTil",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/stories/{storyId}/reactions"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /stories?|historia/i"
+    },
+    {
+      "id": "Tk3lSm9X",
+      "idShort": 141,
+      "name": "[Backend] GET /api/settings/privacy",
+      "url": "https://trello.com/c/Tk3lSm9X",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/settings/privacy"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /privacidad|privacy/i"
+    },
+    {
+      "id": "P7oeNL4U",
+      "idShort": 142,
+      "name": "[Backend] PUT /api/settings/privacy",
+      "url": "https://trello.com/c/P7oeNL4U",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "PUT /api/settings/privacy"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /privacidad|privacy/i"
+    },
+    {
+      "id": "gE3OiXZH",
+      "idShort": 143,
+      "name": "[Backend] Sparkling list",
+      "url": "https://trello.com/c/gE3OiXZH",
+      "listName": "Terminado",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/settings/sparkling-list"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /sparkling/i | QA cerrado 2026-05-26"
+    },
+    {
+      "id": "UtxN1QYL",
+      "idShort": 144,
+      "name": "[Backend] Cambios en endpoints existentes",
+      "url": "https://trello.com/c/UtxN1QYL",
+      "listName": "Terminado",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/profile/{userId}"
+      },
+      "web": "PARTIAL",
+      "mobile": "PARTIAL",
+      "targetPlatform": "mobile",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE | Cierre cola revisión 2026-05-26"
+    },
+    {
+      "id": "ypYB1Gk7",
+      "idShort": 147,
+      "name": "[Backend] meetUp",
+      "url": "https://trello.com/c/ypYB1Gk7",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/events"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /meetup|meet.?up|date-cards\\/feed/i"
+    },
+    {
+      "id": "Yporb6se",
+      "idShort": 148,
+      "name": "[Backend] Sistema de Repost",
+      "url": "https://trello.com/c/Yporb6se",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/posts/{postId}/reposts"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /repost|reshare|sistema de repost/i"
+    },
+    {
+      "id": "4kTnA04Z",
+      "idShort": 149,
+      "name": "[Backend] Grupos",
+      "url": "https://trello.com/c/4kTnA04Z",
+      "listName": "Terminado",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/groups/discover?category=TECNOLOGIA"
+      },
+      "web": "DONE",
+      "mobile": "PARTIAL",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /grupos|groups|👥/i | Cierre cola revisión 2026-05-26"
+    },
+    {
+      "id": "ewahHWMT",
+      "idShort": 150,
+      "name": "[Backend] Pagination",
+      "url": "https://trello.com/c/ewahHWMT",
+      "listName": "Terminado",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/posts/me?page=0&size=20"
+      },
+      "web": "PARTIAL",
+      "mobile": "PARTIAL",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /comentarios paginados|pagination/i | Cierre cola revisión 2026-05-26"
+    },
+    {
+      "id": "rL8qKbRJ",
+      "idShort": 151,
+      "name": "[Backend] BOOKMARKS",
+      "url": "https://trello.com/c/rL8qKbRJ",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": null
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /bookmark|guardados?|💾/i"
+    },
+    {
+      "id": "BzoXsZOb",
+      "idShort": 152,
+      "name": "[Backend] Mensajes fijados en grupos",
+      "url": "https://trello.com/c/BzoXsZOb",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/groups/{groupId}/pinned-messages"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /mensajes fijados|pinned/i"
+    },
+    {
+      "id": "0KIeBcWm",
+      "idShort": 153,
+      "name": "[Backend] Mensajes fijados en chat privados",
+      "url": "https://trello.com/c/0KIeBcWm",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": null
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /mensajes fijados|pinned/i"
+    },
+    {
+      "id": "LuRKdzuV",
+      "idShort": 154,
+      "name": "[Backend] ADMIN/ALL/USERS",
+      "url": "https://trello.com/c/LuRKdzuV",
+      "listName": "Terminado",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/admin/users?page=0&size=20"
+      },
+      "web": "PARTIAL",
+      "mobile": "N/A",
+      "targetPlatform": "web",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /admin\\/all\\/users|ADMIN\\/ALL/i | Cierre cola revisión 2026-05-26"
+    },
+    {
+      "id": "z3Y972eT",
+      "idShort": 155,
+      "name": "[Backend] Reportes completos",
+      "url": "https://trello.com/c/z3Y972eT",
+      "listName": "Terminado",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /moderator/reports/all"
+      },
+      "web": "PARTIAL",
+      "mobile": "N/A",
+      "targetPlatform": "web",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /moderator|reportes completos|reports\\/all/i | Cierre cola revisión 2026-05-26"
+    },
+    {
+      "id": "oEU5turh",
+      "idShort": 156,
+      "name": "[Backend] Pantalla para redirigirlo resetPassword",
+      "url": "https://trello.com/c/oEU5turh",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": null
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /resetPassword|reset password/i"
+    },
+    {
+      "id": "DcKWtqwB",
+      "idShort": 157,
+      "name": "[Backend] change password ya lo tienes montado, conectar a POST /auth/change-password",
+      "url": "https://trello.com/c/DcKWtqwB",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "POST /auth/change-password"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /change.?password|change password/i"
+    },
+    {
+      "id": "Oi3od4Wt",
+      "idShort": 158,
+      "name": "[Backend] Verification de email al registrarse",
+      "url": "https://trello.com/c/Oi3od4Wt",
+      "listName": "Terminado",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "POST /auth/register"
+      },
+      "web": "PARTIAL",
+      "mobile": "PARTIAL",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /verification.*email|verificaci[oó]n de email/i | Cierre cola revisión 2026-05-26"
+    },
+    {
+      "id": "qcuANJ7Z",
+      "idShort": 159,
+      "name": "[Backend] 15 Dias free trial",
+      "url": "https://trello.com/c/qcuANJ7Z",
+      "listName": "Terminado",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "POST /auth/verify-email"
+      },
+      "web": "PARTIAL",
+      "mobile": "PARTIAL",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /15.?d[ií]as|free trial/i | Cierre cola revisión 2026-05-26"
+    },
+    {
+      "id": "TF72Fz1x",
+      "idShort": 160,
+      "name": "[Backend] Formato distinto a mensajes tipo \"system\": true.",
+      "url": "https://trello.com/c/TF72Fz1x",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": null
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /system.*message|tipo [\"']system[\"']/i"
+    },
+    {
+      "id": "cCq9RakP",
+      "idShort": 162,
+      "name": "[Backend] En el perfil pondremos un campo que sea voice note, 30 sec, la persona podia decir algo sobre ella y que cuando alguien entre al perfil le pueda dar play, este debe estar disponible tambien para las cartas de swipe.",
+      "url": "https://trello.com/c/cCq9RakP",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": null
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /voice note|nota de voz|voice note/i"
+    },
+    {
+      "id": "741txIRS",
+      "idShort": 163,
+      "name": "[Backend] 👥 Grupos - Posts y Roles",
+      "url": "https://trello.com/c/741txIRS",
+      "listName": "Terminado",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/groups/{groupId}/posts?page={page}&size={size}"
+      },
+      "web": "DONE",
+      "mobile": "PARTIAL",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /grupos|groups|👥/i | Cierre cola revisión 2026-05-26"
+    },
+    {
+      "id": "boLoLaJl",
+      "idShort": 164,
+      "name": "[Backend] GET /moderator/reports/all — Historial completo de reportes",
+      "url": "https://trello.com/c/boLoLaJl",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /moderator/reports/all"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /stories?|historia/i"
+    },
+    {
+      "id": "yjsE0S3w",
+      "idShort": 166,
+      "name": "[Backend] GET /api/admin/users — Listar todos los usuarios",
+      "url": "https://trello.com/c/yjsE0S3w",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/admin/users"
+      },
+      "web": "DONE",
+      "mobile": "N/A",
+      "targetPlatform": "web",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /admin\\/users|admin users/i"
+    },
+    {
+      "id": "FSBi3NYr",
+      "idShort": 167,
+      "name": "[Backend] 💾 Guardados/Bookmarks",
+      "url": "https://trello.com/c/FSBi3NYr",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/bookmarks?page={page}&size={size}"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /bookmark|guardados?|💾/i"
+    },
+    {
+      "id": "K9FzF9nm",
+      "idShort": 168,
+      "name": "[Backend] Implementar /api/date-cards/feed con filtros (distancia, intereses, excluir dislikes)",
+      "url": "https://trello.com/c/K9FzF9nm",
+      "listName": "Terminado",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/date-cards/feed"
+      },
+      "web": "PARTIAL",
+      "mobile": "PARTIAL",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /date.?cards?|mis cards|my cards|datecards\\/mine/i | Cierre cola revisión 2026-05-26"
+    },
+    {
+      "id": "YvE9QYwS",
+      "idShort": 169,
+      "name": "[Backend] 🔄 Sistema de Repost",
+      "url": "https://trello.com/c/YvE9QYwS",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/posts/{postId}/reposts"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /repost|reshare|sistema de repost/i"
+    },
+    {
+      "id": "SSa4Tlm5",
+      "idShort": 170,
+      "name": "[Backend] Agregar campos completos a MyDateCardsResponse",
+      "url": "https://trello.com/c/SSa4Tlm5",
+      "listName": "Terminado",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": null
+      },
+      "web": "PARTIAL",
+      "mobile": "PARTIAL",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /date.?cards?|mis cards|my cards|datecards\\/mine/i | Cierre cola revisión 2026-05-26"
+    },
+    {
+      "id": "8vrGQKv6",
+      "idShort": 171,
+      "name": "[Backend] Agregar reacciones en chats",
+      "url": "https://trello.com/c/8vrGQKv6",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": null
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /reacciones en chat|reactions in chat/i"
+    },
+    {
+      "id": "ihPkxxpz",
+      "idShort": 172,
+      "name": "[Backend] Modifico controller de feed de citas, ahora podremos filtrar por distancia, intereses, excluye cuentas que di dislike en swipe cards.../api/date-cards/feed",
+      "url": "https://trello.com/c/ihPkxxpz",
+      "listName": "Terminado",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "/api/date-cards/feed"
+      },
+      "web": "PARTIAL",
+      "mobile": "PARTIAL",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /date.?cards?|mis cards|my cards|datecards\\/mine/i | Cierre cola revisión 2026-05-26"
+    },
+    {
+      "id": "jO11neXS",
+      "idShort": 173,
+      "name": "[Backend] 🔐 Configuración de Privacidad",
+      "url": "https://trello.com/c/jO11neXS",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/settings/privacy"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /privacidad|privacy/i"
+    },
+    {
+      "id": "A0gimKpu",
+      "idShort": 174,
+      "name": "[Backend] Endpoints para listar Seguidores, Seguidos y Solicitudes Pendientes",
+      "url": "https://trello.com/c/A0gimKpu",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/follow/requests"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /seguidores|followers|following|contadores de seguidores|follows request/i"
+    },
+    {
+      "id": "2rRS7uwX",
+      "idShort": 175,
+      "name": "[Backend] 📖 Stories - Funcionalidades Adicionales",
+      "url": "https://trello.com/c/2rRS7uwX",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/stories/{storyId}/viewers"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /stories?|historia/i"
+    },
+    {
+      "id": "X33ay1ka",
+      "idShort": 176,
+      "name": "[Backend] Agregar contadores de seguidores a UserProfileResponseDTO",
+      "url": "https://trello.com/c/X33ay1ka",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "/api/follow/{userId}"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /seguidores|followers|following|contadores de seguidores|follows request/i"
+    },
+    {
+      "id": "yAi1kfn7",
+      "idShort": 184,
+      "name": "[Backend] GET /api/admin/users — PostgreSQL lower(bytea) (HTTP 500)",
+      "url": "https://trello.com/c/yAi1kfn7",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/admin/users"
+      },
+      "web": "DONE",
+      "mobile": "N/A",
+      "targetPlatform": "web",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /admin\\/users|admin users/i"
+    },
+    {
+      "id": "kHn4t17V",
+      "idShort": 200,
+      "name": "[Backend] Feed engagement summary endpoint (evitar m�tricas en 0)",
+      "url": "https://trello.com/c/kHn4t17V",
+      "listName": "Terminado",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/feed/my-engagement/summary"
+      },
+      "web": "PARTIAL",
+      "mobile": "PARTIAL",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /engagement summary|feed engagement/i | Cierre cola revisión 2026-05-26"
+    },
+    {
+      "id": "EOxyfmtX",
+      "idShort": 201,
+      "name": "[Backend] Guardar idioma preferido de usuario (preferredLanguage)",
+      "url": "https://trello.com/c/EOxyfmtX",
+      "listName": "Terminado",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/profile/me"
+      },
+      "web": "PARTIAL",
+      "mobile": "PARTIAL",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /preferredLanguage|idioma preferido/i | Cierre cola revisión 2026-05-26"
+    },
+    {
+      "id": "69f77e66bc8f6fae7701843c",
+      "idShort": 245,
+      "name": "Activity Feed — Implementación frontend (Meetups + Eventos unificados)",
+      "url": "https://trello.com/c/Xsclcbhk",
+      "listName": "Terminado",
+      "backend": {
+        "status": "PARTIAL",
+        "endpointHint": "GET /api/activity-feed"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05 | QA cerrado 2026-05-26"
+    },
+    {
+      "id": "69fa972de527b0e7ff35f8fe",
+      "idShort": 249,
+      "name": "Implementar UI para cambiar ubicación del evento (manager)",
+      "url": "https://trello.com/c/adlQeDEi",
+      "listName": "Terminado",
+      "backend": {
+        "status": "PARTIAL",
+        "endpointHint": "PUT /api/events/{eventId}/group/location"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05 | QA cerrado 2026-05-26"
+    },
+    {
+      "id": "69faac01307f422cd2ba9d63",
+      "idShort": 253,
+      "name": "Mostrar reputacion del creador en cards de MeetUp (feed)",
+      "url": "https://trello.com/c/zq8FAHYH",
+      "listName": "Terminado",
+      "backend": {
+        "status": "PARTIAL",
+        "endpointHint": "GET /api/activity-feed"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05 | QA cerrado 2026-05-26"
+    },
+    {
+      "id": "69faac0515bb6ae0516ed92c",
+      "idShort": 254,
+      "name": "Reputacion oculta en perfil publico de otros usuarios",
+      "url": "https://trello.com/c/EIWzc2Em",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "PARTIAL",
+        "endpointHint": "GET /api/profile/{userId})"
+      },
+      "web": "PARTIAL",
+      "mobile": "PARTIAL",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "69fabc52ee5b4bf8aa89aabb",
+      "idShort": 256,
+      "name": "Integrar RevenueCat SDK — Suscripciones Mobile",
+      "url": "https://trello.com/c/Ua8exabA",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "N/A",
+        "endpointHint": null
+      },
+      "web": "N/A",
+      "mobile": "DONE",
+      "targetPlatform": "mobile",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "69facf3b7592ba579ea1697b",
+      "idShort": 257,
+      "name": "Chats: separar en Tab DIRECT y Tab GENERAL",
+      "url": "https://trello.com/c/U3dyemDf",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/chat/chats"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "69facf48b5c74ea1c4eff08d",
+      "idShort": 258,
+      "name": "Chats: mover chat entre categoría DIRECT y GENERAL",
+      "url": "https://trello.com/c/hWcIVpJY",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "PATCH /api/chat/chats/{chatId}/category?category=GENERAL"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "69facf55e22c40d7a2b02d5b",
+      "idShort": 259,
+      "name": "Chats: alerta de upgrade a Premium al enviar DM directo desde perfil",
+      "url": "https://trello.com/c/9AB94xsB",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "POST /api/chat/open/{userId}"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "69fb2d6a2c2ba47ad451e906",
+      "idShort": 260,
+      "name": "Manejar exception for exceeded register from x IP address. Set a custom message handler. Also check login message exceptions.",
+      "url": "https://trello.com/c/rE9Gl6nG",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "PARTIAL",
+        "endpointHint": null
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "69fc39b2f31de922488da3af",
+      "idShort": 262,
+      "name": "Paginar notificaciones 20",
+      "url": "https://trello.com/c/4p4WZEJo",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": null
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "6a02a3059494f6b8c756832f",
+      "idShort": 289,
+      "name": "[FE] Selector de invitados grupales — consumir GET /api/events/{eventId}/group/join-eligible-users",
+      "url": "https://trello.com/c/z3Rzh98g",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/events/{eventId}/group/join-eligible-users"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "6a02a308548741b50d4a4434",
+      "idShort": 290,
+      "name": "[FE] Rating post-evento — mostrar averageRating, ratingCount y myRating en detalle",
+      "url": "https://trello.com/c/IYRkDElH",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "PARTIAL",
+        "endpointHint": "GET /api/events/{eventId}"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "6a02a30bbedb8c4c4f8fd555",
+      "idShort": 291,
+      "name": "[FE] Perfil público — mostrar chips eventsCreatedCount y eventsCancelledCount",
+      "url": "https://trello.com/c/c89V8S4R",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "PARTIAL",
+        "endpointHint": "GET /api/profile/{userId}"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "6a02a30ea256996e927ebe88",
+      "idShort": 292,
+      "name": "[FE] Reactions modal — verificar ruta /api/reactions/users/{postId}",
+      "url": "https://trello.com/c/G0ISqppX",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/reactions/users/{targetId}"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "6a02a7193d09e0b68c11d201",
+      "idShort": 293,
+      "name": "[FE] Search — mostrar foto de perfil en resultados de usuarios",
+      "url": "https://trello.com/c/yauNkB3b",
+      "listName": "Terminado",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/search/autocomplete?q=@juan"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05 | QA cerrado 2026-05-26"
+    },
+    {
+      "id": "6a02a71a4671c443eee35b6c",
+      "idShort": 294,
+      "name": "[FE] Search — mostrar preview de posts en resultados de hashtags",
+      "url": "https://trello.com/c/9xC3BkNz",
+      "listName": "Terminado",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/search/hashtags?query=moon"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05 | QA cerrado 2026-05-26"
+    },
+    {
+      "id": "6a02a71b16c07eafa5b54872",
+      "idShort": 295,
+      "name": "[FE] Activity Feed — soporte para parámetro sort (NEWER / OLDER)",
+      "url": "https://trello.com/c/c9yFOSnn",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "PARTIAL",
+        "endpointHint": "GET /api/activity-feed"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "6a095174b0d7e66e36f5cbe1",
+      "idShort": 302,
+      "name": "Integrar Firebase SDK en la app móvil",
+      "url": "https://trello.com/c/8asCTgUl",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "N/A",
+        "endpointHint": null
+      },
+      "web": "N/A",
+      "mobile": "DONE",
+      "targetPlatform": "mobile",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "6a095176e1949fe6fff3e198",
+      "idShort": 303,
+      "name": "Registrar token FCM al iniciar sesión",
+      "url": "https://trello.com/c/26KtPQ3k",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "PUT /api/profile/fcm-token"
+      },
+      "web": "N/A",
+      "mobile": "DONE",
+      "targetPlatform": "mobile",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "6a095179bcf6c4b8c3485fce",
+      "idShort": 304,
+      "name": "Eliminar token FCM al cerrar sesión",
+      "url": "https://trello.com/c/VqQAzD6P",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "DELETE /api/profile/fcm-token"
+      },
+      "web": "N/A",
+      "mobile": "DONE",
+      "targetPlatform": "mobile",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "6a09517bec38327edfc38c2f",
+      "idShort": 305,
+      "name": "Manejar notificaciones push en foreground y background",
+      "url": "https://trello.com/c/vt0fvwR1",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "N/A",
+        "endpointHint": null
+      },
+      "web": "N/A",
+      "mobile": "DONE",
+      "targetPlatform": "mobile",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "6a0951818ca8f9df01930fe0",
+      "idShort": 306,
+      "name": "Deep linking desde notificación push (navegar al contenido)",
+      "url": "https://trello.com/c/q7rMRq5Y",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "N/A",
+        "endpointHint": "PUT /api/notifications/{notificationId}/read"
+      },
+      "web": "N/A",
+      "mobile": "DONE",
+      "targetPlatform": "mobile",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "6a0956560836aedbdb4fbcf0",
+      "idShort": 307,
+      "name": "Analytics — Implementar pantalla de estadísticas del usuario",
+      "url": "https://trello.com/c/jnQIiF7H",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "PARTIAL",
+        "endpointHint": "GET /api/profile/me/analytics"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "6a0956ed37da6b6cd2032380",
+      "idShort": 308,
+      "name": "Liked-me — UI de desbloqueo por pago único (30 días)",
+      "url": "https://trello.com/c/HZrpiMcN",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/swipes/liked-me"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "6a095700e8e4cbbea3533ae8",
+      "idShort": 309,
+      "name": "Passkeys — Registrar passkey desde la app (sin contraseña)",
+      "url": "https://trello.com/c/yr8lAAkk",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "POST /auth/passkeys/register/options"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "6a095733d8fc332dbdbf2e0d",
+      "idShort": 310,
+      "name": "Passkeys — Login con passkey (Face ID / Huella dactilar)",
+      "url": "https://trello.com/c/LupWHsqd",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "POST /auth/passkeys/login/options"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "6a0957370836aedbdb50d4d8",
+      "idShort": 311,
+      "name": "Passkeys — Gestión de passkeys en ajustes (listar y eliminar)",
+      "url": "https://trello.com/c/XT8GzfdQ",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /auth/passkeys/me"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "6a0a3bf05716429861674fd8",
+      "idShort": 312,
+      "name": "Sign in with Apple — Integrar SDK en app iOS",
+      "url": "https://trello.com/c/VHNnWYSR",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": null
+      },
+      "web": "N/A",
+      "mobile": "DONE",
+      "targetPlatform": "mobile",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "6a0a3bf0dfc1367538287448",
+      "idShort": 313,
+      "name": "Sign in with Apple — Mostrar botón oficial en pantalla de login",
+      "url": "https://trello.com/c/BqBx757X",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "N/A",
+        "endpointHint": null
+      },
+      "web": "N/A",
+      "mobile": "DONE",
+      "targetPlatform": "mobile",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "6a0a3bf1f004398bb65d71a9",
+      "idShort": 314,
+      "name": "Sign in with Apple — Enviar identityToken al backend",
+      "url": "https://trello.com/c/jFqH5ho6",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "POST /auth/apple"
+      },
+      "web": "N/A",
+      "mobile": "DONE",
+      "targetPlatform": "mobile",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "6a0a3bf1ce4514f15e15a29e",
+      "idShort": 315,
+      "name": "Sign in with Apple — Manejar login sin email (segundo login en adelante)",
+      "url": "https://trello.com/c/APZYAuLc",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": null
+      },
+      "web": "N/A",
+      "mobile": "DONE",
+      "targetPlatform": "mobile",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "7umSQb28",
+      "idShort": 317,
+      "name": "[Backend] GET /api/groups/analytics - Group Analytics endpoint",
+      "url": "https://trello.com/c/7umSQb28",
+      "listName": "Terminado",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/groups/analytics"
+      },
+      "web": "DONE",
+      "mobile": "PARTIAL",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "[Backend] card — backend assumed DONE; Matched revision rule: /grupos|groups|👥/i | Cierre cola revisión 2026-05-26"
+    },
+    {
+      "id": "CBlUdIxw",
+      "idShort": 318,
+      "name": "no se guardan las fotos en los grupos",
+      "url": "https://trello.com/c/CBlUdIxw",
+      "listName": "Terminado",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": null
+      },
+      "web": "DONE",
+      "mobile": "PARTIAL",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Matched revision rule: /grupos|groups|👥/i | Cierre cola revisión 2026-05-26"
+    },
+    {
+      "id": "Wn4EjhXS",
+      "idShort": 319,
+      "name": "el last seen en chat no esta funcionando correctamente",
+      "url": "https://trello.com/c/Wn4EjhXS",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": null
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Matched revision rule: /last seen|presencia|presence/i"
+    },
+    {
+      "id": "R09lsFuF",
+      "idShort": 320,
+      "name": "MessageResponseDTO no incluye campo read",
+      "url": "https://trello.com/c/R09lsFuF",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/{chatId}/messages"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Matched revision rule: /campo ['\"]?read['\"]?|doble check|read receipts/i"
+    },
+    {
+      "id": "6a0e1c0d30432caa803aa4a6",
+      "idShort": 321,
+      "name": "[Frontend] Mostrar Last Seen correctamente en chat",
+      "url": "https://trello.com/c/aD6VDZLu",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/chats"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "6a0e1c6693e826ad4dc87b48",
+      "idShort": 322,
+      "name": "[Frontend] Last Seen en chat",
+      "url": "https://trello.com/c/4gRfnByk",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": null
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "6a0e1c67cdec49399aaaceb0",
+      "idShort": 323,
+      "name": "[Frontend] Doble check (read) en mensajes",
+      "url": "https://trello.com/c/UE2pPaTr",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/messages/{chatId}/messages"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "6a0e1c679dbfc3a1bee19569",
+      "idShort": 324,
+      "name": "[Frontend] Adaptar respuesta de Mis Cards (activas vs expiradas)",
+      "url": "https://trello.com/c/VMjgDavV",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/date-cards/mine"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "6a0e1c68ba9212fb439b9f0a",
+      "idShort": 325,
+      "name": "[Frontend] Integrar endpoint de Búsqueda Inteligente",
+      "url": "https://trello.com/c/n0Ynlb7Q",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/search/intelligent?query=texto&page=0&size=20"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "6a0e1c69b197de2aa4b35e9b",
+      "idShort": 326,
+      "name": "[Frontend] Mostrar followersCount y followingCount en perfil",
+      "url": "https://trello.com/c/4JZCtU1Z",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/profile/me"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "6a0e1c6924ca07248af1ab3c",
+      "idShort": 327,
+      "name": "[Frontend] Paginación en comentarios, seguidores, siguiendo y mensajes",
+      "url": "https://trello.com/c/wOa4xN2P",
+      "listName": "Terminado",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/comments/get/{postId}"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05 | QA cerrado 2026-05-26"
+    },
+    {
+      "id": "6a0e1c6ae252edea4fa180cd",
+      "idShort": 328,
+      "name": "[Frontend] Foto de perfil en resultados de búsqueda y seguidores",
+      "url": "https://trello.com/c/HCQqArr2",
+      "listName": "Terminado",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": null
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05 | QA cerrado 2026-05-26"
+    },
+    {
+      "id": "skDNcQb4",
+      "idShort": 329,
+      "name": "✅ Last Seen en tiempo real por WebSocket",
+      "url": "https://trello.com/c/skDNcQb4",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": null
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Matched revision rule: /last seen|presencia|presence/i"
+    },
+    {
+      "id": "3Jtipi9c",
+      "idShort": 330,
+      "name": "✅ Campo 'read' en mensajes",
+      "url": "https://trello.com/c/3Jtipi9c",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/messages/{chatId}/messages?page=0&size=20"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Matched revision rule: /campo ['\"]?read['\"]?|doble check|read receipts/i"
+    },
+    {
+      "id": "m6J62GE2",
+      "idShort": 331,
+      "name": "✅ Comentarios paginados",
+      "url": "https://trello.com/c/m6J62GE2",
+      "listName": "Terminado",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/comments/get/{postId}"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Matched revision rule: /comentarios paginados|pagination/i | QA cerrado 2026-05-26"
+    },
+    {
+      "id": "dfkxdlEw",
+      "idShort": 332,
+      "name": "✅ My Cards agrupadas (activas vs expiradas)",
+      "url": "https://trello.com/c/dfkxdlEw",
+      "listName": "Terminado",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/datecards/mine"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Matched revision rule: /date.?cards?|mis cards|my cards|datecards\\/mine/i | QA cerrado 2026-05-26"
+    },
+    {
+      "id": "8KbSp7kD",
+      "idShort": 333,
+      "name": "Mejorar endpoint GET /api/notifications/{userId}",
+      "url": "https://trello.com/c/8KbSp7kD",
+      "listName": "Terminado/ Pendiente revision Frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": "GET /api/notifications/{userId}"
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Matched revision rule: /notification/i"
+    },
+    {
+      "id": "ckoAVSWj",
+      "idShort": 334,
+      "name": "Campo de apariencia en perfil de usuario + sincronización backend",
+      "url": "https://trello.com/c/ckoAVSWj",
+      "listName": "Terminado",
+      "backend": {
+        "status": "MISSING",
+        "endpointHint": "GET /api/user/profile/ui-preferences"
+      },
+      "web": "PARTIAL",
+      "mobile": "PARTIAL",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Matched revision rule: /uiPreferences|apariencia en perfil|ui_preferences/i | Cierre cola revisión 2026-05-26"
+    },
+    {
+      "id": "ErK8aIHV",
+      "idShort": 335,
+      "name": "Exponer fechaRegistro en API de perfil (móvil “Es miembro desde…”)",
+      "url": "https://trello.com/c/ErK8aIHV",
+      "listName": "Terminado",
+      "backend": {
+        "status": "MISSING",
+        "endpointHint": "GET /api/profile/me"
+      },
+      "web": "PARTIAL",
+      "mobile": "PARTIAL",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Matched revision rule: /fechaRegistro|miembro desde/i | Cierre cola revisión 2026-05-26"
+    },
+    {
+      "id": "6a11e2b11fa1696b0e6b1d2a",
+      "idShort": 341,
+      "name": "Controlar en los grupos cuando solo admin o manager pueden enviar mensajes, ya que no lo notifica a los demás usuario y parece un bug que dan a enviar luego de escribir lo que piensan y solo no se envía pero no da un mensaje. Ocultar el field de mensajes y poner un mensaje que solo admin puede. Ejemplo",
+      "url": "https://trello.com/c/rqn3gpxq",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": null
+      },
+      "web": "PARTIAL",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "6a11e3d31b435b3a4f47c036",
+      "idShort": 342,
+      "name": "Implementar editar mensajes en grupos",
+      "url": "https://trello.com/c/AOlfazui",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": null
+      },
+      "web": "PARTIAL",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "6a11e6d4d87ff9ff182c3f56",
+      "idShort": 343,
+      "name": "corregir poll en chat group regular. El endpoint que estabas consumiendo era de los eventos chat groups. Ahora tendrás nuevos modelos",
+      "url": "https://trello.com/c/hx4I5tCO",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": null
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    },
+    {
+      "id": "6a12552781502bcbe7e8add3",
+      "idShort": 344,
+      "name": "reshare fix",
+      "url": "https://trello.com/c/7dpWgUsL",
+      "listName": "Pendiente de hacer frontend",
+      "backend": {
+        "status": "DONE",
+        "endpointHint": null
+      },
+      "web": "DONE",
+      "mobile": "DONE",
+      "targetPlatform": "both",
+      "action": "move",
+      "testsPass": true,
+      "notes": "Pending FE audit 2026-05"
+    }
+  ]
+}

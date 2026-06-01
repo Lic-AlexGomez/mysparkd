@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
-import { Bell, Zap, LogOut, Settings, User, Crown, Search, Flame, BarChart3, Users, Bookmark, X, Check, CheckCheck, Heart, MessageCircle, UserPlus, Repeat2, AtSign, LayoutList, Globe } from "lucide-react"
+import { Bell, Zap, LogOut, Settings, User, Crown, Search, Flame, BarChart3, Users, Bookmark, X, Check, CheckCheck, Heart, MessageCircle, UserPlus, Repeat2, AtSign, LayoutList, Globe, Compass } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
 import {
@@ -13,13 +13,22 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useEffect, useState, useCallback, useId, useRef } from "react"
+import { useEffect, useState, useCallback, useId, useRef, useMemo } from "react"
 import { createPortal } from "react-dom"
 import { api } from "@/lib/api"
+import { extractApiRows } from "@/lib/extract-api-rows"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
 import { formatDistanceToNow } from "date-fns"
 import { ar, bn, enUS, es, fr, hi, ptBR, ru, zhCN } from "date-fns/locale"
 import { TOP_10_LANGUAGES, useI18n } from "@/lib/i18n"
+import { useAppearanceOptional } from "@/lib/appearance/appearance-provider"
+import { cn } from "@/lib/utils"
+import { getNotificationPath } from "@/lib/notification-routing"
+import { profileHref } from "@/lib/profile-route"
+import { eventService } from "@/lib/services/event"
+import type { EventGroupJoinRequest } from "@/lib/types"
+import { EventInviteRows } from "@/components/notifications/event-invite-rows"
+import { isStoriesRoute } from "@/lib/is-stories-route"
 
 type NavNotification = {
   notificationId: string
@@ -29,8 +38,15 @@ type NavNotification = {
   createdAt: string
   relatedUserId?: string
   relatedUsername?: string
+  relatedUserPhoto?: string
   targetId?: string
   targetType?: string
+}
+
+interface FollowRequest {
+  userId: string
+  username: string
+  profilePictureUrl?: string
 }
 
 const DATE_LOCALE_BY_LANGUAGE = {
@@ -50,10 +66,15 @@ export function TopNavbar() {
   const router = useRouter()
   const pathname = usePathname()
   const { user, logout } = useAuth()
-  const { language, setLanguage, t } = useI18n()
+  const { language, setLanguage, t, te } = useI18n()
   const features = useFeatureFlags()
+  const appearance = useAppearanceOptional()
+  const navbarStyle = appearance?.uiPrefs.navbarStyle ?? "default"
   const [unreadCount, setUnreadCount] = useState(0)
   const [notifications, setNotifications] = useState<NavNotification[]>([])
+  const [followRequests, setFollowRequests] = useState<FollowRequest[]>([])
+  const [eventInvites, setEventInvites] = useState<EventGroupJoinRequest[]>([])
+  const [respondingEventId, setRespondingEventId] = useState<string | null>(null)
   const [showNotifications, setShowNotifications] = useState(false)
   const notificationsPanelId = useId()
   const notificationsTitleId = useId()
@@ -71,32 +92,108 @@ export function TopNavbar() {
   const fetchNotifications = useCallback(async () => {
     if (!user?.userId) return
     try {
-      const data = await api.get<any[]>(
-        `/api/notifications/${user.userId}?page=0&size=20`
-      )
-      const mapped = data.map(n => ({
-        notificationId: n.notificationId || (n.senderId + n.createdAt),
-        type: n.title?.toLowerCase().includes('like') ? 'like'
-          : n.title?.toLowerCase().includes('comment') ? 'comment'
-          : n.title?.toLowerCase().includes('follow') ? 'follow'
-          : n.title?.toLowerCase().includes('repost') ? 'repost'
-          : n.title?.toLowerCase().includes('mencion') || n.title?.toLowerCase().includes('mention') ? 'mention'
-          : n.title?.toLowerCase().includes('reacci') ? 'reaction'
-          : 'default',
-        message: n.data,
-        read: n.read,
-        createdAt: n.createdAt,
-        relatedUserId: n.senderId,
-        relatedUsername: n.senderUsername,
-        targetId: n.targetId,
-        targetType: n.targetType
-      }))
+      const [notifPayload, requests, events] = await Promise.all([
+        api.get<unknown>(`/api/notifications/${user.userId}?page=0&size=20`),
+        api.get<FollowRequest[]>("/api/follow/requests").catch(() => []),
+        eventService.groupJoinRequests.myPending().catch(() => []),
+      ])
+      const data = extractApiRows<Record<string, unknown>>(notifPayload)
+      const mapped = data
+        .map((n) => {
+          const title = String(n.title ?? "")
+          const dataText = String(n.data ?? "")
+          const tl = `${title} ${dataText}`.toLowerCase()
+          const targetType = String(n.targetType ?? "")
+          return {
+            notificationId: String(n.notificationId ?? ""),
+            type:
+              targetType === "FOLLOW" || tl.includes("follow") || tl.includes("seguir")
+                ? "follow"
+                : tl.includes("like")
+                  ? "like"
+                  : tl.includes("comment")
+                    ? "comment"
+                    : tl.includes("repost")
+                      ? "repost"
+                      : tl.includes("mencion") || tl.includes("mention")
+                        ? "mention"
+                        : tl.includes("reacci")
+                          ? "reaction"
+                          : "default",
+            message: dataText || title,
+            read: Boolean(n.read),
+            createdAt: String(n.createdAt ?? ""),
+            relatedUserId: n.senderId as string | undefined,
+            relatedUsername: n.senderUsername as string | undefined,
+            relatedUserPhoto: n.senderProfilePicture as string | undefined,
+            targetId: n.targetId as string | undefined,
+            targetType,
+          }
+        })
+        .filter((n) => Boolean(n.notificationId))
       setNotifications(mapped)
+      setFollowRequests(Array.isArray(requests) ? requests : [])
+      setEventInvites(Array.isArray(events) ? events : [])
       setUnreadCount(mapped.filter((n) => !n.read).length)
     } catch {
       // silent fail
     }
   }, [user?.userId])
+
+  const pendingUserIds = useMemo(
+    () => new Set(followRequests.map((r) => r.userId)),
+    [followRequests]
+  )
+
+  const pendingEventIds = useMemo(
+    () => new Set(eventInvites.map((r) => r.eventId)),
+    [eventInvites]
+  )
+
+  const pendingActionsCount = followRequests.length + eventInvites.length
+
+  /** Notificaciones normales: sin duplicar solicitudes ya listadas arriba */
+  const activityNotifications = useMemo(
+    () =>
+      notifications.filter((n) => {
+        if (n.relatedUserId && pendingUserIds.has(n.relatedUserId)) return false
+        if (n.targetId && pendingEventIds.has(n.targetId)) return false
+        return true
+      }),
+    [notifications, pendingUserIds, pendingEventIds]
+  )
+
+  const handleRespondEventInvite = async (requestId: string, accept: boolean) => {
+    setRespondingEventId(requestId)
+    try {
+      await eventService.groupJoinRequests.respond(requestId, accept)
+      setEventInvites((prev) => prev.filter((r) => r.id !== requestId))
+    } catch {
+      // silent
+    } finally {
+      setRespondingEventId(null)
+    }
+  }
+
+  const handleAcceptFollow = async (userId: string) => {
+    try {
+      await api.post(`/api/follow/accept/${userId}`)
+      setFollowRequests((prev) => prev.filter((r) => r.userId !== userId))
+      setNotifications((prev) => prev.filter((n) => n.relatedUserId !== userId))
+    } catch {
+      // silent
+    }
+  }
+
+  const handleRejectFollow = async (userId: string) => {
+    try {
+      await api.post(`/api/follow/reject/${userId}`)
+      setFollowRequests((prev) => prev.filter((r) => r.userId !== userId))
+      setNotifications((prev) => prev.filter((n) => n.relatedUserId !== userId))
+    } catch {
+      // silent
+    }
+  }
 
   useEffect(() => {
     fetchNotifications()
@@ -185,22 +282,6 @@ export function TopNavbar() {
     api.delete(`/api/notifications/${notificationId}`).catch(() => {})
   }
 
-  const getNotificationLink = (notification: NavNotification): string => {
-    if (!notification.targetId || !notification.targetType) {
-      return `/profile/${notification.relatedUserId}`
-    }
-
-    switch (notification.targetType) {
-      case 'POST':
-        return `/feed?post=${notification.targetId}`
-      case 'COMMENT':
-      case 'REPLY':
-        return `/feed?comment=${notification.targetId}`
-      default:
-        return `/profile/${notification.relatedUserId}`
-    }
-  }
-
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'like': return <Heart className="h-3.5 w-3.5 text-red-400" />
@@ -218,14 +299,30 @@ export function TopNavbar() {
     ? `${user.nombres?.[0] || ""}${user.apellidos?.[0] || ""}`.toUpperCase()
     : "?"
 
+  if (isStoriesRoute(pathname) || pathname.startsWith("/chat/")) {
+    return null
+  }
+
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 flex h-16 items-center justify-between border-b border-border bg-card/95 px-4 backdrop-blur-md lg:pl-24 xl:pl-76 shadow-sm">
-      {/* Mobile logo */}
-      <Link href="/feed" className="flex items-center gap-2 lg:hidden">
+    <header
+      className={cn(
+        "fixed top-0 left-0 right-0 z-40 flex h-16 items-center justify-between px-4 backdrop-blur-md",
+        navbarStyle === "glass" && "border-b border-primary/25 bg-background/60 shadow-[0_4px_24px_rgba(0,0,0,0.35)]",
+        navbarStyle === "gradient" &&
+          "border-b border-transparent bg-gradient-to-r from-background/90 via-card/90 to-background/90 shadow-sm [border-image:linear-gradient(90deg,var(--primary),var(--secondary),var(--accent))_1]",
+        navbarStyle === "dock" && "border-b border-white/10 bg-card/80 shadow-lg",
+        navbarStyle === "flat" && "border-b border-border bg-card",
+        navbarStyle === "dating-tabs" && "border-b border-border bg-card",
+        (navbarStyle === "default" || navbarStyle === "pill" || navbarStyle === "minimal") &&
+          "border-b border-border bg-card/95 shadow-sm"
+      )}
+    >
+      {/* Logo */}
+      <Link href="/feed" className="flex items-center gap-2">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-secondary shadow-[0_0_20px_rgba(0,229,255,0.3)]">
           <Zap className="h-5 w-5 text-primary-foreground" />
         </div>
-        <span className="text-lg font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Sparkd</span>
+        <span className="text-lg font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Sparkd!</span>
       </Link>
 
       {features.searchPage && pathname !== '/search' ? (
@@ -302,6 +399,19 @@ export function TopNavbar() {
             <Flame className="h-5 w-5" />
           </Link>
         </Button>
+        {/* Discover */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-muted-foreground hover:text-primary hover:bg-primary/10"
+          asChild
+          aria-label={t("nav.discover")}
+          title={t("nav.discover")}
+        >
+          <Link href="/activity">
+            <Compass className="h-5 w-5" />
+          </Link>
+        </Button>
         {/* Notifications */}
         <div className="relative mr-1 sm:mr-4">
           <Button
@@ -318,9 +428,9 @@ export function TopNavbar() {
             aria-controls={showNotifications ? notificationsPanelId : undefined}
           >
             <Bell className="h-5 w-5" />
-            {unreadCount > 0 && (
+            {(unreadCount > 0 || pendingActionsCount > 0) && (
               <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-secondary text-[10px] font-bold text-black shadow-[0_0_8px_rgba(217,70,239,0.6)]">
-                {unreadCount > 9 ? "9+" : unreadCount}
+                {unreadCount + pendingActionsCount > 9 ? "9+" : unreadCount + pendingActionsCount}
               </span>
             )}
             <span className="sr-only">{t("nav.notifications")}</span>
@@ -345,90 +455,168 @@ export function TopNavbar() {
                 data-notifications-dropdown
               >
               {/* Header */}
-              <div className="flex shrink-0 items-center justify-between border-b border-border bg-card/80 px-3 py-3 backdrop-blur-sm md:px-4">
-                <div className="flex items-center gap-2">
-                  <Bell className="h-4 w-4 text-primary" aria-hidden />
+              <div className="flex shrink-0 flex-col gap-2 border-b border-border bg-card/80 px-3 py-3 backdrop-blur-sm md:px-4">
+                <div className="flex items-center justify-between gap-2">
                   <h3 id={notificationsTitleId} className="font-semibold text-foreground text-sm">
-                    {t("nav.notifications")}
+                    {te("Notificaciones", "Notifications")}
                   </h3>
-                  {unreadCount > 0 && (
-                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-black px-1">
-                      {unreadCount}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  {unreadCount > 0 && (
-                    <button
-                      onClick={markAllAsRead}
-                      className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
-                    >
-                      <CheckCheck className="h-3.5 w-3.5" />
-                      {t("nav.markAllRead")}
-                    </button>
-                  )}
                   <Link
                     href="/notifications"
-                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    className="text-xs font-medium text-primary hover:underline"
                     onClick={() => setShowNotifications(false)}
                   >
-                    {t("nav.viewAll")}
+                    {te("Ver todas", "View all")}
                   </Link>
                 </div>
+                {unreadCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={markAllAsRead}
+                    className="flex w-fit items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    <CheckCheck className="h-3.5 w-3.5" />
+                    {te("Marcar todo como leído", "Mark all as read")}
+                  </button>
+                )}
               </div>
 
-              {/* Lista */}
-              <div className="min-h-0 flex-1 divide-y divide-border/50 overflow-y-auto overscroll-contain md:max-h-[420px]">
-                {notifications.length === 0 ? (
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain md:max-h-[380px]">
+                {followRequests.length === 0 && eventInvites.length === 0 && activityNotifications.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 gap-3">
-                    <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-                      <Bell className="h-6 w-6 text-muted-foreground" />
-                    </div>
-                    <p className="text-sm text-muted-foreground">{t("nav.noNotifications")}</p>
+                    <Bell className="h-10 w-10 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">{te("Sin notificaciones", "No notifications")}</p>
                   </div>
                 ) : (
-                  notifications.slice(0, 8).map((n) => (
-                    <div key={n.notificationId} className={`group relative flex items-start gap-3 px-4 py-3 transition-colors hover:bg-muted/40 ${!n.read ? 'bg-primary/5' : ''}`}>
-                      {/* Indicador no leída */}
-                      {!n.read && (
-                        <span className="absolute left-1.5 top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-primary" />
-                      )}
-                      {/* Ícono tipo */}
-                      <div className="mt-0.5 h-7 w-7 rounded-full bg-muted flex items-center justify-center shrink-0">
-                        {getNotificationIcon(n.type)}
-                      </div>
-                      {/* Contenido — clickeable */}
-                      <Link
-                        href={getNotificationLink(n)}
-                        className="flex-1 min-w-0"
-                        onClick={() => { markAsRead(n.notificationId); setShowNotifications(false) }}
-                      >
-                        <p className={`text-sm leading-snug ${!n.read ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
-                          {n.message}
+                  <>
+                    {followRequests.length > 0 && (
+                      <section className="border-b border-border bg-primary/5">
+                        <p className="px-3 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          {te("Solicitudes de seguimiento", "Follow requests")} ({followRequests.length})
                         </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {(() => {
-                            try {
-                              return formatDistanceToNow(new Date(n.createdAt), {
-                                addSuffix: true,
-                                locale: DATE_LOCALE_BY_LANGUAGE[language],
-                              })
-                            } catch {
-                              return ""
-                            }
-                          })()}
+                        {followRequests.map((req) => (
+                          <div key={req.userId} className="px-3 py-3 border-t border-border/50 first:border-t-0">
+                            <div className="flex items-center gap-3">
+                              <Link
+                                href={profileHref(req.userId, user?.userId)}
+                                onClick={() => setShowNotifications(false)}
+                                className="shrink-0"
+                              >
+                                <Avatar className="h-10 w-10">
+                                  <AvatarImage src={req.profilePictureUrl} />
+                                  <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                                    {req.username?.[0]?.toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                              </Link>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-foreground truncate">{req.username}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {te("Quiere seguirte", "Wants to follow you")}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="mt-3 flex gap-2">
+                              <Button
+                                className="flex-1 h-9"
+                                onClick={() => void handleAcceptFollow(req.userId)}
+                              >
+                                {te("Aceptar", "Accept")}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                className="flex-1 h-9"
+                                onClick={() => void handleRejectFollow(req.userId)}
+                              >
+                                {te("Rechazar", "Decline")}
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </section>
+                    )}
+
+                    <EventInviteRows
+                      invites={eventInvites}
+                      respondingId={respondingEventId}
+                      te={te}
+                      onNavigate={() => setShowNotifications(false)}
+                      onAccept={(id) => void handleRespondEventInvite(id, true)}
+                      onReject={(id) => void handleRespondEventInvite(id, false)}
+                    />
+
+                    {activityNotifications.length > 0 && (
+                      <section>
+                        <p className="px-3 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          {te("Actividad reciente", "Recent activity")}
                         </p>
-                      </Link>
-                      {/* Botón eliminar */}
-                      <button
-                        onClick={(e) => deleteNotification(n.notificationId, e)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 h-6 w-6 rounded-full hover:bg-muted flex items-center justify-center mt-0.5"
-                        title="Eliminar"
-                      >
-                        <X className="h-3.5 w-3.5 text-muted-foreground" />
-                      </button>
-                    </div>
-                  ))
+                        <div className="divide-y divide-border/50">
+                          {activityNotifications.slice(0, 8).map((n) => (
+                            <div
+                              key={n.notificationId}
+                              className={`group relative flex items-start gap-3 px-3 py-3 transition-colors hover:bg-muted/40 ${!n.read ? "bg-primary/5" : ""}`}
+                            >
+                              {!n.read && (
+                                <span className="absolute left-1 top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-primary" />
+                              )}
+                              <div className="mt-0.5 shrink-0">
+                                {n.relatedUserPhoto || n.relatedUsername ? (
+                                  <Avatar className="h-8 w-8">
+                                    <AvatarImage src={n.relatedUserPhoto} />
+                                    <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                                      {n.relatedUsername?.[0]?.toUpperCase()}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                ) : (
+                                  <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                                    {getNotificationIcon(n.type)}
+                                  </div>
+                                )}
+                              </div>
+                              <Link
+                                href={getNotificationPath({
+                                  senderId: n.relatedUserId,
+                                  targetId: n.targetId,
+                                  targetType: n.targetType,
+                                  viewerUserId: user?.userId,
+                                })}
+                                className="flex-1 min-w-0 pr-6"
+                                onClick={() => {
+                                  markAsRead(n.notificationId)
+                                  setShowNotifications(false)
+                                }}
+                              >
+                                <p
+                                  className={`text-sm leading-snug ${!n.read ? "text-foreground font-medium" : "text-muted-foreground"}`}
+                                >
+                                  {n.message}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  {(() => {
+                                    try {
+                                      return formatDistanceToNow(new Date(n.createdAt), {
+                                        addSuffix: true,
+                                        locale: DATE_LOCALE_BY_LANGUAGE[language],
+                                      })
+                                    } catch {
+                                      return ""
+                                    }
+                                  })()}
+                                </p>
+                              </Link>
+                              <button
+                                type="button"
+                                onClick={(e) => deleteNotification(n.notificationId, e)}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 h-6 w-6 rounded-full hover:bg-muted flex items-center justify-center"
+                                title={te("Eliminar", "Delete")}
+                              >
+                                <X className="h-3.5 w-3.5 text-muted-foreground" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    )}
+                  </>
                 )}
               </div>
               </div>

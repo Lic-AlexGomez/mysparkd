@@ -1,0 +1,1955 @@
+{
+  "boardId": "69b316a06238dae98730288d",
+  "generatedAt": "2026-05-27T00:57:44.214Z",
+  "lists": [
+    {
+      "id": "69bb3d3c12d0d5b375cd486b",
+      "name": "Pendiente de hacer frontend",
+      "totalCards": 43,
+      "cards": [
+        {
+          "idShort": 245,
+          "name": "Activity Feed — Implementación frontend (Meetups + Eventos unificados)",
+          "url": "https://trello.com/c/Xsclcbhk",
+          "desc": "## Descripción\n\nNuevo endpoint que combina Meetups (DateCards) y Eventos en un solo feed ordenado por fecha más próxima. El frontend debe renderizar ambos tipos en una sola pantalla con un selector de tipo.\n\n---\n\n## Endpoint\n\nGET /api/activity-feed\n\n---\n\n## Query params\n\n- type: MEETUP | EVENT (omitir = ambos)\n- minAge / maxAge: edad (aplica a ambos)\n- maxDistanceKm: distancia máx km (solo Meetups)\n- minCompatibility: compatibilidad mínima (solo Meetups)\n- beforeDateTime: solo items antes de esta fecha\n- expiresBefore: meetups que expiran antes de esta fecha\n- eventCategory: categoría de evento (solo Eventos)\n- free: solo eventos gratuitos (solo Eventos)\n- lat / lng / radiusKm: radio geográfico (solo Eventos)\n\n---\n\n## Estructura de respuesta\n\nCada item incluye el campo type (MEETUP o EVENT). Campos null son normales según el tipo.\n\nCampos comunes:\n- type, id, title, description, locationZone, dateTime, category, status, createdAt\n- creatorId, creatorUsername, creatorPhotoUrl\n\nSolo MEETUP:\n- detail, plans, placeTypes, distance, compatibility, age, weight, expiresAt\n\nSolo EVENT:\n- coverPhotoUrl, free, price, minGuests, maxGuests, currentApprovedCount, full\n\n---\n\n## Ejemplos\n\nGET /api/activity-feed → Meetups + Eventos mezclados\nGET /api/activity-feed?type=MEETUP → Solo meetups\nGET /api/activity-feed?type=EVENT → Solo eventos\nGET /api/activity-feed?type=EVENT&free=true&lat=4.6&lng=-74.1&radiusKm=15\nGET /api/activity-feed?type=MEETUP&maxDistanceKm=10\n\n---\n\n## Archivos backend\n\n- sparkd/Enums/FeedItemType.java\n- sparkd/DTOs/UnifiedFeedFilterDTO.java\n- sparkd/DTOs/UnifiedFeedItemDTO.java\n- sparkd/Service/UnifiedFeedService.java\n- sparkd/Controllers/ActivityFeedController.java\n\n---\n\n## Notas\n\n- Feed ordenado por dateTime ascendente (más próximo primero)\n- Usar campo type para decidir qué card component renderizar\n- Los endpoints individuales /api/date-cards/feed y /api/events siguen activos\n- Si el usuario no tiene preferencias, los Meetups se omiten silenciosamente",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-03T16:57:55.297Z",
+          "comments": []
+        },
+        {
+          "idShort": 249,
+          "name": "Implementar UI para cambiar ubicación del evento (manager)",
+          "url": "https://trello.com/c/adlQeDEi",
+          "desc": "El manager/ADMIN del grupo puede actualizar la ubicación del evento con las siguientes restricciones:\n- Máximo 2 cambios por evento\n- No se puede cambiar pasadas 5 horas del inicio del evento\n\nAl cambiar la ubicación, el backend publica automáticamente un mensaje de sistema en el chat del grupo.\n\n**Endpoint:**\nPUT /api/events/{eventId}/group/location\n\n**Body (JSON):**\n```json\n{\n  \"zone\": \"Zona Colonial, Santo Domingo\",\n  \"exactAddress\": \"Calle El Conde #45\",\n  \"latitude\": 18.4721,\n  \"longitude\": -69.8813\n}\n```\n\n**Respuesta:** EventGroupMessageResponseDTO (el mensaje de sistema publicado en el chat)\n\n**Qué debe hacer el frontend:**\n- Mostrar botón/opción de 'Cambiar ubicación' solo visible para el ADMIN del grupo\n- Formulario con campos: zona pública, dirección exacta, lat/lng (o selector de mapa)\n- Deshabilitar opción si ya se usaron los 2 cambios o si pasaron 5h del evento (manejar error 403)\n- Al éxito, el nuevo mensaje de sistema aparece en el chat vía WebSocket automáticamente",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-06T01:19:41.360Z",
+          "comments": []
+        },
+        {
+          "idShort": 253,
+          "name": "Mostrar reputacion del creador en cards de MeetUp (feed)",
+          "url": "https://trello.com/c/zq8FAHYH",
+          "desc": "En el feed unificado GET /api/activity-feed, los items con type=MEETUP incluyen el campo creatorReputation (double, 0-100) con la reputacion del creador del evento.\n\nMostrar la reputacion del creador en la card del MeetUp dentro del feed. Los items type=DATE tienen este campo como null (no mostrar).",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-06T02:48:33.152Z",
+          "comments": []
+        },
+        {
+          "idShort": 254,
+          "name": "Reputacion oculta en perfil publico de otros usuarios",
+          "url": "https://trello.com/c/EIWzc2Em",
+          "desc": "El campo reputation es null cuando un usuario ve el perfil de otra persona (GET /api/profile/{userId}). El frontend NO debe mostrar ni renderizar la reputacion cuando sea null.\n\nRegla: perfil propio -> reputation tiene valor -> mostrar. Perfil ajeno -> reputation: null -> no mostrar.",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-06T02:48:37.221Z",
+          "comments": []
+        },
+        {
+          "idShort": 256,
+          "name": "Integrar RevenueCat SDK — Suscripciones Mobile",
+          "url": "https://trello.com/c/Ua8exabA",
+          "desc": "## Instalacion\n```\nnpm install --save react-native-purchases react-native-purchases-ui\ncd ios && pod install\n```\n\n**iOS:** Xcode -> Target -> Capabilities -> In-App Purchase activar\n**Android:** agregar en AndroidManifest.xml:\n```\n<uses-permission android:name=\"com.android.vending.BILLING\" />\n```\n\n---\n\n## 1. Crear src/services/RevenueCatService.ts\nServicio con:\n- initializeRevenueCat(userId: string) — llamar justo despues del login con el UUID del usuario\n- getCustomerInfo()\n- hasPremium(customerInfo) — verifica entitlement: sparkd Unlimited\n- getOfferings()\n- purchasePackage(pkg)\n- restorePurchases()\n- logOut()\n\nAPI Keys (obtener en RevenueCat Dashboard -> Project Settings -> Apps):\n- iOS: Apple API Key\n- Android: Google API Key\nKey de test actual: test_HCVhrTEiFSaCDkejdFKkAOFtOVY\n\nIMPORTANTE: el appUserID debe ser el UUID del usuario de Sparkd (el que viene en el JWT)\n\n---\n\n## 2. Crear src/hooks/useSubscription.ts\nHook con:\n- isPremium: boolean\n- customerInfo\n- loading\n- refresh()\n- restore()\n\n---\n\n## 3. Paywall\nUsar react-native-purchases-ui:\n\nOpcion A (recomendada): RevenueCatUI.presentPaywallIfNeeded({ requiredEntitlementIdentifier: \"sparkd Unlimited\" })\nOpcion B: Componente <RevenueCatUI.Paywall> embebido en pantalla\n\nUsar cuando:\n- Usuario intenta usar feature premium\n- Boton Upgrade / Ver planes\n\n---\n\n## 4. Customer Center\nUsar RevenueCatUI.presentCustomerCenter() con callbacks de restore y refund.\nColocar en: pantalla de perfil / ajustes -> boton Gestionar suscripcion\nReemplaza cualquier logica manual de cancelacion.\n\n---\n\n## 5. Productos configurados en RevenueCat Dashboard\n- Monthly (monthly)\n- Yearly (yearly)\n- Lifetime (lifetime)\nEntitlement: sparkd Unlimited\n\n---\n\n## 6. Flujo completo\n1. Login -> initializeRevenueCat(userUUID)\n2. Cualquier pantalla premium -> useSubscription() para verificar isPremium\n3. No premium -> showPaywallIfNeeded()\n4. Ajustes -> openCustomerCenter()\n5. Logout -> Purchases.logOut()",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-06T03:58:10.097Z",
+          "comments": []
+        },
+        {
+          "idShort": 257,
+          "name": "Chats: separar en Tab DIRECT y Tab GENERAL",
+          "url": "https://trello.com/c/U3dyemDf",
+          "desc": "## Descripción\nLa pantalla de mensajes debe tener dos pestañas separadas según el campo chatCategory que ya devuelve el backend en cada chat.\n\n## Endpoint\nGET /api/chat/chats\n\nCada objeto incluye: chatCategory: DIRECT o GENERAL\n\n## Qué hacer en el frontend\n- [ ] Agregar dos tabs en la pantalla de mensajes:\n  - Tab 1 — Directos: filtrar chats donde chatCategory == DIRECT\n  - Tab 2 — General: filtrar chats donde chatCategory == GENERAL\n- [ ] El filtro es solo del lado del cliente con los datos que ya vienen\n- [ ] Chats creados por match aparecen en General por defecto\n- [ ] Chats creados por DM directo desde perfil aparecen en Directos por defecto\n- [ ] Mantener badge de no leídos (campo unread) visible en cada tab independientemente",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-06T05:18:51.188Z",
+          "comments": []
+        },
+        {
+          "idShort": 258,
+          "name": "Chats: mover chat entre categoría DIRECT y GENERAL",
+          "url": "https://trello.com/c/hWcIVpJY",
+          "desc": "## Descripción\nPermitir que el usuario mueva un chat del tab Directos al tab General y viceversa (long press o menú contextual).\n\n## Endpoint\nPATCH /api/chat/chats/{chatId}/category?category=GENERAL\nPATCH /api/chat/chats/{chatId}/category?category=DIRECT\n\n- Método: PATCH\n- Auth: Bearer token (JWT)\n- Path param: chatId — UUID del chat\n- Query param: category — valor DIRECT o GENERAL\n- Respuesta exitosa: 200 sin body\n- Error 403: no pertenece al chat\n- Error 404: chat no encontrado\n\n## Qué hacer en el frontend\n- [ ] En cada chat exponer opción Mover a General / Mover a Directos según chatCategory actual\n- [ ] UX sugerida: long press sobre el chat → menú con la opción\n- [ ] Al confirmar, llamar PATCH con la categoría destino\n- [ ] Actualizar lista localmente: quitar el chat del tab actual y agregarlo al otro tab sin recargar toda la pantalla\n- [ ] El cambio es individual por usuario — el otro participante no se ve afectado",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-06T05:19:04.149Z",
+          "comments": []
+        },
+        {
+          "idShort": 259,
+          "name": "Chats: alerta de upgrade a Premium al enviar DM directo desde perfil",
+          "url": "https://trello.com/c/9AB94xsB",
+          "desc": "## Descripción\nCuando un usuario NO premium intenta abrir un chat directo desde el perfil de otro usuario, el backend responde 403 con un código específico. El frontend debe interceptarlo y mostrar un modal de upgrade.\n\n## Endpoint que dispara esto\nPOST /api/chat/open/{userId}\n\n## Respuesta cuando NO es premium\nHTTP 403 Forbidden\nBody: PREMIUM_REQUIRED\n\n## Otros 403 posibles en el mismo endpoint (NO mostrar alerta de premium)\n- Body No existe match → el destinatario solo acepta mensajes de matches\n- Body Este usuario solo acepta mensajes de sus seguidores → privacidad de seguidores\n\n## Qué hacer en el frontend\n- [ ] Al llamar POST /api/chat/open/{userId}, capturar el error 403\n- [ ] Si el body es exactamente PREMIUM_REQUIRED → mostrar modal/bottom sheet de upgrade a premium\n- [ ] Si el body es otro mensaje de privacidad → mostrar alerta informativa (no de premium)\n- [ ] Opcional: deshabilitar o no mostrar el botón Enviar mensaje en el perfil si el usuario no es premium (validación visual preventiva)",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-06T05:19:17.256Z",
+          "comments": []
+        },
+        {
+          "idShort": 260,
+          "name": "Manejar exception for exceeded register from x IP address. Set a custom message handler. Also check login message exceptions.",
+          "url": "https://trello.com/c/rE9Gl6nG",
+          "desc": "auth/register\n\nauth/login",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-06T12:02:42.124Z",
+          "comments": []
+        },
+        {
+          "idShort": 262,
+          "name": "Paginar notificaciones 20",
+          "url": "https://trello.com/c/4p4WZEJo",
+          "desc": "",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-07T07:07:02.667Z",
+          "comments": []
+        },
+        {
+          "idShort": 289,
+          "name": "[FE] Selector de invitados grupales — consumir GET /api/events/{eventId}/group/join-eligible-users",
+          "url": "https://trello.com/c/z3Rzh98g",
+          "desc": "## Contexto\nEl backend ahora expone un endpoint único que devuelve los usuarios que el invitador puede invitar al grupo de un evento (matches + seguidores mutuos, excluyendo miembros ya en el grupo).\n\n## Endpoint\n`GET /api/events/{eventId}/group/join-eligible-users`\nAuthorization: Bearer ...\n\n## Respuesta 200\n```json\n[\n  {\n    \"userId\": \"uuid\",\n    \"username\": \"string\",\n    \"nombres\": \"...\",\n    \"apellidos\": \"...\",\n    \"profilePictureUrl\": \"...\"\n  }\n]\n```\n\n## Tarea FE\n- En `lib/services/event.ts` añadir `groupJoinRequests.listEligibleInvitees(eventId)`\n- Reemplazar el armado manual en cliente (mezcla de /matches + /followers + /following) por esta llamada\n- Si el endpoint devuelve 404, mantener el fallback actual mientras se despliega\n- Archivo: `app/(app)/events/[eventId]/page.tsx` — pestaña Solicitudes → Invitar desde tu lista",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-12T03:48:22.012Z",
+          "comments": []
+        },
+        {
+          "idShort": 290,
+          "name": "[FE] Rating post-evento — mostrar averageRating, ratingCount y myRating en detalle",
+          "url": "https://trello.com/c/IYRkDElH",
+          "desc": "## Contexto\nEl backend ahora incluye campos de rating en `GET /api/events/{eventId}`.\n\n## Nuevos campos en la respuesta\n```json\n{\n  \"averageRating\": 4.2,\n  \"ratingCount\": 15,\n  \"myRating\": {\n    \"id\": \"uuid\",\n    \"score\": 5,\n    \"comment\": \"Genial\",\n    \"createdAt\": \"...\"\n  }\n}\n```\n- `myRating` es null si el usuario no ha calificado aún\n- Para calificar: `POST /api/events/{eventId}/rate` body: `{ \"score\": 1-5, \"comment\": \"opcional\" }`\n- Solo disponible para participantes APPROVED de eventos FINISHED\n- 409 si el usuario ya calificó\n\n## Tarea FE\n- En el detalle del evento (`app/(app)/events/[eventId]/page.tsx`) mostrar:\n  - Promedio de estrellas + conteo total\n  - Modal/sección de calificación si el evento está FINISHED, el usuario fue APPROVED y `myRating` es null\n  - Si `myRating` existe, mostrar la calificación del usuario",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-12T03:48:24.843Z",
+          "comments": []
+        },
+        {
+          "idShort": 291,
+          "name": "[FE] Perfil público — mostrar chips eventsCreatedCount y eventsCancelledCount",
+          "url": "https://trello.com/c/c89V8S4R",
+          "desc": "## Contexto\nEl backend ahora incluye dos nuevos campos en `GET /api/profile/{userId}` y `GET /api/profile/me`.\n\n## Nuevos campos\n```json\n{\n  \"eventsCreatedCount\": 12,\n  \"eventsCancelledCount\": 2\n}\n```\n\n## Tarea FE\n- En `app/(app)/profile/[userId]/page.tsx` añadir chips/badges junto a reputación:\n  - 🗓 X eventos creados\n  - ✖ X cancelados (visible solo si > 0, ya que afecta la reputación)\n- Usar los campos tal como vienen del DTO — no requiere llamada extra",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-12T03:48:27.396Z",
+          "comments": []
+        },
+        {
+          "idShort": 292,
+          "name": "[FE] Reactions modal — verificar ruta /api/reactions/users/{postId}",
+          "url": "https://trello.com/c/G0ISqppX",
+          "desc": "## Contexto\nEl backend ahora acepta `GET /api/reactions/users/{targetId}` como alias de `GET /api/likes/users/{targetId}`.\n\n## Lo que cambió\n- Ambas rutas responden igual, con filtro opcional `?reactionType=LIKE`\n- No se requiere `targetType` como query param\n\n## Tarea FE\n- Verificar en `components/feed/reactions-modal.tsx` que la llamada usa `/api/reactions/users/` (sin params extra)\n- Si actualmente apunta a `/api/likes/users/`, ambas rutas ya funcionan — decidir cuál mantener y unificar\n- Confirmar en QA que el modal de reacciones carga la lista de usuarios correctamente",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-12T03:48:30.642Z",
+          "comments": []
+        },
+        {
+          "idShort": 293,
+          "name": "[FE] Search — mostrar foto de perfil en resultados de usuarios",
+          "url": "https://trello.com/c/yauNkB3b",
+          "desc": "## Contexto\nLos endpoints de búsqueda ahora devuelven `profilePictureUrl` en los resultados de usuarios.\n\n## Cambios en la respuesta\n\n### GET /api/search/autocomplete?q=@juan\n### GET /api/search/autocomplete?q=texto\n### GET /api/search/general?query=texto\n```json\n{\n  \"users\": [\n    {\n      \"userId\": \"uuid\",\n      \"username\": \"juanito\",\n      \"profilePictureUrl\": \"https://res.cloudinary.com/.../foto.jpg\"\n    }\n  ]\n}\n```\n- `profilePictureUrl` puede ser null si el usuario no tiene foto\n\n## Tarea FE\n- Mostrar avatar junto al username en el autocomplete de usuarios (`@` y búsqueda general)\n- Mostrar avatar en resultados de `/general`\n- Usar un avatar placeholder cuando `profilePictureUrl` sea null",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-12T04:05:45.467Z",
+          "comments": []
+        },
+        {
+          "idShort": 294,
+          "name": "[FE] Search — mostrar preview de posts en resultados de hashtags",
+          "url": "https://trello.com/c/9xC3BkNz",
+          "desc": "## Contexto\nLos endpoints de hashtags ahora devuelven hasta 3 URLs de posts públicos con media asociados al tag.\n\n## Cambios en la respuesta\n\n### GET /api/search/hashtags?query=moon\n### GET /api/search/hashtags/trending?limit=10\n### GET /api/search/autocomplete?q=#moon\n```json\n{\n  \"hashtags\": [\n    {\n      \"id\": \"uuid\",\n      \"tag\": \"moontrip\",\n      \"usageCount\": 42,\n      \"lastUsedAt\": \"...\",\n      \"previewUrls\": [\n        \"https://res.cloudinary.com/.../post1.jpg\",\n        \"https://res.cloudinary.com/.../post2.mp4\"\n      ]\n    }\n  ]\n}\n```\n- `previewUrls` puede estar vacío si el hashtag no tiene posts con media\n- Máximo 3 URLs, solo posts PUBLIC con media\n\n## Tarea FE\n- En la lista de hashtags (búsqueda y trending), mostrar una mini-galería/grid con las imágenes de `previewUrls`\n- Si `previewUrls` está vacío, mostrar el contador de posts (`usageCount`) sin imagen\n- En el autocomplete de `#tag`, mostrar al menos la primera imagen como thumbnail",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-12T04:05:46.517Z",
+          "comments": []
+        },
+        {
+          "idShort": 295,
+          "name": "[FE] Activity Feed — soporte para parámetro sort (NEWER / OLDER)",
+          "url": "https://trello.com/c/c9yFOSnn",
+          "desc": "## Contexto\nEl feed unificado de Dates y Meetups (`GET /api/activity-feed`) ahora acepta un parámetro `sort`.\n\n## Nuevo query param\n| Valor | Comportamiento |\n|---|---|\n| (omitido) | Aleatorio (shuffle en cada petición) |\n| `NEWER` | Más recientes primero |\n| `OLDER` | Más antiguos primero |\n\nEjemplo: `GET /api/activity-feed?sort=NEWER&type=MEETUP`\n\n## Tarea FE\n- En la página `/events` añadir un selector de orden (ej. chips o dropdown): Aleatorio / Más recientes / Más antiguos\n- Pasar `?sort=NEWER` o `?sort=OLDER` según selección; omitir el param para aleatorio\n- El selector debe persistir mientras el usuario navega el feed (estado local o query param en URL)",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-12T04:05:47.460Z",
+          "comments": []
+        },
+        {
+          "idShort": 302,
+          "name": "Integrar Firebase SDK en la app móvil",
+          "url": "https://trello.com/c/8asCTgUl",
+          "desc": "## Qué hay que hacer\nInstalar y configurar Firebase SDK en el proyecto móvil (Android/iOS) para poder recibir notificaciones push via FCM.\n\n## Pasos\n- [ ] Añadir dependencia de Firebase Messaging al proyecto (build.gradle / Podfile)\n- [ ] Descargar y añadir el archivo google-services.json (Android) o GoogleService-Info.plist (iOS) desde la consola de Firebase (proyecto: nextgen-socialapp)\n- [ ] Inicializar Firebase en el punto de entrada de la app\n- [ ] Solicitar permiso de notificaciones al usuario en el primer lanzamiento\n\n## Notas\nProyecto Firebase: **nextgen-socialapp**",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-17T05:26:12.304Z",
+          "comments": []
+        },
+        {
+          "idShort": 303,
+          "name": "Registrar token FCM al iniciar sesión",
+          "url": "https://trello.com/c/26KtPQ3k",
+          "desc": "## Qué hay que hacer\nDespués del login exitoso, obtener el token FCM del dispositivo y enviarlo al backend para que el usuario pueda recibir push notifications.\n\n## Endpoint backend\n```\nPUT /api/profile/fcm-token\nAuthorization: Bearer <jwt>\nContent-Type: application/json\n\n{ \"token\": \"el_fcm_token_del_dispositivo\" }\n```\nRespuesta: 200 OK\n\n## Cuándo llamarlo\n- Al hacer login (después de recibir el JWT)\n- Al abrir la app si el usuario ya tenía sesión activa (el token FCM puede rotar)\n\n## Código de referencia (obtener el token)\n```kotlin\n// Android\nFirebaseMessaging.getInstance().token.addOnCompleteListener { task ->\n    if (task.isSuccessful) {\n        val token = task.result\n        // Enviar token al backend\n    }\n}\n```\n```swift\n// iOS\nMessaging.messaging().token { token, error in\n    if let token = token {\n        // Enviar token al backend\n    }\n}\n```",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-17T05:26:14.761Z",
+          "comments": []
+        },
+        {
+          "idShort": 304,
+          "name": "Eliminar token FCM al cerrar sesión",
+          "url": "https://trello.com/c/VqQAzD6P",
+          "desc": "## Qué hay que hacer\nAl hacer logout, eliminar el token FCM del backend para que el usuario deje de recibir notificaciones push en ese dispositivo.\n\n## Endpoint backend\n```\nDELETE /api/profile/fcm-token\nAuthorization: Bearer <jwt>\n```\nRespuesta: 204 No Content\n\n## Cuándo llamarlo\n- Siempre antes de limpiar el JWT local (logout)\n- Si el usuario desactiva notificaciones desde ajustes de la app\n\n## Importante\nLlamarlo ANTES de borrar el JWT local, porque el endpoint requiere autenticación.",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-17T05:26:17.732Z",
+          "comments": []
+        },
+        {
+          "idShort": 305,
+          "name": "Manejar notificaciones push en foreground y background",
+          "url": "https://trello.com/c/vt0fvwR1",
+          "desc": "## Qué hay que hacer\nImplementar el manejo de notificaciones tanto cuando la app está abierta (foreground) como cuando está cerrada o en background.\n\n## Datos que llegan en el payload de la notificación\n```json\n{\n  \"title\": \"texto del título\",\n  \"body\": \"texto del mensaje\",\n  \"data\": {\n    \"targetId\": \"uuid del contenido relacionado\",\n    \"targetType\": \"tipo de contenido (ej: POST, COMMENT, FOLLOW, MATCH, MESSAGE, GROUP, EVENT)\",\n    \"profilePicture\": \"url de la foto del remitente\",\n    \"notificationId\": \"uuid de la notificación\",\n    \"username\": \"username del remitente\"\n  }\n}\n```\n\n## Comportamiento esperado\n- **Foreground**: mostrar un banner o snackbar dentro de la app con el contenido de la notificación\n- **Background / app cerrada**: el sistema operativo muestra la notificación; al tocarla debe abrir la app\n\n## Pasos\n- [ ] Implementar el listener de mensajes en foreground (FirebaseMessagingService / UNUserNotificationCenter)\n- [ ] Implementar el listener de mensajes en background/terminated\n- [ ] Mostrar notificación local en foreground si se desea\n- [ ] Al tocar la notificación, leer los datos del payload y navegar al contenido correcto",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-17T05:26:19.520Z",
+          "comments": []
+        },
+        {
+          "idShort": 306,
+          "name": "Deep linking desde notificación push (navegar al contenido)",
+          "url": "https://trello.com/c/q7rMRq5Y",
+          "desc": "## Qué hay que hacer\nCuando el usuario toca una notificación push, la app debe navegar automáticamente al contenido relacionado usando el campo targetType y targetId del payload.\n\n## Lógica de navegación según targetType\n| targetType | Pantalla destino |\n|---|---|\n| POST | Detalle del post (targetId = postId) |\n| COMMENT | Detalle del post con comentario abierto (targetId = postId o commentId) |\n| FOLLOW | Perfil del usuario que te siguió |\n| MATCH | Pantalla de matches / chat con esa persona |\n| MESSAGE | Chat con el usuario (targetId = chatId o userId) |\n| GROUP | Detalle del grupo (targetId = groupId) |\n| EVENT | Detalle del evento (targetId = eventId) |\n\n## Pasos\n- [ ] Crear un router/handler que reciba el payload de la notificación\n- [ ] Mapear targetType a la pantalla correspondiente\n- [ ] Navegar usando el targetId\n- [ ] Marcar la notificación como leída en el backend al navegar\n\n## Endpoint para marcar como leída\n```\nPUT /api/notifications/{notificationId}/read\nAuthorization: Bearer <jwt>\n```",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-17T05:26:25.406Z",
+          "comments": []
+        },
+        {
+          "idShort": 307,
+          "name": "Analytics — Implementar pantalla de estadísticas del usuario",
+          "url": "https://trello.com/c/jnQIiF7H",
+          "desc": "## Qué hay que hacer\nReemplazar los datos hardcodeados de la pantalla de analytics por datos reales del backend.\n\n## Endpoint\n```\nGET /api/profile/me/analytics\nAuthorization: Bearer <jwt>\n```\n\n## Respuesta del backend\n```json\n{\n  \"totalReactions\":  123,\n  \"totalComments\":   45,\n  \"totalReposts\":    12,\n  \"totalBookmarks\":  30,\n  \"followers\":       500,\n  \"following\":       200,\n  \"totalPosts\":      18\n}\n```\n\n## Pasos\n- [ ] Crear hook/servicio que consuma el endpoint\n- [ ] Reemplazar los números hardcodeados por los datos reales\n- [ ] Manejar estado de carga (skeleton/spinner)\n- [ ] Manejar error si el endpoint falla",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-17T05:47:02.750Z",
+          "comments": []
+        },
+        {
+          "idShort": 308,
+          "name": "Liked-me — UI de desbloqueo por pago único (30 días)",
+          "url": "https://trello.com/c/HZrpiMcN",
+          "desc": "## Qué hay que hacer\nEn la pantalla de «quién me dio like», si el usuario no tiene premium ni el desbloqueo activo, mostrar una opción para desbloquearlo con un pago único de 30 días (alternativa más barata que premium).\n\n## Endpoints\n**Iniciar checkout (pago único):**\n```\nPOST /api/swipes/liked-me/checkout\nAuthorization: Bearer <jwt>\n```\nRespuesta: `{ \"checkoutUrl\": \"https://checkout.stripe.com/...\" }`\n\n**Abrir la URL en el navegador/WebView del dispositivo para que el usuario pague.**\n\n## Estados a manejar\n- Usuario **sin acceso**: mostrar botón «Desbloquear 30 días» + opción de suscribirse a premium\n- Usuario **con unlock activo** (campo `likedMeUnlockedUntil` en el perfil): mostrar la lista normalmente, con badge «Activo hasta [fecha]»\n- Usuario **premium**: mostrar la lista normalmente\n\n## Páginas de resultado Stripe\n- Éxito: `https://www.mysparkd.com/liked-me/success` → mostrar mensaje de confirmación y recargar\n- Cancelación: `https://www.mysparkd.com/liked-me/cancel` → volver a la pantalla anterior\n\n## Error del backend\nSi el usuario no tiene acceso, `GET /api/swipes/liked-me` devuelve:\n```\n403 PREMIUM_OR_UNLOCK_REQUIRED\n```\nUsar ese código para decidir qué UI mostrar.\n\n## Pasos\n- [ ] Detectar el 403 en la respuesta de /liked-me y mostrar la pantalla de bloqueo\n- [ ] Añadir botón «Desbloquear 30 días» que llame al checkout endpoint\n- [ ] Abrir checkoutUrl en el browser/WebView\n- [ ] Manejar el retorno desde la URL de éxito o cancelación\n- [ ] Mostrar badge de expiración cuando el unlock está activo",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-17T05:49:33.708Z",
+          "comments": []
+        },
+        {
+          "idShort": 309,
+          "name": "Passkeys — Registrar passkey desde la app (sin contraseña)",
+          "url": "https://trello.com/c/yr8lAAkk",
+          "desc": "## Qué hay que hacer\nPermitir al usuario registrar su huella / Face ID como método de autenticación. Una vez registrado, podrá iniciar sesión sin contraseña.\n\n## Flujo completo\n\n### Paso 1 — Pedir opciones al backend\n```\nPOST /auth/passkeys/register/options\nContent-Type: application/json\n\n{\n  \"userId\":      \"uuid-del-usuario\",\n  \"username\":    \"nombre_usuario\",\n  \"displayName\": \"Nombre Completo\"\n}\n```\n\n### Paso 2 — Crear la passkey en el dispositivo\n```javascript\n// Web\nconst credential = await navigator.credentials.create({ publicKey: opcionesDelBackend });\n```\n```kotlin\n// Android\nval result = credentialManager.createCredential(context, CreatePublicKeyCredentialRequest(opciones))\n```\n```swift\n// iOS\nlet platform = ASAuthorizationPlatformPublicKeyCredentialProvider(relyingPartyIdentifier: \"mysparkd.com\")\nlet request = platform.createCredentialRegistrationRequest(challenge: challenge, name: username, userID: userId)\n```\n\n### Paso 3 — Verificar con el backend\n```\nPOST /auth/passkeys/register/verify?userId={userId}\nContent-Type: application/json\n\n{\n  \"id\":         \"credential_id_base64url\",\n  \"rawId\":      \"credential_id_base64url\",\n  \"type\":       \"public-key\",\n  \"deviceName\": \"Mi iPhone 15\",\n  \"response\": {\n    \"attestationObject\": \"base64url...\",\n    \"clientDataJSON\":    \"base64url...\"\n  }\n}\n```\nRespuesta: `{ \"status\": \"ok\", \"credentialId\": \"...\" }`\n\n## Dónde mostrarlo\n- En ajustes de seguridad de la cuenta\n- Opcionalmente sugerirlo al primer login como botón «Activar Face ID / Huella»\n\n## Pasos\n- [ ] Pantalla/sección de ajustes de seguridad con opción «Añadir passkey»\n- [ ] Llamar a /register/options para obtener el challenge\n- [ ] Invocar la API nativa del dispositivo para crear la credencial\n- [ ] Enviar la respuesta a /register/verify\n- [ ] Confirmar al usuario que la passkey fue registrada",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-17T05:49:52.686Z",
+          "comments": []
+        },
+        {
+          "idShort": 310,
+          "name": "Passkeys — Login con passkey (Face ID / Huella dactilar)",
+          "url": "https://trello.com/c/LupWHsqd",
+          "desc": "## Qué hay que hacer\nAñadir en la pantalla de login la opción de autenticarse con la passkey registrada (Face ID / huella / Windows Hello) sin necesidad de escribir contraseña.\n\n## Flujo completo\n\n### Paso 1 — Pedir opciones al backend\n```\nPOST /auth/passkeys/login/options\nContent-Type: application/json\n\n{ \"userId\": \"uuid-del-usuario\" }\n```\nRespuesta: challenge + lista de credenciales permitidas\n\n### Paso 2 — Autenticar en el dispositivo\n```javascript\n// Web\nconst assertion = await navigator.credentials.get({ publicKey: opcionesDelBackend });\n```\n```kotlin\n// Android\nval result = credentialManager.getCredential(context, GetCredentialRequest(opciones))\n```\n```swift\n// iOS\nlet request = platform.createCredentialAssertionRequest(challenge: challenge)\ncontroller.performRequests([request])\n```\n\n### Paso 3 — Verificar con el backend (devuelve JWT)\n```\nPOST /auth/passkeys/login/verify?userId={userId}\nContent-Type: application/json\n\n{\n  \"id\":   \"credential_id_base64url\",\n  \"type\": \"public-key\",\n  \"response\": {\n    \"authenticatorData\": \"base64url...\",\n    \"clientDataJSON\":    \"base64url...\",\n    \"signature\":         \"base64url...\",\n    \"userHandle\":        \"base64url...\"\n  }\n}\n```\nRespuesta: `{ \"token\": \"eyJ...\" }` — guardar el JWT igual que en el login normal\n\n## UX recomendada\n- En la pantalla de login, si el dispositivo tiene passkey registrada, mostrar botón «Entrar con Face ID / Huella»\n- Detectar si el usuario tiene passkeys: si /login/options devuelve 404, no mostrar la opción\n\n## Pasos\n- [ ] Añadir botón «Entrar con Face ID / Huella» en la pantalla de login\n- [ ] Llamar a /login/options para obtener el challenge\n- [ ] Invocar la API nativa del dispositivo para firmar el challenge\n- [ ] Enviar la respuesta a /login/verify\n- [ ] Guardar el JWT recibido igual que en el login con contraseña\n- [ ] Manejar error si el usuario no tiene passkeys (no mostrar el botón)",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-17T05:50:43.760Z",
+          "comments": []
+        },
+        {
+          "idShort": 311,
+          "name": "Passkeys — Gestión de passkeys en ajustes (listar y eliminar)",
+          "url": "https://trello.com/c/XT8GzfdQ",
+          "desc": "## Qué hay que hacer\nEn los ajustes de cuenta, sección de seguridad, mostrar las passkeys registradas y permitir eliminarlas.\n\n## Endpoints\n\n**Listar passkeys del usuario:**\n```\nGET /auth/passkeys/me\nAuthorization: Bearer <jwt>\n```\nRespuesta:\n```json\n[\n  { \"id\": 1, \"deviceName\": \"Mi iPhone 15\", \"createdAt\": \"2026-05-14T...\" },\n  { \"id\": 2, \"deviceName\": \"iPad Pro\",     \"createdAt\": \"2026-05-10T...\" }\n]\n```\n\n**Eliminar una passkey:**\n```\nDELETE /auth/passkeys/{id}\nAuthorization: Bearer <jwt>\n```\nRespuesta: 204 No Content\n\n## UX\n- Mostrar lista de dispositivos con nombre y fecha de registro\n- Botón de eliminar (con confirmación) por cada dispositivo\n- Si no hay passkeys, mostrar mensaje «No tienes passkeys registradas» + botón para añadir una\n\n## Pasos\n- [ ] Sección «Seguridad» en ajustes con subsección «Passkeys / Biometría»\n- [ ] Llamar a GET /auth/passkeys/me y mostrar la lista\n- [ ] Botón «Eliminar» por passkey con diálogo de confirmación\n- [ ] Llamar a DELETE /auth/passkeys/{id} y refrescar la lista\n- [ ] Enlazar desde esta pantalla con el flujo de registro de passkey",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-17T05:50:47.172Z",
+          "comments": []
+        },
+        {
+          "idShort": 312,
+          "name": "Sign in with Apple — Integrar SDK en app iOS",
+          "url": "https://trello.com/c/VHNnWYSR",
+          "desc": "Agregar el capability 'Sign in with Apple' en Xcode y configurar ASAuthorizationAppleIDButton nativo.",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-17T22:06:40.316Z",
+          "comments": []
+        },
+        {
+          "idShort": 313,
+          "name": "Sign in with Apple — Mostrar botón oficial en pantalla de login",
+          "url": "https://trello.com/c/BqBx757X",
+          "desc": "Apple exige usar ASAuthorizationAppleIDButton (botón negro oficial) para pasar el review del App Store. No se puede usar un botón personalizado.",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-17T22:06:40.711Z",
+          "comments": []
+        },
+        {
+          "idShort": 314,
+          "name": "Sign in with Apple — Enviar identityToken al backend",
+          "url": "https://trello.com/c/jFqH5ho6",
+          "desc": "Al recibir la respuesta de Apple, tomar el identityToken y llamar POST /auth/apple con body {\"identityToken\": \"...\"}. Guardar el JWT que devuelve el backend.",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-17T22:06:41.114Z",
+          "comments": []
+        },
+        {
+          "idShort": 315,
+          "name": "Sign in with Apple — Manejar login sin email (segundo login en adelante)",
+          "url": "https://trello.com/c/APZYAuLc",
+          "desc": "Apple solo devuelve el email la primera vez. En logins posteriores el email viene null. El backend ya lo maneja por apple_sub, pero el frontend no debe depender del email para nada local.",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-17T22:06:41.582Z",
+          "comments": []
+        },
+        {
+          "idShort": 321,
+          "name": "[Frontend] Mostrar Last Seen correctamente en chat",
+          "url": "https://trello.com/c/aD6VDZLu",
+          "desc": "El backend ya corrige el bug de last seen. El frontend debe:\n\n**Comportamiento esperado:**\n- Si el usuario está online (lastSeen = null en la respuesta) → mostrar 'En línea'\n- Si lastSeen tiene valor (Instant/timestamp ISO) → mostrar 'Hace X minutos/horas'\n\n**Endpoint afectado:**\n- GET /api/chats (ChatResponseDTO contiene campo lastSeen)\n- GET /api/presence/{userId} → { status: 'ONLINE' | 'OFFLINE' }\n\n**Verificar que el ping de presencia se envíe cada ~2 minutos por WebSocket:**\n- Mensaje WS: destination /app/presence.ping (sin body)",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-20T20:39:41.790Z",
+          "comments": []
+        },
+        {
+          "idShort": 322,
+          "name": "[Frontend] Last Seen en chat",
+          "url": "https://trello.com/c/4gRfnByk",
+          "desc": "Backend corrigió el bug. El frontend debe interpretar el campo lastSeen del ChatResponseDTO. Si lastSeen es null = usuario online. Si tiene valor (ISO timestamp) = mostrar tiempo relativo. Verificar que el ping WebSocket se envíe cada 2 minutos: destination /app/presence.ping sin body.",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-20T20:41:10.611Z",
+          "comments": []
+        },
+        {
+          "idShort": 323,
+          "name": "[Frontend] Doble check (read) en mensajes",
+          "url": "https://trello.com/c/UE2pPaTr",
+          "desc": "El endpoint GET /api/messages/{chatId}/messages ahora incluye el campo read (boolean) en cada mensaje. Usar este campo para mostrar check simple (enviado) o doble check (leído). Ya no es necesario inferirlo del estado local.",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-20T20:41:11.450Z",
+          "comments": []
+        },
+        {
+          "idShort": 324,
+          "name": "[Frontend] Adaptar respuesta de Mis Cards (activas vs expiradas)",
+          "url": "https://trello.com/c/VMjgDavV",
+          "desc": "GET /api/date-cards/mine ahora retorna objeto agrupado en lugar de array plano. Nuevo formato: { activeCards: [...], expiredCards: [...] }. Mostrar activeCards de forma prominente y expiredCards en sección colapsable o griseada.",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-20T20:41:11.949Z",
+          "comments": []
+        },
+        {
+          "idShort": 325,
+          "name": "[Frontend] Integrar endpoint de Búsqueda Inteligente",
+          "url": "https://trello.com/c/n0Ynlb7Q",
+          "desc": "Nuevo endpoint: GET /api/search/intelligent?query=texto&page=0&size=20. Retorna posts (con autor y foto), users (con foto de perfil) y hashtags en una sola llamada. Reemplaza o complementa el endpoint /api/search/general existente. Máximo 50 resultados por página.",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-20T20:41:12.835Z",
+          "comments": []
+        },
+        {
+          "idShort": 326,
+          "name": "[Frontend] Mostrar followersCount y followingCount en perfil",
+          "url": "https://trello.com/c/4JZCtU1Z",
+          "desc": "Los endpoints GET /api/profile/me y GET /api/profile/{userId} ya incluyen followersCount y followingCount en la respuesta. Mostrar estos contadores en la pantalla de perfil.",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-20T20:41:13.280Z",
+          "comments": []
+        },
+        {
+          "idShort": 327,
+          "name": "[Frontend] Paginación en comentarios, seguidores, siguiendo y mensajes",
+          "url": "https://trello.com/c/wOa4xN2P",
+          "desc": "Los siguientes endpoints ahora retornan Page<T> en lugar de List<T>. Agregar page y size como query params (default page=0, size=20, max=50). La respuesta incluye: content, totalElements, totalPages, number, first, last. Endpoints: GET /api/comments/get/{postId}, GET /api/follow/followers/{userId}, GET /api/follow/following/{userId}, GET /api/messages/{chatId}/messages (orden desc, más recientes primero).",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-20T20:41:13.693Z",
+          "comments": []
+        },
+        {
+          "idShort": 328,
+          "name": "[Frontend] Foto de perfil en resultados de búsqueda y seguidores",
+          "url": "https://trello.com/c/HCQqArr2",
+          "desc": "Todos los endpoints que retornan usuarios ahora incluyen profilePictureUrl garantizado (sin N+1). Mostrar avatar en: resultados de autocomplete/búsqueda, lista de seguidores, lista de siguiendo, solicitudes pendientes. Campo: profilePictureUrl (puede ser null si el usuario no tiene foto).",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-20T20:41:14.193Z",
+          "comments": []
+        },
+        {
+          "idShort": 341,
+          "name": "Controlar en los grupos cuando solo admin o manager pueden enviar mensajes, ya que no lo notifica a los demás usuario y parece un bug que dan a enviar luego de escribir lo que piensan y solo no se envía pero no da un mensaje. Ocultar el field de mensajes y poner un mensaje que solo admin puede. Ejemplo",
+          "url": "https://trello.com/c/rqn3gpxq",
+          "desc": "",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-23T17:24:01.723Z",
+          "comments": []
+        },
+        {
+          "idShort": 342,
+          "name": "Implementar editar mensajes en grupos",
+          "url": "https://trello.com/c/AOlfazui",
+          "desc": "",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-23T17:28:52.010Z",
+          "comments": []
+        },
+        {
+          "idShort": 343,
+          "name": "corregir poll en chat group regular. El endpoint que estabas consumiendo era de los eventos chat groups. Ahora tendrás nuevos modelos",
+          "url": "https://trello.com/c/hx4I5tCO",
+          "desc": "",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-23T17:41:40.325Z",
+          "comments": []
+        },
+        {
+          "idShort": 344,
+          "name": "reshare fix",
+          "url": "https://trello.com/c/7dpWgUsL",
+          "desc": "```\n{\n  \"content\": [\n    {\n      \"repostId\": \"a0f7f96f-367f-44a6-8e04-08f8d38efa57\",\n      \"resharedByUserId\": \"2919d88a-70a7-467b-841b-ffcf10a01c68\",\n      \"resharedByUsername\": \"prueba\",\n      \"resharedByProfilePicture\": \"https://res.cloudinary.com/dvk3yygql/image/upload/v1773852508/zqgcl6seffm6pemrlh0w.jpg\",\n      \"resharedAt\": \"2026-05-24T00:01:25.250863Z\",\n      \"comment\": \"Rrrrrrrtrtttt y ttrrrrrttttt\",\n      \"post\": {\n        \"id\": \"3123f5cf-b062-4230-b859-4603461ee09e\",\n        \"body\": \"Desde la app\",\n        \"file\": null,\n        \"createdAt\": \"2026-05-22T02:33:01.118157Z\",\n        \"userId\": \"81a56d83-d576-4f74-b0fd-895c75a2b3b7\",\n        \"username\": \"test1\",\n        \"permanent\": false,\n        \"expiresAt\": null,\n        \"profilePictureUrl\": \"https://res.cloudinary.com/dvk3yygql/image/upload/v1773435905/xcsi3asfhkswxzflwhay.png\",\n        \"totalReactions\": 1,\n        \"myReaction\": null,\n        \"reactions\": [\n          {\n            \"reaction\": \"LOVE\",\n            \"count\": 1\n          }\n        ],\n        \"media\": null,\n        \"poll\": {\n          \"pollId\": \"fdd18656-4d66-4b99-ac46-446587c9fe8b\",\n          \"expiresAt\": \"2026-05-25T02:33:00.791Z\",\n          \"percentage\": 0,\n          \"question\": \"Que tal?\",\n          \"options\": [\n            {\n              \"id\": \"77dcf504-e056-44c6-add5-17c62425a6c3\",\n              \"text\": \"Bien\",\n              \"voteCount\": 3,\n              \"percentage\": 60,\n              \"myVote\": false\n            },\n            {\n              \"id\": \"e31767f7-5b2c-44f9-a391-0e91bee77baa\",\n              \"text\": \"Mal\",\n              \"voteCount\": 2,\n              \"percentage\": 40,\n              \"myVote\": false\n            }\n          ],\n          \"myVoteOptionId\": null,\n          \"hasVoted\": false\n        },\n        \"type\": \"POLL\",\n        \"locked\": false,\n        \"canUnlock\": false,\n        \"unlocked\": false,\n        \"saved\": false,\n        \"visibility\": \"PUBLIC\",\n        \"likeCount\": 0,\n        \"commentsCount\": 0,\n        \"viewCount\": 0,\n        \"shareCount\": 0,\n        \"repostCount\": 1,\n        \"bookmarkCount\": 0,\n        \"timeUntilExpiry\": null,\n        \"likedByCurrentUser\": false,\n        \"message\": null\n      }\n    }\n  ],\n  \"pageable\": {\n    \"pageNumber\": 1,\n    \"pageSize\": 1,\n    \"sort\": {\n      \"sorted\": false,\n      \"unsorted\": true,\n      \"empty\": true\n    },\n    \"offset\": 1,\n    \"paged\": true,\n    \"unpaged\": false\n  },\n  \"totalPages\": 3,\n  \"totalElements\": 3,\n  \"last\": false,\n  \"numberOfElements\": 1,\n  \"size\": 1,\n  \"number\": 1,\n  \"sort\": {\n    \"sorted\": false,\n    \"unsorted\": true,\n    \"empty\": true\n  },\n  \"first\": false,\n  \"empty\": false\n}\n```",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-24T01:34:19.896Z",
+          "comments": [
+            {
+              "date": "2026-05-24T01:34:17.571Z",
+              "text": "Campos que faltan al hacer un reshare"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "69b316a06238dae98730288b",
+      "name": "En test/Desarrollando /Frontend",
+      "totalCards": 0,
+      "cards": []
+    },
+    {
+      "id": "69dc170da4223d1323f6410c",
+      "name": "Dudas desarrollador frontend",
+      "totalCards": 0,
+      "cards": []
+    },
+    {
+      "id": "69dc0be609af4a29f1cf636f",
+      "name": "Terminado/ Pendiente revision Frontend",
+      "totalCards": 61,
+      "cards": [
+        {
+          "idShort": 125,
+          "name": "[Backend] Fix: Incluir notificationId en respuesta de notificaciones",
+          "url": "https://trello.com/c/U2tsIrMf",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: Fix: Incluir notificationId en respuesta de notificaciones\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/uEf06vU1\n\nDescripción original frontend:\n**Descripción:**\nEl endpoint \n\n```\nGET /api/notifications/{userId}\n```\n\n no devuelve el \n\n```\nnotificationId\n```\n\n en la respuesta, lo que impide que el frontend pueda llamar los endpoints de marcar como leída y eliminar.\n\n‌\n\n**Archivos a modificar:**\n\n‌\n\n```\nNotificationsResponseDTO.java\n```\n\n‌\n\n- Descomentar \n  ```\n  private UUID notificationId\n  ```\n  ‌\n- Descomentar el getter \n  ```\n  getNotificationId()\n  ```\n  ‌\n- Descomentar el setter \n  ```\n  setNotificationId()\n  ```\n  ‌\n- Agregar \n  ```\n  notificationId\n  ```\n   como primer parámetro del constructor\n  ‌\n\n‌\n\n```\nNotificationsService.java\n```\n\n — método \n\n```\ngetNotificationsForUser\n```\n\n‌\n\n- Descomentar la línea: \n  ```\n  // dto.setNotificationId(notification.getNotificationId());\n  ```\n  ‌\n\n**Endpoints que dependen de este fix:**\n\n- ‌\n  ```\n  PUT /api/notifications/{notificationId}/read\n  ```\n   — marcar como leída\n  ‌\n- ‌\n  ```\n  DELETE /api/notifications/{notificationId}\n  ```\n   — eliminar notificación\n  ‌\n\n**Impacto:** Sin este fix el frontend usa un ID falso (\n\n```\nsenderId + createdAt\n```\n\n) y los endpoints devuelven 400.",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:49:26.690Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:49:26.645Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:50:27.634Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:35:09.755Z",
+              "text": "Validado backend notificationId y consumo frontend sincronizado. Sin brechas del lote A."
+            },
+            {
+              "date": "2026-04-26T00:16:36.949Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua sin endpoint expl?cito en t?tulo; se mantiene conservador"
+            },
+            {
+              "date": "2026-04-26T00:14:46.237Z",
+              "text": "Validado en revisi?n profunda FE+BE: HECHO. Todos los endpoints solicitados existen en backend"
+            }
+          ]
+        },
+        {
+          "idShort": 126,
+          "name": "[Backend] Modifico response del endpoint ver mis cards (Las que postee), ver mas dentro de la tarjeta...",
+          "url": "https://trello.com/c/Fd959IDo",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: Modifico response del endpoint ver mis cards (Las que postee), ver mas dentro de la tarjeta...\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/9zPQVoEW\n\nDescripción original frontend:\n```\n👉La idea es la siguiente, Solo mostraras las cards activas,\nlas que estan expiradas vas a darle un color grayout o ponerla en otra seccion de historico de citas. Por otro lado seria bueno que las personas que han mostrado intereses de las cards expiradas, se le haga una lista, que despliegue las propuestas, asi no se amontona mucha informacion. A las activas si se puede poner la lista completa, pero si se puede paginar, mucho mejor. o me dices y te la mando paginada\nQ UYT\n\n\n[\n  {\n    \"dateCardId\": \"17b39fc1-df14-4210-973e-f415616d2195\",\n    \"title\": \"string\",\n    \"message\": \"string\",\n    \"dateTime\": \"2026-04-15T22:02:41.647Z\",\n    \"locationZone\": \"string\",\n    \"category\": \"FOOD\",\n    \"detail\": \"string\",\n    \"plans\": [\n      \"CAFE\"\n    ],\n    \"placeTypes\": [\n      \"CAFE\"\n    ],\n    \"status\": \"ACTIVE\",\n    \"expiresAt\": \"2026-04-16T22:02:41.647Z\",\n    \"createdAt\": \"2026-04-14T22:03:14.210609Z\",\n    \"totalInterests\": 1,\n    \"interests\": [\n      {\n        \"interestId\": \"07bb3af6-4572-4be4-9c89-5dc618b6bf31\",\n        \"userId\": \"65337fd1-6adb-4e78-9861-cebc9d505dc1\",\n        \"profilePicture\": null,\n        \"profileId\": \"a37bedfe-18a9-4ef3-a245-c6a949308d15\",\n        \"message\": \"jjj\",\n        \"status\": \"PENDING\"\n      }\n    ]\n  },\n  {\n    \"dateCardId\": \"01138460-2916-4c5f-94d1-72fd71390c2f\",\n    \"title\": \"Prueba\",\n    \"message\": \"string\",\n    \"dateTime\": \"2026-04-13T20:24:46.300Z\",\n    \"locationZone\": \"string\",\n    \"category\": \"FOOD\",\n    \"detail\": \"string\",\n    \"plans\": [\n      \"CAFE\"\n    ],\n    \"placeTypes\": [\n      \"CAFE\"\n    ],\n    \"status\": \"EXPIRED\",\n    \"expiresAt\": \"2026-04-14T20:24:46.300Z\",\n    \"createdAt\": \"2026-04-12T20:39:38.865122Z\",\n    \"totalInterests\": 2,\n    \"interests\": [\n      {\n        \"interestId\": \"35fb6575-0a15-4c42-91c4-aa1b2df33051\",\n        \"userId\": \"390ae29c-99b6-42e6-a652-ccd5bc33b9c9\",\n        \"profilePicture\": \"https://res.cloudinary.com/dvk3yygql/image/upload/v1773436027/rx4cjelmtd9gw6mlvfw1.jpg\",\n        \"profileId\": \"b69ab123-9db0-4321-b9b9-e1e5c0b13014\",\n        \"message\": \"klk\",\n        \"status\": \"PENDING\"\n      },\n      {\n        \"interestId\": \"91340773-b757-4728-8459-4709cafb2b81\",\n        \"userId\": \"81a56d83-d576-4f74-b0fd-895c75a2b3b7\",\n        \"profilePicture\": \"https://res.cloudinary.com/dvk3yygql/image/upload/v1773435905/xcsi3asfhkswxzflwhay.png\",\n        \"profileId\": \"36ddca7f-a3e0-41dc-b3de-605969da980b\",\n        \"message\": \"Plis\",\n        \"status\": \"PENDING\"\n      }\n    ]\n  },\n  {\n    \"dateCardId\": \"cfd14a6c-fbd7-49ce-94a4-7c46900668e6\",\n    \"title\": \"Cena\",\n    \"message\": null,\n    \"dateTime\": \"2026-04-10T20:00:00Z\",\n    \"locationZone\": \"Zona Colonial\",\n    \"category\": \"OPEN_SUGGESTION\",\n    \"detail\": null,\n    \"plans\": [],\n    \"placeTypes\": [],\n    \"status\": \"EXPIRED\",\n    \"expiresAt\": \"2026-04-10T20:00:00Z\",\n    \"createdAt\": \"2026-04-09T23:10:00.577368Z\",\n    \"totalInterests\": 0,\n    \"interests\": []\n  }\n]\n```",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-20T20:15:51.157Z",
+          "comments": [
+            {
+              "date": "2026-05-20T20:15:51.127Z",
+              "text": "✅ IMPLEMENTADO — GET /api/date-cards/mine ahora devuelve cards separadas.\n\nNuevo response:\n{\n  activeCards: [ ...cards con status ACTIVE o MATCHED ],\n  expiredCards: [ ...cards con status EXPIRED o CANCELLED ]\n}\n\nCada card mantiene todos los campos anteriores (id, title, dateTime, interests, totalInterests, etc).\n\nArchivos nuevos/modificados:\n- sparkd/DTOs/MyCardsGroupedDTO.java (nuevo)\n- sparkd/Service/DateCardService.java (getMyCardsWithInterests retorna MyCardsGroupedDTO)\n- sparkd/Controllers/DateCardController.java (getMine retorna MyCardsGroupedDTO)"
+            },
+            {
+              "date": "2026-04-26T00:49:34.680Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:16:36.164Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua/sin endpoints expl?citos"
+            },
+            {
+              "date": "2026-04-26T00:14:45.288Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua/sin endpoints expl?citos"
+            }
+          ]
+        },
+        {
+          "idShort": 127,
+          "name": "[Backend] IMPLEMENTAR ENDPOINT BUSQUEDA INTELIGENTE. ESTE BUSCA POR POST, USUARIOS, HASHTAGS Y CONTENT DEL POST.",
+          "url": "https://trello.com/c/IrR9m1tk",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: IMPLEMENTAR ENDPOINT BUSQUEDA INTELIGENTE. ESTE BUSCA POR POST, USUARIOS, HASHTAGS Y CONTENT DEL POST.\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/mChdRxjS\n\nDescripción original frontend:\n",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-20T20:16:08.029Z",
+          "comments": [
+            {
+              "date": "2026-05-20T20:16:08.005Z",
+              "text": "✅ IMPLEMENTADO — Nuevo endpoint GET /api/search/intelligent\n\nParámetros: query (string), page (default 0), size (default 20, máx 50)\n\nResponse:\n{\n  posts: [ { postId, body, authorId, authorUsername, authorProfilePicture, mediaUrl, createdAt } ],\n  postsTotalPages, postsTotalElements,\n  users: [ { userId, username, profilePictureUrl } ],\n  hashtags: [ { id, tag, usageCount, lastUsedAt, previewUrls } ],\n  page, size\n}\n\nBusca en: contenido de posts (body), nombres de usuario y hashtags.\nRequiere pg_trgm extension en PostgreSQL para rendimiento óptimo (scripts de BD entregados).\n\nArchivos nuevos/modificados:\n- sparkd/DTOs/PostSearchResultDTO.java (nuevo)\n- sparkd/Controllers/SearchController.java (nuevo endpoint /intelligent)"
+            },
+            {
+              "date": "2026-04-26T00:49:33.184Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:16:35.728Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua/sin endpoints expl?citos"
+            },
+            {
+              "date": "2026-04-26T00:14:44.473Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua/sin endpoints expl?citos"
+            }
+          ]
+        },
+        {
+          "idShort": 128,
+          "name": "[Backend] Sistema de Búsqueda Completo",
+          "url": "https://trello.com/c/t771hUrF",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: Sistema de Búsqueda Completo\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/7k2I0I2S\n\nDescripción original frontend:\n",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:50:05.949Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:50:05.930Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:49:52.140Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:16:42.514Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua/sin endpoints expl?citos"
+            },
+            {
+              "date": "2026-04-26T00:14:55.329Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua/sin endpoints expl?citos"
+            }
+          ]
+        },
+        {
+          "idShort": 130,
+          "name": "[Backend] Debo poder eliminar mensajes de otro usuario (Para mi)",
+          "url": "https://trello.com/c/4BYvWZxo",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: Debo poder eliminar mensajes de otro usuario (Para mi)\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/l3j9EAR8\n\nDescripción original frontend:\n",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:52:26.290Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:52:26.268Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:49:49.482Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:16:41.658Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua/sin endpoints expl?citos"
+            },
+            {
+              "date": "2026-04-26T00:14:53.954Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua/sin endpoints expl?citos"
+            }
+          ]
+        },
+        {
+          "idShort": 131,
+          "name": "[Backend] feed para seguidores GET /api/feed/following",
+          "url": "https://trello.com/c/XttEwFEP",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: feed para seguidores GET /api/feed/following\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/6LG1EYoP\n\nDescripción original frontend:\n",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:49:30.240Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:49:30.216Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:50:27.244Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:16:35.307Z",
+              "text": "Validado en revisi?n profunda FE+BE: HECHO. Todos los endpoints solicitados existen en backend"
+            },
+            {
+              "date": "2026-04-26T00:14:43.718Z",
+              "text": "Validado en revisi?n profunda FE+BE: HECHO. Todos los endpoints solicitados existen en backend"
+            }
+          ]
+        },
+        {
+          "idShort": 132,
+          "name": "[Backend] Controlar que el limite de opciones en el poll sea menor o igual a 10",
+          "url": "https://trello.com/c/D7dUfGwe",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: Controlar que el limite de opciones en el poll sea menor o igual a 10\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/4eyU45nl\n\nDescripción original frontend:\n```\n\n        if (cleanedOptions.size() > 10) {\n```\n\n```\n            throw new RuntimeException(\"Poll cannot have more than 10 options\");\n```\n\n```\n        }\n```",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:49:29.202Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:49:29.177Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:49:31.515Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:16:34.917Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua/sin endpoints expl?citos"
+            },
+            {
+              "date": "2026-04-26T00:14:42.780Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua/sin endpoints expl?citos"
+            }
+          ]
+        },
+        {
+          "idShort": 133,
+          "name": "[Backend] Manejar excepción cuando el poll haya expirado",
+          "url": "https://trello.com/c/k09cxgng",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: Manejar excepción cuando el poll haya expirado\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/343gijzA\n\nDescripción original frontend:\n```\nif (poll.getExpiresAt() != null && Instant.now().isAfter(poll.getExpiresAt())) {\n            throw new org.springframework.web.server.ResponseStatusException(\n                org.springframework.http.HttpStatus.GONE, \"Este poll ya expiró\"\n            );\n        }\n```",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:49:28.022Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:49:28.000Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:50:26.838Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:35:15.196Z",
+              "text": "Validada excepcion de poll expirado en backend y manejo frontend cerrado en lote A."
+            },
+            {
+              "date": "2026-04-26T00:16:34.481Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua/sin endpoints expl?citos"
+            },
+            {
+              "date": "2026-04-26T00:14:42.085Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua/sin endpoints expl?citos"
+            }
+          ]
+        },
+        {
+          "idShort": 134,
+          "name": "[Backend] Modulo Stories",
+          "url": "https://trello.com/c/CMOy3IRp",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: Modulo Stories\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/PtNsBi7k\n\nDescripción original frontend:\n### Endpoints\n\n`POST/api/stories`Crear historia\n\n`GET/api/stories/feed`Feed agrupado por usuario, con unread primero\n\n`GET/api/stories/user/{userId}`Historias de un usuario (respeta privacidad)\n\n`POST/api/stories/{id}/view`Registrar vista\n\n`GET/api/stories/{id}/viewers`Quiénes la vieron (solo dueño)\n\n`GET/api/stories/{id}/view-count`Cuántos la vieron (solo dueño)\n\n`POST/api/stories/{id}/react?reaction=LIKE`Toggle reacción\n\n`GET/api/stories/{id}/reactions`Lista de reacciones (solo dueño)\n\n`DELETE/api/stories/{id}`Eliminar historia",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:49:31.342Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:49:31.316Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:49:29.808Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:16:34.056Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Backend parcial: algunos endpoints validados"
+            },
+            {
+              "date": "2026-04-26T00:14:41.407Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Backend parcial: algunos endpoints validados"
+            }
+          ]
+        },
+        {
+          "idShort": 135,
+          "name": "[Backend] Ver follows request, acceptados, a quienes sigue el usuario",
+          "url": "https://trello.com/c/uQ4YFxnO",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: Ver follows request, acceptados, a quienes sigue el usuario\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/fsvFhDzv\n\nDescripción original frontend:\n`GET /api/follow/requests`El usuario autenticadoSus solicitudes PENDING entrantes\n\n`GET /api/follow/followers/{userId}`Cualquier usuario autenticadoSeguidores ACCEPTED del userId\n\n`GET /api/follow/following/{userId}`Cualquier usuario autenticadoA quiénes sigue el userId\n\nDevuelven `List<FollowerUserDTO>` con `userId`, `username`, `nombres`, `apellidos` y `profilePictureUrl`.",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:49:33.827Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:49:33.794Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:50:26.416Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:35:13.654Z",
+              "text": "Validado flujo backend de follows request/acceptados/siguiendo y consumo FE."
+            },
+            {
+              "date": "2026-04-26T00:16:33.664Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua sin endpoint expl?cito en t?tulo; se mantiene conservador"
+            },
+            {
+              "date": "2026-04-26T00:14:40.534Z",
+              "text": "Validado en revisi?n profunda FE+BE: HECHO. Todos los endpoints solicitados existen en backend"
+            }
+          ]
+        },
+        {
+          "idShort": 136,
+          "name": "[Backend] contadores de seguidores, seguidos... Tanto en get me, como en profile.",
+          "url": "https://trello.com/c/lJBd26gi",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: contadores de seguidores, seguidos... Tanto en get me, como en profile.\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/BxHTMQdc\n\nDescripción original frontend:\n`GET /api/profile/{userId}`\n\n`GET /api/profile/me`\n\n‌\n\n‌\n\ndevuelven `followersCount` y `followingCount`",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:49:32.572Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:49:32.548Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:49:28.209Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:16:32.864Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua sin endpoint expl?cito en t?tulo; se mantiene conservador"
+            },
+            {
+              "date": "2026-04-26T00:14:39.593Z",
+              "text": "Validado en revisi?n profunda FE+BE: HECHO. Todos los endpoints solicitados existen en backend"
+            }
+          ]
+        },
+        {
+          "idShort": 137,
+          "name": "[Backend] Sparkling list, Tipo Close friend. Historias tendrán privacidad. PUBLIC, SPARKLING LIST",
+          "url": "https://trello.com/c/GY8luANg",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: Sparkling list, Tipo Close friend. Historias tendrán privacidad. PUBLIC, SPARKLING LIST\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/Ofh81edh\n\nDescripción original frontend:\n",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:52:30.093Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:52:30.066Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:49:47.711Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:16:41.208Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua/sin endpoints expl?citos"
+            },
+            {
+              "date": "2026-04-26T00:14:53.299Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua/sin endpoints expl?citos"
+            }
+          ]
+        },
+        {
+          "idShort": 138,
+          "name": "[Backend] GET /api/stories/{storyId}/view-count",
+          "url": "https://trello.com/c/nsgDKzYB",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: GET /api/stories/{storyId}/view-count\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/leITEx6C\n\nDescripción original frontend:\nNúmero de vistas. **Solo el dueño.**",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:49:34.871Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:49:34.848Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:50:25.998Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:35:03.279Z",
+              "text": "Validacion de lote A: endpoint de view-count verificado y sin brechas pendientes."
+            },
+            {
+              "date": "2026-04-26T00:16:32.103Z",
+              "text": "Validado en revisi?n profunda FE+BE: HECHO. Todos los endpoints solicitados existen en backend"
+            },
+            {
+              "date": "2026-04-26T00:14:38.689Z",
+              "text": "Validado en revisi?n profunda FE+BE: HECHO. Todos los endpoints solicitados existen en backend"
+            }
+          ]
+        },
+        {
+          "idShort": 139,
+          "name": "[Backend] POST /api/stories/{storyId}/react?reaction=LIKE",
+          "url": "https://trello.com/c/3bZLblcK",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: POST /api/stories/{storyId}/react?reaction=LIKE\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/b8wKt2iA\n\nDescripción original frontend:\n`reaction`: `LIKE` | `LOVE` | `HAHA` | `WOW` | `SAD` | `ANGRY` _(los valores del enum_ `ReactionType`_)_",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:49:39.344Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:49:39.324Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:49:54.648Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:16:31.665Z",
+              "text": "Validado en revisi?n profunda FE+BE: HECHO. Todos los endpoints solicitados existen en backend"
+            },
+            {
+              "date": "2026-04-26T00:14:37.677Z",
+              "text": "Validado en revisi?n profunda FE+BE: HECHO. Todos los endpoints solicitados existen en backend"
+            }
+          ]
+        },
+        {
+          "idShort": 140,
+          "name": "[Backend] GET /api/stories/{storyId}/reactions",
+          "url": "https://trello.com/c/Ydj4RTil",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: GET /api/stories/{storyId}/reactions\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/X7eI1YTb\n\nDescripción original frontend:\n```\n[\n  {\n    \"userId\": \"uuid\",\n    \"username\": \"maria99\",\n    \"profilePictureUrl\": \"https://...\",\n    \"reaction\": \"LOVE\",\n    \"reactedAt\": \"2026-04-23T16:00:00Z\"\n  }\n]\n```",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:49:36.283Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:49:36.257Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:50:25.581Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:16:31.215Z",
+              "text": "Validado en revisi?n profunda FE+BE: HECHO. Todos los endpoints solicitados existen en backend"
+            },
+            {
+              "date": "2026-04-26T00:14:36.649Z",
+              "text": "Validado en revisi?n profunda FE+BE: HECHO. Todos los endpoints solicitados existen en backend"
+            }
+          ]
+        },
+        {
+          "idShort": 141,
+          "name": "[Backend] GET /api/settings/privacy",
+          "url": "https://trello.com/c/Tk3lSm9X",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: GET /api/settings/privacy\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/L0txa76K\n\nDescripción original frontend:\nObtener configuración de privacidad del usuario autenticado.\n\n**Response** `200`**:**\n\n```\n{\n  \"whoCanSeeMyPosts\": \"EVERYONE\",\n  \"whoCanComment\": \"EVERYONE\",\n  \"whoCanSendDM\": \"EVERYONE\",\n  \"showOnlineStatus\": true,\n  \"showLastSeen\": false\n}\n```",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:49:43.709Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:49:43.681Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:50:25.141Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:16:30.761Z",
+              "text": "Validado en revisi?n profunda FE+BE: HECHO. Todos los endpoints solicitados existen en backend"
+            },
+            {
+              "date": "2026-04-26T00:14:35.742Z",
+              "text": "Validado en revisi?n profunda FE+BE: HECHO. Todos los endpoints solicitados existen en backend"
+            }
+          ]
+        },
+        {
+          "idShort": 142,
+          "name": "[Backend] PUT /api/settings/privacy",
+          "url": "https://trello.com/c/P7oeNL4U",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: PUT /api/settings/privacy\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/NAz87uva\n\nDescripción original frontend:\nActualizar privacidad. Los campos son todos opcionales — solo envía los que quieras cambiar.\n\n**Request body:**\n\n```\n{\n  \"whoCanComment\": \"FOLLOWERS\",\n  \"showLastSeen\": true\n}\n\nEnums:\n\nwhoCanSeeMyPosts / whoCanComment: EVERYONE | FOLLOWERS | NOBODY\nwhoCanSendDM: EVERYONE | FOLLOWERS | MATCHES\n```",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:49:40.932Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:49:40.906Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:50:24.693Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:16:30.352Z",
+              "text": "Validado en revisi?n profunda FE+BE: HECHO. Todos los endpoints solicitados existen en backend"
+            },
+            {
+              "date": "2026-04-26T00:14:34.784Z",
+              "text": "Validado en revisi?n profunda FE+BE: HECHO. Todos los endpoints solicitados existen en backend"
+            }
+          ]
+        },
+        {
+          "idShort": 143,
+          "name": "[Backend] Sparkling list",
+          "url": "https://trello.com/c/gE3OiXZH",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: Sparkling list\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/zgJSr7gw\n\nDescripción original frontend:\n### `GET /api/settings/sparkling-list`\n\nVer tu Sparkling List (amigos cercanos).\n\n**Response** `200`**:** Array de `FollowerUserDTO` (mismo objeto de Follow).\n\n‌\n\n### `POST /api/settings/sparkling-list/{memberId}`\n\nAgregar usuario a tu Sparkling List.\n\n**Response** `204` **(sin body)**\n\n‌\n\n### `DELETE /api/settings/sparkling-list/{memberId}`\n\nQuitar usuario de tu Sparkling List.\n\n**Response** `204` **(sin body)**",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:49:42.533Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:49:42.510Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:49:26.616Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:16:29.882Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua sin endpoint expl?cito en t?tulo; se mantiene conservador"
+            },
+            {
+              "date": "2026-04-26T00:14:33.934Z",
+              "text": "Validado en revisi?n profunda FE+BE: HECHO. Todos los endpoints solicitados existen en backend"
+            }
+          ]
+        },
+        {
+          "idShort": 144,
+          "name": "[Backend] Cambios en endpoints existentes",
+          "url": "https://trello.com/c/UtxN1QYL",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: Cambios en endpoints existentes\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/DGyhCRX9\n\nDescripción original frontend:\n`GET /api/profile/{userId}` y `GET /api/profile/me` — el response ahora incluye dos campos nuevos:\n\n```\n{\n  \"followersCount\": 128,\n  \"followingCount\": 64\n}\n```",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-20T20:16:52.913Z",
+          "comments": [
+            {
+              "date": "2026-05-20T20:16:52.891Z",
+              "text": "✅ YA ESTABA IMPLEMENTADO — followersCount y followingCount ya presentes en ambos endpoints.\n\nVerificado en código:\n- GET /api/profile/me → UserProfileService.getMyProfile() línea 304-305\n- GET /api/profile/{userId} → UserProfileService.getProfileByUserId() líneas 226-227\n\nAmbos ya llaman a followRepository.countByFollowingAndStatus() y followRepository.countByFollowerAndStatus() y los setean en el DTO.\n\nNo se requirió ningún cambio de código."
+            },
+            {
+              "date": "2026-04-26T01:31:16.688Z",
+              "text": "Nota (duplicado parcial): hay otra card \"Cambios en endpoints existentes\" sin [Backend] en lista \"Pendiente de hacer frontend\". Se actuo sobre la card [Backend] en Backend - Alta."
+            },
+            {
+              "date": "2026-04-26T01:31:16.392Z",
+              "text": "Cerrado: front ya consume/muestra followersCount/followingCount desde /api/profile/me y /api/profile/{userId} (v0-social)."
+            },
+            {
+              "date": "2026-04-26T00:49:25.250Z",
+              "text": "Validaci?n FE+BE (corrida API): PENDIENTE. Card demasiado gen?rica; no hay alcance cerrable con evidencia ?nica trazable. Brecha: Definir alcance exacto FE/BE."
+            },
+            {
+              "date": "2026-04-26T00:16:29.132Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua sin endpoint expl?cito en t?tulo; se mantiene conservador"
+            },
+            {
+              "date": "2026-04-26T00:14:32.991Z",
+              "text": "Validado en revisi?n profunda FE+BE: HECHO. Todos los endpoints solicitados existen en backend"
+            }
+          ]
+        },
+        {
+          "idShort": 147,
+          "name": "[Backend] meetUp",
+          "url": "https://trello.com/c/ypYB1Gk7",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: meetUp\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/wVwzVMEE\n\nDescripción original frontend:\n```\n# Sparkd — API de Eventos (Frontend Integration Guide)\n\n> Base URL: `https://tu-api.com`\n> Autenticación: Bearer JWT en header `Authorization`\n> Todos los UUIDs son strings con formato `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`\n\n---\n\n## Roles\n\n| Rol | Permisos |\n|---|---|\n| `ADMIN` | Todo: expulsar, silenciar, ajustes, links, aprobar solicitudes, eliminar cualquier mensaje |\n| `MODERATOR` | Silenciar GUESTs, crear encuestas, enviar mensajes en slowMode |\n| `GUEST` | Enviar mensajes (si el grupo lo permite), votar encuestas, reaccionar |\n\n---\n\n## 1. Eventos (`/api/events`)\n\n### Existentes (sin cambios)\n\n| Método | Ruta | Quién | Descripción |\n|---|---|---|---|\n| `POST` | `/api/events` | Auth | Crear evento |\n| `GET` | `/api/events` | Público | Feed con filtros opcionales |\n| `GET` | `/api/events/{eventId}` | Auth | Detalle del evento |\n| `GET` | `/api/events/me/created` | Auth | Mis eventos creados |\n| `GET` | `/api/events/me/participating` | Auth | Eventos donde participo |\n| `PUT` | `/api/events/{eventId}` | ADMIN | Editar evento |\n| `DELETE` | `/api/events/{eventId}` | ADMIN | Cancelar evento |\n| `POST` | `/api/events/{eventId}/join` | Auth | Solicitar participación |\n| `POST` | `/api/events/{eventId}/participants/{userId}/approve` | ADMIN/MOD | Aprobar participante |\n| `POST` | `/api/events/{eventId}/participants/{userId}/reject` | ADMIN/MOD | Rechazar participante |\n| `POST` | `/api/events/{eventId}/participants/{userId}/moderator` | ADMIN | Asignar moderador |\n| `DELETE` | `/api/events/{eventId}/participants/{userId}/moderator` | ADMIN | Quitar moderador |\n| `GET` | `/api/events/{eventId}/participants` | ADMIN/MOD | Lista de aprobados |\n| `GET` | `/api/events/{eventId}/participants/pending` | ADMIN/MOD | Solicitudes pendientes individuales |\n\n#### GET /api/events — Parámetros opcionales\n```\n?category=PARTY|DINNER|CONCERT|SPORTS|NETWORKING|OUTDOOR|GROUP_DATE|CULTURAL|OTHER\n&free=true|false\n&minAge=18\n&maxAge=35\n&lat=4.6097\n&lng=-74.0817\n&radiusKm=10\n```\n\n---\n\n## 2. Mensajes del Grupo (`/api/events/{eventId}/group`)\n\n> El grupo existe automáticamente cuando el primer participante es aprobado.\n\n### 2.1 Listar mensajes\n\n```\nGET /api/events/{eventId}/group/messages\n```\n\n**Respuesta** — array de `MessageDTO`:\n```json\n[\n  {\n    \"id\": \"uuid\",\n    \"groupId\": \"uuid\",\n    \"senderId\": \"uuid\",\n    \"senderUsername\": \"string\",\n    \"senderProfilePictureUrl\": \"string|null\",\n    \"content\": \"string|null\",\n    \"sentAt\": \"2025-01-01T12:00:00Z\",\n    \"editedAt\": \"2025-01-01T12:05:00Z|null\",\n    \"deleted\": false,\n    \"system\": false,\n    \"mediaType\": \"IMAGE|VIDEO|AUDIO|null\",\n    \"mediaUrl\": \"string|null\",\n    \"durationSeconds\": 42,\n    \"pollId\": \"uuid|null\",\n    \"poll\": { /* ver sección Encuestas */ },\n    \"reactions\": [\n      {\n        \"userId\": \"uuid\",\n        \"username\": \"string\",\n        \"profilePictureUrl\": \"string|null\",\n        \"reaction\": \"LIKE|LOVE|LAUGH|WOW|SAD|FIRE\"\n      }\n    ]\n  }\n]\n```\n\n> Si `deleted: true` → `content`, `mediaUrl` y `poll` vienen `null`. Muestra \"Mensaje eliminado\".\n> Si `system: true` → `senderId` es null. Son mensajes automáticos (ej. dirección del evento).\n\n---\n\n### 2.2 Enviar mensaje (texto y/o media)\n\n```\nPOST /api/events/{eventId}/group/messages\n```\n```json\n{\n  \"content\": \"Hola a todos\",\n  \"mediaUrl\": \"https://res.cloudinary.com/...\",\n  \"mediaPublicId\": \"sparkd/videos/abc123\",\n  \"mediaType\": \"IMAGE|VIDEO|AUDIO\",\n  \"durationSeconds\": 42\n}\n```\n\n- `content` y media son opcionales individualmente, pero al menos uno debe estar presente.\n- Videos deben tener `durationSeconds ≤ 180`. El backend rechaza si supera 3 minutos.\n- Responde con el mismo `MessageDTO` de arriba.\n- También llega por **WebSocket** al canal del grupo.\n\n**Errores comunes:**\n| Código | Motivo |\n|---|---|\n| `400` | Sin contenido ni media |\n| `400` | Video supera 3 minut",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:49:44.918Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:49:44.900Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:49:56.293Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:16:10.920Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Integraci?n incompleta: cobertura FE/BE parcial"
+            },
+            {
+              "date": "2026-04-26T00:14:06.721Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Integraci?n incompleta: cobertura FE/BE parcial"
+            }
+          ]
+        },
+        {
+          "idShort": 148,
+          "name": "[Backend] Sistema de Repost",
+          "url": "https://trello.com/c/Yporb6se",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: Sistema de Repost\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/Bt8WlRbJ\n\nDescripción original frontend:\nPOST   /api/posts/{postId}/repost   → crea repost (body opcional)\nDELETE /api/posts/{postId}/repost   → elimina repost\nGET    /api/posts/{postId}/reposts  → lista quién hizo repost",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:49:46.440Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:49:46.415Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:49:57.110Z",
+              "text": "Validaci?n FE+BE (corrida API): PARCIAL. BE expone /api/posts/{postId}/repost; FE mantiene TODO sin llamada activa al endpoint. Brecha: BE listo; FE no integrado."
+            },
+            {
+              "date": "2026-04-26T00:16:12.221Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Integraci?n incompleta: cobertura FE/BE parcial"
+            },
+            {
+              "date": "2026-04-26T00:14:08.302Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Integraci?n incompleta: cobertura FE/BE parcial"
+            }
+          ]
+        },
+        {
+          "idShort": 149,
+          "name": "[Backend] Grupos",
+          "url": "https://trello.com/c/4kTnA04Z",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: Grupos\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/MQCq59xS\n\nDescripción original frontend:\n### Endpoints `/api/groups`\n\nMétodoRutaPermisoDescripción`POST/`AutenticadoCrear grupo`GET/`AutenticadoMis grupos`GET/{groupId}`MiembroVer grupo`PUT/{groupId}`ADMINEditar grupo`DELETE/{groupId}`ADMINEliminar grupo`GET/{groupId}/messages`MiembroVer mensajes`POST/{groupId}/messages`whoCanTalkEnviar mensaje`PUT/{groupId}/messages/{id}`Autor (15 min)Editar mensaje`DELETE/{groupId}/messages/{id}`Autor (15 min) / ADMINEliminar mensaje`GET/{groupId}/members`MiembroVer miembros`POST/{groupId}/members`ADMINAgregar miembro directo + rol`DELETE/{groupId}/members/{userId}`ADMINExpulsar`PUT/{groupId}/members/{userId}/role`ADMINCambiar rol`PUT/{groupId}/members/{userId}/mute`ADMIN/MODSilenciar`DELETE/{groupId}/members/{userId}/mute`ADMIN/MODQuitar silencio`PATCH/{groupId}/settings`ADMINCambiar whoCanTalk`POST/{groupId}/invite-links`ADMIN/MODGenerar link`GET/{groupId}/invite-links`ADMINListar links`DELETE/{groupId}/invite-links/{id}`ADMINDesactivar link`POST/join/{token}`AutenticadoUnirse por link\n\n**Categorías disponibles** (reusan `InterestCategory`): `ENTRETENIMIENTO`, `DEPORTE`, `VIAJES`, `ESTILO_DE_VIDA`, `CONOCIMIENTO`, `SOCIAL`, `ARTE`, `MUSICA`, `GASTRONOMIA`, `NATURALEZA`, `TECNOLOGIA`, `NEGOCIOS`, `BIENESTAR`, `CULTURA`, `AVENTURA`.\n\n**Temas**: máximo 10, cada uno hasta 50 caracteres. Se guardan en la tabla `chat_group_topics`.\n\n**Descubrimiento** ahora admite filtrar por ambos a la vez:\n\n```\nGET /api/groups/discover?category=TECNOLOGIA\nGET /api/groups/discover?feed=GLOBAL&category=MUSICA\n```\n\n### Reglas de negocio\n\n- El creador entra automáticamente como **ADMIN**\n- Los links solo pueden tener `targetRole` MODERATOR o GUEST (nunca ADMIN)\n- MODs pueden silenciar GUESTs, pero no a otros MODs ni ADMINs\n- El creador del grupo no puede ser expulsado ni quitarle el rol ADMIN\n- WebSocket broadcast en `/topic/group/{groupId}` para mensajes en tiempo real\n- Spring DDL `update` crea las 4 tablas automáticamente",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:49:48.689Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:49:48.667Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:49:57.941Z",
+              "text": "Validaci?n FE+BE (corrida API): PARCIAL. Existen controladores/servicios de grupos y UI FE, pero alcance completo de posts+roles no est? totalmente demostrable por card. Brecha: Cobertura FE/BE parcial del alcance amplio."
+            },
+            {
+              "date": "2026-04-26T00:16:12.647Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Integraci?n incompleta: cobertura FE/BE parcial"
+            },
+            {
+              "date": "2026-04-26T00:14:09.354Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Integraci?n incompleta: cobertura FE/BE parcial"
+            }
+          ]
+        },
+        {
+          "idShort": 150,
+          "name": "[Backend] Pagination",
+          "url": "https://trello.com/c/ewahHWMT",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: Pagination\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/HtZAjUeu\n\nDescripción original frontend:\n## Endpoints paginados\n\n### Parámetros comunes\n\nParamDefaultMáximoDescripción`page0`—Número de página (0-indexed)`size2050`Items por página.\n\n‌\n\nGET /api/posts/me?page=0&size=20\n\nGET /api/comments/get/{postId}?page=0&size=20\n\nGET /api/notifications/{userId}?page=0&size=20\n\nGET /api/follow/followers/{userId}?page=0&size=20\nGET /api/follow/following/{userId}?page=0&size=20\n\nGET /api/messages/{chatId}/messages?page=0&size=50\n\n## Formato de respuesta (todos devuelven esto)\n\n{\n  \"content\": [ ...items... ],\n  \"totalElements\": 348,\n  \"totalPages\": 18,\n  \"size\": 20,\n  \"number\": 0,\n  \"first\": true,\n  \"last\": false,\n  \"empty\": false\n}",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-20T20:16:53.233Z",
+          "comments": [
+            {
+              "date": "2026-05-20T20:16:53.212Z",
+              "text": "✅ IMPLEMENTADO — Paginación añadida a todos los endpoints solicitados.\n\nEndpoints actualizados (todos aceptan ?page=0&size=20, máx size=50):\n\n1. GET /api/posts/me → ya estaba paginado ✓\n2. GET /api/notifications/{userId} → ya estaba paginado ✓\n3. GET /api/comments/get/{postId} → ahora retorna Page<CommentsResponseDTO>\n4. GET /api/follow/followers/{userId} → ahora retorna Page<FollowerUserDTO>\n5. GET /api/follow/following/{userId} → ahora retorna Page<FollowerUserDTO>\n6. GET /api/messages/{chatId}/messages → ahora retorna Page<MessageResponseDTO> (orden desc, más recientes primero)\n\nFormato de respuesta estándar Spring: { content, totalElements, totalPages, size, number, first, last, empty }\n\nArchivos modificados: CommentsService, CommentsController, FollowRepository (nuevas queries paginadas), FollowService, FollowController, MessageService, MessagesController"
+            },
+            {
+              "date": "2026-04-26T00:49:59.419Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:16:13.104Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Integraci?n incompleta: cobertura FE/BE parcial"
+            },
+            {
+              "date": "2026-04-26T00:14:10.149Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Integraci?n incompleta: cobertura FE/BE parcial"
+            }
+          ]
+        },
+        {
+          "idShort": 151,
+          "name": "[Backend] BOOKMARKS",
+          "url": "https://trello.com/c/rL8qKbRJ",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: BOOKMARKS\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/ICDMCgJx\n\nDescripción original frontend:\n",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:49:49.878Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:49:49.849Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:50:00.308Z",
+              "text": "Validaci?n FE+BE (corrida API): PARCIAL. BE usa /api/bookmarks/toggle y GET /api/bookmarks; FE usa rutas legacy inconsistentes en bookmark.ts. Brecha: Contrato FE/BE desalineado."
+            },
+            {
+              "date": "2026-04-26T00:16:10.043Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua/sin endpoints expl?citos"
+            },
+            {
+              "date": "2026-04-26T00:14:04.930Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua/sin endpoints expl?citos"
+            }
+          ]
+        },
+        {
+          "idShort": 152,
+          "name": "[Backend] Mensajes fijados en grupos",
+          "url": "https://trello.com/c/BzoXsZOb",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: Mensajes fijados en grupos\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/Z24ekXXN\n\nDescripción original frontend:\n### Files modified\n\n**ChatGroupMessage.java**\n\n- Added `pinnedAt` (`Instant`) and `pinnedBy` (`Users` FK, lazy) columns with getters/setters.\n\n**ChatGroupMessageRepository.java**\n\n- `findPinnedByGroup` — JPQL with JOIN FETCH on sender, pinnedBy and their profiles; filters `deletedAt IS NULL`, orders by `pinnedAt DESC`.\n- `countByGroupAndPinnedAtIsNotNullAndDeletedAtIsNull` — derived count for the 10-pin limit check.\n\n**GroupMessageResponseDTO.java**\n\n- Added `pinnedAt`, `pinnedById`, `pinnedByUsername` with getters/setters.\n\n**GroupService.java**\n\n- `requireAdminOrModerator` — private helper that throws 403 for GUEST role.\n- `pinMessage` — validates not deleted, not already pinned, enforces 10-pin cap, sets fields, broadcasts `MESSAGE_PINNED`.\n- `unpinMessage` — validates currently pinned, clears fields, broadcasts `MESSAGE_UNPINNED`.\n- `getPinnedMessages` — member-accessible, delegates to repository query.\n- `deleteMessage` — auto-clears `pinnedAt`/`pinnedBy` when a pinned message is deleted.\n- `toMessageDTO` — now populates `pinnedAt`, `pinnedById`, `pinnedByUsername`.\n\n**GroupController.java**\n\n- `POST /api/groups/{groupId}/messages/{messageId}/pin`\n- `DELETE /api/groups/{groupId}/messages/{messageId}/pin`\n- `GET /api/groups/{groupId}/pinned-messages`",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:49:51.305Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:49:51.279Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:50:01.928Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:16:15.478Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua sin endpoint expl?cito en t?tulo; se mantiene conservador"
+            },
+            {
+              "date": "2026-04-26T00:14:13.532Z",
+              "text": "Validado en revisi?n profunda FE+BE: HECHO. Integraci?n completa FE+BE validada por endpoints"
+            }
+          ]
+        },
+        {
+          "idShort": 153,
+          "name": "[Backend] Mensajes fijados en chat privados",
+          "url": "https://trello.com/c/0KIeBcWm",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: Mensajes fijados en chat privados\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/Rx6R2k5y\n\nDescripción original frontend:\n",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:52:28.440Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:52:28.421Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T01:42:56.959Z",
+              "text": "HECHO: API de pin en privados (list/pin/unpin) y cola /user/queue/message-pinned alineada con el FE; cierre junto a la card de frontend."
+            },
+            {
+              "date": "2026-04-26T00:49:37.447Z",
+              "text": "Validaci?n FE+BE (corrida API): PARCIAL. BE tiene endpoints pin/pinned en MessagesController; FE chat privado no muestra flujo de pinned. Brecha: BE listo; FE privado incompleto."
+            },
+            {
+              "date": "2026-04-26T00:16:37.797Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua/sin endpoints expl?citos"
+            },
+            {
+              "date": "2026-04-26T00:14:47.576Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua/sin endpoints expl?citos"
+            }
+          ]
+        },
+        {
+          "idShort": 154,
+          "name": "[Backend] ADMIN/ALL/USERS",
+          "url": "https://trello.com/c/LuRKdzuV",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: ADMIN/ALL/USERS\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/ijL7fBFL\n\nDescripción original frontend:\nLos 3 parámetros de búsqueda son opcionales:\n\n```\nGET /api/admin/users?page=0&size=20\nGET /api/admin/users?username=john\nGET /api/admin/users?userId=uuid-aqui\nGET /api/admin/users?nombres=test&apellidos=user\nGET /api/admin/users?username=john&page=1&size=10\n```\n\nTodos combinables entre sí. Si no se pasa ninguno devuelve todos los usuarios paginados.",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:49:52.641Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:49:52.619Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:50:23.353Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:35:07.871Z",
+              "text": "Consolidada con GET /api/admin/users. Backend+frontend validados en lote A."
+            },
+            {
+              "date": "2026-04-26T00:16:14.296Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua sin endpoint expl?cito en t?tulo; se mantiene conservador"
+            },
+            {
+              "date": "2026-04-26T00:14:11.682Z",
+              "text": "Validado en revisi?n profunda FE+BE: HECHO. Integraci?n completa FE+BE validada por endpoints"
+            }
+          ]
+        },
+        {
+          "idShort": 155,
+          "name": "[Backend] Reportes completos",
+          "url": "https://trello.com/c/z3Y972eT",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: Reportes completos\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/pfnHnlpY\n\nDescripción original frontend:\n**ReportResponse.java** — 4 campos nuevos: `reporterProfileId`, `reporterProfilePictureUrl`, `reportedProfileId`, `reportedProfilePictureUrl`.\n\n**ReportRepository.java** — `findAllWithDetails` con JOIN FETCH sobre `reporter`, `reported`, sus profiles y `reason`. Sin N+1. `countQuery` separada para que la paginación no se aplique en memoria.\n\n**ModeratorService.java** — método `toDTO` extraído (el `getPendingReports` existente lo reutiliza), `getAllReports(status, pageable)` nuevo.\n\n**ModeratorController.java** — `GET /moderator/reports/all` con status y paginación opcionales.\n\nEjemplos de uso:\n\n```\nGET /moderator/reports/all                         → todos\nGET /moderator/reports/all?status=PENDING          → solo pendientes\nGET /moderator/reports/all?status=ACTION_TAKEN&page=1&size=10\n```",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:49:56.861Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:49:56.839Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:50:03.548Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:16:13.511Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua/sin endpoints expl?citos"
+            },
+            {
+              "date": "2026-04-26T00:14:10.818Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua/sin endpoints expl?citos"
+            }
+          ]
+        },
+        {
+          "idShort": 156,
+          "name": "[Backend] Pantalla para redirigirlo resetPassword",
+          "url": "https://trello.com/c/oEU5turh",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: Pantalla para redirigirlo resetPassword\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/x1llS3Ma\n\nDescripción original frontend:\nEjemplo:\n\n```\nString resetLink = \"https://tu-frontend.com/reset-password?token=\" + token;\n```",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:49:58.447Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:49:58.421Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:50:05.195Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:16:10.471Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua/sin endpoints expl?citos"
+            },
+            {
+              "date": "2026-04-26T00:14:05.586Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua/sin endpoints expl?citos"
+            }
+          ]
+        },
+        {
+          "idShort": 157,
+          "name": "[Backend] change password ya lo tienes montado, conectar a POST /auth/change-password",
+          "url": "https://trello.com/c/DcKWtqwB",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: change password ya lo tienes montado, conectar a POST /auth/change-password\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/GNCNzejM\n\nDescripción original frontend:\n",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:49:54.031Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:49:54.009Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:50:06.829Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:16:16.293Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Integraci?n incompleta: cobertura FE/BE parcial"
+            },
+            {
+              "date": "2026-04-26T00:14:15.187Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Integraci?n incompleta: cobertura FE/BE parcial"
+            }
+          ]
+        },
+        {
+          "idShort": 158,
+          "name": "[Backend] Verification de email al registrarse",
+          "url": "https://trello.com/c/Oi3od4Wt",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: Verification de email al registrarse\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/mhZ8XY06\n\nDescripción original frontend:\n## Flujo de verificación de email\n\n### 1. `POST /auth/register`\n\n- Crea el usuario con `enabled=false`\n- Genera un código de **6 dígitos** aleatorio (válido 15 min)\n- **Envía el código al correo** del usuario\n- Devuelve: `{ \"username\": \"...\", \"message\": \"Registro exitoso. Revisa tu correo e ingresa el código de verificación.\" }`\n\n### 2. `POST /auth/verify-email`\n\n```\n{ \"email\": \"usuario@gmail.com\", \"code\": \"483921\" }\n```\n\n- Valida que el código sea correcto y no haya expirado\n- Activa la cuenta (`enabled=true`), limpia el código\n- **Devuelve el JWT** igual que el login normal\n\n### 3. `POST /auth/resend-verification`\n\n```\n{ \"email\": \"usuario@gmail.com\" }\n```\n\n- Genera un nuevo código y lo reenvía al correo\n- Rate limit: solo un reenvío por minuto\n\n### Cambios en login\n\n- Si el usuario intenta hacer login sin verificar, recibe: `\"Debes verificar tu correo electrónico antes de iniciar sesión\"`\n\n### Archivos modificados\n\n- Users.java — campos `verificationCode` y `verificationCodeExpiry`\n- AuthService.java — `register()` rediseñado + `verifyEmail()` + `resendVerification()`\n- AuthController.java — endpoints `/verify-email` y `/resend-verification`\n- VerifyEmailRequest.java — nuevo DTO\n\n> **Nota:** JPA/Hibernate creará automáticamente las columnas `verification_code` y `verification_code_expiry` en la tabla `users` si tienes `spring.jpa.hibernate.ddl-auto=update`. Si usas migraciones manuales, añade las dos columnas con tipo `VARCHAR` e `TIMESTAMP WITH TIME ZONE` respectivamente.",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:49:55.486Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:49:55.455Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:50:08.488Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:16:16.713Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Integraci?n incompleta: cobertura FE/BE parcial"
+            },
+            {
+              "date": "2026-04-26T00:14:16.007Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Integraci?n incompleta: cobertura FE/BE parcial"
+            }
+          ]
+        },
+        {
+          "idShort": 159,
+          "name": "[Backend] 15 Dias free trial",
+          "url": "https://trello.com/c/qcuANJ7Z",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: 15 Dias free trial\nLista origen: Pendiente de hacer frontend\nURL card frontend: https://trello.com/c/i8MxCCi5\n\nDescripción original frontend:\n## Flujo del trial de 15 días\n\n**Al verificar el email** (`POST /auth/verify-email`), automáticamente se crea una suscripción premium gratuita:\n\n- `status = ACTIVE`\n- `currentPeriodEnd = ahora + 15 días`\n- `isTrial = true`\n- Sin IDs de Stripe (no requiere tarjeta)\n- Badge premium activado en el perfil\n\n**Cuando el usuario contrata Stripe** después del trial, `activate()` sobrescribe la misma fila con los IDs reales de Stripe y pone `isTrial = false` — sin duplicados.\n\n**La lógica existente no cambia:** `hasPremium()`, `validatePremium()`, `isActive()` funcionan igual para trial y suscripción real.\n\n### Archivos modificados\n\nArchivoCambioUserSubscription.java`stripeCustomerId`/`stripeSubscriptionId` ahora nullable + campo `isTrial`UserSubscriptionService.javaNuevo `activateTrial()` + `activate()` marca `isTrial=false`AuthService.javaInyecta `UserSubscriptionService` y llama `activateTrial()` en `verifyEmail()`\n\n> ",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:50:00.361Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:50:00.329Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:50:10.067Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:16:17.433Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua sin endpoint expl?cito en t?tulo; se mantiene conservador"
+            },
+            {
+              "date": "2026-04-26T00:14:16.987Z",
+              "text": "Validado en revisi?n profunda FE+BE: HECHO. Integraci?n completa FE+BE validada por endpoints"
+            }
+          ]
+        },
+        {
+          "idShort": 160,
+          "name": "[Backend] Formato distinto a mensajes tipo \"system\": true.",
+          "url": "https://trello.com/c/TF72Fz1x",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: Formato distinto a mensajes tipo \"system\": true.\nLista origen: En test/Desarrollando /Frontend\nURL card frontend: https://trello.com/c/mjx1YFqd\n\nDescripción original frontend:\nProbar: Crea una carta de cita, logueate con otro usuario, haz la solicitud para ir a esa cita. Vuelve al primer usuario y acepta, debe aparecer un mensaje auto, generado por el sistema. Cuando vienen del sistema, dale un aspecto distinto para que los usuarios distingan.",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:50:08.058Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:50:08.039Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:49:44.298Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:16:39.938Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua/sin endpoints expl?citos"
+            },
+            {
+              "date": "2026-04-26T00:14:51.082Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua/sin endpoints expl?citos"
+            }
+          ]
+        },
+        {
+          "idShort": 162,
+          "name": "[Backend] En el perfil pondremos un campo que sea voice note, 30 sec, la persona podia decir algo sobre ella y que cuando alguien entre al perfil le pueda dar play, este debe estar disponible tambien para las cartas de swipe.",
+          "url": "https://trello.com/c/cCq9RakP",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: En el perfil pondremos un campo que sea voice note, 30 sec, la persona podia decir algo sobre ella y que cuando alguien entre al perfil le pueda dar play, este debe estar disponible tambien para las cartas de swipe.\nLista origen: En test/Desarrollando /Frontend\nURL card frontend: https://trello.com/c/HMZQr1v7\n\nDescripción original frontend:\n",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:50:09.565Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:50:09.531Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:49:41.130Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:16:39.081Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua/sin endpoints expl?citos"
+            },
+            {
+              "date": "2026-04-26T00:14:49.699Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua/sin endpoints expl?citos"
+            }
+          ]
+        },
+        {
+          "idShort": 163,
+          "name": "[Backend] 👥 Grupos - Posts y Roles",
+          "url": "https://trello.com/c/741txIRS",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: 👥 Grupos - Posts y Roles\nLista origen: Terminado/ Pendiente revision Frontend\nURL card frontend: https://trello.com/c/HYZYD1ss\n\nDescripción original frontend:\nImplementar posts dentro de grupos y sistema de roles.\n\n**Endpoints necesarios:**\n\n- `POST /api/groups/{groupId}/posts` - Crear post en grupo\n- `GET /api/groups/{groupId}/posts?page={page}&size={size}` - Posts del grupo\n- `PUT /api/groups/{groupId}/members/{userId}/role` - Cambiar rol de miembro\n  ```json\n  {\n    \"role\": \"ADMIN|MODERATOR|MEMBER\"\n  }\n  ```\n- `DELETE /api/groups/{groupId}/members/{userId}` - Expulsar miembro (solo admin)\n\n**Detalles técnicos:**\n\n- Agregar campo `group_id` a tabla `posts`\n- Agregar campo `role` a tabla `group_members` (enum: ADMIN, MODERATOR, MEMBER)\n- Validar permisos según rol\n- Filtrar posts por grupo\n\n**Frontend ya implementado:** ✅\n\n- Página `groups/page.tsx`\n- Página `groups/[id]/page.tsx`\n\n---",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:40:23.524Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:40:23.496Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:50:14.903Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:16:17.905Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Integraci?n incompleta: cobertura FE/BE parcial"
+            },
+            {
+              "date": "2026-04-26T00:14:17.830Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Integraci?n incompleta: cobertura FE/BE parcial"
+            }
+          ]
+        },
+        {
+          "idShort": 164,
+          "name": "[Backend] GET /moderator/reports/all — Historial completo de reportes",
+          "url": "https://trello.com/c/boLoLaJl",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: GET /moderator/reports/all — Historial completo de reportes\nLista origen: Terminado/ Pendiente revision Frontend\nURL card frontend: https://trello.com/c/bjCHWmGZ\n\nDescripción original frontend:\nEl panel de moderación necesita ver el historial completo de reportes,\nno solo los PENDING.\n\nAgregar endpoint:\nGET /moderator/reports/all\n\n- Requiere ROLE_MODERATOR\n- Devuelve todos los reportes sin filtrar por status\n- Mismo DTO que /moderator/reports (ReportResponse)\n\nEn ModeratorService agregar:\npublic List<ReportResponse> getAllReports() {\n    return reportRepository.findAll()\n        .stream()\n        .map(report -> { ... mismo mapeo ... })\n        .toList();\n}",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:40:24.120Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:40:24.093Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:50:16.473Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:16:18.400Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua/sin endpoints expl?citos"
+            },
+            {
+              "date": "2026-04-26T00:14:18.681Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua/sin endpoints expl?citos"
+            }
+          ]
+        },
+        {
+          "idShort": 166,
+          "name": "[Backend] GET /api/admin/users — Listar todos los usuarios",
+          "url": "https://trello.com/c/yjsE0S3w",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: GET /api/admin/users — Listar todos los usuarios\nLista origen: Terminado/ Pendiente revision Frontend\nURL card frontend: https://trello.com/c/EpJRlM4I\n\nDescripción original frontend:\nEl dashboard de admin necesita un endpoint para listar usuarios.\n\nGET /api/admin/users\n\n- Requiere rol ADMIN\n- Devuelve lista de usuarios con:\n  - userId, username, email\n  - enabled, locked\n  - premium (si tiene stripeCustomerId)\n  - fechaRegistro\n  - postCount\n  - nombres, apellidos\n  - profilePictureUrl\n\nEjemplo de respuesta:\n[\n  {\n    \"userId\": \"uuid\",\n    \"username\": \"test1\",\n    \"email\": \"[test@test.com](mailto:test@test.com \"‌\")\",\n    \"enabled\": true,\n    \"locked\": false,\n    \"premium\": false,\n    \"fechaRegistro\": \"2026-01-01T00:00:00Z\",\n    \"postCount\": 4,\n    \"nombres\": \"Test\",\n    \"apellidos\": \"User\",\n    \"profilePictureUrl\": \"[https://...](https://... \"‌\")\"\n  }\n]",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:40:25.103Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:40:25.081Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:50:23.793Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:35:05.891Z",
+              "text": "Validado backend GET /api/admin/users. Consolidada con ADMIN/ALL/USERS como misma capacidad."
+            },
+            {
+              "date": "2026-04-26T00:16:18.811Z",
+              "text": "Validado en revisi?n profunda FE+BE: HECHO. Integraci?n completa FE+BE validada por endpoints"
+            },
+            {
+              "date": "2026-04-26T00:14:19.669Z",
+              "text": "Validado en revisi?n profunda FE+BE: HECHO. Integraci?n completa FE+BE validada por endpoints"
+            }
+          ]
+        },
+        {
+          "idShort": 167,
+          "name": "[Backend] 💾 Guardados/Bookmarks",
+          "url": "https://trello.com/c/FSBi3NYr",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: 💾 Guardados/Bookmarks\nLista origen: Terminado/ Pendiente revision Frontend\nURL card frontend: https://trello.com/c/M3jhE5SQ\n\nDescripción original frontend:\nImplementar guardado de posts en el backend.\n\n**Endpoints necesarios:**\n\n- `POST /api/bookmarks/toggle` - Guardar/quitar guardado\n  ```json\n  {\n    \"postId\": \"uuid\"\n  }\n  ```\n- `GET /api/bookmarks?page={page}&size={size}` - Obtener posts guardados\n\n**Detalles técnicos:**\n\n- Crear tabla `bookmarks`: `id`, `user_id`, `post_id`, `created_at`\n- Constraint UNIQUE en (`user_id`, `post_id`)\n\n**Frontend ya implementado:** ✅\n\n- Página `saved/page.tsx`\n- Service `bookmark.ts` (actualmente usa localStorage)\n\n---",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:40:24.617Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:40:24.594Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:50:17.628Z",
+              "text": "Validaci?n FE+BE (corrida API): PARCIAL. BE usa /api/bookmarks/toggle y GET /api/bookmarks; FE usa rutas legacy inconsistentes en bookmark.ts. Brecha: Contrato FE/BE desalineado."
+            },
+            {
+              "date": "2026-04-26T00:16:19.220Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Integraci?n incompleta: cobertura FE/BE parcial"
+            },
+            {
+              "date": "2026-04-26T00:14:20.380Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Integraci?n incompleta: cobertura FE/BE parcial"
+            }
+          ]
+        },
+        {
+          "idShort": 168,
+          "name": "[Backend] Implementar /api/date-cards/feed con filtros (distancia, intereses, excluir dislikes)",
+          "url": "https://trello.com/c/K9FzF9nm",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: Implementar /api/date-cards/feed con filtros (distancia, intereses, excluir dislikes)\nLista origen: Terminado/ Pendiente revision Frontend\nURL card frontend: https://trello.com/c/Sx5dk5KQ\n\nDescripción original frontend:\nDescripción de la tarjeta Necesitamos habilitar el filtrado del feed de date-cards en el backend sin tocar el frontend ahora. El objetivo es soportar filtros por distancia (lat, lon y distanceKm), intereses (intereses como lista de strings) y excluir usuarios a los que ya diste dislike (excludeDisliked con viewerId para identificar al viewer).\n\nContrato de API propuesto\n\n- Endpoint: GET /api/date-cards/feed\n- Parámetros de consulta:\n  - lat: número\n  - lon: número\n  - distanceKm: número (distancia máxima en km)\n  - interests: string (comma-separated, por ejemplo \"cine,música,arte\")\n  - excludeDisliked: boolean (true para excluir)\n  - viewerId: string (identificador del usuario que consulta; usado para exclusión de dislikes)\n- Respuesta: 200 con un array de DateCard (id, name, lat, lon, age, interests, bio, avatarUrl, etc.)\n\nHistoria de alto nivel\n\n- Como usuario, quiero filtrar el feed de date-cards por mi ubicación y preferencias, para ver perfiles cercanos que coincidan con mis intereses y evitar perfiles que ya descarté.\n\nCriterios de aceptación\n\n- Distancia: si se proporcionan lat/lon y distanceKm, se filtran tarjetas por distancia usando el criterio de proximidad.\n- Intereses: si se proporcionan intereses, se filtra para que haya coincidencia con al menos uno de los intereses de la tarjeta.\n- Dislikes: si excludeDisliked=true y se proporciona viewerId, las tarjetas bloqueadas por ese viewer quedan fuera.\n- Comportamiento por defecto: si no se proporcionan filtros, se devuelve la lista completa (o la paginación existente si aplica).\n- Seguridad: el endpoint debe requerir autenticación adecuada (usar token/sesión en backend) y no exponer datos sensibles.\n- Tests: al menos tests de integración para filtrado por distancia, por intereses y por exclusion de dislikes.\n- Documentación: actualizar documentación de API con el contrato y ejemplos de consultas.\n\nTareas (Checklist)\n\n- Diseñar/ajustar modelo de datos en backend para soportar:\n  - DateCards (ya existente)\n  - Ubicación de usuarios (lat/lon)\n  - Intereses (array de strings)\n  - Dislikes/Swipe (tabla o modelo de dislikes)\n- Implementar lógica de filtrado en DB (geoespacial para distancia, overlap de intereses, exclusión de dislikes) o, si no disponible, en memoria con límites claros.\n- Exponer API GET /api/date-cards/feed con los parámetros descritos.\n- Asegurar autenticación y saneamiento de inputs.\n- Escribir tests de integración para cada filtro y para combinaciones.\n- Actualizar/crear documentación de la API y ejemplos de requests.\n- Preparar plan de implementación incremental (feature flag o rollout) si procede.\n\nArchivos/artefactos sugeridos para el backend\n\n- Endpoints:\n  - GET /api/date-cards/feed\n- Modelos/Tablas:\n  - DateCards (ya existente)\n  - UserLocations(lat, lon) o usar lat/lon en UserProfile\n  - UserInterests (tabla relacional o array)\n  - Swipes/Dislikes (viewerId, targetUserId, swipeType)\n- Servicios/Repos:\n  - DateCardFeedRepository o DateCardFeedService con métodos:\n    - filterByDistance(lat, lon, distanceKm)\n    - filterByInterests(interests)\n    - excludeDisliked(viewerId)\n- Tests:\n  - testDateCardsFeedDistance\n  - testDateCardsFeedInterests\n  - testDateCardsFeedDislikes\n  - testDateCardsFeedCombinedFilters",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:40:25.560Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:40:25.535Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:50:13.316Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:44:45.772Z",
+              "text": "Write a comment…Validado card-by-card FE+BE (corrida actual): HECHO. Evidencia BE: /api/date-cards/feed en DateCardController con filtros; Evidencia FE: consumo en app/(app)/date-cards/feed/page.tsx y lib/services/fastdate.ts. Consolidado con duplicadas del mismo tema."
+            },
+            {
+              "date": "2026-04-26T00:16:15.879Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Integraci?n incompleta: cobertura FE/BE parcial"
+            },
+            {
+              "date": "2026-04-26T00:14:14.494Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Integraci?n incompleta: cobertura FE/BE parcial"
+            }
+          ]
+        },
+        {
+          "idShort": 169,
+          "name": "[Backend] 🔄 Sistema de Repost",
+          "url": "https://trello.com/c/YvE9QYwS",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: 🔄 Sistema de Repost\nLista origen: Terminado/ Pendiente revision Frontend\nURL card frontend: https://trello.com/c/mAqeY9mU\n\nDescripción original frontend:\nImplementar repost de contenido.\n\n**Endpoints necesarios:**\n\n- `POST /api/posts/{postId}/repost` - Hacer repost\n  ```json\n  {\n    \"comment\": \"string (opcional)\"\n  }\n  ```\n- `DELETE /api/posts/{postId}/repost` - Quitar repost\n- `GET /api/posts/{postId}/reposts` - Ver quién hizo repost\n\n**Detalles técnicos:**\n\n- Crear tabla `reposts`: `id`, `user_id`, `post_id`, `comment`, `created_at`\n- Agregar campo `repost_count` a tabla `posts`\n- Incluir reposts en feed\n\n**Frontend ya implementado:** ✅\n\n- Componente `repost-modal.tsx`\n- Botón en `post-card.tsx`\n\n---",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:40:26.042Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:40:26.019Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:50:12.163Z",
+              "text": "Validaci?n FE+BE (corrida API): PARCIAL. BE expone /api/posts/{postId}/repost; FE mantiene TODO sin llamada activa al endpoint. Brecha: BE listo; FE no integrado."
+            },
+            {
+              "date": "2026-04-26T00:16:14.686Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Integraci?n incompleta: cobertura FE/BE parcial"
+            },
+            {
+              "date": "2026-04-26T00:14:12.329Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Integraci?n incompleta: cobertura FE/BE parcial"
+            }
+          ]
+        },
+        {
+          "idShort": 170,
+          "name": "[Backend] Agregar campos completos a MyDateCardsResponse",
+          "url": "https://trello.com/c/SSa4Tlm5",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: Agregar campos completos a MyDateCardsResponse\nLista origen: Terminado/ Pendiente revision Frontend\nURL card frontend: https://trello.com/c/3e0wTJyr\n\nDescripción original frontend:\nMyDateCardsResponse solo devuelve dateCardId y title.\nFaltan los campos de la cita para mostrarlos en el frontend.\n\nAgregar a MyDateCardsResponse:\n\n- dateTime (Instant)\n- locationZone (String)\n- category (DateCategory)\n- plans (List<Plan>)\n- message (String)\n- expiresAt (Instant)\n- status (DateCardStatus)\n\nY también en InterestDto:\n\n- interestId (UUID) — para poder responder\n- username (String)\n\nMapear en DateCardService.getMyCardsWithInterests()",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:40:29.133Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:40:29.112Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:49:38.653Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:16:38.210Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua/sin endpoints expl?citos"
+            },
+            {
+              "date": "2026-04-26T00:14:48.361Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua/sin endpoints expl?citos"
+            }
+          ]
+        },
+        {
+          "idShort": 171,
+          "name": "[Backend] Agregar reacciones en chats",
+          "url": "https://trello.com/c/8vrGQKv6",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: Agregar reacciones en chats\nLista origen: Terminado/ Pendiente revision Frontend\nURL card frontend: https://trello.com/c/QVskaxuR\n\nDescripción original frontend:\nPara que se pueda reaccional a los mensajes",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:40:29.619Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:40:29.598Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:49:36.223Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:16:37.381Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua/sin endpoints expl?citos"
+            },
+            {
+              "date": "2026-04-26T00:14:46.909Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua/sin endpoints expl?citos"
+            }
+          ]
+        },
+        {
+          "idShort": 172,
+          "name": "[Backend] Modifico controller de feed de citas, ahora podremos filtrar por distancia, intereses, excluye cuentas que di dislike en swipe cards.../api/date-cards/feed",
+          "url": "https://trello.com/c/ihPkxxpz",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: Modifico controller de feed de citas, ahora podremos filtrar por distancia, intereses, excluye cuentas que di dislike en swipe cards.../api/date-cards/feed\nLista origen: Terminado/ Pendiente revision Frontend\nURL card frontend: https://trello.com/c/Beerfwpb\n\nDescripción original frontend:\n",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:40:26.558Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:40:26.534Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:50:18.847Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:16:19.615Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Integraci?n incompleta: cobertura FE/BE parcial"
+            },
+            {
+              "date": "2026-04-26T00:14:21.118Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Integraci?n incompleta: cobertura FE/BE parcial"
+            }
+          ]
+        },
+        {
+          "idShort": 173,
+          "name": "[Backend] 🔐 Configuración de Privacidad",
+          "url": "https://trello.com/c/jO11neXS",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: 🔐 Configuración de Privacidad\nLista origen: Terminado/ Pendiente revision Frontend\nURL card frontend: https://trello.com/c/kBjL64PD\n\nDescripción original frontend:\nImplementar configuración de privacidad del usuario.\n\n**Endpoints necesarios:**\n\n- `GET /api/settings/privacy` - Obtener configuración\n- `PUT /api/settings/privacy` - Actualizar configuración\n  ```json\n  {\n    \"whoCanSeeMyPosts\": \"EVERYONE|FOLLOWERS|NOBODY\",\n    \"whoCanComment\": \"EVERYONE|FOLLOWERS|NOBODY\",\n    \"whoCanSendDM\": \"EVERYONE|FOLLOWERS|MATCHES\",\n    \"showOnlineStatus\": true,\n    \"showLastSeen\": false\n  }\n  ```\n\n**Detalles técnicos:**\n\n- Crear tabla `privacy_settings`\n- Aplicar filtros según configuración en endpoints de posts, comentarios, chat\n\n**Frontend:** Parcialmente implementado en `settings/page.tsx`\n\n---",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:40:27.494Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:40:27.473Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:50:20.486Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:16:20.790Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua sin endpoint expl?cito en t?tulo; se mantiene conservador"
+            },
+            {
+              "date": "2026-04-26T00:14:22.774Z",
+              "text": "Validado en revisi?n profunda FE+BE: HECHO. Integraci?n completa FE+BE validada por endpoints"
+            }
+          ]
+        },
+        {
+          "idShort": 174,
+          "name": "[Backend] Endpoints para listar Seguidores, Seguidos y Solicitudes Pendientes",
+          "url": "https://trello.com/c/A0gimKpu",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: Endpoints para listar Seguidores, Seguidos y Solicitudes Pendientes\nLista origen: Terminado/ Pendiente revision Frontend\nURL card frontend: https://trello.com/c/xlq5VB6R\n\nDescripción original frontend:\n\"La lógica de `FollowService` ya permite seguir, aceptar y rechazar solicitudes, pero actualmente el frontend no tiene forma de saber _quiénes_ son esos usuarios para pintarlos en una lista.\n\n**Tareas a realizar:** En `FollowController.java`, crear los siguientes 3 endpoints (y sus respectivos métodos en `FollowService`):\n\n1. `GET /api/follow/requests`\n   - **Propósito:** Listar los usuarios que me han enviado una solicitud de seguimiento que aún no apruebo.\n   - **Lógica:** Consultar en `FollowRepository` todas las relaciones donde `following == me` y `status == PENDING`.\n   - **Retorno:** Una lista de un nuevo DTO (`FollowerUserDTO` o `UserProfileResponseDTO` simplificado) que contenga al menos `userId`, `username`, `nombres`, `apellidos` y `profilePictureUrl` de los solicitantes.\n2. `GET /api/follow/followers/{userId}`\n   - **Propósito:** Listar quiénes siguen a un usuario específico.\n   - **Lógica:** Consultar relaciones donde `following == targetUser` y `status == ACCEPTED`.\n   - **Retorno:** Lista de la información básica de los usuarios seguidores.\n3. `GET /api/follow/following/{userId}`\n   - **Propósito:** Listar a quiénes está siguiendo un usuario específico.\n   - **Lógica:** Consultar relaciones donde `follower == targetUser` y `status == ACCEPTED`.\n   - **Retorno:** Lista de la información básica de los usuarios seguidos.\n\n_Nota: Se recomienda usar paginación si las listas pueden ser muy largas, pero de momento devolver una lista simple es suficiente para destrabar al frontend._\"",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:40:27.015Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:40:26.991Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:50:24.241Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:35:11.754Z",
+              "text": "Validado backend de listados followers/following/requests y cobertura frontend alineada."
+            },
+            {
+              "date": "2026-04-26T00:16:20.043Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Integraci?n incompleta: cobertura FE/BE parcial"
+            },
+            {
+              "date": "2026-04-26T00:14:21.789Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Integraci?n incompleta: cobertura FE/BE parcial"
+            }
+          ]
+        },
+        {
+          "idShort": 175,
+          "name": "[Backend] 📖 Stories - Funcionalidades Adicionales",
+          "url": "https://trello.com/c/2rRS7uwX",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: 📖 Stories - Funcionalidades Adicionales\nLista origen: Terminado/ Pendiente revision Frontend\nURL card frontend: https://trello.com/c/tYzh6pHq\n\nDescripción original frontend:\nMejorar sistema de stories existente.\n\n**Endpoints necesarios:**\n\n- `POST /api/stories/{storyId}/view` - Marcar story como vista\n- `GET /api/stories/{storyId}/viewers` - Ver quién vio la story\n- `POST /api/stories/{storyId}/react` - Reaccionar a story\n- `DELETE /api/stories/{storyId}` - Eliminar story propia\n\n**Detalles técnicos:**\n\n- Crear tabla `story_views`: `id`, `story_id`, `user_id`, `viewed_at`\n- Agregar campo `view_count` a tabla `stories`\n- Agregar campo `reaction` a tabla `story_views` (opcional)\n\n**Frontend ya implementado:** ✅\n\n- Página `stories/page.tsx`\n- Componente `stories-bar.tsx`\n\n---",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:40:27.987Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:40:27.962Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:50:22.145Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:16:21.222Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Integraci?n incompleta: cobertura FE/BE parcial"
+            },
+            {
+              "date": "2026-04-26T00:14:23.452Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Integraci?n incompleta: cobertura FE/BE parcial"
+            }
+          ]
+        },
+        {
+          "idShort": 176,
+          "name": "[Backend] Agregar contadores de seguidores a UserProfileResponseDTO",
+          "url": "https://trello.com/c/X33ay1ka",
+          "desc": "Automática desde Frontend\n\nFuente card frontend: Agregar contadores de seguidores a UserProfileResponseDTO\nLista origen: Terminado/ Pendiente revision Frontend\nURL card frontend: https://trello.com/c/ExUr1HSU\n\nDescripción original frontend:\n\"El sistema de Follows ya funciona y el frontend ya está enviando peticiones a `/api/follow/{userId}`, pero necesitamos que al momento de cargar un perfil, el frontend sepa cuántos seguidores tiene esa persona para pintar el número.\n\n**Tareas a realizar:**\n\n1. En el archivo `UserProfileResponseDTO.java`, agregar dos nuevas variables `int followersCount;` e `int followingCount;` (con sus respectivos Getters/Setters).\n2. En `UserProfileService.java`, dentro de los métodos `getProfileByUserId` y `getMyProfile`, usar el `FollowRepository` para contar cuántos seguidores tiene el usuario (ej. `followRepository.countByFollowingAndStatus(user, ACCEPTED)`) y asignarlos al DTO.\n3. Enviar este DTO actualizado al frontend para que el número \"120 Seguidores\" sea dinámico y real, en lugar de simulado.\"",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:40:28.532Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:40:28.501Z",
+              "text": "Revisado"
+            },
+            {
+              "date": "2026-04-26T00:50:10.918Z",
+              "text": "Validaci?n FE+BE (corrida API): HECHO. BE validado en controllers/services correspondientes. FE validado en services/pages/componentes consumidores. Duplicadas consolidadas por nombre normalizado."
+            },
+            {
+              "date": "2026-04-26T00:16:11.794Z",
+              "text": "Validado en revisi?n profunda FE+BE: PARCIAL. Card ambigua sin endpoint expl?cito en t?tulo; se mantiene conservador"
+            },
+            {
+              "date": "2026-04-26T00:14:07.609Z",
+              "text": "Validado en revisi?n profunda FE+BE: HECHO. Integraci?n completa FE+BE validada por endpoints"
+            },
+            {
+              "date": "2026-04-25T23:45:58.078Z",
+              "text": "Existe"
+            }
+          ]
+        },
+        {
+          "idShort": 184,
+          "name": "[Backend] GET /api/admin/users — PostgreSQL lower(bytea) (HTTP 500)",
+          "url": "https://trello.com/c/yAi1kfn7",
+          "desc": "Problema (producción / panel admin): al listar usuarios, GET /api/admin/users?page=0&size=200 (rol ADMIN) devuelve HTTP 500.\n\nPostgreSQL:\nERROR: function lower(bytea) does not exist\nLa query JDBC aplica LOWER() y LIKE sobre users.username, user_profiles.nombres, user_profiles.apellidos. Alguna columna se trata como bytea o el mapeo JPA/BD no coincide con texto.\n\nAcciones sugeridas:\n- Revisar tipos en PostgreSQL (VARCHAR/TEXT, no bytea) para esos campos.\n- Ajustar repositorio/entidad o usar CAST a texto en criterios de búsqueda si hace falta.\n\nOrigen: panel admin (v0-social) vía proxy; no es bug de frontend.\n\n---\n✅ **Hecho (front verificado):** `GET /api/admin/users` responde OK; tipos PostgreSQL alineados / listado admin usable.",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-20T20:16:53.585Z",
+          "comments": [
+            {
+              "date": "2026-05-20T20:16:53.553Z",
+              "text": "✅ YA ESTABA RESUELTO — Error lower(bytea) en listado de admin ya corregido anteriormente.\n\nSe entregaron adicionalmente scripts SQL de índices para producción (pg_trgm, follows, messages, comments, date_cards) para optimizar todos los endpoints nuevos."
+            },
+            {
+              "date": "2026-04-27T22:01:33.734Z",
+              "text": "Queda solventado"
+            }
+          ]
+        },
+        {
+          "idShort": 200,
+          "name": "[Backend] Feed engagement summary endpoint (evitar m�tricas en 0)",
+          "url": "https://trello.com/c/kHn4t17V",
+          "desc": "Problema\nEn el header del feed, las m�tricas (likes, comments, reposts, engagement) pueden mostrarse en 0 porque el frontend hoy depende del lote de posts cargado y de que incluya posts del usuario.\n\nSe necesita backend\nCrear endpoint agregado para m�tricas reales del usuario autenticado, independiente del lote visible:\n- GET /api/feed/my-engagement/summary\n\nRespuesta sugerida\n{\n  \"totalLikes\": number,\n  \"totalComments\": number,\n  \"totalReposts\": number,\n  \"avgEngagement\": number,\n  \"period\": \"all_time\" | \"30d\" | \"7d\"\n}\n\nNotas\n- Requiere JWT\n- Evitar c�lculo en frontend con posts parciales\n- Mantener consistente entre tabs Global/Local/Siguiendo",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:50:01.976Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:50:01.952Z",
+              "text": "Revisado"
+            }
+          ]
+        },
+        {
+          "idShort": 201,
+          "name": "[Backend] Guardar idioma preferido de usuario (preferredLanguage)",
+          "url": "https://trello.com/c/EOxyfmtX",
+          "desc": "Contexto: Frontend agregó i18n (top 10 idiomas) con selector global + onboarding.\nTemporalmente el idioma se guarda en localStorage y necesitamos persistirlo en backend.\n\nRequerimientos:\n- Agregar campo preferredLanguage en perfil de usuario.\n- Soportar valores: en, zh, hi, es, fr, ar, bn, pt, ru, ur.\n- Incluir preferredLanguage en GET /api/profile/me.\n- Permitir actualizarlo en POST/PUT /api/profile.\n- Fallback a en si llega idioma no soportado.\n- Migración/default para usuarios existentes en en.\n\nCriterios:\n- Front puede leer y escribir preferredLanguage sin errores.\n- Se mantiene compatibilidad hacia atrás para perfiles actuales.",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-18T20:50:03.941Z",
+          "comments": [
+            {
+              "date": "2026-05-18T20:50:03.916Z",
+              "text": "Revisado"
+            }
+          ]
+        },
+        {
+          "idShort": 317,
+          "name": "[Backend] GET /api/groups/analytics - Group Analytics endpoint",
+          "url": "https://trello.com/c/7umSQb28",
+          "desc": "\n## Descripci�n\nEl frontend necesita un endpoint de anal�ticas para grupos de eventos. Actualmente no existe en el backend, lo que bloquea la implementaci�n en mobile.\n\n## Endpoint solicitado\nGET /api/groups/analytics\n\nQuery params:\n- groupId (requerido): UUID del grupo\n\nResponse esperada:\n{\n  totalMembers: number\n  activeMembers: number (miembros que han participado en los �ltimos 7 d�as)\n  totalMessages: number\n  messagesToday: number\n  totalPolls: number\n  activePolls: number\n  topReactedMessage: { messageId: string; reactionsCount: number; content: string } | null\n  topVoters: Array<{ userId: string; username: string; votesCast: number }>\n  memberActivityByDay: Array<{ date: string; messages: number; reactions: number }>\n}\n\n## Uso en frontend\n- Mobile: app/(main)/event/[eventId].tsx (tab de admin)\n- Web: pendiente de implementar\n\n## Dependencias\n- El grupo del evento debe existir (groupId en Event)\n- Los mensajes, reacciones y polls se almacenan por grupo\n\n## Notas\n- Solo admins del grupo deben poder acceder\n- Cachear respuesta por 5 minutos (no cambia frecuentemente)\n- Si groupId no existe, devolver 404",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-21T13:30:02.526Z",
+          "comments": []
+        },
+        {
+          "idShort": 318,
+          "name": "no se guardan las fotos en los grupos",
+          "url": "https://trello.com/c/CBlUdIxw",
+          "desc": "la foto de portada no se guarda o no se muestra",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-21T13:30:05.226Z",
+          "comments": []
+        },
+        {
+          "idShort": 319,
+          "name": "el last seen en chat no esta funcionando correctamente",
+          "url": "https://trello.com/c/Wn4EjhXS",
+          "desc": "hice login con dos cuentas en diferentes dispositivos y muestra que estuve conectado hace 11 horas, deberia decir segundos, el problema esta en listado de chats y en el chat id\n\n![image.webp](https://trello.com/1/cards/6a0c643a8c9bfe897c365e2f/attachments/6a0c648c5faeab92961b1264/previews/6a0c648d5faeab92961b1275/download/image.webp)",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-20T20:15:13.447Z",
+          "comments": [
+            {
+              "date": "2026-05-20T20:15:13.418Z",
+              "text": "✅ IMPLEMENTADO — Bug corregido en UserPresenceService.refreshPresence.\n\nCausa raíz: el ping del frontend llamaba refreshPresence() que solo ejecutaba expire() sobre la key de Redis. Si la key ya había expirado (usuario en background >5min), expire() no hacía nada y lastSeen quedaba desactualizado.\n\nFix: refreshPresence ahora comprueba si la key existe. Si no existe (usuario fue marcado offline por el scheduler), crea la key con TTL, lo re-agrega al set de online y limpia lastSeen en BD.\n\nArchivo modificado: sparkd/Service/UserPresenceService.java"
+            }
+          ]
+        },
+        {
+          "idShort": 320,
+          "name": "MessageResponseDTO no incluye campo read",
+          "url": "https://trello.com/c/R09lsFuF",
+          "desc": "## Problema\n\nAl recargar el chat en mobile, los checks de leído (✓✓) vuelven a un check (✓) aunque el otro usuario ya haya leído el mensaje.\n\n## Causa\n\n`MessageResponseDTO.java` no tiene campo `read`. Aunque `markMessagesAsRead` en `MessageRepository` persiste `m.read = true` en BD, el endpoint `GET /api/{chatId}/messages` nunca serializa `read` en la respuesta JSON. El móvil recibe `read: undefined` y muestra un solo check.\n\n## Fix\n\n1. `MessageResponseDTO.java`: agregar `private boolean read;` + getter `isRead()` + setter `setRead(boolean)`\n2. `MessageService.getMessages()`: poblar `read` desde la entidad `Message` al construir cada `MessageResponseDTO`\n\n## Archivos\n\n- `sparkd/DTOs/MessageResponseDTO.java`\n- `sparkd/Service/MessageService.java`",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-20T20:15:36.412Z",
+          "comments": [
+            {
+              "date": "2026-05-20T20:15:36.388Z",
+              "text": "✅ IMPLEMENTADO — Campo read agregado al DTO y al endpoint de mensajes.\n\nCambios:\n- MessageResponseDTO.java: campo boolean read + getter isRead() + setter setRead()\n- MessageService.getMessages(): dto.setRead(m.isRead()) al construir cada DTO\n- El campo read ya existía en la entidad Message (BD), solo faltaba serializarlo\n\nEl cliente recibirá read: true/false en cada mensaje. Los doble-checks ahora se mantienen al recargar el chat.\n\nArchivos modificados: sparkd/DTOs/MessageResponseDTO.java, sparkd/Service/MessageService.java"
+            }
+          ]
+        },
+        {
+          "idShort": 329,
+          "name": "✅ Last Seen en tiempo real por WebSocket",
+          "url": "https://trello.com/c/skDNcQb4",
+          "desc": "## Cambio Backend\nEl evento OFFLINE en /topic/presence ahora incluye el campo lastSeen (timestamp ISO 8601).\nEl snapshot inicial en /user/queue/presence-snapshot también trae lastSeen para contactos offline.\n\n## Qué debe hacer el Frontend\n\n### 1. Suscripción a presencia en tiempo real\n```js\nclient.subscribe('/topic/presence', ({ body }) => {\n  const dto = JSON.parse(body);\n  // dto = { userId, status: 'ONLINE'|'OFFLINE', lastSeen: '2026-05-20T...' | null }\n  updatePresence(dto.userId, dto.status, dto.lastSeen ? new Date(dto.lastSeen) : null);\n});\n```\n\n### 2. Snapshot inicial al conectar\n```js\nclient.subscribe('/user/queue/presence-snapshot', ({ body }) => {\n  const list = JSON.parse(body); // array de { userId, status, lastSeen }\n  list.forEach(dto =>\n    updatePresence(dto.userId, dto.status, dto.lastSeen ? new Date(dto.lastSeen) : null)\n  );\n});\n```\n\n### 3. Mostrar el texto\n```js\nfunction formatLastSeen(lastSeen) {\n  if (!lastSeen) return 'en línea';\n  const diff = Math.floor((Date.now() - lastSeen.getTime()) / 1000);\n  if (diff < 60)    return 'hace un momento';\n  if (diff < 3600)  return `hace ${Math.floor(diff / 60)} min`;\n  if (diff < 86400) return `hace ${Math.floor(diff / 3600)} h`;\n  return lastSeen.toLocaleDateString();\n}\n```\n\n## Resultado esperado\nCuando el usuario B cierra la app, el usuario A ve inmediatamente 'hace un momento' sin recargar.",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-20T23:46:27.582Z",
+          "comments": []
+        },
+        {
+          "idShort": 330,
+          "name": "✅ Campo 'read' en mensajes",
+          "url": "https://trello.com/c/3Jtipi9c",
+          "desc": "## Cambio Backend\nMessageResponseDTO ahora incluye el campo booleano read.\n\n## Endpoint\nGET /api/messages/{chatId}/messages?page=0&size=20\n\n## Estructura de respuesta (ya paginada)\n```json\n{\n  \"content\": [\n    {\n      \"id\": \"uuid\",\n      \"chatId\": \"uuid\",\n      \"senderId\": \"uuid\",\n      \"receiverId\": \"uuid\",\n      \"content\": \"Hola\",\n      \"sentAt\": \"2026-05-20T10:00:00Z\",\n      \"mediaType\": null,\n      \"read\": true,\n      \"media\": null,\n      \"reactions\": []\n    }\n  ],\n  \"totalPages\": 3,\n  \"totalElements\": 55,\n  \"last\": false,\n  \"first\": true\n}\n```\n\n## Qué debe hacer el Frontend\n\n### Mostrar ticks de leído (estilo WhatsApp)\n```jsx\nfunction MessageTick({ read, senderId, myId }) {\n  if (senderId !== myId) return null; // solo en mensajes propios\n  return <span>{read ? '✓✓' : '✓'}</span>;\n}\n```\n\n### Paginación (cargar más al hacer scroll arriba)\n```js\nconst { data } = await api.get(`/messages/${chatId}/messages`, {\n  params: { page, size: 20 }\n});\n// data.content -> array de mensajes\n// data.last -> boolean, si es false hay más páginas\n// Prepend los mensajes anteriores al array existente\nsetMessages(prev => [...data.content.reverse(), ...prev]);\n```\n\n## Nota\nLos mensajes vienen en orden DESC (más reciente primero). Invertir el content antes de mostrarlos.",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-20T23:46:55.490Z",
+          "comments": []
+        },
+        {
+          "idShort": 331,
+          "name": "✅ Comentarios paginados",
+          "url": "https://trello.com/c/m6J62GE2",
+          "desc": "## Cambio Backend\nGET /api/comments/get/{postId} ahora devuelve Page<CommentsResponseDTO> en lugar de List.\n\n## Endpoint\nGET /api/comments/get/{postId}?page=0&size=20\n\n## Estructura de respuesta\n```json\n{\n  \"content\": [ { ...comentario } ],\n  \"totalPages\": 2,\n  \"totalElements\": 35,\n  \"last\": false\n}\n```\n\n## Qué debe hacer el Frontend\n\n### Hook de carga incremental\n```js\nconst [comments, setComments] = useState([]);\nconst [page, setPage] = useState(0);\nconst [hasMore, setHasMore] = useState(true);\n\nasync function loadComments(pageNum = 0, reset = false) {\n  const { data } = await api.get(`/comments/get/${postId}`, {\n    params: { page: pageNum, size: 20 }\n  });\n  setComments(prev => reset ? data.content : [...prev, ...data.content]);\n  setHasMore(!data.last);\n  setPage(pageNum);\n}\n\n// Carga inicial\nuseEffect(() => { loadComments(0, true); }, [postId]);\n\n// Cargar más\nfunction loadMore() {\n  if (hasMore) loadComments(page + 1);\n}\n```\n\n### Botón / scroll infinito\n```jsx\n{hasMore && <button onClick={loadMore}>Ver más comentarios</button>}\n```",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-20T23:47:22.634Z",
+          "comments": []
+        },
+        {
+          "idShort": 332,
+          "name": "✅ My Cards agrupadas (activas vs expiradas)",
+          "url": "https://trello.com/c/dfkxdlEw",
+          "desc": "## Cambio Backend\nGET /api/datecards/mine ahora devuelve un objeto agrupado en lugar de una lista plana.\n\n## Endpoint\nGET /api/datecards/mine\n\n## Estructura de respuesta\n```json\n{\n  \"activeCards\": [\n    { ...card con status ACTIVE o MATCHED }\n  ],\n  \"expiredCards\": [\n    { ...card con status EXPIRED o CANCELLED }\n  ]\n}\n```\n\n## Qué debe hacer el Frontend\n\n### Desestructurar la respuesta\n```js\nconst { data } = await api.get('/datecards/mine');\nconst { activeCards, expiredCards } = data;\n```\n\n### Mostrar en dos secciones\n```jsx\n<Section title='Mis citas activas'>\n  {activeCards.map(card => <DateCard key={card.id} card={card} />)}\n</Section>\n\n<Section title='Citas expiradas'>\n  {expiredCards.map(card => <DateCard key={card.id} card={card} expired />)}\n</Section>\n```\n\n## Nota\nSi antes iterabas directamente el array response.data, ahora debes usar response.data.activeCards o response.data.expiredCards según la sección.",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-20T23:47:51.604Z",
+          "comments": []
+        },
+        {
+          "idShort": 333,
+          "name": "Mejorar endpoint GET /api/notifications/{userId}",
+          "url": "https://trello.com/c/8KbSp7kD",
+          "desc": "Actualmente `GET /api/notifications/{userId}?page=&size=` devuelve TODAS las notificaciones del usuario sin importar el tipo. El frontend (mobile) filtra localmente con tabs (Todas, Me gusta, Seguimiento, Usuarios, Posts), lo que forza la descarga de todos los registros aunque el usuario solo quiera ver un tipo específico.\n\n**Problema:**\n\n- Usuarios con muchas notificaciones descargan cientos de registros innecesarios\n- Paginación ineficiente: si hay 500 notifs y solo quiero \"LIKE\", pido página 1 de 20 y aún así el backend escanea/ordena todo\n- Sin métricas por tipo, el frontend no puede mostrar badges en los tabs\n\n**Solución propuesta:**\n\nAgregar query params opcionales al `GET /api/notifications/{userId}`:\n\nParámetroTipoDefaultDescripción`type`string`null`Filtrar por `targetType` (`LIKE`, `FOLLOW`, `USER`, `POST`)`unreadOnly`boolean`false`Solo no leídas`from`ISO date`null`Notificaciones desde esta fecha`to`ISO date`null`Notificaciones hasta esta fecha`sort`string`createdAt,desc`Ordenamiento\n\nAdemás, agregar endpoint de conteo por tipo:\n\n```\nGET /api/notifications/{userId}/counts\n→ { \"LIKE\": 12, \"FOLLOW\": 5, \"USER\": 3, \"POST\": 8, \"total\": 28 }\n```\n\n**Archivos afectados (backend):**\n\n- `Controllers/NotificationsController.java`\n- `Service/NotificationService.java`\n- `Repository/NotificationRepository.java`\n\n**Archivos afectados (frontend):**\n\n- `lib/services/notification.ts` — agregar `type` a `fetchNotifications`, usar `counts` endpoint para badges\n- `app/(main)/notifications.tsx` — mostrar badges en tabs",
+          "labels": [],
+          "members": [
+            "Johan Jones"
+          ],
+          "dateLastActivity": "2026-05-21T13:30:08.033Z",
+          "comments": []
+        },
+        {
+          "idShort": 334,
+          "name": "Campo de apariencia en perfil de usuario + sincronización backend",
+          "url": "https://trello.com/c/ckoAVSWj",
+          "desc": "**Título:** Agregar campo `uiPreferences` para personalizar navegación y visibilidad de elementos\n\n**Descripción:**\n\nPermitir al usuario elegir el tipo de bottom navbar y qué elementos mostrar/ocultar en la interfaz.\n\n### Campos propuestos\n\nNuevo campo JSONB `ui_preferences` en la tabla `users`:\n\n```\n{\n  \"navbarStyle\": \"default\" | \"compact\" | \"labels-only\" | \"icons-only\",\n  \"hiddenElements\": {\n    \"eventsButton\": false,\n    \"pulseTab\": false,\n    \"liveIndicator\": false,\n    \"storyCircles\": false,\n    \"suggestedUsers\": false,\n    \"trendingHashtags\": false\n  },\n  \"tabOrder\": [\"feed\", \"groups\", \"chat\", \"swipes\", \"matches\", \"profile\"]\n}\n```\n\n### Backend\n\nEndpointMétodoBody`GET /api/user/profile/ui-preferences`GET—`PUT /api/user/profile/ui-preferences`PUT`UiPreferencesRequest`\n\n**Archivos backend:** `UserController.java`, `UserService.java`, `User.java` (columna JSONB), `UiPreferencesDTO.java`\n\n### Frontend\n\nArchivoCambio`lib/types.ts`Interfaz `UiPreferenceslib/services/profile.tsgetUiPreferences()`, `updateUiPreferences()components/layout/BottomNav.tsx`Leer `navbarStyle` para cambiar layout (compacto, solo íconos, etc.) y `tabOrder` para reordenar tabs; ocultar elementos según `hiddenElementscomponents/layout/TopNavbar.tsx`Ocultar elementos según `hiddenElementsapp/(main)/settings.tsx`Nueva sección \"Interfaz\": selector de estilo navbar, toggles para mostrar/ocultar elementos",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-21T13:29:50.516Z",
+          "comments": []
+        },
+        {
+          "idShort": 335,
+          "name": "Exponer fechaRegistro en API de perfil (móvil “Es miembro desde…”)",
+          "url": "https://trello.com/c/ErK8aIHV",
+          "desc": "El campo de alta de cuenta **ya existe** en base de datos y en la entidad `Users`:\n\n- Tabla: `users`\n- Columna: `fecha_registro`\n- Java: `Users.fechaRegistro` (`Instant`), se asigna en `@PrePersist`\n\nHoy **no** se devuelve en `UserProfileResponseDTO`, por eso móvil/web de perfil no pueden mostrar “Es miembro desde…”.\n\n**Alcance (solo backend):**\n\n1. Añadir en `UserProfileResponseDTO.java`:\n   - `private Instant fechaRegistro;`\n   - getter/setter (o record equivalente)\n2. Mapear en `UserProfileMapper.toDTO()` (y `toPrivateDTO` si aplica):\n   ```\n   dto.setFechaRegistro(profile.getUser().getFechaRegistro());\n   ```\n3. Incluir el campo en respuestas de:\n   - `GET /api/profile/me`\n   - `GET /api/profile/{userId}`\n   - Discover/swipes si el payload incluye `profile` anidado (mismo DTO o campo en el objeto profile)\n\n**Formato JSON esperado:**\n\n```\n\"fechaRegistro\": \"2024-06-15T14:32:10Z\"\n```\n\n**Criterios de aceptación:**\n\n- `GET /api/profile/me` incluye `fechaRegistro` con fecha real del usuario autenticado\n- `GET /api/profile/{userId}` incluye `fechaRegistro` para perfiles públicos visibles\n- Discover devuelve `fechaRegistro` dentro de `profile` (si aplica)\n- Campo en ISO-8601 (`Instant`), no null para usuarios existentes con registro válido\n- No rompe clientes actuales (campo nuevo opcional)\n\n**Notas:** Admin ya usa `fechaRegistro` en `AdminUserDTO`. Móvil ya está preparado y mostrará el texto en cuanto el API lo envíe.",
+          "labels": [],
+          "members": [],
+          "dateLastActivity": "2026-05-22T01:13:14.648Z",
+          "comments": []
+        }
+      ]
+    }
+  ]
+}

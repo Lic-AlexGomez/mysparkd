@@ -10,7 +10,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { toast } from "sonner"
 import { CheckCircle2, Loader2, Mail } from "lucide-react"
 import { emailVerificationService } from "@/lib/services/email-verification"
-import { api, ApiError, rateLimitHint } from "@/lib/api"
+import { api } from "@/lib/api"
+import { resolveAuthError, showAuthErrorToast } from "@/lib/auth-user-messages"
+import { AuthCard } from "@/components/auth/auth-card"
 import type { UserProfile } from "@/lib/types"
 import {
   stashLoginAccountType,
@@ -88,15 +90,12 @@ function VerifyEmailForm() {
         } catch {
           router.push("/onboarding")
         }
+        return
       }
       setVerified(true)
       toast.success("Email verificado correctamente")
     } catch (error) {
-      if (error instanceof ApiError && error.status === 429) {
-        toast.error(rateLimitHint(error))
-      } else {
-        toast.error(error instanceof Error ? error.message : "No se pudo verificar el código")
-      }
+      showAuthErrorToast(resolveAuthError(error, "verify-email", { email: email.trim() }), toast)
     } finally {
       setIsVerifying(false)
     }
@@ -115,19 +114,14 @@ function VerifyEmailForm() {
       })
       toast.success("Te enviamos un nuevo correo de verificación")
     } catch (error) {
-      if (error instanceof ApiError && error.status === 429) {
-        toast.error(rateLimitHint(error))
-      } else {
-        toast.error(error instanceof Error ? error.message : "No se pudo reenviar")
-      }
+      showAuthErrorToast(resolveAuthError(error, "verify-email", { email: email.trim() }), toast)
     } finally {
       setIsResending(false)
     }
   }
 
   return (
-    <Card className="border-border bg-card">
-      <CardContent className="pt-6">
+    <AuthCard>
         {verified ? (
           <div className="flex flex-col items-center gap-4 py-4 text-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10">
@@ -210,8 +204,7 @@ function VerifyEmailForm() {
             </div>
           </div>
         )}
-      </CardContent>
-    </Card>
+    </AuthCard>
   )
 }
 

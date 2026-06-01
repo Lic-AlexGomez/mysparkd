@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { fastDateService } from "@/lib/services/fastdate"
+import { recordFastDateMatch } from "@/lib/services/moments"
 import type { FeedFilter } from "@/lib/services/fastdate"
 import { handleDateCardLimitError } from "@/lib/errors/date-card-limits"
 import type { DateCard, MyDateCard, SentInterest, DateCategory, Plan, PlaceType } from "@/lib/types"
@@ -197,11 +198,38 @@ export function FastDateSection(props?: FastDateSectionProps) {
     } finally { setSendingInterest(false) }
   }
 
-  const handleRespond = async (interestId: string, accept: boolean) => {
+  const handleRespond = async (
+    interestId: string,
+    accept: boolean,
+    ctx?: { peerUserId?: string; peerUsername?: string; dateCardId?: string }
+  ) => {
     try {
       const res = await fastDateService.respondInterest(interestId, accept)
-      if (accept) { toast.success("¡Match creado! 🎉"); await fetchMine(); router.push(res?.chatId ? `/chat/${res.chatId}` : '/chat') }
-      else { toast.success("Interés rechazado"); await fetchMine() }
+      if (accept) {
+        if (user?.userId && ctx?.peerUserId) {
+          recordFastDateMatch({
+            ownerUserId: user.userId,
+            ownerUsername: user.username,
+            peerUserId: ctx.peerUserId,
+            peerUsername: ctx.peerUsername,
+            interestId,
+            dateCardId: ctx.dateCardId,
+          })
+        }
+        toast.success("¡Match creado! 🎉")
+        await fetchMine()
+        if (res?.chatId) {
+          const q = new URLSearchParams()
+          if (ctx?.dateCardId) q.set("fdId", ctx.dateCardId)
+          q.set("title", "Fast Date")
+          router.push(`/chat/${res.chatId}?${q.toString()}`)
+        } else {
+          router.push("/chat")
+        }
+      } else {
+        toast.success("Interés rechazado")
+        await fetchMine()
+      }
     } catch (error) {
       if (!handleDateCardLimitError(error)) toast.error(error instanceof Error ? error.message : "Error")
     }
@@ -605,7 +633,21 @@ function FastDateSentInterestCard({
   )
 }
 
-function FDCardItem({ card, onRespond, router, onDelete }: { card: MyDateCard; onRespond: (id: string, accept: boolean) => void; router: ReturnType<typeof useRouter>; onDelete?: (id: string) => void }) {
+function FDCardItem({
+  card,
+  onRespond,
+  router,
+  onDelete,
+}: {
+  card: MyDateCard
+  onRespond: (
+    id: string,
+    accept: boolean,
+    ctx?: { peerUserId?: string; peerUsername?: string; dateCardId?: string }
+  ) => void
+  router: ReturnType<typeof useRouter>
+  onDelete?: (id: string) => void
+}) {
   const [expanded, setExpanded] = useState(false)
   const pending = card.interests?.filter((i: any) => i.status === 'PENDING') || []
   return (
@@ -655,10 +697,24 @@ function FDCardItem({ card, onRespond, router, onDelete }: { card: MyDateCard; o
               )}
             </div>
             <div className="flex shrink-0 gap-1.5">
-              <button onClick={() => onRespond(interest.interestId, true)} className="flex size-9 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 transition-colors hover:bg-emerald-500/25 dark:text-emerald-400" aria-label="Aceptar">
+              <button
+                onClick={() =>
+                  onRespond(interest.interestId, true, {
+                    peerUserId: String(interest.userId || interest.profileId || "").trim() || undefined,
+                    peerUsername: undefined,
+                    dateCardId: card.dateCardId,
+                  })
+                }
+                className="flex size-9 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 transition-colors hover:bg-emerald-500/25 dark:text-emerald-400"
+                aria-label="Aceptar"
+              >
                 <Check className="size-4" />
               </button>
-              <button onClick={() => onRespond(interest.interestId, false)} className="flex size-9 items-center justify-center rounded-full bg-destructive/12 text-destructive transition-colors hover:bg-destructive/20" aria-label="Rechazar">
+              <button
+                onClick={() => onRespond(interest.interestId, false)}
+                className="flex size-9 items-center justify-center rounded-full bg-destructive/12 text-destructive transition-colors hover:bg-destructive/20"
+                aria-label="Rechazar"
+              >
                 <X className="size-4" />
               </button>
             </div>
@@ -676,7 +732,11 @@ function FDExpiredSection({
   te,
 }: {
   cards: MyDateCard[]
-  onRespond: (id: string, accept: boolean) => void
+  onRespond: (
+    id: string,
+    accept: boolean,
+    ctx?: { peerUserId?: string; peerUsername?: string; dateCardId?: string }
+  ) => void
   router: ReturnType<typeof useRouter>
   te: (es: string, en: string) => string
 }) {

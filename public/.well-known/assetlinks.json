@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.get_login_creds"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.sparkd.app",
+      "sha256_cert_fingerprints": [
+        "COLOCA_AQUI_EL_SHA256_DE_EAS_CREDENTIALS_ANDROID"
+      ]
+    }
+  }
+]

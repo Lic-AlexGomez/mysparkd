@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { api } from "@/lib/api"
+import { extractApiRows } from "@/lib/extract-api-rows"
 import { useAuth } from "@/lib/auth-context"
 
 import type { Comment as CommentType, CommentReply, ReactionType } from "@/lib/types"
@@ -22,6 +23,7 @@ import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
 import { ReactionPicker, getReactionEmoji } from "./reaction-picker"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
+import { profileHref } from "@/lib/profile-route"
 import { reactionService } from "@/lib/services/reaction"
 import { useI18n } from "@/lib/i18n"
 
@@ -42,6 +44,9 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
   const [newComment, setNewComment] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [loadingComments, setLoadingComments] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [page, setPage] = useState(0)
+  const [hasMore, setHasMore] = useState(true)
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
   const [replyText, setReplyText] = useState("")
   const [expandedReplies, setExpandedReplies] = useState<Record<string, CommentReply[]>>({})
@@ -51,12 +56,31 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
   const [editingText, setEditingText] = useState("")
 
-  const fetchComments = useCallback(async () => {
+  const fetchComments = useCallback(async (opts?: { page?: number; reset?: boolean }) => {
+    const pageNum = opts?.page ?? 0
+    const reset = opts?.reset ?? true
     try {
-      setLoadingComments(true)
-      const data = await api.get<CommentType[]>(`/api/comments/get/${postId}`)
-      setComments(data.map(c => ({ ...c, liked: false })))
+      if (reset) setLoadingComments(true)
+      else setLoadingMore(true)
+
+      const data: any = await api.get<unknown>(`/api/comments/get/${postId}?page=${pageNum}&size=20`)
+      const rows = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.content)
+          ? data.content
+          : extractApiRows<CommentType>(data)
+      const last =
+        typeof data?.last === "boolean"
+          ? data.last
+          : rows.length < 20
+
+      const nextRows = rows.map((c) => ({ ...c, liked: false }))
+      setComments((prev) => (reset ? nextRows : [...prev, ...nextRows]))
+      setPage(pageNum)
+      setHasMore(!last)
+
       setLoadingComments(false)
+      setLoadingMore(false)
       // check privacy si hay postOwnerId y no es el propio usuario
       if (postOwnerId && postOwnerId !== user?.userId) {
         api.get<any>('/api/settings/privacy').then(privacy => {
@@ -64,7 +88,7 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
         }).catch(() => {})
       }
       Promise.all(
-        data.map(async (comment) => {
+        nextRows.map(async (comment) => {
           try {
             const status = await api.get<any>(`/api/likes/status/${comment.commentsId}`)
             return { id: comment.commentsId, liked: status.reacted, userReaction: status.myReaction, likeCount: status.totalReactions }
@@ -80,15 +104,18 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
       })
     } catch (error) {
       console.error('Error fetching comments:', error)
-      setComments([])
+      if (reset) setComments([])
       setLoadingComments(false)
+      setLoadingMore(false)
     }
   }, [postId, postOwnerId, user?.userId])
 
   useEffect(() => {
     if (open) {
       setLoadingComments(true)
-      fetchComments()
+      setPage(0)
+      setHasMore(true)
+      fetchComments({ page: 0, reset: true })
     }
   }, [open, fetchComments])
 
@@ -99,7 +126,7 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
     try {
       await api.post(`/api/comments/${postId}`, { text: newComment.trim() })
       setNewComment("")
-      fetchComments()
+      fetchComments({ page: 0, reset: true })
       onCommentAdded?.()
       toast.success(te('Comentario publicado', 'Comment posted'))
     } catch (error) {
@@ -117,7 +144,7 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
       setReplyText("")
       setReplyingTo(null)
       fetchReplies(parentId)
-      fetchComments()
+      fetchComments({ page: 0, reset: true })
     } catch {
       toast.error(te("Error al responder", "Error replying"))
     } finally {
@@ -127,15 +154,16 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
 
   const fetchReplies = async (parentId: string) => {
     try {
-      const data = await api.get<CommentReply[]>(`/api/comments/getcommentReply/${parentId}`)
-      
-      // Mostrar respuestas inmediatamente
-      setExpandedReplies((prev) => ({ ...prev, [parentId]: data.map(r => ({ ...r, liked: false })) }))
+      const rows = extractApiRows<CommentReply>(
+        await api.get<unknown>(`/api/comments/getcommentReply/${parentId}`)
+      )
+
+      setExpandedReplies((prev) => ({ ...prev, [parentId]: rows.map((r) => ({ ...r, liked: false })) }))
       setShowReplies((prev) => ({ ...prev, [parentId]: true }))
       
       // Fetch reaction status en background
       Promise.all(
-        data.map(async (reply) => {
+        rows.map(async (reply) => {
           try {
             const status = await api.get<any>(`/api/likes/status/${reply.commentReplyId}`)
             return { id: reply.commentReplyId, liked: status.reacted, userReaction: status.myReaction, likeCount: status.totalReactions }
@@ -329,7 +357,7 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
                     <div className="flex-1 min-w-0">
                       <div className="bg-muted/50 rounded-2xl px-4 py-3 hover:bg-muted/70 transition-colors">
                         <div className="flex items-center gap-2 mb-1">
-                          <Link href={`/profile/${comment.userId}`} className="text-sm font-bold text-foreground hover:underline">
+                          <Link href={profileHref(comment.userId, user?.userId)} className="text-sm font-bold text-foreground hover:underline">
                             {comment.username}
                           </Link>
                           <span className="text-xs text-muted-foreground">
@@ -474,7 +502,7 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
                               <div className="bg-muted/30 rounded-2xl px-3 py-2.5 hover:bg-muted/50 transition-colors">
                                 <div className="flex items-center gap-2 mb-1">
                                   <Link
-                                    href={`/profile/${reply.userId}`}
+                                    href={profileHref(reply.userId, user?.userId)}
                                     className="text-xs font-bold text-foreground hover:underline"
                                   >
                                     {reply.username}
@@ -529,6 +557,18 @@ export function CommentsSheet({ postId, open, onOpenChange, onUpdate, onCommentA
                   </div>
                 </div>
               ))
+            )}
+            {hasMore && !loadingComments && (
+              <div className="flex justify-center pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={loadingMore}
+                  onClick={() => fetchComments({ page: page + 1, reset: false })}
+                >
+                  {loadingMore ? "Cargando..." : "Cargar más"}
+                </Button>
+              </div>
             )}
           </div>
         </ScrollArea>

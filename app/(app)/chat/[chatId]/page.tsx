@@ -1,21 +1,30 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import Link from "next/link"
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { api } from "@/lib/api"
+import { messageDisplayText } from "@/lib/chat-messages"
 import { chatService } from "@/lib/services/chat"
 import { useAuth } from "@/lib/auth-context"
 import { useWebSocket } from "@/hooks/use-websocket"
 import type { Message, Chat } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ArrowLeft, Send, Loader2, MessageCircle, Smile, Image as ImageIcon, X, Mic, Reply, MoreVertical, Copy, Paperclip, Check, Search, Star, Images, Gamepad2, Pencil, Trash2, Pin } from "lucide-react"
 import dynamic from "next/dynamic"
 import { AudioMessage } from "@/components/audio-message"
 import { GamePanel } from "@/components/chat/game-panel"
 import { ChatInput } from "@/components/chat/chat-input"
+import {
+  ChatContextHeader,
+  ChatContextHeaderAvatar,
+} from "@/components/chat/chat-context-header"
+import { ChatContextActions } from "@/components/chat/chat-context-actions"
+import { ChatActivityFeed } from "@/components/chat/chat-activity-feed"
+import { ChatContextQuickReplies } from "@/components/chat/chat-context-quick-replies"
+import { contextAwareChatService } from "@/lib/services/context-aware-chat"
+import type { ChatContextResponse } from "@/lib/types/context-aware-chat"
+import { conversionLoopService } from "@/lib/services/conversion-loop"
 
 const EmojiPicker = dynamic(() => import("emoji-picker-react"), { ssr: false })
 import { formatDistanceToNow } from "date-fns"
@@ -26,9 +35,7 @@ import { privateChatPinnedService } from "@/lib/services/private-chat-pinned"
 import { useI18n } from "@/lib/i18n"
 
 function pinnedSnippet(msg: Message, te: (es: string, en: string) => string): string {
-  const raw = msg.content?.startsWith("@reply:")
-    ? (msg.content.match(/@reply:[^|]+\|(.*)/)?.[1] ?? msg.content)
-    : (msg.content ?? "")
+  const raw = messageDisplayText(msg)
   if (!raw?.trim()) {
     if (msg.media?.mediaUrl || msg.mediaType === "IMAGE") return `📷 ${te("Imagen", "Image")}`
     if (msg.mediaType === "VIDEO") return `🎬 ${te("Vídeo", "Video")}`
@@ -46,15 +53,39 @@ function pinnedAuthorLabel(msg: Message, selfId: string | undefined, otherName: 
 }
 
 export default function ChatRoomPage() {
-  const { te, t } = useI18n()
+  const { te, t, language } = useI18n()
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user } = useAuth()
   const chatId = params.chatId as string
+  const [chatContext, setChatContext] = useState<ChatContextResponse | null>(null)
+
+  const contextQuery = useMemo(() => {
+    const p = new URLSearchParams(searchParams.toString())
+    if (language === "en") p.set("lang", "en")
+    return p.toString()
+  }, [searchParams, language])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const ctx = await contextAwareChatService.getContext(chatId, contextQuery)
+        if (!cancelled) setChatContext(ctx)
+      } catch {
+        if (!cancelled) setChatContext(null)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [chatId, contextQuery])
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState("")
   const newMessageRef = useRef("")
   const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [isSending, setIsSending] = useState(false)
   const [chatInfo, setChatInfo] = useState<Chat | null>(null)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
@@ -85,9 +116,10 @@ export default function ChatRoomPage() {
     }
     msgs.forEach(msg => {
       const msgId = msg.messageId || msg.id || ''
-      if (msg.reactions && msg.reactions.length > 0) {
+      const reactions = Array.isArray(msg.reactions) ? msg.reactions : []
+      if (reactions.length > 0) {
         // mostrar la reaction del otro usuario (no la propia)
-        const otherReaction = msg.reactions.find((r: any) => r.userId !== user?.userId)
+        const otherReaction = reactions.find((r: { userId?: string }) => r.userId !== user?.userId)
         if (otherReaction) {
           backendReactions[msgId] = reactionToEmoji[otherReaction.reaction] || ''
         }
@@ -113,7 +145,7 @@ export default function ChatRoomPage() {
   const [showAI, setShowAI] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([])
-  const [aiType, setAiType] = useState<'suggestions' | 'icebreaker' | 'date'>('suggestions')
+  const [aiType, setAiType] = useState<"suggestions" | "icebreaker" | "date" | "coordination">("suggestions")
   const [selectedImageView, setSelectedImageView] = useState<string | null>(null)
   const [viewportHeight, setViewportHeight] = useState<number | null>(null)
   const [pinnedMessages, setPinnedMessages] = useState<Message[]>([])
@@ -152,7 +184,7 @@ export default function ChatRoomPage() {
       if (found) setOtherUserOnline(found.status?.toUpperCase() === 'ONLINE')
     }
   }, [chatInfo?.otherUserId])
-
+console.log("Render ChatRoomPage", { chatId, chatInfo, otherUserId: otherUserIdRef.current })
   const wsCallbacksRef = useRef({
     
     onPresence: (event: any) => {
@@ -178,14 +210,14 @@ export default function ChatRoomPage() {
         }
       }
     },
-    onPresenceSnapshot: (events: any[]) => {
-     
+    onPresenceSnapshot: (events: unknown) => {
+      const list = Array.isArray(events) ? events : []
       const otherId = otherUserIdRef.current
       if (!otherId) {
-        pendingSnapshotRef.current = events
+        pendingSnapshotRef.current = list
         return
       }
-      const found = events.find(e => {
+      const found = list.find(e => {
         const id = e.userId?.toString ? e.userId.toString() : String(e.userId)
         return id === otherId
       })
@@ -282,30 +314,45 @@ export default function ChatRoomPage() {
   useEffect(() => { sendSeenRef.current = sendSeen }, [sendSeen])
 
   const fetchMessages = useCallback(async () => {
+    if (!chatId?.trim()) {
+      setLoadError(te("Chat no válido", "Invalid chat"))
+      setIsLoading(false)
+      return
+    }
     try {
-      const data = await api.get<Message[]>(`/api/messages/${chatId}/messages`)
-      
-      setMessages(prev => {
-        const serverContents = new Set(data.map((m: Message) => m.content))
-        const pendingOptimistic = prev.filter(m =>
-          (m.messageId || m.id || '').startsWith('optimistic-') &&
-          !serverContents.has(m.content)
+      setLoadError(null)
+      const data = await chatService.getMessages(chatId, 0, 50)
+      const rows = Array.isArray(data) ? data : []
+      setMessages((prev) => {
+        const serverContents = new Set(rows.map((m) => m.content))
+        const pendingOptimistic = prev.filter(
+          (m) =>
+            (m.messageId || m.id || "").startsWith("optimistic-") &&
+            !serverContents.has(m.content)
         )
-        const merged = [...data, ...pendingOptimistic]
-        syncReactionsFromMessages(data)
+        const merged = [...rows, ...pendingOptimistic]
+        syncReactionsFromMessages(rows)
         return merged
       })
     } catch (error) {
-      console.error('[fetchMessages] ERROR:', error)
+      console.error("[fetchMessages] ERROR:", error)
+      const msg =
+        error instanceof Error
+          ? error.message
+          : te("No se pudieron cargar los mensajes", "Could not load messages")
+      setLoadError(msg)
+      toast.error(msg)
     } finally {
       setIsLoading(false)
     }
-  }, [chatId])
+  }, [chatId, te])
 
   const fetchChatInfo = useCallback(async () => {
     try {
-      const chats = await api.get<Chat[]>("/api/chat/chats")
-      const current = chats.find((c) => c.chatId === chatId)
+      const chats = await chatService.getMyChats()
+      const current = chats.find(
+        (c) => String(c.chatId) === String(chatId) || String((c as Chat & { id?: string }).id) === String(chatId)
+      )
      
       if (current) {
         try {
@@ -338,7 +385,7 @@ export default function ChatRoomPage() {
   const loadPinnedMessages = useCallback(async () => {
     try {
       const data = await privateChatPinnedService.list(chatId)
-      setPinnedMessages(data)
+      setPinnedMessages(Array.isArray(data) ? data : [])
     } catch {
       // list endpoint opcional: no bloquear el chat
     }
@@ -587,15 +634,32 @@ export default function ChatRoomPage() {
     : null
   const deleteConfirmIsOwn = deleteConfirmMessage?.senderId === user?.userId
 
-  const filteredMessages = useMemo(() => searchQuery
-    ? messages.filter(msg => !deletedMessages.has(msg.messageId || msg.id || '') && msg.content.toLowerCase().includes(searchQuery.toLowerCase()))
-    : messages.filter(msg => !deletedMessages.has(msg.messageId || msg.id || ''))
-  , [messages, deletedMessages, searchQuery])
+  const filteredMessages = useMemo(
+    () =>
+      searchQuery
+        ? messages.filter((msg) => {
+            const id = msg.messageId || msg.id || ""
+            if (deletedMessages.has(id)) return false
+            const text = messageDisplayText(msg)
+            return text.toLowerCase().includes(searchQuery.toLowerCase())
+          })
+        : messages.filter((msg) => !deletedMessages.has(msg.messageId || msg.id || "")),
+    [messages, deletedMessages, searchQuery]
+  )
 
-  const mediaMessages = useMemo(() => messages.filter(msg => {
-    const content = msg.content.startsWith('@reply:') ? msg.content.split('|')[1] : msg.content
-    return content?.startsWith('http') && (content.includes('cloudinary.com') || content.match(/\.(jpg|jpeg|png|gif|webp)$/i))
-  }), [messages])
+  const mediaMessages = useMemo(
+    () =>
+      messages.filter((msg) => {
+        const content = messageDisplayText(msg)
+        const url = msg.media?.mediaUrl || content
+        return (
+          typeof url === "string" &&
+          url.startsWith("http") &&
+          (url.includes("cloudinary.com") || /\.(jpg|jpeg|png|gif|webp)$/i.test(url))
+        )
+      }),
+    [messages]
+  )
 
   const pinnedIdSet = useMemo(
     () => new Set(pinnedMessages.map((m) => String(m.messageId || m.id || "")).filter(Boolean)),
@@ -700,18 +764,19 @@ export default function ChatRoomPage() {
     }
   }
 
-  const callAI = async (type: 'suggestions' | 'icebreaker' | 'date') => {
+  const callAI = async (type: "suggestions" | "icebreaker" | "date" | "coordination") => {
     setAiLoading(true)
     setAiType(type)
     try {
-      const res = await fetch('/api/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type,
           otherUsername: chatInfo?.otherUsername,
-          lastMessages: messages.slice(-5)
-        })
+          lastMessages: messages.slice(-5),
+          contextTitle: chatContext?.context_title,
+        }),
       })
       const data = await res.json()
       const result = Array.isArray(data.result) ? data.result.filter((s: string) => s.trim()) : [data.result].filter(Boolean)
@@ -730,7 +795,7 @@ export default function ChatRoomPage() {
     setUploadProgress(0)
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest()
-      xhr.open('POST', '/api/proxy/api/chat/upload/media')
+      xhr.open('POST', '/api/proxy/api/messages/upload/media')
       if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable) setUploadProgress(Math.round((e.loaded / e.total) * 100))
@@ -780,7 +845,7 @@ export default function ChatRoomPage() {
         if (selectedFile.type.startsWith('audio/')) mediaType = 'AUDIO'
         formData.append('message', JSON.stringify({ chatId, content: selectedFile.name, mediaType }))
         formData.append('file', selectedFile)
-        await api.post('/api/chat/send', formData)
+        await chatService.sendMessageMultipart(formData)
         setIsUploading(false)
         handleRemoveFile()
         fetchMessages()
@@ -791,7 +856,7 @@ export default function ChatRoomPage() {
         const formData = new FormData()
         formData.append('message', JSON.stringify({ chatId, content: '', mediaType: 'IMAGE' }))
         formData.append('file', selectedImage)
-        await api.post('/api/chat/send', formData)
+        await chatService.sendMessageMultipart(formData)
         handleRemoveImage()
         fetchMessages()
       } else {
@@ -800,13 +865,20 @@ export default function ChatRoomPage() {
         if (!sentViaWS) {
           const formData = new FormData()
           formData.append('message', JSON.stringify({ chatId, content: finalContent }))
-          const saved = await api.post<Message>('/api/chat/send', formData)
-          setMessages(prev => prev.map(m =>
-            (m.messageId || m.id) === optimisticId
-              ? { ...saved, messageId: saved.messageId || (saved as any).id }
-              : m
-          ))
+          const saved = await chatService.sendMessageMultipart(formData)
+          setMessages((prev) =>
+            prev.map((m) =>
+              (m.messageId || m.id) === optimisticId
+                ? { ...saved, messageId: saved.messageId || saved.id }
+                : m
+            )
+          )
         }
+      }
+      if (user?.userId) {
+        void conversionLoopService
+          .track({ stage: "chat", metadata: { channel_id: chatId } })
+          .catch(() => {})
       }
     } catch (error) {
       console.error('[Chat] Error al enviar:', error)
@@ -821,6 +893,20 @@ export default function ChatRoomPage() {
     return (
       <div className="flex h-[60vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-6 text-center">
+        <p className="text-sm text-muted-foreground">{loadError}</p>
+        <Button variant="outline" onClick={() => { setIsLoading(true); void fetchMessages() }}>
+          {te("Reintentar", "Retry")}
+        </Button>
+        <Button variant="ghost" onClick={() => router.push("/chat")}>
+          {te("Volver a chats", "Back to chats")}
+        </Button>
       </div>
     )
   }
@@ -842,39 +928,20 @@ export default function ChatRoomPage() {
           <span className="sr-only">Volver</span>
         </Button>
    
-        <Avatar className="h-10 w-10 border-2 border-primary/30 ring-2 ring-primary/10">
-          <AvatarImage src={chatInfo?.otherUserPhoto} alt={chatInfo?.otherUsername} />
-          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-bold">
-            {chatInfo?.otherUsername?.[0]?.toUpperCase() || "?"}
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex-1">
-          <Link
-            href={`/profile/${chatInfo?.otherUserId}`}
-            className="font-bold text-foreground hover:text-primary hover:underline"
-          >
-            {chatInfo?.otherUsername || "Chat"}
-          </Link>
-          {isTyping ? (
-            <p className="text-xs text-primary flex items-center gap-1">
-              <span className="flex gap-0.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }} />
-              </span>
-              escribiendo...
-            </p>
-          ) : otherUserOnline ? (
-            <p className="text-xs text-green-500 flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
-              En línea
-            </p>
-          ) : otherUserLastSeen ? (
-            <p className="text-xs text-muted-foreground">
-              En linea {formatDistanceToNow(new Date(otherUserLastSeen), { addSuffix: true, locale: es })}
-            </p>
-          ) : null}
-        </div>
+        <ChatContextHeaderAvatar
+          otherUserPhoto={chatInfo?.otherUserPhoto}
+          otherUsername={chatInfo?.otherUsername}
+        />
+        <ChatContextHeader
+          context={chatContext}
+          otherUsername={chatInfo?.otherUsername}
+          otherUserId={chatInfo?.otherUserId}
+          isTyping={isTyping}
+          otherUserOnline={otherUserOnline}
+          otherUserLastSeen={otherUserLastSeen}
+          te={te}
+          language={language}
+        />
         <div className="flex gap-2">
           <Button
             variant="ghost"
@@ -906,6 +973,9 @@ export default function ChatRoomPage() {
         </div>
       </div>
 
+      <ChatContextActions chatId={chatId} context={chatContext} te={te} />
+      <ChatActivityFeed chatId={chatId} search={contextQuery} language={language} te={te} />
+
       {showSearch && (
         <div className="flex-shrink-0 border-b border-primary/20 bg-background/95 px-4 py-2">
           <Input
@@ -922,7 +992,7 @@ export default function ChatRoomPage() {
           <p className="text-xs font-semibold mb-1.5">{te("Galería", "Gallery")} ({mediaMessages.length})</p>
           <div className="grid grid-cols-6 gap-1.5 max-h-20 overflow-y-auto">
             {mediaMessages.map((msg, gIdx) => {
-              const content = msg.content.startsWith('@reply:') ? msg.content.split('|')[1] : msg.content
+              const content = messageDisplayText(msg) || msg.media?.mediaUrl || ""
               return (
                 <img
                   key={msg.messageId || msg.id || `gallery-${gIdx}`}
@@ -943,7 +1013,7 @@ export default function ChatRoomPage() {
             <Star className="h-4 w-4 text-primary" />
             <span className="text-xs font-semibold text-primary">Asistente IA</span>
             <div className="flex gap-1 ml-auto">
-              {(['suggestions', 'icebreaker', 'date'] as const).map((t) => (
+              {(["suggestions", "icebreaker", "date", "coordination"] as const).map((t) => (
                 <button
                   key={t}
                   onClick={() => callAI(t)}
@@ -952,7 +1022,13 @@ export default function ChatRoomPage() {
                     aiType === t ? "bg-primary text-black border-primary" : "border-primary/30 text-muted-foreground hover:border-primary"
                   )}
                 >
-                  {t === 'suggestions' ? '💬 Temas' : t === 'icebreaker' ? '❄️ Romper hielo' : '📅 Citas'}
+                  {t === "suggestions"
+                    ? "💬 Temas"
+                    : t === "icebreaker"
+                      ? "❄️ Romper hielo"
+                      : t === "date"
+                        ? "📅 Citas"
+                        : "📍 Plan"}
                 </button>
               ))}
             </div>
@@ -1094,10 +1170,11 @@ export default function ChatRoomPage() {
                 )
               }
 
-              const isReply = msg.content.startsWith('@reply:')
-              const replyMatch = isReply ? msg.content.match(/@reply:([^|]+)\|(.*)/) : null
+              const rawContent = msg.content ?? ""
+              const isReply = rawContent.startsWith("@reply:")
+              const replyMatch = isReply ? rawContent.match(/@reply:([^|]+)\|(.*)/) : null
               const replyToId = replyMatch?.[1]
-              const actualContent = replyMatch?.[2] || msg.content
+              const actualContent = replyMatch?.[2] ?? messageDisplayText(msg)
               const isDeletedContent = actualContent === te('Mensaje eliminado', 'Message deleted')
               const repliedMsg = replyToId ? messages.find(m => (m.messageId || m.id) === replyToId) : null
               const isAudio = actualContent.startsWith('🎤 ')
@@ -1408,6 +1485,14 @@ export default function ChatRoomPage() {
         </div>
       )}
 
+      <ChatContextQuickReplies
+        context={chatContext}
+        onPick={(text) => {
+          setNewMessage(text)
+          newMessageRef.current = text
+        }}
+        te={te}
+      />
       <ChatInput
         onSend={handleSend}
         onTyping={handleTypingInput}

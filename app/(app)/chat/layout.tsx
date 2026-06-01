@@ -1,4 +1,5 @@
-import type { Metadata } from 'next'
+import type { Metadata } from "next"
+import ChatLayoutClient from "./chat-layout-client"
 
 export const metadata: Metadata = {
   title: 'Mensajes y Chats | Sparkd',
@@ -14,5 +15,5 @@ export default function ChatLayout({
 }: {
   children: React.ReactNode
 }) {
-  return <>{children}</>
+  return <ChatLayoutClient>{children}</ChatLayoutClient>
 }

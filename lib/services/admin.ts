@@ -288,7 +288,7 @@ export const adminService = {
     if (params?.action) sp.set("action", params.action)
     sp.set("page", String(params?.page ?? 0))
     sp.set("size", String(params?.size ?? 50))
-    return api.get<AuditLogPage>(`/api/admin/audit-log?${sp.toString()}`)
+    return api.getPage<AuditLogPage>(`/api/admin/audit-log?${sp.toString()}`)
   },
 
   getSystemHealth: () => api.get<AdminSystemHealth>("/api/admin/system/health"),

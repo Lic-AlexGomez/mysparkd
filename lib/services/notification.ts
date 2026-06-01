@@ -1,4 +1,5 @@
 import { api } from '@/lib/api'
+import { extractApiRows } from '@/lib/extract-api-rows'
 
 export interface Notification {
   notificationId: string
@@ -32,8 +33,10 @@ class NotificationService {
       if (opts?.page !== undefined) q.set("page", String(opts.page))
       if (opts?.size !== undefined) q.set("size", String(opts.size))
       const qs = q.toString()
-      const data = await api.get<Notification[]>(
-        `/api/notifications/${userId}${qs ? `?${qs}` : ""}`
+      const data = extractApiRows<Notification>(
+        await api.get<unknown>(
+          `/api/notifications/${userId}${qs ? `?${qs}` : ""}`
+        )
       )
       this.notifications = data
       return this.notifications

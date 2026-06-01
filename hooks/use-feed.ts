@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { api } from '@/lib/api'
+import { normalizePost } from '@/lib/normalize-post'
 import { feedService, FEED_PAGE_SIZE } from '@/lib/services/feed'
 import type { Post } from '@/lib/types'
+import { readGlobalFeedCache, writeGlobalFeedCache } from '@/lib/feed-session-cache'
 
 type SortMode = 'chronological' | 'relevant' | 'compatible' | 'top'
 
@@ -46,62 +48,6 @@ type PrefetchedPage = {
   hasMore: boolean
 }
 
-function normalizePost(post: any): Post {
-  const reactionsObj: Record<string, any> = {}
-  if (Array.isArray(post.reactions)) {
-    post.reactions.forEach((r: any) => {
-      reactionsObj[r.reaction] = { type: r.reaction, count: r.count, userReacted: post.myReaction === r.reaction }
-    })
-  }
-
-  let poll = null
-  if (post.poll) {
-    const p = post.poll
-    const totalVotes = p.options?.reduce((sum: number, o: any) => sum + (o.voteCount || 0), 0) || 0
-    poll = {
-      id: p.pollId || '',
-      question: p.question || '',
-      options: (p.options || []).map((o: any) => ({ id: o.id || '', text: o.text || '', votes: o.voteCount || 0, percentage: o.percentage || 0 })),
-      totalVotes,
-      expiresAt: p.expiresAt || new Date().toISOString(),
-      userVoted: p.myVoteOptionId || null,
-      allowMultiple: false,
-    }
-  }
-
-  return {
-    id: post.id != null ? String(post.id) : post.postId != null ? String(post.postId) : '',
-    body: post.body ?? null,
-    userId: post.userId ? String(post.userId) : '',
-    username: post.username || 'Usuario',
-    userPhoto: post.profilePictureUrl || post.userPhoto || '',
-    createdAt: post.createdAt || new Date().toISOString(),
-    file: post.file || null,
-    visibility: post.visibility || 'PUBLIC',
-    likeCount: post.likeCount || 0,
-    commentsCount: post.commentsCount || 0,
-    viewCount: post.viewCount || 0,
-    shareCount: post.shareCount || 0,
-    liked: post.likedByCurrentUser || false,
-    saved: post.saved || false,
-    userReaction: post.myReaction || null,
-    reactions: reactionsObj,
-    totalReactions: post.totalReactions || 0,
-    locked: post.locked || false,
-    canUnlock: post.canUnlock || false,
-    unlocked: post.unlocked || false,
-    permanent: post.permanent !== false,
-    expiresAt: post.expiresAt || null,
-    message: post.message || null,
-    reputation: post.reputation,
-    verificationLevel: post.verificationLevel,
-    repostCount: post.repostCount || 0,
-    repostedByCurrentUser: post.repostedByCurrentUser || false,
-    media: post.media || null,
-    poll,
-  } as Post
-}
-
 export function useFeed() {
   const [allPosts, setAllPosts] = useState<Post[]>([])
   const [visibleCount, setVisibleCount] = useState(FEED_PAGE_SIZE)
@@ -116,6 +62,66 @@ export function useFeed() {
   const prefetchedPageRef = useRef<PrefetchedPage | null>(null)
   const prefetchPromiseRef = useRef<Promise<void> | null>(null)
   const prefetchEpochRef = useRef(0)
+  /** Sparkd Moments → compatible-sort affinity (0–15). */
+  const momentAffinityRef = useRef(0)
+  /** City Pulse → livability bias for relevant / compatible (0–10). */
+  const cityPulseBoostRef = useRef(0)
+
+  const fetchMomentsAffinityHint = useCallback(async () => {
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("sparkd_token") : null
+      if (!token) return
+      const r = await fetch("/api/moments/recommendation-hint", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!r.ok) return
+      const j = (await r.json()) as { affinity_boost?: number }
+      if (typeof j.affinity_boost === "number") momentAffinityRef.current = j.affinity_boost
+    } catch {
+      /* noop */
+    }
+  }, [])
+
+  const fetchCityPulseBoost = useCallback(async () => {
+    try {
+      let lat: number | undefined
+      let lng: number | undefined
+      const raw =
+        typeof window !== "undefined" ? window.localStorage.getItem("sparkd_location") : null
+      if (raw) {
+        try {
+          const j = JSON.parse(raw) as { latitude?: number; longitude?: number }
+          if (typeof j.latitude === "number" && typeof j.longitude === "number") {
+            lat = j.latitude
+            lng = j.longitude
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+      if (lat == null || lng == null) return
+
+      const token = typeof window !== "undefined" ? localStorage.getItem("sparkd_token") : null
+      const headers: Record<string, string> = {}
+      if (token) headers.Authorization = `Bearer ${token}`
+      const r = await fetch(
+        `/api/city/pulse?lat=${encodeURIComponent(String(lat))}&lng=${encodeURIComponent(String(lng))}`,
+        { headers }
+      )
+      if (!r.ok) return
+      const j = (await r.json()) as { recommendation_boost?: number }
+      if (typeof j.recommendation_boost === "number") cityPulseBoostRef.current = j.recommendation_boost
+    } catch {
+      /* noop */
+    }
+  }, [])
+
+  const sortWithMoments = useCallback((posts: Post[], mode: SortMode) => {
+    return feedService.sortPosts(posts, mode, undefined, {
+      momentAffinityBoost: momentAffinityRef.current,
+      cityPulseBoost: cityPulseBoostRef.current,
+    })
+  }, [])
   const normalizeFeedItems = useCallback((items: any[]) => {
     const mapped = items.map(normalizePost)
     const out = mapped.filter((p) => {
@@ -194,7 +200,7 @@ export function useFeed() {
 
   const fetchFeedPathPage = useCallback(
     async (path: string, targetPage: number) => {
-      const data = await api.get<any[] | PaginatedFeedResponse>(
+      const data = await api.getPage<any[] | PaginatedFeedResponse>(
         `${path}?page=${targetPage}&size=${FEED_PAGE_SIZE}`
       )
       if (FEED_DEBUG) {
@@ -243,7 +249,7 @@ export function useFeed() {
 
         prefetchedPageRef.current = {
           page: targetPage,
-          posts: feedService.sortPosts(response.posts, sortMode),
+          posts: sortWithMoments(response.posts, sortMode),
           hasMore: response.hasMore,
         }
       } catch {
@@ -255,7 +261,7 @@ export function useFeed() {
 
     prefetchPromiseRef.current = task
     await task
-  }, [fetchServerPage, sortMode])
+  }, [fetchServerPage, sortMode, sortWithMoments])
 
   // Actualizar ubicación en background al cargar el feed
   useEffect(() => {
@@ -281,9 +287,14 @@ export function useFeed() {
     prefetchPromiseRef.current = null
 
     try {
-      setLoading(true)
-      const firstPage = await fetchServerPage(0)
-      const sortedFirst = feedService.sortPosts(firstPage.posts, sortMode)
+      const hadCache = Boolean(readGlobalFeedCache(sortMode)?.posts.length)
+      if (!hadCache) setLoading(true)
+      const [firstPage] = await Promise.all([
+        fetchServerPage(0),
+        fetchMomentsAffinityHint(),
+        fetchCityPulseBoost(),
+      ])
+      const sortedFirst = sortWithMoments(firstPage.posts, sortMode)
       feedDebug('loadPosts primera página:', {
         count: sortedFirst.length,
         isPaginated: firstPage.isPaginated,
@@ -303,6 +314,13 @@ export function useFeed() {
         setPage(0)
         setHasMore(firstPage.hasMore)
         setVisibleCount(FEED_PAGE_SIZE)
+        writeGlobalFeedCache(sortMode, {
+          posts: sortedFirst,
+          hasMore: firstPage.hasMore,
+          page: 0,
+          useServerPagination: true,
+          visibleCount: FEED_PAGE_SIZE,
+        })
         if (firstPage.hasMore) {
           void prefetchServerPage(1, epoch)
         }
@@ -310,12 +328,19 @@ export function useFeed() {
       }
 
       // Fallback: backend sin paginación. Mostramos incrementalmente en frontend.
-      const sortedAll = feedService.sortPosts(firstPage.posts, sortMode)
+      const sortedAll = sortWithMoments(firstPage.posts, sortMode)
       setUseServerPagination(false)
       setAllPosts(sortedAll)
       setVisibleCount(FEED_PAGE_SIZE)
       setPage(0)
       setHasMore(sortedAll.length > FEED_PAGE_SIZE)
+      writeGlobalFeedCache(sortMode, {
+        posts: sortedAll,
+        hasMore: sortedAll.length > FEED_PAGE_SIZE,
+        page: 0,
+        useServerPagination: false,
+        visibleCount: FEED_PAGE_SIZE,
+      })
     } catch (error: any) {
       if (error?.name !== 'AbortError') {
         feedDebug('loadPosts error:', error)
@@ -329,7 +354,14 @@ export function useFeed() {
     } finally {
       setLoading(false)
     }
-  }, [sortMode, fetchServerPage, prefetchServerPage])
+  }, [
+    sortMode,
+    fetchServerPage,
+    prefetchServerPage,
+    sortWithMoments,
+    fetchMomentsAffinityHint,
+    fetchCityPulseBoost,
+  ])
 
   const loadMore = useCallback(async () => {
     if (loading || loadingMore || !hasMore) return
@@ -357,12 +389,12 @@ export function useFeed() {
         const response = await fetchServerPage(nextPage)
         nextChunk = {
           page: nextPage,
-          posts: feedService.sortPosts(response.posts, sortMode),
+          posts: sortWithMoments(response.posts, sortMode),
           hasMore: response.hasMore,
         }
       }
 
-      setAllPosts((prev) => feedService.sortPosts(mergeUniquePosts(prev, nextChunk.posts), sortMode))
+      setAllPosts((prev) => sortWithMoments(mergeUniquePosts(prev, nextChunk.posts), sortMode))
       setPage(nextPage)
       setHasMore(nextChunk.hasMore)
       prefetchedPageRef.current = null
@@ -374,7 +406,19 @@ export function useFeed() {
     } finally {
       setLoadingMore(false)
     }
-  }, [loading, loadingMore, hasMore, useServerPagination, allPosts.length, page, fetchServerPage, sortMode, mergeUniquePosts, prefetchServerPage])
+  }, [
+    loading,
+    loadingMore,
+    hasMore,
+    useServerPagination,
+    allPosts.length,
+    page,
+    fetchServerPage,
+    sortMode,
+    mergeUniquePosts,
+    prefetchServerPage,
+    sortWithMoments,
+  ])
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true)
@@ -384,13 +428,23 @@ export function useFeed() {
 
   const changeSortMode = useCallback((mode: SortMode) => {
     setSortMode(mode)
-    setAllPosts(prev => feedService.sortPosts(prev, mode))
-  }, [])
+    setAllPosts((prev) => sortWithMoments(prev, mode))
+  }, [sortWithMoments])
 
   useEffect(() => {
+    const cached = readGlobalFeedCache(sortMode)
+    if (cached?.posts.length) {
+      setAllPosts(cached.posts)
+      setHasMore(cached.hasMore)
+      setPage(cached.page)
+      setUseServerPagination(cached.useServerPagination)
+      setVisibleCount(cached.visibleCount)
+      setLoading(false)
+    }
+
     loadPosts()
     return () => abortRef.current?.abort()
-  }, [loadPosts])
+  }, [loadPosts, sortMode])
 
   const posts = useMemo(() => {
     if (useServerPagination) return allPosts

@@ -1,0 +1,167 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="40" y1="24" x2="472" y2="488" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0B0F19"/>
+      <stop offset="1" stop-color="#090C14"/>
+    </linearGradient>
+    <radialGradient id="auraGradient" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(256 266) rotate(90) scale(174)">
+      <stop stop-color="#B14FFF" stop-opacity="0.45"/>
+      <stop offset="0.55" stop-color="#33D4FF" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#FF5FCF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="bodyBaseGradient" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(200 178) rotate(42) scale(280)">
+      <stop stop-color="#7A6CFF"/>
+      <stop offset="0.46" stop-color="#33D5FF"/>
+      <stop offset="1" stop-color="#FFA2DC"/>
+    </radialGradient>
+    <radialGradient id="innerCoreGradient" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(256 250) rotate(90) scale(110)">
+      <stop stop-color="#E8FBFF" stop-opacity="0.9"/>
+      <stop offset="0.7" stop-color="#75E5FF" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#75E5FF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="appendageGradient" x1="152" y1="186" x2="195" y2="274" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#B5D4FF"/>
+      <stop offset="1" stop-color="#7CA8FF"/>
+    </linearGradient>
+    <linearGradient id="eyeIrisGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#8A5CFF"/>
+      <stop offset="0.55" stop-color="#32D5FF"/>
+      <stop offset="1" stop-color="#FF7BD5"/>
+    </linearGradient>
+    <filter id="softGlow" x="40" y="60" width="432" height="432" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="18" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 0.8 0 0 0  0 0 1 0 0  0 0 0 0.75 0"/>
+    </filter>
+    <filter id="eyeGlow" x="-24" y="-24" width="88" height="88" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feColorMatrix in="b" type="matrix" values="0 0 0 0 0.53  0 0 0 0 0.55  0 0 0 0 1  0 0 0 0.75 0"/>
+    </filter>
+    <filter id="particleGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2.2"/>
+    </filter>
+  </defs>
+
+  <!-- scene_bg -->
+  <rect x="0" y="0" width="512" height="512" rx="28" fill="url(#bgGradient)"/>
+
+  <!-- shadow -->
+  <g id="shadow" transform="translate(0,0)">
+    <ellipse cx="256" cy="360" rx="118" ry="34" fill="#031422" opacity="0.52"/>
+    <ellipse cx="256" cy="353" rx="98" ry="22" fill="#0B3856" opacity="0.34"/>
+  </g>
+
+  <!-- aura -->
+  <g id="aura" filter="url(#softGlow)">
+    <circle cx="256" cy="248" r="162" fill="url(#auraGradient)"/>
+  </g>
+
+  <!-- floating_particles_back -->
+  <g id="floating_particles_back" opacity="0.7">
+    <circle cx="172" cy="188" r="3" fill="#77F0FF" filter="url(#particleGlow)"/>
+    <circle cx="330" cy="154" r="2.8" fill="#D591FF" filter="url(#particleGlow)"/>
+    <circle cx="365" cy="214" r="2.2" fill="#79E7FF" filter="url(#particleGlow)"/>
+    <circle cx="142" cy="248" r="2.6" fill="#FF8ADD" filter="url(#particleGlow)"/>
+    <circle cx="352" cy="286" r="2.4" fill="#A486FF" filter="url(#particleGlow)"/>
+  </g>
+
+  <!-- appendages_left -->
+  <g id="appendages_left" transform="translate(0,0)">
+    <path d="M174 224C147 234 138 267 155 286C168 300 189 292 196 270C203 249 196 226 174 224Z" fill="url(#appendageGradient)" opacity="0.78"/>
+  </g>
+
+  <!-- appendages_right -->
+  <g id="appendages_right" transform="translate(0,0)">
+    <path d="M338 224C365 234 374 267 357 286C344 300 323 292 316 270C309 249 316 226 338 224Z" fill="url(#appendageGradient)" opacity="0.78"/>
+  </g>
+
+  <!-- body_base -->
+  <g id="body_base" transform="translate(0,0)">
+    <path d="M256 108C341 108 403 171 403 250C403 332 337 399 256 399C175 399 109 332 109 250C109 171 171 108 256 108Z" fill="url(#bodyBaseGradient)"/>
+    <path d="M232 112C182 122 143 158 125 210C114 243 122 273 142 293C151 302 168 298 174 286C186 261 183 236 201 216C220 196 252 186 272 166C286 152 279 124 258 114C249 110 241 110 232 112Z" fill="#FFFFFF" opacity="0.08"/>
+  </g>
+
+  <!-- inner_glow_core -->
+  <g id="inner_glow_core">
+    <circle cx="256" cy="250" r="104" fill="url(#innerCoreGradient)"/>
+  </g>
+
+  <!-- cheek_glow_left -->
+  <g id="cheek_glow_left" opacity="0.55">
+    <ellipse cx="209" cy="278" rx="21" ry="11" fill="#FF86D8"/>
+  </g>
+  <!-- cheek_glow_right -->
+  <g id="cheek_glow_right" opacity="0.55">
+    <ellipse cx="303" cy="278" rx="21" ry="11" fill="#FF86D8"/>
+  </g>
+
+  <!-- eye_left_white -->
+  <g id="eye_left_white" transform="translate(0,0)">
+    <ellipse cx="205" cy="228" rx="30" ry="34" fill="#F8FDFF"/>
+  </g>
+  <!-- eye_right_white -->
+  <g id="eye_right_white" transform="translate(0,0)">
+    <ellipse cx="307" cy="228" rx="30" ry="34" fill="#F8FDFF"/>
+  </g>
+
+  <!-- pupils -->
+  <g id="pupils" transform="translate(0,0)">
+    <!-- pupil_left -->
+    <g id="pupil_left">
+      <ellipse cx="205" cy="235" rx="15" ry="17" fill="url(#eyeIrisGradient)"/>
+      <ellipse cx="205" cy="236" rx="7.4" ry="8.8" fill="#0A1233"/>
+      <circle cx="211" cy="228" r="2.7" fill="#FFFFFF"/>
+      <circle cx="201" cy="243" r="1.6" fill="#E9EEFF" opacity="0.9"/>
+      <circle cx="205" cy="235" r="24" fill="#7D86FF" opacity="0.22" filter="url(#eyeGlow)"/>
+    </g>
+    <!-- pupil_right -->
+    <g id="pupil_right">
+      <ellipse cx="307" cy="235" rx="15" ry="17" fill="url(#eyeIrisGradient)"/>
+      <ellipse cx="307" cy="236" rx="7.4" ry="8.8" fill="#0A1233"/>
+      <circle cx="313" cy="228" r="2.7" fill="#FFFFFF"/>
+      <circle cx="303" cy="243" r="1.6" fill="#E9EEFF" opacity="0.9"/>
+      <circle cx="307" cy="235" r="24" fill="#7D86FF" opacity="0.22" filter="url(#eyeGlow)"/>
+    </g>
+  </g>
+
+  <!-- eyelids -->
+  <g id="eyelids" opacity="0.0">
+    <!-- eyelid_left -->
+    <g id="eyelid_left" transform="translate(0,0)">
+      <path d="M175 222C184 205 194 198 205 198C216 198 226 205 235 222C226 213 216 209 205 209C194 209 184 213 175 222Z" fill="#6F8BFF"/>
+    </g>
+    <!-- eyelid_right -->
+    <g id="eyelid_right" transform="translate(0,0)">
+      <path d="M277 222C286 205 296 198 307 198C318 198 328 205 337 222C328 213 318 209 307 209C296 209 286 213 277 222Z" fill="#6F8BFF"/>
+    </g>
+  </g>
+
+  <!-- mouth variants -->
+  <g id="mouth">
+    <!-- mouth_neutral -->
+    <path id="mouth_neutral" d="M223 307C232 317 243 322 256 322C269 322 280 317 289 307" stroke="#2A2C56" stroke-width="8.5" stroke-linecap="round"/>
+    <!-- mouth_smile -->
+    <path id="mouth_smile" d="M217 304C229 320 241 327 256 327C271 327 283 320 295 304" stroke="#241E53" stroke-width="10" stroke-linecap="round" opacity="0"/>
+    <!-- mouth_o -->
+    <ellipse id="mouth_o" cx="256" cy="312" rx="11.5" ry="9.5" fill="#2A235F" opacity="0"/>
+    <!-- mouth_sad -->
+    <path id="mouth_sad" d="M225 320C236 309 246 304 256 304C266 304 276 309 287 320" stroke="#2A2C56" stroke-width="8.5" stroke-linecap="round" opacity="0"/>
+  </g>
+
+  <!-- floating_particles_front -->
+  <g id="floating_particles_front" opacity="0.85">
+    <circle cx="193" cy="150" r="3" fill="#9EF2FF" filter="url(#particleGlow)"/>
+    <circle cx="276" cy="136" r="2.4" fill="#FF91DF" filter="url(#particleGlow)"/>
+    <circle cx="336" cy="180" r="2.7" fill="#9E8EFF" filter="url(#particleGlow)"/>
+    <circle cx="170" cy="318" r="2.1" fill="#7AE6FF" filter="url(#particleGlow)"/>
+    <circle cx="344" cy="322" r="2.5" fill="#FF95D8" filter="url(#particleGlow)"/>
+  </g>
+
+  <!-- rig_helpers (optional guides for Rive import; keep hidden) -->
+  <g id="rig_helpers" opacity="0">
+    <circle id="pivot_root" cx="256" cy="248" r="3" fill="#00FF9D"/>
+    <circle id="pivot_body" cx="256" cy="308" r="3" fill="#00FF9D"/>
+    <circle id="pivot_eye_left" cx="205" cy="235" r="3" fill="#00FF9D"/>
+    <circle id="pivot_eye_right" cx="307" cy="235" r="3" fill="#00FF9D"/>
+    <circle id="pivot_mouth" cx="256" cy="312" r="3" fill="#00FF9D"/>
+  </g>
+</svg>

@@ -66,12 +66,12 @@ export const managerService = {
     if (params?.username) sp.set("username", params.username)
     sp.set("page", String(params?.page ?? 0))
     sp.set("size", String(params?.size ?? 20))
-    const raw = await api.get<unknown>(`/api/manager/users?${sp.toString()}`)
+    const raw = await api.getPage<unknown>(`/api/manager/users?${sp.toString()}`)
     return normalizePage<ManagerUserRow>(raw)
   },
 
   async contentQueue(params?: { page?: number; size?: number }) {
-    const raw = await api.get<unknown>(
+    const raw = await api.getPage<unknown>(
       `/api/manager/posts?page=${params?.page ?? 0}&size=${params?.size ?? 20}`
     )
     return normalizePage<ManagerPostReport>(raw)

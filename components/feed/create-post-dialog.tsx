@@ -18,7 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import { Loader2, Plus, ImageIcon, Camera, X, BarChart3, Lock, Globe, Users as UsersIcon, LockKeyhole } from "lucide-react"
-import { uploadToCloudinary } from "@/lib/cloudinary"
+import { uploadMediaToCloudinary } from "@/lib/cloudinary"
 import { CreatePollDialog } from "./create-poll-dialog"
 import { useAuth } from "@/lib/auth-context"
 import { useFeatureFlags } from "@/hooks/use-feature-flags"
@@ -215,9 +215,20 @@ export function CreatePostDialog({ onCreated }: CreatePostDialogProps) {
       console.log('visibility:', visibility)
       console.log('typeof visibility:', typeof visibility)
       
+      const DIRECT_MAX = 4 * 1024 * 1024
+      if (file && (file.type.startsWith('video/') || file.size > DIRECT_MAX)) {
+        setIsUploading(true)
+        setUploadProgress(0)
+        const uploaded = await uploadMediaToCloudinary(file)
+        postData.mediaUrl = uploaded.url
+        postData.mediaType = uploaded.isVideo ? 'VIDEO' : 'IMAGE'
+        if (uploaded.publicId) postData.mediaPublicId = uploaded.publicId
+        setIsUploading(false)
+      }
+
       formData.append('post', JSON.stringify(postData))
-      
-      if (file) {
+
+      if (file && !postData.mediaUrl) {
         formData.append('file', file)
       }
       

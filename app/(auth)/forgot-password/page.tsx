@@ -2,11 +2,12 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { api, ApiError, rateLimitHint } from "@/lib/api"
+import { api } from "@/lib/api"
+import { resolveAuthError, showAuthErrorToast } from "@/lib/auth-user-messages"
+import { AuthCard } from "@/components/auth/auth-card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent } from "@/components/ui/card"
 import { toast } from "sonner"
 import { Loader2, ArrowLeft, Mail } from "lucide-react"
 
@@ -27,19 +28,14 @@ export default function ForgotPasswordPage() {
       setSent(true)
       toast.success("Revisa tu correo")
     } catch (err) {
-      if (err instanceof ApiError && err.status === 429) {
-        toast.error(rateLimitHint(err))
-      } else {
-        toast.error(err instanceof Error ? err.message : "Error al enviar")
-      }
+      showAuthErrorToast(resolveAuthError(err, "forgot-password", { email: email.trim() }), toast)
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <Card className="border-border bg-card">
-      <CardContent className="pt-6">
+    <AuthCard>
         {sent ? (
           <div className="flex flex-col items-center gap-4 py-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
@@ -108,7 +104,6 @@ export default function ForgotPasswordPage() {
             </div>
           </>
         )}
-      </CardContent>
-    </Card>
+    </AuthCard>
   )
 }
